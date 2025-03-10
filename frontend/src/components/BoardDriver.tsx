@@ -90,6 +90,7 @@ const BoardDriver: React.FC = () => {
           <CardContent>
             <Typography>
               {content}
+              <Button>click.</Button>
             </Typography>
           </CardContent
         </Card>
