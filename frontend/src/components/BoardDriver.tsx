@@ -106,6 +106,8 @@ const BoardDriver: React.FC = () => {
             </CardContent>
             <CardActions>
               <Button size="small">Check In</Button>
+              <Button size="small">Check In</Button>
+              <Button size="small">Check In</Button>
             </CardActions>
           </Card>
           </div>
