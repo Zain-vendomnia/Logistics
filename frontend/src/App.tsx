@@ -1,6 +1,6 @@
 import React from "react";
 import { useState, useEffect } from "react";
-import { Routes, Route, Link } from "react-router-dom";
+import { Routes, Route, Link, Router } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./App.css";
 import * as AuthService from "./services/auth.service";
@@ -135,7 +135,7 @@ const App: React.FC = () => {
           </div>
         )}
       </nav>
-      <div className="container mt-3">
+      <div className="flex-1 p-6"> {/* container w-full max-w-full */}
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/home" element={<Home />} />
@@ -147,7 +147,7 @@ const App: React.FC = () => {
           <Route path="/admin" element={<BoardAdmin />} />
           <Route path="/api/estimate" element = {<RouteEstimateComponent/>}/>
         </Routes>
-      </div>
+      </div>   
     </div>
   );
 };
