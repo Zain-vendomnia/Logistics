@@ -86,6 +86,13 @@ const BoardDriver: React.FC = () => {
     <>
       <div style={{ display: "flex", height: "100vh" }}>
         <Sidebar menuItems={menuItems} onMenuItemClick={setSelectedPath} />
+        <Card>
+          <CardContent>
+            <Typography>
+              {content}
+            </Typography>
+          </CardContent
+        </Card>
         <div style={{ flexGrow: 1, padding: "0 0 0 20px" }}>
           
           <div className="d-flex justify-content-space" style={{ height: "20vh" }}>
