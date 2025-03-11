@@ -14,6 +14,7 @@ import EventBus from "./common/EventBus";
 import SuperAdmin from "./components/SuperAdmin";
 import BoardDriver from "./components/BoardDriver/BoardDriver";
 import RouteEstimateComponent from "./components/RouteEstimateComponent";
+import { AppBar, Box, Button, Stack, Toolbar, Typography } from "@mui/material";
 
 const App: React.FC = () => {
   const [showDriverBoard, setshowDriverBoard] = useState<boolean>(false);
@@ -50,91 +51,67 @@ const App: React.FC = () => {
 
   return (
     <>
-      <nav className="navbar navbar-expand navbar-dark bg-dark">
-        <div className="navbar-nav mr-auto">
-          {showDriverBoard && (
-            <li className="nav-item" style={{ color: "#FFFFFF" }}>
-              Driver Interface
-            </li>
-          )}
+      <AppBar
+        position="sticky"
+        sx={{
+          backgroundColor: "#f7941d",
+          height: 50,
+          boxShadow: "0px 2px 4px rgba(0,0,0,0.1)",
+        }}
+      >
+        <Toolbar sx={{ minHeight: "50px !important", paddingX: 2 }}>
+          <Box display="flex" alignItems="center" sx={{ flexGrow: 1 }}>
+            {showDriverBoard && (
+              <Typography variant="h6" sx={{ color: "#FFFFFF", mr: 2 }}>
+                Driver Interface
+              </Typography>
+            )}
 
-          {showAdminBoard && (
-            <li className="nav-item">
-              <Link to={"/admin"} className="nav-link">
+            {showAdminBoard && (
+              <Button color="inherit" component={Link} to="/admin">
                 Admin Board
-              </Link>
-            </li>
-          )}
+              </Button>
+            )}
 
-          {showSuperAdminBoard && (
-            <li className="nav-item">
-              <Link to={"/super_admin"} className="nav-link">
+            {showSuperAdminBoard && (
+              <Button color="inherit" component={Link} to="/super_admin">
                 Super Admin
-              </Link>
-            </li>
-          )}
-        </div>
+              </Button>
+            )}
+          </Box>
 
-        {currentUser ? (
-          <div className="navbar-nav ml-auto">
-            {/* If the user is a superadmin */}
-            {currentUser.username === "superadmin" && (
-              <>
-                <li className="nav-item">
-                  <Link to={"/register"} className="nav-link">
+          {currentUser ? (
+            <Stack direction="row" spacing={2}>
+              {currentUser.username === "superadmin" && (
+                <>
+                  <Button color="inherit" component={Link} to="/register">
                     Sign Up
-                  </Link>
-                </li>
-                <li className="nav-item">
-                  <a href="/login" className="nav-link" onClick={logOut}>
+                  </Button>
+                  <Button color="inherit" onClick={logOut}>
                     LogOut
-                  </a>
-                </li>
-              </>
-            )}
+                  </Button>
+                </>
+              )}
 
-            {/* If the user is an admin */}
-            {currentUser.username === "admin" && (
-              <>
-                <li className="nav-item">
-                  <Link to={"/profile"} className="nav-link">
+              {(currentUser.username === "admin" ||
+                currentUser.role === "driver") && (
+                <>
+                  <Button color="inherit" component={Link} to="/profile">
                     Profile
-                  </Link>
-                </li>
-                <li className="nav-item">
-                  <a href="/login" className="nav-link" onClick={logOut}>
+                  </Button>
+                  <Button color="inherit" onClick={logOut}>
                     LogOut
-                  </a>
-                </li>
-              </>
-            )}
-            {/* If the user is a driver */}
-            {currentUser.role === "driver" && (
-              <>
-                <li className="nav-item">
-                  <Link to={"/profile"} className="nav-link">
-                    Profile
-                  </Link>
-                </li>
-                <li className="nav-item">
-                  <a href="/login" className="nav-link" onClick={logOut}>
-                    LogOut
-                  </a>
-                </li>
-              </>
-            )}
-          </div>
-        ) : (
-          <div className="navbar-nav ml-auto">
-            {/* Default guest view */}
-            <li className="nav-item">
-              <Link to={"/login"} className="nav-link">
-                Login
-              </Link>
-            </li>
-          </div>
-        )}
-      </nav>
+                  </Button>
+                </>
+              )}
+            </Stack>
+          ) : (
+            <Button color="inherit" component={Link} to="/login">
+              Login
+            </Button>
+          )}
+        </Toolbar>
+      </AppBar>
 
       <div className="flex-1 p-6">
         {" "}
