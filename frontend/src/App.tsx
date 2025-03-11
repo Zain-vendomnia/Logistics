@@ -4,7 +4,7 @@ import { Routes, Route, Link, Router } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./App.css";
 import * as AuthService from "./services/auth.service";
-import IUser from './types/user.type';
+import IUser from "./types/user.type";
 import Login from "./components/Login";
 import Register from "./components/Register";
 import Home from "./components/Home";
@@ -12,14 +12,14 @@ import Profile from "./components/Profile";
 import BoardAdmin from "./components/BoardAdmin";
 import EventBus from "./common/EventBus";
 import SuperAdmin from "./components/SuperAdmin";
-import BoardDriver from "./components/BoardDriver";
+import BoardDriver from "./components/BoardDriver/BoardDriver";
 import RouteEstimateComponent from "./components/RouteEstimateComponent";
-
 
 const App: React.FC = () => {
   const [showDriverBoard, setshowDriverBoard] = useState<boolean>(false);
   const [showAdminBoard, setShowAdminBoard] = useState<boolean>(false);
-  const [showSuperAdminBoard, setShowSuperAdminBoard] = useState<boolean>(false);
+  const [showSuperAdminBoard, setShowSuperAdminBoard] =
+    useState<boolean>(false);
   const [currentUser, setCurrentUser] = useState<IUser | undefined>(undefined);
 
   useEffect(() => {
@@ -49,11 +49,11 @@ const App: React.FC = () => {
   };
 
   return (
-    <div>
+    <>
       <nav className="navbar navbar-expand navbar-dark bg-dark">
         <div className="navbar-nav mr-auto">
           {showDriverBoard && (
-            <li className="nav-item" style={{color:"#FFFFFF"}}>
+            <li className="nav-item" style={{ color: "#FFFFFF" }}>
               Driver Interface
             </li>
           )}
@@ -111,7 +111,7 @@ const App: React.FC = () => {
             {/* If the user is a driver */}
             {currentUser.role === "driver" && (
               <>
-               <li className="nav-item">
+                <li className="nav-item">
                   <Link to={"/profile"} className="nav-link">
                     Profile
                   </Link>
@@ -135,7 +135,10 @@ const App: React.FC = () => {
           </div>
         )}
       </nav>
-      <div className="flex-1 p-6"> {/* container w-full max-w-full */}
+
+      <div className="flex-1 p-6">
+        {" "}
+        {/* container w-full max-w-full */}
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/home" element={<Home />} />
@@ -145,10 +148,10 @@ const App: React.FC = () => {
           <Route path="/superadmin" element={<SuperAdmin />} />
           <Route path="/driver" element={<BoardDriver />} />
           <Route path="/admin" element={<BoardAdmin />} />
-          <Route path="/api/estimate" element = {<RouteEstimateComponent/>}/>
+          <Route path="/api/estimate" element={<RouteEstimateComponent />} />
         </Routes>
-      </div>   
-    </div>
+      </div>
+    </>
   );
 };
 

@@ -1,12 +1,10 @@
-import React from "react";
-import { Card } from "@mui/material";
+import { Box, Card, Stack } from "@mui/material";
 import { GoogleMap, LoadScript } from "@react-google-maps/api";
 
 const Dashboard = () => {
   const containerStyle = {
     width: "100%",
     height: "100%",
-    borderRadius: "8px",
   };
 
   const center = {
@@ -15,63 +13,90 @@ const Dashboard = () => {
   };
 
   return (
-    <div
-      className="d-flex w-100 justify-content-center"
-      style={{ height: "100vh" }}
-    >
-      <Card
-        sx={{
-          minWidth: 160,
-          maxWidth: "30%",
-          width: "35%",
-          height: "70vh",
-          p: "20px",
-          borderRadius: "8px",
-        }}
-        variant="outlined"
-      >
-        <div className="d-flex flex-column">
-          <h3>Customer Details</h3>
-          <h6>Customer Name</h6>
-          <div className="mt-4">
-            <p>Contact: +00 1234 5678</p>
-            <p>Address: Around Dubai</p>
-          </div>
-        </div>
-        <div className="mt-auto"></div>
-      </Card>
+    <Box display={"flex"} width={"100%"} height={"72vh"} mt={1}>
+      <Stack direction="row" spacing={1} width={"50%"}>
+        {/* 1st Stack */}
+        <Stack
+          spacing={1}
+          width={"50%"}          
+          p={"20px"}
+          border="0.5px solid #e0e0e0"
+          borderRadius={"8px"}
+        >
+          <Card
+            variant="outlined"
+            sx={{
+              height: 200,
+              p: "20px",
+              border: "2px solid #f7941d",
+              borderRadius: "10px",
+            }}
+          >
+            <div className="d-flex flex-column">
+              <h3>Order Details</h3>
+              <h6>Order ID: 123456</h6>
+              <div className="mt-4">
+                <p>Order Date: 12/12/2021</p>
+                <p>Order Status: In Progress</p>
+              </div>
+            </div>
+            <div className="mt-auto"></div>
+          </Card>
+          <Card
+            variant="outlined"
+            sx={{
+              height: 200,
+              p: "20px",
+              border: "2px solid #f7941d",
+              borderRadius: "10px",
+            }}
+          >
+            <div className="d-flex flex-column">
+              <h3>Order Details</h3>
+              <h6>Order ID: 123456</h6>
+              <div className="mt-4">
+                <p>Order Date: 12/12/2021</p>
+                <p>Order Status: In Progress</p>
+              </div>
+            </div>
+            <div className="mt-auto"></div>
+          </Card>
+        </Stack>
+        {/* 2nd Stack */}
+        <Stack
+          spacing={1}
+          width={"50%"}
+          p={"20px"}
+          border="0.5px solid #e0e0e0"
+          borderRadius={"8px"}
+        >
+        
+          <Card
+            variant="outlined"
+            sx={{
+              height: 200,
+              p: "20px",
+              border: "2px solid #f7941d",
+              borderRadius: "10px",
+            }}
+          >
+            <div className="d-flex flex-column">
+              <h3>Order Details</h3>
+              <h6>Order ID: 123456</h6>
+              <div className="mt-4">
+                <p>Order Date: 12/12/2021</p>
+                <p>Order Status: In Progress</p>
+              </div>
+            </div>
+            <div className="mt-auto"></div>
+          </Card>
+        </Stack>
+        
+      </Stack>
 
-      <Card
-        sx={{
-          minWidth: 160,
-          maxWidth: "30%",
-          width: "35%",
-          height: "70vh",
-          p: "20px",
-          borderRadius: "8px",
-          mx: "20px",
-        }}
-        variant="outlined"
-      >
-        <div className="d-flex flex-column">
-          <h3>Customer Details</h3>
-          <h6>Customer Name</h6>
-          <div className="mt-4">
-            <p>Contact: +00 1234 5678</p>
-            <p>Address: Around Dubai</p>
-          </div>
-        </div>
-        <div className="mt-auto"></div>
-      </Card>
-
-      <div
-        className={"flex-1, mx-0"}
-        style={{ width: "75%", height: "70vh", borderRadius: "8px" }}
-      >
-        <p style={{ position: "absolute", zIndex: 9999, padding: "50px" }}>
-          Driver Dashboard
-        </p>
-        <LoadScript googleMapsApiKey="YOUR_GOOGLE_MAPS_API_KEY">
+      {/* Google Map */}
+      <Box flexGrow={1} width={"50%"} mx={0}>
+        <LoadScript googleMapsApiKey="AIzaSyBP2Ij-7iyGs46fzSnRVipyg1_QMaznZJU">
           <GoogleMap
             mapContainerStyle={containerStyle}
             center={center}
@@ -80,8 +105,8 @@ const Dashboard = () => {
             {/* Child components, such as markers, info windows, etc. */}
           </GoogleMap>
         </LoadScript>
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 };
 
