@@ -1,5 +1,5 @@
 {
-    "notebook.defaultFormatter": "esbenp.prettier-vscode",
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
-    "editor.defaultColorDecorators": "always"
+  "notebook.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.defaultColorDecorators": "always"
 }
