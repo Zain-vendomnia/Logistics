@@ -3,6 +3,7 @@ import { GoogleMap, LoadScript } from "@react-google-maps/api";
 import LoadCargo from "./LoadCargo";
 
 const Dashboard = () => {
+
   const containerStyle = {
     width: "100%",
     height: "100%",
@@ -26,7 +27,7 @@ const Dashboard = () => {
           <Card
             variant="outlined"
             sx={{
-              height: 200,
+              height: 185,
               p: "20px",
               border: "2px solid #f7941d",
               borderRadius: "10px",

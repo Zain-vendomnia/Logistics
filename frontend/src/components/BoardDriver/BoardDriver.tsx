@@ -30,22 +30,22 @@ const BoardDriver = () => {
   const menuItems = [
     {
       text: "Dashboard",
-      icon: <DashboardIcon sx={{ color: "#f7941d" }} />,
+      icon: <DashboardIcon sx={{ color: "primary.main" }} />,
       path: "/dashboard",
     },
     {
       text: "Warehouse Check-in",
-      icon: <WarehouseIcon sx={{ color: "#f7941d" }} />,
+      icon: <WarehouseIcon sx={{ color: "primary.main" }} />,
       path: "/warehouse-checkin",
     },
     {
       text: "Order Shipping",
-      icon: <LocalShippingIcon sx={{ color: "#f7941d" }} />,
+      icon: <LocalShippingIcon sx={{ color: "primary.main" }} />,
       path: "/order-shipping",
     },
     {
       text: "Gas Refill",
-      icon: <LocalGasStationIcon sx={{ color: "#f7941d" }} />,
+      icon: <LocalGasStationIcon sx={{ color: "primary.main" }} />,
       path: "/gasManagement",
     },
   ];

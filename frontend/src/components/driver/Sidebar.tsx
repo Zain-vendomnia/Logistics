@@ -20,7 +20,7 @@ interface SidebarProps {
 }
 
 const Sidebar = ({ menuItems, onMenuItemClick }: SidebarProps) => {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const userImage = "https://www.w3schools.com/howto/img_avatar.png";
   const username = "John Doe";
   const email = "user@exapmple.com";
@@ -37,7 +37,7 @@ const Sidebar = ({ menuItems, onMenuItemClick }: SidebarProps) => {
         sx={{
           display: "flex",
           flexDirection: "column",
-          width: isOpen ? 280 : 70,
+          width: isOpen ? 240 : 60,
           bgcolor: "grey.100",
           transition: "width 0.3s",
         }}
@@ -46,13 +46,13 @@ const Sidebar = ({ menuItems, onMenuItemClick }: SidebarProps) => {
           display={"flex"}
           alignItems={"center"}
           justifyContent={isOpen ? "space-between" : "center"}
-          px={3}
+          px={2}
           height={"20vh"}
           bgcolor={"grey.200"}
         >
           {isOpen && (
             <Box className="d-flex flex-column">
-              <div className="d-flex justify-content-between align-items-center mb-3">
+              <div className="d-flex align-items-center mb-3">
                 <img
                   src={userImage}
                   alt="User"
@@ -66,7 +66,7 @@ const Sidebar = ({ menuItems, onMenuItemClick }: SidebarProps) => {
               </div>
             </Box>
           )}
-          <IconButton onClick={toggleSidebar}>
+          <IconButton onClick={toggleSidebar} sx={{ p: 0 }}>
             {isOpen ? (
               <NavigateBeforeIcon fontSize="medium" />
             ) : (
@@ -75,7 +75,7 @@ const Sidebar = ({ menuItems, onMenuItemClick }: SidebarProps) => {
           </IconButton>
         </Box>
         <Divider />
-        <List sx={{ backgroundColor: grey[200], py: "20px", mt: "20px" }}>
+        <List sx={{ backgroundColor: grey[200], py: "20px", mt: "10px" }}>
           {menuItems.map((item, index) => (
             <ListItem key={index} disablePadding>
               <ListItemButton onClick={() => onMenuItemClick(item.path)}>

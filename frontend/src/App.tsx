@@ -54,7 +54,7 @@ const App: React.FC = () => {
       <AppBar
         position="sticky"
         sx={{
-          backgroundColor: "#f7941d",
+          bgcolor: "primary.main",
           height: 50,
           boxShadow: "0px 2px 4px rgba(0,0,0,0.1)",
         }}
@@ -62,7 +62,7 @@ const App: React.FC = () => {
         <Toolbar sx={{ minHeight: "50px !important", paddingX: 2 }}>
           <Box display="flex" alignItems="center" sx={{ flexGrow: 1 }}>
             {showDriverBoard && (
-              <Typography variant="h6" sx={{ color: "#FFFFFF", mr: 2 }}>
+              <Typography variant="h6" sx={{ mr: 2 }}>
                 Driver Interface
               </Typography>
             )}
