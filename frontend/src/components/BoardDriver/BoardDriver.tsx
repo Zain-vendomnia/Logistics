@@ -18,7 +18,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import styles from "./BoardDriver.style";
+import styles from "./BoardDriver_style";
 
 const WarehouseCheckIn = () => <div>Warehouse Check-in Content</div>;
 const GasManagement = () => <div>Gas Management Console..</div>;
@@ -93,11 +93,13 @@ const BoardDriver = () => {
   ];
 
   return (
-    <Box display="flex" bgcolor="white.100" height={"94vh"}>
+    <Box display="flex" bgcolor="white.100" height={"93vh"}>
       <Sidebar menuItems={menuItems} onMenuItemClick={setSelectedPath} />
 
-      <Box flexGrow={1} p={2} pb={0}>
-        <Stack direction="row" spacing={1}>
+      <Box flexGrow={1} p={1} pb={0}>
+        <Box>{renderContent()}</Box>
+
+        {/* <Stack direction="row" spacing={1}>
           <Card variant="outlined" sx={styles.cardBody}>
             <CardContent>
               <Typography>
@@ -149,8 +151,7 @@ const BoardDriver = () => {
             width={200}
             height={110}
           />
-        </Stack>
-        <Box>{renderContent()}</Box>
+        </Stack> */}
       </Box>
     </Box>
   );

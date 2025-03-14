@@ -5,8 +5,16 @@ import { Box, Button } from "@mui/material";
 
 interface Props {
   buttonText: string;
+  buttonDisabled?: boolean;
+  onUpload?: (imageUploaded: boolean) => void;
+  isMarkDone?: boolean;
 }
-const CameraCapture = ({buttonText}: Props) => {
+const CameraCapture = ({
+  buttonText,
+  buttonDisabled,
+  onUpload,
+  isMarkDone,
+}: Props) => {
   const webcamRef = useRef<Webcam>(null);
   const [isCapturing, setIsCapturing] = useState<boolean>(false);
 
@@ -34,14 +42,16 @@ const CameraCapture = ({buttonText}: Props) => {
     setIsCapturing(true);
     setTimeout(() => {
       const imageSrc = webcamRef.current?.getScreenshot();
-      console.log("Image captured: ", imageSrc);
+      console.log("Image Uploaded: ", imageSrc);
+      // onUpload && onUpload(true);
+      onUpload?.(true);
 
       if (imageSrc) {
         uploadImage(imageSrc);
       }
       setIsCapturing(false);
     }, 1000);
-  }, [webcamRef]);
+  }, []);
 
   const dataURItoBlob = (dataURI: string) => {
     const byteString = atob(dataURI.split(",")[1]);
@@ -66,19 +76,24 @@ const CameraCapture = ({buttonText}: Props) => {
         />
       )}
 
-      <Button
-        size="small"
-        variant="outlined"
-        sx={{
-          borderColor: "#f7941d",
-          color: "#f7941d",
-          width: "auto",
-          mt: "auto",
-        }}
-        onClick={captureAndUpload}
-      >
-        {isCapturing ? "Capturing..." : buttonText}
-      </Button>
+      {isMarkDone ? (
+        <Button disabled={isMarkDone}>Completed</Button>
+      ) : (
+        <Button
+          disabled={buttonDisabled}
+          size="small"
+          variant="outlined"
+          sx={{
+            borderColor: "#f7941d",
+            color: "#f7941d",
+            width: "auto",
+            mt: "auto",
+          }}
+          onClick={captureAndUpload}
+        >
+          {isCapturing ? "Capturing..." : buttonText}
+        </Button>
+      )}
     </Box>
   );
 };
