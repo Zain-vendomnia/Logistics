@@ -31,14 +31,22 @@
 // });
 
 const useStyles = {
+  leftStack: {
+    direction: "row",
+    spacing: 1,
+    width: "25%",
+    mr: 1,
+    pb: "20px",
+    border: "0.5px solid #e0e0e0",
+    borderRadius: "8px",
+    height: "100%",
+    position: "relative",
+  },
   cardsHolder: {
     overflowY: "auto",
     maxHeight: "100%",
     p: "20px",
     pb: 0,
-    border: "0.5px solid #e0e0e0",
-    borderRadius: "8px",
-    position: "relative",
   },
   cardBody: {
     height: 180,
@@ -54,11 +62,13 @@ const useStyles = {
     borderRadius: "10px",
   },
   st_Button: {
-    width: "100%",
+    width: "90%",
     mt: 2,
-    position: "sticky",
-    bottom: "0",
-    left: "0",
+    position: "absolute",
+    bottom: '20px',
+    left: '50%',
+    mx: "auto",
+    transform: "translateX(-50%)",
     "&.Mui-disabled": {
       backgroundColor: "#A9A9A9",
       color: "#FFFFFF",
