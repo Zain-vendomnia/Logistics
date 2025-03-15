@@ -8,7 +8,7 @@ export const getTripData = async () => {
   //     headers: authHeader(),
   //   });
 
-  return await Promise.resolve(tripData);
+  return await Promise.resolve(fakeTripData);
 };
 
 export const updateTripData = (data: any) => {
@@ -19,9 +19,9 @@ export const updateTripData = (data: any) => {
   return response;
 };
 
-const tripData: TripData = {
-  tripId: 1,
-  tripStatus: "In Progress",
+export const fakeTripData: TripData = {
+  shippingId: "SV-2025002346",
+  shippingStatus: "In Progress",
   tripDate: "2025-03-14",
   startPoint: "Warehouse A",
   endPoint: "Customer B",
@@ -39,8 +39,8 @@ const tripData: TripData = {
 };
 
 export default interface TripData {
-  tripId: number;
-  tripStatus: string;
+  shippingId: string;
+  shippingStatus: string;
   tripDate: string;
   startPoint: string;
   endPoint: string;
