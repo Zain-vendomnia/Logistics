@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import Maps from "./GoogleMaps";
+import { GoogleMap, LoadScript } from "@react-google-maps/api";
 
 import useStyles from "./Dashboard_style";
 import LoadCargo from "./LoadCargo";
@@ -9,8 +9,13 @@ import ShippingDetails from "./Shipping_Details";
 
 import { Box, Button, Card, Stack } from "@mui/material";
 
-const Dashboard = () => {
+const Dashboard01 = () => {
   const styles = useStyles;
+
+  const mapCenter = {
+    lat: -3.745,
+    lng: -38.523,
+  };
 
   const componentCheckList = [
     { name: "LoadCargo", component: LoadCargo },
@@ -51,26 +56,33 @@ const Dashboard = () => {
     <Box sx={styles.cardsHolder}>
       <Stack spacing={1} pb={0}>
         {componentCheckList.map((item, index) => {
-          const Component = item.component;
-          return (
-            <Card
-              key={index}
-              variant="outlined"
-              sx={
-                componentStatus.lastIndexOf(true) + 1 === index ||
-                componentStatus[index]
-                  ? styles.cardHighlight
-                  : styles.cardBody
-              }
-            >
-              <Component
-                disabled={index !== 0 && !componentStatus[index - 1]}
-                onImageUpload={(result) => handleImageUpload(index, result)}
-                isMarkDone={componentStatus[index] ? true : false}
-              />
-            </Card>
-          );
+          if (componentStatus.lastIndexOf(true) + 1 === index) {
+            const Component = item.component;
+            return (
+              <Card key={index} variant="outlined" sx={styles.cardLarge}>
+                <Component
+                  disabled={index !== 0 && !componentStatus[index - 1]}
+                  onImageUpload={(result) => handleImageUpload(index, result)}
+                  isMarkDone={componentStatus[index]}
+                />
+              </Card>
+            );
+          } else <Box></Box>;
         })}
+
+        {!isComplied ? (
+          <Box></Box>
+        ) : (
+          componentCheckList.map((item, index) => {
+            const Component = item.component;
+            return (
+              <Card key={index} variant="outlined" sx={styles.cardHighlight}>
+                <Component isMarkDone={componentStatus[index]} />
+              </Card>
+            );
+          })
+        )}
+
         <Button
           variant="contained"
           disabled={!isComplied}
@@ -83,28 +95,6 @@ const Dashboard = () => {
     </Box>
   );
 
-  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(
-    null
-  );
-
-  useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          });
-        },
-        (error) => {
-          console.error("Error getting location:", error);
-        }
-      );
-    } else {
-      console.error("Geolocation is not supported by this browser.");
-    }
-  }, []);
-
   return (
     <Box display={"flex"} width={"100%"} height={"92vh"}>
       <Stack
@@ -115,12 +105,38 @@ const Dashboard = () => {
         {!tripData ? preTripChecks : <ShippingDetails tripData={null} />}
       </Stack>
 
+      {/* Google Map */}
       <Box flexGrow={1} width={"75%"} mx={0}>
-        {/* Google Map */}
-        <Maps />
+        <LoadScript googleMapsApiKey="AIzaSyBP2Ij-7iyGs46fzSnRVipyg1_QMaznZJU">
+          <GoogleMap
+            mapContainerStyle={styles.mapContainerStyle}
+            center={mapCenter}
+            zoom={10}
+            options={{
+              disableDefaultUI: !isComplied,
+              gestureHandling: isComplied ? "auto" : "none",
+              styles: !isComplied
+                ? [
+                    {
+                      featureType: "all",
+                      elementType: "geometry",
+                      stylers: [{ saturation: -100 }, { lightness: 50 }],
+                    },
+                    {
+                      featureType: "all",
+                      elementType: "labels",
+                      stylers: [{ visibility: "off" }],
+                    },
+                  ]
+                : [],
+            }}
+          >
+            {/* Child components, such as markers, info windows, etc. */}
+          </GoogleMap>
+        </LoadScript>
       </Box>
     </Box>
   );
 };
 
-export default Dashboard;
+export default Dashboard01;

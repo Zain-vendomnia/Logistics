@@ -1,24 +1,16 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
+import EventBus from "../../common/EventBus";
 import Sidebar from "../driver/Sidebar";
+import OrderShipping from "../driver/OrderShipping";
+import Dashboard from "../driver/Dashboard";
+import Dashboard_01 from "../driver/Dashboard_01";
+import { getDriverBoard } from "../../services/user.service";
+
 import WarehouseIcon from "@mui/icons-material/Warehouse";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import LocalGasStationIcon from "@mui/icons-material/LocalGasStation";
-import { PieChart } from "@mui/x-charts/PieChart";
-import { getDriverBoard } from "../../services/user.service";
-import EventBus from "../../common/EventBus";
-import OrderShipping from "../driver/OrderShipping";
-import Dashboard from "../driver/Dashboard";
-import {
-  Box,
-  Button,
-  Card,
-  CardActions,
-  CardContent,
-  Stack,
-  Typography,
-} from "@mui/material";
-import styles from "./BoardDriver_style";
+import { Box } from "@mui/material";
 
 const WarehouseCheckIn = () => <div>Warehouse Check-in Content</div>;
 const GasManagement = () => <div>Gas Management Console..</div>;
@@ -77,7 +69,7 @@ const BoardDriver = () => {
       case "/dashboard":
         return <Dashboard />;
       case "/warehouse-checkin":
-        return <WarehouseCheckIn />;
+        return <Dashboard_01 />;
       case "/order-shipping":
         return <OrderShipping />;
       case "/gasManagement":
@@ -93,10 +85,10 @@ const BoardDriver = () => {
   ];
 
   return (
-    <Box display="flex" bgcolor="white.100" height={"93vh"}>
+    <Box display="flex" bgcolor="white.100">
       <Sidebar menuItems={menuItems} onMenuItemClick={setSelectedPath} />
 
-      <Box flexGrow={1} p={1} pb={0}>
+      <Box flexGrow={1} p={1}>
         <Box>{renderContent()}</Box>
 
         {/* <Stack direction="row" spacing={1}>

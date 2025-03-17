@@ -32,7 +32,7 @@ const ShippingDetails = ({ tripData }: Props) => {
   if (!tripData) return null;
 
   return (
-    <Stack sx={styles.leftStack}>
+    <Stack>
       <Typography variant={"h5"} fontSize={"medium"} mb={2}>
         Ongoing Delivery
       </Typography>
