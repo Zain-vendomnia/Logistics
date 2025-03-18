@@ -14,7 +14,7 @@ import CallIcon from "@mui/icons-material/Call";
 import CommentIcon from "@mui/icons-material/Comment";
 import CloseIcon from "@mui/icons-material/Close";
 import TripData from "../../services/trip_Service";
-import useStyles from "./Shipping_Details_styles";
+import useStyles from "./driver_Shipping_Details_styles";
 
 interface Props {
   tripData: TripData | null;

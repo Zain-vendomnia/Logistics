@@ -20,20 +20,51 @@ const GoogleMaps = () => {
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(
     null
   );
-  const mapRef = useRef<google.maps.Map | null>(null);
-  const markerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(
-    null
-  );
+  // const mapRef = useRef<google.maps.Map | null>(null);
+  // const markerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(
+  //   null
+  // );
 
+  // useEffect(() => {
+  //   if (navigator.geolocation) {
+  //     navigator.geolocation.getCurrentPosition(
+  //       (position) => {
+  //         const pinLocation = {
+  //           lat: position.coords.latitude,
+  //           lng: position.coords.longitude,
+  //         };
+  //         setLocation(pinLocation);
+  //       },
+  //       (error) => {
+  //         console.error("Error getting location:", error);
+  //       }
+  //     );
+  //   } else {
+  //     console.error("Geolocation is not supported by this browser.");
+  //   }
+  // }, [location]);
+
+  // const onLoad = (map: google.maps.Map) => {
+  //   mapRef.current = map;
+
+  //   if (google && google.maps.marker && mapRef.current) {
+  //     markerRef.current = new google.maps.marker.AdvancedMarkerElement({
+  //       position: location,
+  //       map: mapRef.current,
+  //       title: "Your are here",
+  //     });
+  //   }
+  // };
+
+  // Obsolete approach
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          const pinLocation = {
+          setLocation({
             lat: position.coords.latitude,
             lng: position.coords.longitude,
-          };
-          setLocation(pinLocation);
+          });
         },
         (error) => {
           console.error("Error getting location:", error);
@@ -42,29 +73,26 @@ const GoogleMaps = () => {
     } else {
       console.error("Geolocation is not supported by this browser.");
     }
-  }, [location]);
-
-  const onLoad = (map: google.maps.Map) => {
-    mapRef.current = map;
-
-    if (google && google.maps.marker && mapRef.current) {
-      markerRef.current = new google.maps.marker.AdvancedMarkerElement({
-        position: location,
-        map: mapRef.current,
-        title: "Your are here",
-      });
-    }
-  };
+  }, []);
 
   return (
-    <LoadScript googleMapsApiKey={GOOGLE_MAPS_API_KEY} libraries={LIBRARIES}>
+    // <LoadScript googleMapsApiKey={GOOGLE_MAPS_API_KEY} libraries={LIBRARIES}>
+    //   <GoogleMap
+    //     mapContainerStyle={mapContainerStyle}
+    //     center={location || mapCenter}
+    //     zoom={15}
+    //     // mapId={MAP_ID}
+    //     onLoad={onLoad}
+    //   />
+    // </LoadScript>
+
+    <LoadScript googleMapsApiKey="AIzaSyBP2Ij-7iyGs46fzSnRVipyg1_QMaznZJU">
       <GoogleMap
         mapContainerStyle={mapContainerStyle}
         center={location || mapCenter}
-        zoom={15}
-        // mapId={MAP_ID}
-        onLoad={onLoad}
+        zoom={12}
       >
+        {/* Child components, such as markers, info windows, etc. */}
         {location && <Marker position={location} />}
       </GoogleMap>
     </LoadScript>
@@ -72,3 +100,22 @@ const GoogleMaps = () => {
 };
 
 export default GoogleMaps;
+
+// options={{
+//   disableDefaultUI: !isComplied,
+//   gestureHandling: isComplied ? "auto" : "none",
+//   styles: !isComplied
+//     ? [
+//         {
+//           featureType: "all",
+//           elementType: "geometry",
+//           stylers: [{ saturation: -100 }, { lightness: 50 }],
+//         },
+//         {
+//           featureType: "all",
+//           elementType: "labels",
+//           stylers: [{ visibility: "off" }],
+//         },
+//       ]
+//     : [],
+// }}

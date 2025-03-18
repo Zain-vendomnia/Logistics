@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import Maps from "./GoogleMaps";
+import GoogleMaps from "./GoogleMaps";
+import LeafletMaps from "./leaflet_Map/leaflet_Maps";
 
-import useStyles from "./Dashboard_style";
-import LoadCargo from "./LoadCargo";
-import OrderShipping from "./OrderShipping";
+import useStyles from "./driver_Dashboard_style";
+import LoadCargo from "./driver_LoadCargo";
+import OrderShipping from "./driver_OrderShipping";
 import TripData, { getTripData } from "../../services/trip_Service";
-import ShippingDetails from "./Shipping_Details";
+import ShippingDetails from "./driver_Shipping_Details";
 
 import { Box, Button, Card, Stack } from "@mui/material";
 
@@ -83,28 +84,6 @@ const Dashboard = () => {
     </Box>
   );
 
-  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(
-    null
-  );
-
-  useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          });
-        },
-        (error) => {
-          console.error("Error getting location:", error);
-        }
-      );
-    } else {
-      console.error("Geolocation is not supported by this browser.");
-    }
-  }, []);
-
   return (
     <Box display={"flex"} width={"100%"} height={"92vh"}>
       <Stack
@@ -112,12 +91,13 @@ const Dashboard = () => {
         border={!tripData ? "0.5px solid #e0e0e0" : "none"}
         borderRadius={!tripData ? "8px" : "0"}
       >
-        {!tripData ? preTripChecks : <ShippingDetails tripData={null} />}
+        {!tripData ? preTripChecks : <ShippingDetails tripData={tripData} />}
       </Stack>
 
+      {/* Google Map */}
       <Box flexGrow={1} width={"75%"} mx={0}>
-        {/* Google Map */}
-        <Maps />
+        <LeafletMaps />
+        {/* <GoogleMaps /> */}
       </Box>
     </Box>
   );

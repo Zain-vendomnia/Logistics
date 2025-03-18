@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { GoogleMap, LoadScript } from "@react-google-maps/api";
 
-import useStyles from "./Dashboard_style";
-import LoadCargo from "./LoadCargo";
-import OrderShipping from "./OrderShipping";
+import useStyles from "./driver_Dashboard_style";
+import LoadCargo from "./driver_LoadCargo";
+import OrderShipping from "./driver_OrderShipping";
 import TripData, { getTripData } from "../../services/trip_Service";
-import ShippingDetails from "./Shipping_Details";
+import ShippingDetails from "./driver_Shipping_Details";
 
 import { Box, Button, Card, Stack } from "@mui/material";
+import GoogleMaps from "./GoogleMaps";
 
 const Dashboard01 = () => {
   const styles = useStyles;
@@ -102,38 +103,12 @@ const Dashboard01 = () => {
         border={!tripData ? "0.5px solid #e0e0e0" : "none"}
         borderRadius={!tripData ? "8px" : "0"}
       >
-        {!tripData ? preTripChecks : <ShippingDetails tripData={null} />}
+        {!tripData ? preTripChecks : <ShippingDetails tripData={tripData} />}
       </Stack>
 
       {/* Google Map */}
       <Box flexGrow={1} width={"75%"} mx={0}>
-        <LoadScript googleMapsApiKey="AIzaSyBP2Ij-7iyGs46fzSnRVipyg1_QMaznZJU">
-          <GoogleMap
-            mapContainerStyle={styles.mapContainerStyle}
-            center={mapCenter}
-            zoom={10}
-            options={{
-              disableDefaultUI: !isComplied,
-              gestureHandling: isComplied ? "auto" : "none",
-              styles: !isComplied
-                ? [
-                    {
-                      featureType: "all",
-                      elementType: "geometry",
-                      stylers: [{ saturation: -100 }, { lightness: 50 }],
-                    },
-                    {
-                      featureType: "all",
-                      elementType: "labels",
-                      stylers: [{ visibility: "off" }],
-                    },
-                  ]
-                : [],
-            }}
-          >
-            {/* Child components, such as markers, info windows, etc. */}
-          </GoogleMap>
-        </LoadScript>
+        <GoogleMaps />
       </Box>
     </Box>
   );
