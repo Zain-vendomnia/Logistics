@@ -1,16 +1,20 @@
 import { useRef, useState, useCallback } from "react";
 import Webcam from "react-webcam";
 import axios from "axios";
-import { Box, Button } from "@mui/material";
+import { Box, Button, IconButton } from "@mui/material";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import AddAPhotoIcon from "@mui/icons-material/AddAPhoto";
 
 interface Props {
-  buttonText: string;
+  buttonText?: string;
+  showCameraIcon?: boolean;
   buttonDisabled?: boolean;
   onUpload?: (imageUploaded: boolean) => void;
   isMarkDone?: boolean;
 }
 const CameraCapture = ({
-  buttonText,
+  buttonText = undefined,
+  showCameraIcon = false,
   buttonDisabled,
   onUpload,
   isMarkDone,
@@ -18,7 +22,7 @@ const CameraCapture = ({
   const webcamRef = useRef<Webcam>(null);
   const [isCapturing, setIsCapturing] = useState<boolean>(false);
 
-  const uploadImage = async (imageSrc: string) => {
+  const uploadImageAsync = async (imageSrc: string) => {
     if (!imageSrc) return;
     try {
       console.log("Uploading image initiated...");
@@ -47,7 +51,7 @@ const CameraCapture = ({
       onUpload?.(true);
 
       if (imageSrc) {
-        uploadImage(imageSrc);
+        uploadImageAsync(imageSrc);
       }
       setIsCapturing(false);
     }, 1000);
@@ -77,25 +81,61 @@ const CameraCapture = ({
       )}
 
       {isMarkDone ? (
-        <Button disabled={isMarkDone}>Completed</Button>
-      ) : (
-        <Button
-          disabled={buttonDisabled}
-          size="small"
-          variant="outlined"
-          sx={{
-            borderColor: "#f7941d",
-            color: "#f7941d",
-            width: "auto",
-            mt: "auto",
-          }}
-          onClick={captureAndUpload}
-        >
-          {isCapturing ? "Capturing..." : buttonText}
+        // if Image uploaded already
+        <Button disabled={isMarkDone} size="large">
+          <CheckCircleIcon sx={{ fontSize: 42, color: "#4caf50" }} />
         </Button>
+      ) : (
+        <>
+          {showCameraIcon && (
+            <IconButton onClick={captureAndUpload} sx={styles.iconButton}>
+              <AddAPhotoIcon fontSize="large" />
+            </IconButton>
+          )}
+          {buttonText && (
+            <Button
+              disabled={buttonDisabled}
+              size="small"
+              variant="contained"
+              sx={styles.button}
+              onClick={captureAndUpload}
+            >
+              {isCapturing ? "Capturing..." : buttonText}
+            </Button>
+          )}
+        </>
       )}
     </Box>
   );
 };
 
 export default CameraCapture;
+
+const styles = {
+  iconButton: {
+    width: 120,
+    height: 120,
+    border: "2px dashed",
+    borderRadius: "8px",
+    mb: 3,
+    "&:focus": {
+      backgroundColor: "grey.200",
+    },
+    "&:active": {
+      backgroundColor: "grey.200",
+    },
+    "&:hover": {
+      backgroundColor: "grey.200",
+    },
+  },
+  button: {
+    width: "auto",
+    height: "48px",
+    mt: "auto",
+
+    minWidth: 120, // Ensures size for tablets
+    "&:active": {
+      backgroundColor: "primary.dark", // Visual feedback on tap
+    },
+  },
+};

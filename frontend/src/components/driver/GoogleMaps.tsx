@@ -90,7 +90,7 @@ const GoogleMaps = () => {
       <GoogleMap
         mapContainerStyle={mapContainerStyle}
         center={location || mapCenter}
-        zoom={12}
+        zoom={15}
       >
         {/* Child components, such as markers, info windows, etc. */}
         {location && <Marker position={location} />}

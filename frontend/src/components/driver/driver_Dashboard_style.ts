@@ -81,7 +81,7 @@ const useStyles = {
     borderRadius: "10px",
   },
   cardLarge: {
-    height: 480,
+    height: 360,
     p: "20px",
     borderWidth: "2px",
     borderStyle: "solid",
