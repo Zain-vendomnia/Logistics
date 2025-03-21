@@ -15,6 +15,7 @@ import SuperAdmin from "./components/SuperAdmin";
 import BoardDriver from "./components/BoardDriver/BoardDriver";
 import RouteEstimateComponent from "./components/RouteEstimateComponent";
 import { AppBar, Box, Button, Stack, Toolbar, Typography } from "@mui/material";
+import SnackbarProvider from "./providers/SnackbarProvider";
 
 const App: React.FC = () => {
   const [showDriverBoard, setshowDriverBoard] = useState<boolean>(false);
@@ -50,85 +51,87 @@ const App: React.FC = () => {
   };
 
   return (
-    <>
-      <AppBar
-        position="sticky"
-        sx={{
-          bgcolor: "primary.main",
-          height: 50,
-          boxShadow: "0px 2px 4px rgba(0,0,0,0.1)",
-        }}
-      >
-        <Toolbar sx={{ minHeight: "50px !important", paddingX: 2 }}>
-          <Box display="flex" alignItems="center" sx={{ flexGrow: 1 }}>
-            {showDriverBoard && (
-              <Typography variant="h6" sx={{ mr: 2 }}>
-                Driver Interface
-              </Typography>
-            )}
-
-            {showAdminBoard && (
-              <Button color="inherit" component={Link} to="/admin">
-                Admin Board
-              </Button>
-            )}
-
-            {showSuperAdminBoard && (
-              <Button color="inherit" component={Link} to="/super_admin">
-                Super Admin
-              </Button>
-            )}
-          </Box>
-
-          {currentUser ? (
-            <Stack direction="row" spacing={2}>
-              {currentUser.username === "superadmin" && (
-                <>
-                  <Button color="inherit" component={Link} to="/register">
-                    Sign Up
-                  </Button>
-                  <Button color="inherit" onClick={logOut}>
-                    LogOut
-                  </Button>
-                </>
+    <SnackbarProvider>
+      <>
+        <AppBar
+          position="sticky"
+          sx={{
+            bgcolor: "primary.main",
+            height: 50,
+            boxShadow: "0px 2px 4px rgba(0,0,0,0.1)",
+          }}
+        >
+          <Toolbar sx={{ minHeight: "50px !important", paddingX: 2 }}>
+            <Box display="flex" alignItems="center" sx={{ flexGrow: 1 }}>
+              {showDriverBoard && (
+                <Typography variant="h6" sx={{ mr: 2 }}>
+                  Driver Interface
+                </Typography>
               )}
 
-              {(currentUser.username === "admin" ||
-                currentUser.role === "driver") && (
-                <>
-                  <Button color="inherit" component={Link} to="/profile">
-                    Profile
-                  </Button>
-                  <Button color="inherit" onClick={logOut}>
-                    LogOut
-                  </Button>
-                </>
+              {showAdminBoard && (
+                <Button color="inherit" component={Link} to="/admin">
+                  Admin Board
+                </Button>
               )}
-            </Stack>
-          ) : (
-            <Button color="inherit" component={Link} to="/login">
-              Login
-            </Button>
-          )}
-        </Toolbar>
-      </AppBar>
 
-      <div className="flex-1 p-6">
-        {" "}
-        {/* container w-full max-w-full */}
-        <Routes>
-          <Route path="/" element={<Login />} />
-          <Route path="/home" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/superadmin" element={<SuperAdmin />} />
-          <Route path="/driver" element={<BoardDriver />} />
-          <Route path="/admin" element={<BoardAdmin />} />
-          <Route path="/api/estimate" element={<RouteEstimateComponent />} />
-        </Routes>
-      </div>
-    </>
+              {showSuperAdminBoard && (
+                <Button color="inherit" component={Link} to="/super_admin">
+                  Super Admin
+                </Button>
+              )}
+            </Box>
+
+            {currentUser ? (
+              <Stack direction="row" spacing={2}>
+                {currentUser.username === "superadmin" && (
+                  <>
+                    <Button color="inherit" component={Link} to="/register">
+                      Sign Up
+                    </Button>
+                    <Button color="inherit" onClick={logOut}>
+                      LogOut
+                    </Button>
+                  </>
+                )}
+
+                {(currentUser.username === "admin" ||
+                  currentUser.role === "driver") && (
+                  <>
+                    <Button color="inherit" component={Link} to="/profile">
+                      Profile
+                    </Button>
+                    <Button color="inherit" onClick={logOut}>
+                      LogOut
+                    </Button>
+                  </>
+                )}
+              </Stack>
+            ) : (
+              <Button color="inherit" component={Link} to="/login">
+                Login
+              </Button>
+            )}
+          </Toolbar>
+        </AppBar>
+
+        <div className="flex-1 p-6">
+          {" "}
+          {/* container w-full max-w-full */}
+          <Routes>
+            <Route path="/" element={<Login />} />
+            <Route path="/home" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/superadmin" element={<SuperAdmin />} />
+            <Route path="/driver" element={<BoardDriver />} />
+            <Route path="/admin" element={<BoardAdmin />} />
+            <Route path="/api/estimate" element={<RouteEstimateComponent />} />
+          </Routes>
+        </div>
+      </>
+    </SnackbarProvider>
   );
 };
 

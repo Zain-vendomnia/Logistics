@@ -7,7 +7,6 @@ import TripData, { getTripData } from "../../services/trip_Service";
 import ShippingDetails from "./driver_Shipping_Details";
 
 import {
-  Alert,
   Box,
   Button,
   Card,
@@ -16,13 +15,15 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
-  Snackbar,
   Stack,
   Typography,
 } from "@mui/material";
 import CheckBoxItem from "./driver_CheckBoxItem";
+import { useSnackbar } from "../../providers/SnackbarProvider";
 
 const Dashboard = () => {
+  const { showSnackbar } = useSnackbar();
+
   const styles = useStyles;
 
   const componentCheckList = [
@@ -50,8 +51,8 @@ const Dashboard = () => {
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [openLocationDialog, setOpenLocationDialog] = useState(false);
   const [openCameraDialog, setOpenCameraDialog] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState("");
-  const [openSnackbar, setOpenSnackbar] = useState(false);
+  // const [snackbarMessage, setSnackbarMessage] = useState("");
+  // const [openSnackbar, setOpenSnackbar] = useState(false);
 
   useEffect(() => {
     checkLocation();
@@ -112,7 +113,8 @@ const Dashboard = () => {
             );
           } else {
             showSnackbar(
-              "Location access is blocked. Enable it in browser settings."
+              "Location access is blocked. Enable it in browser settings.",
+              "error"
             );
             setOpenLocationDialog(true);
           }
@@ -133,13 +135,11 @@ const Dashboard = () => {
       setCameraEnabled(true);
       showSnackbar("Camera is functional");
     } catch (error) {
+      showSnackbar("Camera is Not functional A", "error");
+      showSnackbar("Camera is Not functional B", "error");
+      showSnackbar("Camera is Not functional C", "error");
       setOpenCameraDialog(true);
     }
-  };
-
-  const showSnackbar = (message: string) => {
-    setSnackbarMessage(message);
-    setOpenSnackbar(true);
   };
 
   const handleImageUpload = (index: number, isImageUplaoded: boolean) => {
@@ -255,24 +255,21 @@ const Dashboard = () => {
       </Box>
 
       {/* Location Dialog */}
-      {
-        <Dialog
-          open={openLocationDialog}
-          onClose={() => setOpenLocationDialog(false)}
-        >
-          <DialogTitle>Enable GPS</DialogTitle>
-          <DialogContent>
-            <DialogContentText>
-              Please enable GPS to continue.
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={enableLocation} color="primary" autoFocus>
-              Enable GPS
-            </Button>
-          </DialogActions>
-        </Dialog>
-      }
+
+      <Dialog
+        open={openLocationDialog}
+        onClose={() => setOpenLocationDialog(false)}
+      >
+        <DialogTitle>Enable GPS</DialogTitle>
+        <DialogContent>
+          <DialogContentText>Please enable GPS to continue.</DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={enableLocation} color="primary" autoFocus>
+            Enable GPS
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog
         open={openCameraDialog}
@@ -281,7 +278,7 @@ const Dashboard = () => {
         <DialogTitle>Camara Not Functional!</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            The camera is not detedted. Please check your camera settings.
+            The camera is not detected. Please check your camera settings.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -295,31 +292,9 @@ const Dashboard = () => {
         </DialogActions>
       </Dialog>
 
-      {/* <Snackbar
-        open={openSnackbar}
-        autoHideDuration={6000}
-        onClose={() => setOpenSnackbar(false)}
-        message={snackbarMessage}
-        sx={{ "& .MuiSnackbarContent-root": { backgroundColor: "green" } }}
-      /> */}
-
-      <Snackbar
-        open={openSnackbar}
-        autoHideDuration={6000}
-        onClose={() => setOpenSnackbar(false)}
-        anchorOrigin={{ vertical: "top", horizontal: "right" }}
-      >
-        <Alert
-          onClose={() => setOpenSnackbar(false)}
-          severity="success"
-          sx={{ minWidth: "250px", mt: 4 }}
-        >
-          {snackbarMessage}
-        </Alert>
-      </Snackbar>
-
       {/* Overlay */}
-      {!locationEnabled && !cameraEnabled && (
+      {/* && !cameraEnabled */}
+      {!locationEnabled && (
         <Box
           position="absolute"
           top={0}
