@@ -1,10 +1,4 @@
 import { useEffect, useState } from "react";
-import GoogleMaps from "./GoogleMaps";
-import LeafletMaps from "./leaflet_Map/Leaflet_Maps";
-
-import useStyles from "./driver_Dashboard_style";
-import TripData, { getTripData } from "../../services/trip_Service";
-import ShippingDetails from "./driver_Shipping_Details";
 
 import {
   Box,
@@ -18,8 +12,14 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
+
+import useStyles from "./driver_Dashboard_style";
+import TripData, { getTripData } from "../../services/trip_Service";
 import CheckBoxItem from "./driver_CheckBoxItem";
+import ShippingDetails from "./driver_Shipping_Details";
 import { useSnackbar } from "../../providers/SnackbarProvider";
+import LeafletMaps from "./leaflet_Map/Leaflet_Maps";
+import GoogleMaps from "./GoogleMaps";
 
 const Dashboard = () => {
   const { showSnackbar } = useSnackbar();
@@ -51,8 +51,6 @@ const Dashboard = () => {
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [openLocationDialog, setOpenLocationDialog] = useState(false);
   const [openCameraDialog, setOpenCameraDialog] = useState(false);
-  // const [snackbarMessage, setSnackbarMessage] = useState("");
-  // const [openSnackbar, setOpenSnackbar] = useState(false);
 
   useEffect(() => {
     checkLocation();
@@ -92,7 +90,6 @@ const Dashboard = () => {
       showSnackbar("Geolocation is not supported by your browser");
       return;
     }
-
     const checkPermissionAndLocation = () => {
       navigator.permissions
         .query({ name: "geolocation" })
@@ -120,7 +117,6 @@ const Dashboard = () => {
           }
         });
     };
-
     checkPermissionAndLocation();
 
     // const intervalId = setInterval(() => {
@@ -131,14 +127,33 @@ const Dashboard = () => {
 
   const checkCamera = async () => {
     try {
-      await navigator.mediaDevices.getUserMedia({ video: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       setCameraEnabled(true);
+      setOpenCameraDialog(false);
       showSnackbar("Camera is functional");
+      stream.getTracks().forEach((track) => track.stop());
     } catch (error) {
-      showSnackbar("Camera is Not functional A", "error");
-      showSnackbar("Camera is Not functional B", "error");
-      showSnackbar("Camera is Not functional C", "error");
       setOpenCameraDialog(true);
+
+      if (error instanceof Error) {
+        if (error.name === "NotAllowedError") {
+          showSnackbar(
+            "Camera access denied. Please enable permissions.",
+            "error"
+          );
+        } else if (error.name === "NotFoundError") {
+          showSnackbar(
+            "No camera detected. Please check your device.",
+            "error"
+          );
+        } else if (error.name === "NotReadableError") {
+          showSnackbar("Camera is in use or unavailable.", "error");
+        } else {
+          showSnackbar(`Camera error: ${error.message}`, "error");
+        }
+      } else {
+        showSnackbar("Camera is Not functional", "error");
+      }
     }
   };
 
@@ -246,7 +261,6 @@ const Dashboard = () => {
       >
         {!tripData ? preTripChecks : <ShippingDetails tripData={tripData} />}
       </Stack>
-
       {/* Google Map */}
       <Box flexGrow={1} width={"75%"} mx={0}>
         <LeafletMaps destination={null} />
@@ -254,63 +268,40 @@ const Dashboard = () => {
         {/* <GoogleMaps /> */}
       </Box>
 
-      {/* Location Dialog */}
-
-      <Dialog
-        open={openLocationDialog}
-        onClose={() => setOpenLocationDialog(false)}
-      >
-        <DialogTitle>Enable GPS</DialogTitle>
-        <DialogContent>
-          <DialogContentText>Please enable GPS to continue.</DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={enableLocation} color="primary" autoFocus>
-            Enable GPS
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog
-        open={openCameraDialog}
-        onClose={() => setOpenCameraDialog(false)}
-      >
-        <DialogTitle>Camara Not Functional!</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            The camera is not detected. Please check your camera settings.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => setOpenCameraDialog(false)}
-            color="primary"
-            autoFocus
-          >
-            OK
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Overlay */}
-      {/* && !cameraEnabled */}
+      {/* Location and Camera Dialogs */}
       {!locationEnabled && (
-        <Box
-          position="absolute"
-          top={0}
-          left={0}
-          width="100%"
-          height="100%"
-          bgcolor="rgba(0, 0, 0, 0.5)"
-          zIndex={9999}
-          display="flex"
-          justifyContent="center"
-          alignItems="center"
-          color="white"
-          fontSize="24px"
+        <Dialog
+          open={openLocationDialog}
+          // onClose={() => setOpenLocationDialog(false)}
         >
-          Please enable GPS and Camera to continue.
-        </Box>
+          <DialogTitle>Enable GPS</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Please enable GPS to continue.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={enableLocation} color="primary" autoFocus>
+              Enable GPS
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
+
+      {!cameraEnabled && (
+        <Dialog open={openCameraDialog}>
+          <DialogTitle>Camara Not Functional!</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              The camera is not detected. Please check your camera settings.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button color="primary" autoFocus>
+              OK
+            </Button>
+          </DialogActions>
+        </Dialog>
       )}
     </Box>
   );
