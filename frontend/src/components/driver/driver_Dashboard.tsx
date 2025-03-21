@@ -9,6 +9,7 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
+  Grid2,
   Stack,
   Typography,
 } from "@mui/material";
@@ -118,11 +119,6 @@ const Dashboard = () => {
         });
     };
     checkPermissionAndLocation();
-
-    // const intervalId = setInterval(() => {
-    //   if (!locationEnabled) checkPermissionAndLocation();
-    //   else clearInterval(intervalId);
-    // }, 5000);
   };
 
   const checkCamera = async () => {
@@ -174,106 +170,76 @@ const Dashboard = () => {
   };
 
   const preTripChecks = (
-    <Box sx={styles.cardsHolder}>
-      <Stack spacing={1} pb={0}>
-        {componentCheckList.map(
-          (item, index) =>
-            componentStatus.lastIndexOf(true) + 1 === index && (
-              <Card key={index} variant="outlined" sx={styles.cardLarge}>
-                <CheckBoxItem
-                  title={item.title}
-                  description={item.description}
-                  disabled={index !== 0 && !componentStatus[index - 1]}
-                  onImageUpload={(result) => handleImageUpload(index, result)}
-                  isMarkDone={componentStatus[index]}
-                />
-              </Card>
-            )
-        )}
-
-        {isComplied &&
-          componentCheckList.map((item, index) => (
-            <Card key={index} variant="outlined" sx={styles.cardHighlight}>
+    <Stack
+      spacing={1}
+      position={"relative"}
+      height={"100%"}
+      p={1}
+      sx={{
+        border: "1px solid #e0e0e0",
+        borderRadius: "8px",
+      }}
+    >
+      {componentCheckList.map(
+        (item, index) =>
+          componentStatus.lastIndexOf(true) + 1 === index && (
+            <Card key={index} variant="outlined" sx={styles.cardLarge}>
               <CheckBoxItem
-                title={
-                  <Typography variant="h5" fontWeight="bold">
-                    {item.title}
-                  </Typography>
-                }
+                title={item.title}
+                description={item.description}
+                disabled={index !== 0 && !componentStatus[index - 1]}
+                onImageUpload={(result) => handleImageUpload(index, result)}
                 isMarkDone={componentStatus[index]}
               />
             </Card>
-          ))}
+          )
+      )}
 
-        <Button
-          variant="contained"
-          disabled={!isComplied}
-          sx={styles.st_Button}
-          onClick={startTrip}
-        >
-          Start Trip
-        </Button>
-      </Stack>
-    </Box>
+      {isComplied &&
+        componentCheckList.map((item, index) => (
+          <Card key={index} variant="outlined" sx={styles.cardHighlight}>
+            <CheckBoxItem
+              title={
+                <Typography variant="h5" fontWeight="bold">
+                  {item.title}
+                </Typography>
+              }
+              isMarkDone={componentStatus[index]}
+            />
+          </Card>
+        ))}
+
+      <Button
+        variant="contained"
+        disabled={!isComplied}
+        sx={styles.st_Button}
+        onClick={startTrip}
+      >
+        Start Trip
+      </Button>
+    </Stack>
   );
-  // const preTripChecks = (
-  //   <Box sx={styles.cardsHolder}>
-  //     <Stack spacing={1} pb={0}>
-  //       {componentCheckList.map((item, index) => {
-  //         const Component = item.component;
-  //         return (
-  //           <Card
-  //             key={index}
-  //             variant="outlined"
-  //             sx={
-  //               componentStatus.lastIndexOf(true) + 1 === index ||
-  //               componentStatus[index]
-  //                 ? styles.cardHighlight
-  //                 : styles.cardBody
-  //             }
-  //           >
-  //             <Component
-  //               disabled={index !== 0 && !componentStatus[index - 1]}
-  //               onImageUpload={(result) => handleImageUpload(index, result)}
-  //               isMarkDone={componentStatus[index] ? true : false}
-  //             />
-  //           </Card>
-  //         );
-  //       })}
-  //       <Button
-  //         variant="contained"
-  //         disabled={!isComplied}
-  //         sx={styles.st_Button}
-  //         onClick={startTrip}
-  //       >
-  //         Start Trip
-  //       </Button>
-  //     </Stack>
-  //   </Box>
-  // );
 
   return (
-    <Box display={"flex"} width={"100%"} height={"92vh"} position="relative">
-      <Stack
-        sx={styles.leftStack}
-        border={!tripData ? "0.5px solid #e0e0e0" : "none"}
-        borderRadius={!tripData ? "8px" : "0"}
-      >
+    <Grid2 container spacing={1} height={"92vh"} p={0}>
+      <Grid2 size={{ xs: 4, md: 3, lg: 3 }}>
         {!tripData ? preTripChecks : <ShippingDetails tripData={tripData} />}
-      </Stack>
-      {/* Google Map */}
-      <Box flexGrow={1} width={"75%"} mx={0}>
-        <LeafletMaps destination={null} />
-        {/* [24.4895, 54.3567] */}
-        {/* <GoogleMaps /> */}
-      </Box>
+      </Grid2>
+
+      <Grid2
+        display={"flex"}
+        justifyContent={"center"}
+        alignItems={"center"}
+        size={{ xs: 8, md: 9, lg: 9 }}
+      >
+        <Box width={"100%"} height={"100%"}>
+          <LeafletMaps destination={null} />
+        </Box>
+      </Grid2>
 
       {/* Location and Camera Dialogs */}
       {!locationEnabled && (
-        <Dialog
-          open={openLocationDialog}
-          // onClose={() => setOpenLocationDialog(false)}
-        >
+        <Dialog open={openLocationDialog}>
           <DialogTitle>Enable GPS</DialogTitle>
           <DialogContent>
             <DialogContentText>
@@ -303,7 +269,7 @@ const Dashboard = () => {
           </DialogActions>
         </Dialog>
       )}
-    </Box>
+    </Grid2>
   );
 };
 
