@@ -97,7 +97,7 @@ const useStyles = {
     mx: "auto",
     transform: "translateX(-50%)",
     "&.Mui-disabled": {
-      backgroundColor: "#A9A9A9",
+      backgroundColor: "greyedOut",
       color: "#FFFFFF",
     },
   },

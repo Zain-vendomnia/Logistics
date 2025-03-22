@@ -1,6 +1,7 @@
-import { CssBaseline, ThemeProvider, createTheme } from "@mui/material";
+import { CssBaseline, ThemeProvider } from "@mui/material";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
+import theme from "./theme";
 
 import "./index.css";
 import App from "./App";
@@ -9,19 +10,6 @@ import reportWebVitals from "./reportWebVitals";
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
 );
-
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: "#f7941d", // "#1976d2",
-      contrastText: "#FFFFFF",
-    },
-    secondary: {
-      main: "#f1cb3a",
-      contrastText: "#FFFFFF",
-    }
-  },
-});
 
 root.render(
   <BrowserRouter>

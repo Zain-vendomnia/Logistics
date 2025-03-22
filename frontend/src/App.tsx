@@ -56,7 +56,7 @@ const App: React.FC = () => {
         <AppBar
           position="sticky"
           sx={{
-            bgcolor: "primary.main",
+            bgcolor: "primary",
             height: 50,
             boxShadow: "0px 2px 4px rgba(0,0,0,0.1)",
           }}
