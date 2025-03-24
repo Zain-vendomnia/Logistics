@@ -39,7 +39,7 @@ const Dashboard = () => {
     {
       title: "Gas Check",
       description: "Check gas level before start the trip.",
-    },
+    }
   ];
 
   const [isComplied, setIsComplied] = useState(false);
@@ -180,7 +180,7 @@ const Dashboard = () => {
         borderRadius: "8px",
       }}
     >
-      {componentCheckList.map(
+      {/* {componentCheckList.map(
         (item, index) =>
           componentStatus.lastIndexOf(true) + 1 === index && (
             <Card key={index} variant="outlined" sx={styles.cardLarge}>
@@ -193,9 +193,9 @@ const Dashboard = () => {
               />
             </Card>
           )
-      )}
-
-      {isComplied &&
+      )} */}
+{/* isComplied */}
+      { true &&
         componentCheckList.map((item, index) => (
           <Card key={index} variant="outlined" sx={styles.cardHighlight}>
             <CheckBoxItem
@@ -204,7 +204,7 @@ const Dashboard = () => {
                   {item.title}
                 </Typography>
               }
-              isMarkDone={componentStatus[index]}
+              isMarkDone={true} //componentStatus[index]}
             />
           </Card>
         ))}

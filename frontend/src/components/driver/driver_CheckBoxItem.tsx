@@ -21,7 +21,7 @@ const CheckBoxItem = ({
   return (
     <Box
       display={"flex"}
-      gap={"8vh"}
+      gap={ !isMarkDone ? "8vh" : "5vh"}
       flexDirection="column"
       width={"100%"}
       height="100%"
