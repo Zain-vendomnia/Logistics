@@ -222,7 +222,7 @@ const Dashboard = () => {
 
   return (
     <Grid2 container spacing={1} height={"92vh"} p={0}>
-      <Grid2 size={{ xs: 4, md: 3, lg: 2 }}>
+      <Grid2 size={{ xs: 4, md: 3, lg: 3, }}>
         {!tripData ? preTripChecks : <ShippingDetails tripData={tripData} />}
       </Grid2>
 
@@ -230,7 +230,7 @@ const Dashboard = () => {
         display={"flex"}
         justifyContent={"center"}
         alignItems={"center"}
-        size={{ xs: 8, md: 9, lg: 10 }}
+        size={{ xs: 8, md: 9, lg: 9, }}
       >
         <Box width={"100%"} height={"100%"}>
           <LeafletMaps destination={null} />

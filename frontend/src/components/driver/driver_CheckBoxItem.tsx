@@ -19,11 +19,19 @@ const CheckBoxItem = ({
   isMarkDone = false,
 }: Props) => {
   return (
-    <Box display={"flex"} flexDirection="column" width={"100%"} height="100%">
-      <Typography variant="h6" fontWeight="bold">
-        {title}
-      </Typography>
-      <Typography variant="body2">{description}</Typography>
+    <Box
+      display={"flex"}
+      gap={"8vh"}
+      flexDirection="column"
+      width={"100%"}
+      height="100%"
+    >
+      <Box>
+        <Typography variant="h6" fontWeight="bold">
+          {title}
+        </Typography>
+        <Typography variant="body2">{description}</Typography>
+      </Box>
       <Box mt={"auto"} mx={"auto"}>
         <CameraCapture
           buttonText={"Upload Image"}

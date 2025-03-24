@@ -3,6 +3,27 @@ import authHeader from "./auth-header";
 
 const API_URL = "http://localhost:8080/api/driver/";
 
+export const uploadImage_01 = async (data: FormData) => {
+  const response = await axios.post("/api/upload", data, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return response;
+};
+
+export const uploadImage = (data: FormData) => {
+  return axios
+    .post("https://jsonplaceholder.typicode.com/posts", data, {
+      headers: { "Content-Type": "multipart/form-data" },
+    })
+    .then((response) => {
+      return response.data;
+    })
+    .catch((error) => {
+      console.error("API Upload Image error: ", error.message);
+      return null;
+    });
+};
+
 export const getTripData = async () => {
   //   const response = axios.get(API_URL + "getTripData", {
   //     headers: authHeader(),
@@ -19,7 +40,7 @@ export const updateTripData = (data: any) => {
   return response;
 };
 
-export const fakeTripData: TripData = {
+const fakeTripData: TripData = {
   shippingId: "SV-2025002346",
   shippingStatus: "In Progress",
   tripDate: "2025-03-14",

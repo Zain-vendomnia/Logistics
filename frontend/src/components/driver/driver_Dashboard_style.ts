@@ -73,7 +73,7 @@ const useStyles = {
     borderRadius: "10px",
   },
   cardHighlight: {
-    height: 180,
+    height: "auto",
     p: "20px",
     borderWidth: "2px",
     borderStyle: "solid",
@@ -81,7 +81,7 @@ const useStyles = {
     borderRadius: "10px",
   },
   cardLarge: {
-    height: 380,
+    height: "auto",
     p: "20px",
     borderWidth: "2px",
     borderStyle: "solid",
