@@ -5,8 +5,8 @@ import authRouter from "./router/auth.routes";
 import userRouter from "./router/auth.routes";
 import config from "./config";
 
-import { GeocodingController } from "./controller/RouteOptimzation/geocodingController";
-import { optimizeRouteController } from "./controller/RouteOptimzation/optimizeRouteController";
+import { GeocodingController } from "./controller/Admin_RouteOptimzation/geocodingController";
+import { optimizeRouteController } from "./controller/Admin_RouteOptimzation/optimizeRouteController";
 
 const app = express();
 app.use(cors());
