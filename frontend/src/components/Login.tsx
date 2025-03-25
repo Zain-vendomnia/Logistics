@@ -44,7 +44,11 @@ const Login: React.FC<Props> = () => {
         } else if (user.role === "driver") {
           navigate("/driver");  
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         }  else if (user.role === "super_admin") {
+=======
+        } else if (user.role === "super_admin") {
+>>>>>>> Stashed changes
 =======
         } else if (user.role === "super_admin") {
 >>>>>>> Stashed changes

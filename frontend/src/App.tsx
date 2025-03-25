@@ -135,7 +135,11 @@ const App: React.FC = () => {
         )}
       </nav>
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
       <div className="flex-1 p-6"> {/* container w-full max-w-full */}
+=======
+      <div className="maincontainer">
+>>>>>>> Stashed changes
 =======
       <div className="maincontainer">
 >>>>>>> Stashed changes
