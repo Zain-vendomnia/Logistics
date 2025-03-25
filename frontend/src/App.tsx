@@ -1,10 +1,10 @@
 import React from "react";
 import { useState, useEffect } from "react";
-import { Routes, Route, Link, Router } from "react-router-dom";
+import { Routes, Route, Link } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./App.css";
 import * as AuthService from "./services/auth.service";
-import IUser from './types/user.type';
+import IUser from "./types/user.type";
 import Login from "./components/Login";
 import Register from "./components/Register";
 import Home from "./components/Home";
@@ -12,13 +12,16 @@ import Profile from "./components/Profile";
 import BoardAdmin from "./components/BoardAdmin";
 import EventBus from "./common/EventBus";
 import SuperAdmin from "./components/SuperAdmin";
-import BoardDriver from "./components/BoardDriver";
-
+import BoardDriver from "./components/BoardDriver/BoardDriver";
+import { AppBar, Box, Button, Stack, Toolbar, Typography } from "@mui/material";
+import SnackbarProvider from "./providers/SnackbarProvider";
+import GlobalChecksProvider from "./providers/GlobalChecksProvider";
 
 const App: React.FC = () => {
   const [showDriverBoard, setshowDriverBoard] = useState<boolean>(false);
   const [showAdminBoard, setShowAdminBoard] = useState<boolean>(false);
-  const [showSuperAdminBoard, setShowSuperAdminBoard] = useState<boolean>(false);
+  const [showSuperAdminBoard, setShowSuperAdminBoard] =
+    useState<boolean>(false);
   const [currentUser, setCurrentUser] = useState<IUser | undefined>(undefined);
 
   useEffect(() => {
@@ -48,94 +51,74 @@ const App: React.FC = () => {
   };
 
   return (
-    <div>
-      <nav className="navbar navbar-expand navbar-dark bg-dark">
-        <div className="navbar-nav mr-auto">
+    <SnackbarProvider>
+      <GlobalChecksProvider>
+        <>
+          <AppBar
+            position="sticky"
+            sx={{
+              bgcolor: "primary",
+              height: 50,
+              boxShadow: "0px 2px 4px rgba(0,0,0,0.1)",
+            }}
+          >
+            <Toolbar sx={{ minHeight: "50px !important", paddingX: 2 }}>
+              <Box display="flex" alignItems="center" sx={{ flexGrow: 1 }}>
           {showDriverBoard && (
-            <li className="nav-item" style={{color:"#FFFFFF"}}>
-                Driver Interface
-            </li>
+                  <Typography variant="h6" sx={{ mr: 2 }}>
+                    Driver Interface
+                  </Typography>
           )}
 
           {showAdminBoard && (
-            <li className="nav-item">
-              <Link to={"/admin"} className="nav-link">
+                  <Button color="inherit" component={Link} to="/admin">
                 Admin Board
-              </Link>
-            </li>
+                  </Button>
           )}
 
           {showSuperAdminBoard && (
-            <li className="nav-item">
-              <Link to={"/super_admin"} className="nav-link">
+                  <Button color="inherit" component={Link} to="/super_admin">
                 Super Admin
-              </Link>
-            </li>
+                  </Button>
           )}
-        </div>
+              </Box>
 
         {currentUser ? (
-          <div className="navbar-nav ml-auto">
-            {/* If the user is a superadmin */}
+                <Stack direction="row" spacing={2}>
             {currentUser.username === "superadmin" && (
               <>
-                <li className="nav-item">
-                  <Link to={"/register"} className="nav-link">
+                      <Button color="inherit" component={Link} to="/register">
                     Sign Up
-                  </Link>
-                </li>
-                <li className="nav-item">
-                  <a href="/login" className="nav-link" onClick={logOut}>
+                      </Button>
+                      <Button color="inherit" onClick={logOut}>
                     LogOut
-                  </a>
-                </li>
+                      </Button>
               </>
             )}
 
-            {/* If the user is an admin */}
-            {currentUser.username === "admin" && (
+                  {(currentUser.username === "admin" ||
+                    currentUser.role === "driver") && (
               <>
-                <li className="nav-item">
-                  <Link to={"/profile"} className="nav-link">
+                      <Button color="inherit" component={Link} to="/profile">
                     Profile
-                  </Link>
-                </li>
-                <li className="nav-item">
-                  <a href="/login" className="nav-link" onClick={logOut}>
+                      </Button>
+                      <Button color="inherit" onClick={logOut}>
                     LogOut
-                  </a>
-                </li>
+                      </Button>
               </>
             )}
-            {/* If the user is a driver */}
-            {currentUser.role === "driver" && (
-              <>
-               <li className="nav-item">
-                  <Link to={"/profile"} className="nav-link">
-                    Profile
-                  </Link>
-                </li>
-                <li className="nav-item">
-                  <a href="/login" className="nav-link" onClick={logOut}>
-                    LogOut
-                  </a>
-                </li>
-              </>
-            )}
-          </div>
+                </Stack>
         ) : (
-          <div className="navbar-nav ml-auto">
-            {/* Default guest view */}
-            <li className="nav-item">
-              <Link to={"/login"} className="nav-link">
+                <Button color="inherit" component={Link} to="/login">
                 Login
-              </Link>
-            </li>
-          </div>
+                </Button>
         )}
-      </nav>
+            </Toolbar>
+          </AppBar>
 
-      <div className="flex-1 p-6"> {/* container w-full max-w-full */}
+          <div className="flex-1 p-6">
+            {" "}
+            {/* container w-full max-w-full */}
 
         <Routes>
           <Route path="/" element={<Login />} />
@@ -146,9 +129,15 @@ const App: React.FC = () => {
           <Route path="/superadmin" element={<SuperAdmin />} />
           <Route path="/driver" element={<BoardDriver />} />
           <Route path="/admin" element={<BoardAdmin />} />
+              <Route
+                path="/api/estimate"
+                element={<RouteEstimateComponent />}
+              />
         </Routes>
-      </div>
-    </div>
+          </div>
+        </>
+      </GlobalChecksProvider>
+    </SnackbarProvider>
   );
 };
 

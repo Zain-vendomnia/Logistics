@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import MenuIcon from "@mui/icons-material/Menu";
+import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
 import { Link } from "react-router-dom";
 import Divider from "@mui/material/Divider";
 import Box from "@mui/material/Box";
@@ -11,6 +12,7 @@ import ListItemText from "@mui/material/ListItemText";
 import IconButton from "@mui/material/IconButton";
 import { grey } from "@mui/material/colors";
 import { getCurrentUser } from "../../services/auth.service";
+import Toolbar from "@mui/material/Toolbar";
 
 interface SidebarProps {
   menuItems: { text: string; icon: React.ReactNode; path: string }[];
@@ -18,7 +20,7 @@ interface SidebarProps {
 }
 
 const Sidebar = ({ menuItems, onMenuItemClick }: SidebarProps) => {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const userImage = "https://www.w3schools.com/howto/img_avatar.png";
   const username = "John Doe";
   const email = "user@exapmple.com";
@@ -30,24 +32,27 @@ const Sidebar = ({ menuItems, onMenuItemClick }: SidebarProps) => {
   };
 
   return (
-    <Box className={"flex"}>
+    <Box display="flex">
       <Box
         sx={{
           display: "flex",
           flexDirection: "column",
-          width: isOpen ? 280 : 70,
-          height: "95vh",
+          width: isOpen ? 240 : 60,
           bgcolor: "grey.100",
           transition: "width 0.3s",
         }}
       >
         <Box
-          className={`d-flex align-items-center ${isOpen ? "justify-content-between" : "justify-content-center"} px-3`}
-          sx={{ height: "20vh", bgcolor: "grey.200" }}
+          display={"flex"}
+          alignItems={"center"}
+          justifyContent={isOpen ? "space-between" : "center"}
+          px={2}
+          height={"20vh"}
+          bgcolor={"grey.200"}
         >
           {isOpen && (
             <Box className="d-flex flex-column">
-              <div className="d-flex justify-content-between align-items-center mb-3">
+              <div className="d-flex align-items-center mb-3">
                 <img
                   src={userImage}
                   alt="User"
@@ -61,27 +66,32 @@ const Sidebar = ({ menuItems, onMenuItemClick }: SidebarProps) => {
               </div>
             </Box>
           )}
-          <IconButton onClick={toggleSidebar}>
-            <MenuIcon fontSize="large" />
+          <IconButton onClick={toggleSidebar} sx={{ p: 0 }}>
+            {isOpen ? (
+              <NavigateBeforeIcon fontSize="medium" />
+            ) : (
+              <MenuIcon fontSize="medium" />
+            )}
           </IconButton>
         </Box>
         <Divider />
-        <nav aria-label="Menu-Options">
-          <List sx={{ backgroundColor: grey[200], py: "10px", mt: "10px" }}>
-            {menuItems.map((item, index) => (
-              <ListItem key={index} disablePadding>
-                <ListItemButton onClick={() => onMenuItemClick(item.path)}>
-                  {" "}
-                  {/* component={Link} to={item.path} */}
-                  <ListItemIcon>{item.icon}</ListItemIcon>
-                  {isOpen && <ListItemText primary={item.text} />}
-                </ListItemButton>
-              </ListItem>
-            ))}
-          </List>
-        </nav>
+        <List sx={{ backgroundColor: grey[200], py: "20px", mt: "10px" }}>
+          {menuItems.map((item, index) => (
+            <ListItem key={index} disablePadding>
+              <ListItemButton onClick={() => onMenuItemClick(item.path)}>
+                {" "}
+                {/* component={Link} to={item.path} */}
+                {/* 311bf3 */}
+                <ListItemIcon>{item.icon}</ListItemIcon>
+                {isOpen && <ListItemText primary={item.text} />}
+              </ListItemButton>
+            </ListItem>
+          ))}
+        </List>
         <Box
-          sx={{ height: "10vh", bgcolor: "grey.200", mt: "auto", mb: "2vh" }}
+          bgcolor={grey[200]}
+          height={isOpen ? "10vh" : "5vh"}
+          mt={"auto"}
         ></Box>
       </Box>
     </Box>
