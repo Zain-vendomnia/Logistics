@@ -1,18 +1,6 @@
 import { useEffect, useState } from "react";
 
-import {
-  Box,
-  Button,
-  Card,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  Grid2,
-  Stack,
-  Typography,
-} from "@mui/material";
+import { Box, Button, Card, Grid2, Stack, Typography } from "@mui/material";
 
 import useStyles from "./driver_Dashboard_style";
 import TripData, { getTripData } from "../../services/trip_Service";
@@ -39,7 +27,7 @@ const Dashboard = () => {
     {
       title: "Gas Check",
       description: "Check gas level before start the trip.",
-    }
+    },
   ];
 
   const [isComplied, setIsComplied] = useState(false);
@@ -48,110 +36,11 @@ const Dashboard = () => {
   );
   const [tripData, setTripData] = useState<TripData | null>(null);
 
-  const [locationEnabled, setLocationEnabled] = useState(false);
-  const [cameraEnabled, setCameraEnabled] = useState(false);
-  const [openLocationDialog, setOpenLocationDialog] = useState(false);
-  const [openCameraDialog, setOpenCameraDialog] = useState(false);
-
   useEffect(() => {
-    checkLocation();
-    checkCamera();
-  }, []);
-
-  useEffect(() => {
+    // localStorage.setItem("cameraEnabled", "false");
     const isAllComplied = componentStatus.every((status) => status === true);
     setIsComplied(isAllComplied);
   }, [componentStatus]);
-
-  const checkLocation = () => {
-    if (!navigator.geolocation) {
-      showSnackbar("Geolocation is not supported by your browser");
-      return;
-    }
-
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        () => {
-          setLocationEnabled(true);
-          showSnackbar("GPS is enabled");
-        },
-        (error) => {
-          if (error.code === error.PERMISSION_DENIED) {
-            setOpenLocationDialog(true);
-          }
-        }
-      );
-    } else {
-      setOpenLocationDialog(true);
-    }
-  };
-
-  const enableLocation = () => {
-    if (!navigator.geolocation) {
-      showSnackbar("Geolocation is not supported by your browser");
-      return;
-    }
-    const checkPermissionAndLocation = () => {
-      navigator.permissions
-        .query({ name: "geolocation" })
-        .then((permissionStatus) => {
-          if (
-            permissionStatus.state === "granted" ||
-            permissionStatus.state === "prompt"
-          ) {
-            navigator.geolocation.getCurrentPosition(
-              () => {
-                setLocationEnabled(true);
-                setOpenLocationDialog(false);
-                showSnackbar("GPS is enabled");
-              },
-              () => {
-                setOpenLocationDialog(true);
-              }
-            );
-          } else {
-            showSnackbar(
-              "Location access is blocked. Enable it in browser settings.",
-              "error"
-            );
-            setOpenLocationDialog(true);
-          }
-        });
-    };
-    checkPermissionAndLocation();
-  };
-
-  const checkCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      setCameraEnabled(true);
-      setOpenCameraDialog(false);
-      showSnackbar("Camera is functional");
-      stream.getTracks().forEach((track) => track.stop());
-    } catch (error) {
-      setOpenCameraDialog(true);
-
-      if (error instanceof Error) {
-        if (error.name === "NotAllowedError") {
-          showSnackbar(
-            "Camera access denied. Please enable permissions.",
-            "error"
-          );
-        } else if (error.name === "NotFoundError") {
-          showSnackbar(
-            "No camera detected. Please check your device.",
-            "error"
-          );
-        } else if (error.name === "NotReadableError") {
-          showSnackbar("Camera is in use or unavailable.", "error");
-        } else {
-          showSnackbar(`Camera error: ${error.message}`, "error");
-        }
-      } else {
-        showSnackbar("Camera is Not functional", "error");
-      }
-    }
-  };
 
   const handleImageUpload = (index: number, isImageUplaoded: boolean) => {
     console.log("isImageUplaoded Parent: ", isImageUplaoded);
@@ -180,7 +69,7 @@ const Dashboard = () => {
         borderRadius: "8px",
       }}
     >
-      {/* {componentCheckList.map(
+      {componentCheckList.map(
         (item, index) =>
           componentStatus.lastIndexOf(true) + 1 === index && (
             <Card key={index} variant="outlined" sx={styles.cardLarge}>
@@ -193,9 +82,9 @@ const Dashboard = () => {
               />
             </Card>
           )
-      )} */}
-{/* isComplied */}
-      { true &&
+      )}
+
+      {isComplied &&
         componentCheckList.map((item, index) => (
           <Card key={index} variant="outlined" sx={styles.cardHighlight}>
             <CheckBoxItem
@@ -222,7 +111,7 @@ const Dashboard = () => {
 
   return (
     <Grid2 container spacing={1} height={"92vh"} p={0}>
-      <Grid2 size={{ xs: 4, md: 3, lg: 3, }}>
+      <Grid2 size={{ xs: 4, md: 3, lg: 3 }}>
         {!tripData ? preTripChecks : <ShippingDetails tripData={tripData} />}
       </Grid2>
 
@@ -230,45 +119,12 @@ const Dashboard = () => {
         display={"flex"}
         justifyContent={"center"}
         alignItems={"center"}
-        size={{ xs: 8, md: 9, lg: 9, }}
+        size={{ xs: 8, md: 9, lg: 9 }}
       >
         <Box width={"100%"} height={"100%"}>
           <LeafletMaps destination={null} />
         </Box>
       </Grid2>
-
-      {/* Location and Camera Dialogs */}
-      {!locationEnabled && (
-        <Dialog open={openLocationDialog}>
-          <DialogTitle>Enable GPS</DialogTitle>
-          <DialogContent>
-            <DialogContentText>
-              Please enable GPS to continue.
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={enableLocation} color="primary" autoFocus>
-              Enable GPS
-            </Button>
-          </DialogActions>
-        </Dialog>
-      )}
-
-      {!cameraEnabled && (
-        <Dialog open={openCameraDialog}>
-          <DialogTitle>Camara Not Functional!</DialogTitle>
-          <DialogContent>
-            <DialogContentText>
-              The camera is not detected. Please check your camera settings.
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions>
-            <Button color="primary" autoFocus>
-              OK
-            </Button>
-          </DialogActions>
-        </Dialog>
-      )}
     </Grid2>
   );
 };
