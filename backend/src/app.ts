@@ -18,7 +18,7 @@ app.use(morgan("dev"));
 
 // Define the root route to prevent "Cannot GET /"
 app.get('/', (_req, res) => {
-  res.send("Welcome to the API!"); // or any other message you prefer
+  res.send("Welcome to the API!"); 
 });
 
 // Router
