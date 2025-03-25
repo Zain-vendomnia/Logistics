@@ -13,7 +13,6 @@ import BoardAdmin from "./components/BoardAdmin";
 import EventBus from "./common/EventBus";
 import SuperAdmin from "./components/SuperAdmin";
 import BoardDriver from "./components/BoardDriver";
-import RouteEstimateComponent from "./components/RouteEstimateComponent";
 
 
 const App: React.FC = () => {
@@ -54,7 +53,7 @@ const App: React.FC = () => {
         <div className="navbar-nav mr-auto">
           {showDriverBoard && (
             <li className="nav-item" style={{color:"#FFFFFF"}}>
-              Driver Interface
+                Driver Interface
             </li>
           )}
 
@@ -135,7 +134,7 @@ const App: React.FC = () => {
           </div>
         )}
       </nav>
-      <div className="container mt-3">
+      <div className="maincontainer">
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/home" element={<Home />} />
@@ -145,7 +144,6 @@ const App: React.FC = () => {
           <Route path="/superadmin" element={<SuperAdmin />} />
           <Route path="/driver" element={<BoardDriver />} />
           <Route path="/admin" element={<BoardAdmin />} />
-          <Route path="/api/estimate" element = {<RouteEstimateComponent/>}/>
         </Routes>
       </div>
     </div>

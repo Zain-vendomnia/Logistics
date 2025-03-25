@@ -26,7 +26,7 @@ export async function signup(req: Request, res: Response) {
     const encryptedPassword = await bcrypt.hash(body.password, salt);
 
    
-    const role = body.role || 'driver'; // Default to 'driver' if not provided
+    const role = body.role || 'driver'; 
 
     // Create new user object
     const newUser: User = {

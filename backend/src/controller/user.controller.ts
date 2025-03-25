@@ -6,14 +6,11 @@ import jwt from "jsonwebtoken";
 export async function getAllUsers(_req: Request, res: Response) {
     try {
       const conn = await connect();
-      
       // Fetch all users from the database
       const [users] = await conn.query<RowDataPacket[]>("SELECT user_id, username, email, role FROM users");
-  
       if (users.length === 0) {
         return res.status(404).json({ message: "No users found" });
       }
-  
       return res.status(200).json(users); // Send the list of users
     } catch (error: unknown) {
       if (error instanceof Error) {
@@ -21,7 +18,9 @@ export async function getAllUsers(_req: Request, res: Response) {
       }
       return res.status(400).json({ message: "An unknown error occurred" });
     }
-  }
+}
+
+//5b3ce3597851110001cf62483a3db8aed5064d8fab5b8e661039d029
 
 // Fetch user details based on the JWT token
 export async function getUserDetails(req: Request, res: Response) {
@@ -42,7 +41,7 @@ export async function getUserDetails(req: Request, res: Response) {
           return res.status(404).json({ message: "User not found" });
         }
   
-        return res.status(200).json(user[0]); // Send the user details
+        return res.status(200).json(user[0]); 
       } else {
         return res.status(401).json({ message: "No token provided" });
       }
