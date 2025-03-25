@@ -113,12 +113,7 @@ const App: React.FC = () => {
                 Login
                 </Button>
         )}
-            </Toolbar>
-          </AppBar>
 
-          <div className="flex-1 p-6">
-            {" "}
-            {/* container w-full max-w-full */}
 
         <Routes>
           <Route path="/" element={<Login />} />

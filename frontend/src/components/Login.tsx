@@ -43,6 +43,8 @@ const Login: React.FC<Props> = () => {
           navigate("/admin");  
         } else if (user.role === "driver") {
           navigate("/driver");  
+
+
         } else if (user.role === "super_admin") {
 
           navigate("/super_admin");  
