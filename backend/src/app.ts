@@ -5,6 +5,8 @@ import authRouter from "./router/auth.routes";
 import userRouter from "./router/auth.routes";
 import config from "./config";
 
+import { GeocodingController } from "./controller/Admin_RouteOptimzation/geocodingController";
+import { optimizeRouteController } from "./controller/Admin_RouteOptimzation/optimizeRouteController";
 
 const app = express();
 app.use(cors());
@@ -23,5 +25,6 @@ app.get('/', (_req, res) => {
 app.use("/api/auth", authRouter);
 app.use("/api", userRouter);  
 app.use("/api/test", userRouter);  
-
+app.use('/api/admin/geocode', GeocodingController.getLatLng);
+app.use('/api/admin/route/optimize', optimizeRouteController);
 export default app;

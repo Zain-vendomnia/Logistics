@@ -83,6 +83,7 @@ const BoardDriver: React.FC = () => {
   };
 
   return (
+<<<<<<< Updated upstream
     <>
       <div style={{ display: "flex", height: "100vh" }}>
         <Sidebar menuItems={menuItems} onMenuItemClick={setSelectedPath} />
@@ -112,6 +113,13 @@ const BoardDriver: React.FC = () => {
         </div>
       </div>
     </>
+=======
+    <div className="container">
+      <header className="jumbotron">
+        <h3>Hi </h3>
+      </header>
+    </div>
+>>>>>>> Stashed changes
   );
 };
 
