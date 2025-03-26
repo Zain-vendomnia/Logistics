@@ -20,22 +20,12 @@ const useStyles = makeStyles((theme: Theme) => ({
     borderRadius: "16px",
   },
   notifyButton: {
+    position: "relative",
     padding: theme.spacing(2, 3),
     borderRadius: 2,
     width: "14vw",
-    height: "6vh",
-    fontWeight: "bold",
+    height: "7vh",
     fontSize: "1rem",
-    transition: "box-shadow 0.3s ease-in-out, transform 0.2s ease-in-out",
-    // boxShadow: `0px 0px 15px ${theme.palette.primary.light}`, // Subtle glow effect
-    "&:hover": {
-      boxShadow: `0px 0px 25px ${theme.palette.primary.main}`, // Stronger glow
-      transform: "scale(1.05)",
-    },
-    // "&:focus": {
-    //   boxShadow: `0px 0px 30px ${theme.palette.primary.dark}`, // Extra glow when focused
-    //   outline: "none",
-    // },
   },
   messageBox: {
     height: "25vh",

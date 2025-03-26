@@ -187,11 +187,6 @@ const ShippingDetails = ({
 
         {isArrived && showMessageBox && (
           <Box className={styles.messageBox}>
-            {/* // bgcolor={grey[300]}
-            // border="1px solid"
-            // borderColor="grey.300"
-            // borderRadius={3} */}
-            {/* > */}
             <Box
               display={"flex"}
               alignItems={"center"}
