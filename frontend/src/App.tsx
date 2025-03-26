@@ -114,21 +114,24 @@ const App: React.FC = () => {
                 </Button>
         )}
 
+</Toolbar>
+          </AppBar>
 
-        <Routes>
-          <Route path="/" element={<Login />} />
-          <Route path="/home" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/superadmin" element={<SuperAdmin />} />
-          <Route path="/driver" element={<BoardDriver />} />
-          <Route path="/admin" element={<BoardAdmin />} />
-              <Route
-                path="/api/estimate"
-                element={<RouteEstimateComponent />}
-              />
-        </Routes>
+          <div className="flex-1 p-6">
+            {" "}
+            {/* container w-full max-w-full */}
+            <Routes>
+              <Route path="/" element={<Login />} />
+              <Route path="/home" element={<Home />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/superadmin" element={<SuperAdmin />} />
+              <Route path="/driver" element={<BoardDriver />} />
+              <Route path="/admin" element={<BoardAdmin />} />
+            
+          
+            </Routes>
           </div>
         </>
       </GlobalChecksProvider>

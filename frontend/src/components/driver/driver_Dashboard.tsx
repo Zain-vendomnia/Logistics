@@ -7,7 +7,9 @@ import TripData, { getTripData } from "../../services/trip_Service";
 import CheckBoxItem from "./driver_CheckBoxItem";
 import ShippingDetails from "./driver_Shipping_Details";
 import { useSnackbar } from "../../providers/SnackbarProvider";
-import LeafletMaps from "./leaflet_Map/Leaflet_Maps";
+
+//import LeafletMaps from "./leaflet_Map/Leaflet_Maps";
+
 import GoogleMaps from "./GoogleMaps";
 
 const Dashboard = () => {
@@ -122,7 +124,7 @@ const Dashboard = () => {
         size={{ xs: 8, md: 9, lg: 9 }}
       >
         <Box width={"100%"} height={"100%"}>
-          <LeafletMaps destination={null} />
+          {/* <LeafletMaps destination={null} /> */}
         </Box>
       </Grid2>
     </Grid2>

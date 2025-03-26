@@ -37,8 +37,8 @@ const GlobalChecksProvider: React.FC<{ children: ReactNode }> = ({
   const [openCameraDialog, setOpenCameraDialog] = useState(false);
 
   useEffect(() => {
-    checkLocationPermission();
-    checkCameraPermission();
+    // checkLocationPermission();
+    //checkCameraPermission();
   }, []);
 
   const checkLocationPermission = async () => {
