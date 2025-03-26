@@ -103,7 +103,7 @@ const Dashboard01 = () => {
         border={!tripData ? "0.5px solid #e0e0e0" : "none"}
         borderRadius={!tripData ? "8px" : "0"}
       >
-        {!tripData ? preTripChecks : <ShippingDetails tripData={tripData} />}
+        {/* {!tripData ? preTripChecks : <ShippingDetails tripData={tripData} />} */}
       </Stack>
 
       {/* Google Map */}

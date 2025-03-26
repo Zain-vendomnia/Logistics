@@ -37,7 +37,7 @@ const Dashboard = () => {
   const [tripData, setTripData] = useState<TripData | null>(null);
 
   useEffect(() => {
-    // localStorage.setItem("cameraEnabled", "false");
+    startTrip();
     const isAllComplied = componentStatus.every((status) => status === true);
     setIsComplied(isAllComplied);
   }, [componentStatus]);
@@ -112,7 +112,15 @@ const Dashboard = () => {
   return (
     <Grid2 container spacing={1} height={"92vh"} p={0}>
       <Grid2 size={{ xs: 4, md: 3, lg: 3 }}>
-        {!tripData ? preTripChecks : <ShippingDetails tripData={tripData} />}
+        {/* {!tripData ? preTripChecks : <ShippingDetails tripData={tripData} />} */}
+        <ShippingDetails
+          tripData={tripData}
+          isArrived={true}
+          notifyCustomer={true}
+          onNotified={(result) =>
+            console.log("Driver Pressed Notify Button", result)
+          }
+        />
       </Grid2>
 
       <Grid2

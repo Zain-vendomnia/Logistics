@@ -85,7 +85,7 @@ const BoardDriver = () => {
   ];
 
   return (
-    <Box display="flex" bgcolor="white.100">
+    <Box display="flex" bgcolor="white.100" height="100%">
       <Sidebar menuItems={menuItems} onMenuItemClick={setSelectedPath} />
 
       <Box flexGrow={1} p={1}>
