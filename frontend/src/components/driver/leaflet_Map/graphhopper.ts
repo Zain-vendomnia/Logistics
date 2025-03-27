@@ -9,7 +9,6 @@ export const getRoute = async (
   const url = `https://graphhopper.com/api/1/route?point=${start[0]},${start[1]}&point=${end[0]},${end[1]}&vehicle=car&locale=en&key=${GRAPH_HOPPER_API_KEY}&points_encoded=false`;
 
   const response = await axios.get(url);
-  console.log("route respone: ", response.data.paths[0]);
-  console.log("route respone: ", response.data);
+  // console.log("route respone: ", response.data.paths[0]);
   return response.data.paths[0];
 };

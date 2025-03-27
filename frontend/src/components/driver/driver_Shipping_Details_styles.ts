@@ -6,7 +6,7 @@ const useStyles = makeStyles((theme: Theme) => ({
     spacing: 2,
     width: "25%",
     mr: 1,
-    p: "20px",
+    p: "10px",
     height: "100%",
   },
   chip: {
@@ -21,11 +21,11 @@ const useStyles = makeStyles((theme: Theme) => ({
   },
   notifyButton: {
     position: "relative",
-    padding: theme.spacing(2, 3),
+    padding: "2px 3px",
     borderRadius: 2,
-    width: "14vw",
+    width: "15vw",
     height: "7vh",
-    fontSize: "1rem",
+    fontSize: "1.05rem",
   },
   messageBox: {
     height: "25vh",

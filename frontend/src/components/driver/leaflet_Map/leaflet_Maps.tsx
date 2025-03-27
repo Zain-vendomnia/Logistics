@@ -8,26 +8,26 @@ import {
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import * as L from "leaflet";
-import { getRoute } from "./graphhopper";
-// Loading missing default marker icon in Leaflet
+// Loading marker icon in Leaflet
 import markerIconPng from "leaflet/dist/images/marker-icon.png";
+import markerIconRed from "leaflet/dist/images/marker-icon-red.png";
 import markerShadowPng from "leaflet/dist/images/marker-shadow.png";
 
+import { getRoute } from "./graphhopper";
 import UpdateMapCenter from "./UpdateMapCenter";
 
 const customIcon = new L.Icon({
   iconUrl: markerIconPng,
-  shadowUrl: markerShadowPng,
   iconSize: [25, 41],
+  shadowUrl: markerShadowPng,
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
 });
 
 const redIcon = new L.Icon({
-  iconUrl:
-    "https://chart.googleapis.com/chart?chst=d_map_pin_icon&chld=glyphish_target|FF0000",
+  iconUrl: markerIconRed,
   shadowUrl: markerShadowPng,
-  iconSize: [25, 41],
+  iconSize: [35, 37],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
 });
@@ -38,7 +38,7 @@ const initialMapCenter = {
 };
 
 interface Props {
-  destination: [number, number] | null;
+  destination?: [number, number] | null;
 }
 
 const LeafletMaps = ({ destination }: Props) => {
@@ -57,7 +57,7 @@ const LeafletMaps = ({ destination }: Props) => {
     }
 
     const getLocation = () => {
-      console.log("Navigator: ", navigator);
+      // console.log("Navigator: ", navigator);
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           // console.log("Position Coords: ", position.coords);
@@ -114,7 +114,7 @@ const LeafletMaps = ({ destination }: Props) => {
           </Marker>
           {destination && (
             <>
-              <Marker position={destination} icon={customIcon}>
+              <Marker position={destination} icon={redIcon}>
                 <Popup>
                   Destination <br /> {destination.join(",")}
                 </Popup>
