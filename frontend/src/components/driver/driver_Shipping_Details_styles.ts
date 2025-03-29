@@ -21,11 +21,14 @@ const useStyles = makeStyles((theme: Theme) => ({
   },
   notifyButton: {
     position: "relative",
-    padding: "2px 3px",
-    borderRadius: 2,
+    padding: "6px 12px",
+    borderRadius: 8,
     width: "15vw",
-    height: "7vh",
+    minWidth: 180,
+    maxWidth: 240,
+    height: "9vh",
     fontSize: "1.05rem",
+    fontStyle: "bold",
   },
   messageBox: {
     height: "25vh",

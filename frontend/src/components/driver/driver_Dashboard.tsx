@@ -35,9 +35,10 @@ const Dashboard = () => {
     new Array(componentCheckList.length).fill(false)
   );
   const [tripData, setTripData] = useState<TripData | null>(null);
+  const [loadOrderComplete, setLoadOrderComplete] = useState(true);
 
   useEffect(() => {
-    // startTrip();
+    startTrip();
     const isAllComplied = componentStatus.every((status) => status === true);
     setIsComplied(isAllComplied);
   }, [componentStatus]);
@@ -122,6 +123,8 @@ const Dashboard = () => {
             onNotified={(result) =>
               console.log("Driver Pressed Notify Button", result)
             }
+            isLoadOrderComplete={loadOrderComplete}
+            onMarkedComplete={() =>  console.log("Order Completed by Driver...")}
           />
         )}
       </Grid2>

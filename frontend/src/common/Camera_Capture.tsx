@@ -92,7 +92,7 @@ const CameraCapture = ({
   const webcamSize = getWebcamSize();
 
   return (
-    <Box display="flex" flexDirection="column" alignItems="center" p={0}>
+    <Box display="flex" flexDirection="column" alignItems="center" gap={3}>
       {isMarkDone ? (
         // if Image uploaded already
         <Button disabled={isMarkDone} size="large">
@@ -195,9 +195,8 @@ const styles = {
   },
   button: {
     width: "auto",
-    height: "48px",
-    my: 3,
     minWidth: 120,
+    minHeight: "48px",
     "&:active": {
       backgroundColor: "primary.dark", // Visual feedback on tap
     },

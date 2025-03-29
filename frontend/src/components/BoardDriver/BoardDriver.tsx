@@ -1,9 +1,7 @@
 import { useState, useEffect } from "react";
 import EventBus from "../../common/EventBus";
 import Sidebar from "../driver/driver_Sidebar";
-import OrderShipping from "../driver/driver_OrderShipping";
 import Dashboard from "../driver/driver_Dashboard";
-import Dashboard_01 from "../driver/driver_Dashboard_01";
 import { getDriverBoard } from "../../services/user.service";
 
 import WarehouseIcon from "@mui/icons-material/Warehouse";
@@ -14,6 +12,7 @@ import { Box } from "@mui/material";
 
 const WarehouseCheckIn = () => <div>Warehouse Check-in Content</div>;
 const GasManagement = () => <div>Gas Management Console..</div>;
+const OrderShipping = () => <div>Order Shipping Module.</div>;
 
 const BoardDriver = () => {
   const [content, setContent] = useState<string>("");
@@ -69,7 +68,7 @@ const BoardDriver = () => {
       case "/dashboard":
         return <Dashboard />;
       case "/warehouse-checkin":
-        return <Dashboard_01 />;
+        return <WarehouseCheckIn />;
       case "/order-shipping":
         return <OrderShipping />;
       case "/gasManagement":
