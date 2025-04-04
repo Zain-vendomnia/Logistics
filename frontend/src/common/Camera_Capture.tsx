@@ -58,43 +58,46 @@ const CameraCapture = ({
     if (!imageSrc || imageSrc === lastUploadedImageRef.current) return;
 
     lastUploadedImageRef.current = imageSrc;
-
-    // temporairy for testing
     setIsUploading(true);
 
+    // for temporary testing
     setTimeout(() => {
       setIsUploading(false);
       setIsUploaded(true);
     }, 1000);
 
-    // console.log("Uploading image initiated...");
+    // try {
+    //   const formData = new FormData();
+    //   formData.append("file", dataURItoBlob(imageSrc), "image.jpg");
 
-    // const formData = new FormData();
-    // formData.append("file", dataURItoBlob(imageSrc), "image.jpg");
-
-    // const result = await uploadImage(formData);
-    // if (result) {
-    //   onUpload?.(true);
-    //   showSnackbar("Image uploaded susseccfully.");
-    //   console.log("Image uploaded successfully:", result);
-    // } else {
-    //   showSnackbar("Fail to uploading Image, please try again.", "error");
-    //   console.log("Failed to upload image");
+    //   const result = await uploadImage(formData);
+    //   if (result) {
+    //     setIsUploaded(true);
+    //     onUpload?.(true);
+    //     showSnackbar("Image uploaded successfully.");
+    //   } else {
+    //     throw new Error("Upload failed");
+    //   }
+    // } catch (error) {
+    //   showSnackbar("Failed to upload image, please try again.", "error");
+    // } finally {
+    //   setIsUploading(false);
     // }
   };
 
-  const debouncedUpload = useMemo(() => {
-    return debounce(async (capturedImage: string) => {
-      await uploadImageAsync(capturedImage);
-    }, 1000); // debounce for 1 second
-  }, []);
+  const debouncedUpload = useMemo(
+    () =>
+      debounce(async (capturedImage: string) => {
+        await uploadImageAsync(capturedImage);
+      }, 1000),
+    []
+  );
 
   const captureAndUpload = useCallback(() => {
     if (!webcamRef.current) return;
 
     const imageSrc = webcamRef.current?.getScreenshot();
     console.log("Image Src: ", imageSrc);
-
     if (imageSrc) {
       setCapturedImage(imageSrc);
     }
@@ -134,9 +137,7 @@ const CameraCapture = ({
     }
   }
 
-  const retakeImage = () => {
-    setCapturedImage(null);
-  };
+  const retakeImage = () => setCapturedImage(null);
 
   return (
     <Box
@@ -147,7 +148,6 @@ const CameraCapture = ({
       gap={2}
     >
       {isMarkDone && !capturedImage ? (
-        // if marked done and image ref not available, show check icon only
         <CheckCircleIcon
           color={"success"}
           sx={{ fontSize: 48, margin: 0, padding: 0 }}
