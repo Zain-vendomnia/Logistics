@@ -134,6 +134,10 @@ const CameraCapture = ({
     }
   }
 
+  const retakeImage = () => {
+    setCapturedImage(null);
+  };
+
   return (
     <Box
       display="flex"
@@ -209,20 +213,27 @@ const CameraCapture = ({
               <AddAPhotoIcon fontSize="large" />
             </IconButton>
           )}
-          <Button
-            disabled={buttonDisabled}
-            variant="contained"
-            sx={styles.button}
-            onClick={handleButtonClick}
-          >
-            {cameraActive
-              ? capturedImage
-                ? isUploading
-                  ? "Uploading..."
-                  : "Upload Image"
-                : "Capture Image"
-              : buttonText}
-          </Button>
+          <Box display="flex" gap={1}>
+            <Button
+              disabled={buttonDisabled}
+              variant="contained"
+              sx={styles.button}
+              onClick={handleButtonClick}
+            >
+              {cameraActive
+                ? capturedImage
+                  ? isUploading
+                    ? "Uploading..."
+                    : "Upload"
+                  : "Capture Image"
+                : buttonText}
+            </Button>
+            {capturedImage && !isUploading && (
+              <Button variant="outlined" onClick={retakeImage}>
+                Retake
+              </Button>
+            )}
+          </Box>
         </>
       )}
     </Box>
