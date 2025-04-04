@@ -75,7 +75,7 @@ const ShippingDetails = ({
 
   if (!tripData) return null;
   return (
-    <Stack width="100%" height="100%" pt={2}>
+    <Stack width="100%" height="100%">
       {!showOrderComplete ? (
         <Box
           display={"flex"}
@@ -83,9 +83,7 @@ const ShippingDetails = ({
           width="100%"
           height="100%"
         >
-          <Typography variant={"h5"} fontSize={"large"} mb={2}>
-            Ongoing Delivery
-          </Typography>
+          <Typography variant={"h5"}>Ongoing Delivery</Typography>
           <Box
             display={"flex"}
             flexDirection={"column"}
@@ -199,13 +197,10 @@ const ShippingDetails = ({
                     />
                   </ImageListItem>
                   <Stack spacing={0}>
-                    <Typography
-                      variant="body1"
-                      color={grey[600]}
-                    >
+                    <Typography variant="body1" color={grey[600]}>
                       Customer
                     </Typography>
-                    <Typography variant="body1" fontSize={'large'}>
+                    <Typography variant="body1" fontSize={"large"}>
                       {" "}
                       {tripData?.client.name}
                     </Typography>

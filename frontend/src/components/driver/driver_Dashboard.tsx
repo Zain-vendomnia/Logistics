@@ -38,7 +38,7 @@ const Dashboard = () => {
   const [loadOrderComplete, setLoadOrderComplete] = useState(true);
 
   useEffect(() => {
-    startTrip();
+    // startTrip();
     const isAllComplied = componentStatus.every((status) => status === true);
     setIsComplied(isAllComplied);
   }, [componentStatus]);
@@ -77,6 +77,7 @@ const Dashboard = () => {
               <CheckBoxItem
                 title={item.title}
                 description={item.description}
+                showCameraIcon={true}
                 disabled={index !== 0 && !componentStatus[index - 1]}
                 onImageUpload={(result) => handleImageUpload(index, result)}
                 isMarkDone={componentStatus[index]}
@@ -112,7 +113,7 @@ const Dashboard = () => {
 
   return (
     <Grid2 container spacing={1} height={"92vh"} p={0}>
-      <Grid2 size={{ xs: 4, md: 3, lg: 3 }}>
+      <Grid2 size={{ xs: 4, md: 3, lg: 3 }} sx={styles.sideGrid}>
         {!tripData ? (
           preTripChecks
         ) : (
@@ -124,7 +125,7 @@ const Dashboard = () => {
               console.log("Driver Pressed Notify Button", result)
             }
             isLoadOrderComplete={loadOrderComplete}
-            onMarkedComplete={() =>  console.log("Order Completed by Driver...")}
+            onMarkedComplete={() => console.log("Order Completed by Driver...")}
           />
         )}
       </Grid2>

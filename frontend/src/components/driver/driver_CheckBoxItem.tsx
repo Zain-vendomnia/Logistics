@@ -5,23 +5,24 @@ import { Box, Typography } from "@mui/material";
 interface Props {
   title: ReactNode;
   description?: string;
-
+  showCameraIcon?: boolean;
   disabled?: boolean;
-  onImageUpload?: (imageUplaoded: boolean) => void;
   isMarkDone?: boolean;
+  onImageUpload?: (imageUplaoded: boolean) => void;
 }
 
 const CheckBoxItem = ({
   title = "",
   description = "",
   disabled = false,
-  onImageUpload,
+  showCameraIcon = false,
   isMarkDone = false,
+  onImageUpload,
 }: Props) => {
   return (
     <Box
       display={"flex"}
-      gap={ !isMarkDone ? "8vh" : "5vh"}
+      gap={!isMarkDone ? "8vh" : "5vh"}
       flexDirection="column"
       width={"100%"}
       height="100%"
@@ -35,7 +36,7 @@ const CheckBoxItem = ({
       <Box mt={"auto"} mx={"auto"}>
         <CameraCapture
           buttonText={"Upload Image"}
-          showCameraIcon={true}
+          showCameraIcon={showCameraIcon}
           buttonDisabled={disabled}
           onUpload={(result) => onImageUpload && onImageUpload(result)}
           isMarkDone={isMarkDone}

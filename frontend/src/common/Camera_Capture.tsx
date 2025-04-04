@@ -4,6 +4,7 @@ import {
   Box,
   Button,
   IconButton,
+  Stack,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
@@ -72,7 +73,7 @@ const CameraCapture = ({
       }
 
       setIsCapturing(false);
-    }, 1000);
+    }, 100);
   }, []);
 
   const getWebcamSize = () => {
@@ -92,12 +93,36 @@ const CameraCapture = ({
   const webcamSize = getWebcamSize();
 
   return (
-    <Box display="flex" flexDirection="column" alignItems="center" gap={3}>
-      {isMarkDone ? (
-        // if Image uploaded already
-        <Button disabled={isMarkDone} size="large">
-          <CheckCircleIcon sx={{ fontSize: 56, color: "#4caf50" }} />
-        </Button>
+    <Box
+      display="flex"
+      flexDirection="column"
+      alignItems="center"
+      justifyContent="center"
+      gap={2}
+    >
+      {isMarkDone && !capturedImage ? (
+        // if marked done and image ref not available, show check icon only
+        <CheckCircleIcon
+          color={"success"}
+          sx={{ fontSize: 48, margin: 0, padding: 0 }}
+        />
+      ) : isMarkDone && capturedImage ? (
+        // if marked done and image captured, show image and check icon
+        <>
+          <Box
+            component={"img"}
+            src={capturedImage}
+            alt="captured image"
+            sx={{
+              width: "auto",
+              height: "50%",
+            }}
+          />
+          <CheckCircleIcon
+            color={"success"}
+            sx={{ fontSize: 48, margin: 0, padding: 0 }}
+          />
+        </>
       ) : (
         <>
           {cameraActive && !capturedImage && (
@@ -112,8 +137,8 @@ const CameraCapture = ({
                 objectFit: "cover",
                 position:
                   isSmallScreen || isMediumScreen ? "fixed" : "relative",
-                top: 0,
-                left: 0,
+                top: isSmallScreen ? 0 : "auto",
+                left: isSmallScreen ? 0 : "auto",
                 zIndex: isSmallScreen || isMediumScreen ? 1000 : "auto",
               }}
               videoConstraints={{
@@ -129,8 +154,8 @@ const CameraCapture = ({
               src={capturedImage}
               alt="captured image"
               sx={{
-                width: "100%",
-                height: "auto",
+                width: "auto",
+                height: "50%",
               }}
             />
           )}
@@ -146,7 +171,6 @@ const CameraCapture = ({
           {buttonText && (
             <Button
               disabled={buttonDisabled}
-              size="small"
               variant="contained"
               sx={styles.button}
               onClick={() => {
@@ -159,7 +183,6 @@ const CameraCapture = ({
                 }
               }}
             >
-              {/* {isCapturing ? "Capturing..." : buttonText} */}
               {cameraActive
                 ? capturedImage
                   ? "Uplaod Image"

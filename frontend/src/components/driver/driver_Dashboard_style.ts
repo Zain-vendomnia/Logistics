@@ -51,6 +51,22 @@
 // });
 
 const useStyles = {
+  sideGrid: {
+    overflowY: "auto",
+    maxHeight: "100%",
+    pr: 1,
+    scrollbarWidth: "thin",
+    "&::-webkit-scrollbar": {
+      width: 1,
+    },
+    "&::-webkit-scrollbar-thumb": {
+      backgroundColor: "grey.200",
+      borderRadius: "4px",
+    },
+    "&::-webkit-scrollbar-thumb:hover": {
+      backgroundColor: "#555",
+    },
+  },
   leftStack: {
     direction: "row",
     spacing: 1,
@@ -73,7 +89,7 @@ const useStyles = {
     borderRadius: "10px",
   },
   cardHighlight: {
-    height: "auto",
+    height: { xs: "auto", md: "auto", lg: "22vh" },
     p: "20px",
     borderWidth: "2px",
     borderStyle: "solid",
