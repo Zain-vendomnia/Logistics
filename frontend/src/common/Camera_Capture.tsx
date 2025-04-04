@@ -1,15 +1,17 @@
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect, useMemo } from "react";
 import Webcam from "react-webcam";
+import { debounce, delay } from "lodash";
+
 import {
   Box,
   Button,
   IconButton,
-  Stack,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import AddAPhotoIcon from "@mui/icons-material/AddAPhoto";
+
 import { uploadImage } from "../services/trip_Service";
 import { useSnackbar } from "../providers/SnackbarProvider";
 
@@ -35,62 +37,102 @@ const CameraCapture = ({
   const isLargeScreen = useMediaQuery(theme.breakpoints.up("md"));
 
   const webcamRef = useRef<Webcam>(null);
-  const [isCapturing, setIsCapturing] = useState<boolean>(false);
+  const lastUploadedImageRef = useRef<string | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [isUploaded, setIsUploaded] = useState<boolean>(false);
+  const [checkMarkDone, setShowMarkDone] = useState<boolean>(
+    isMarkDone ?? false
+  );
+
+  const webcamSize = useMemo(
+    () => ({
+      width: isSmallScreen || isMediumScreen ? "100vw" : "80%",
+      height: isSmallScreen || isMediumScreen ? "100vh" : "auto",
+    }),
+    [isSmallScreen, isMediumScreen]
+  );
 
   const uploadImageAsync = async (imageSrc: string) => {
-    if (!imageSrc) return;
+    if (!imageSrc || imageSrc === lastUploadedImageRef.current) return;
+
+    lastUploadedImageRef.current = imageSrc;
 
     // temporairy for testing
-    onUpload?.(true);
-    return;
+    setIsUploading(true);
 
-    console.log("Uploading image initiated...");
+    setTimeout(() => {
+      setIsUploading(false);
+      setIsUploaded(true);
+    }, 1000);
 
-    const formData = new FormData();
-    formData.append("file", dataURItoBlob(imageSrc), "image.jpg");
+    // console.log("Uploading image initiated...");
 
-    const result = await uploadImage(formData);
-    if (result) {
-      onUpload?.(true);
-      showSnackbar("Image uploaded susseccfully.");
-      console.log("Image uploaded successfully:", result);
-    } else {
-      showSnackbar("Fail to uploading Image, please try again.", "error");
-      console.log("Failed to upload image");
-    }
+    // const formData = new FormData();
+    // formData.append("file", dataURItoBlob(imageSrc), "image.jpg");
+
+    // const result = await uploadImage(formData);
+    // if (result) {
+    //   onUpload?.(true);
+    //   showSnackbar("Image uploaded susseccfully.");
+    //   console.log("Image uploaded successfully:", result);
+    // } else {
+    //   showSnackbar("Fail to uploading Image, please try again.", "error");
+    //   console.log("Failed to upload image");
+    // }
   };
 
-  const captureAndUpload = useCallback(() => {
-    setIsCapturing(true);
-    setTimeout(() => {
-      const imageSrc = webcamRef.current?.getScreenshot();
-      console.log("Image Src: ", imageSrc);
-
-      if (imageSrc) {
-        setCapturedImage(imageSrc);
-      }
-
-      setIsCapturing(false);
-    }, 100);
+  const debouncedUpload = useMemo(() => {
+    return debounce(async (capturedImage: string) => {
+      await uploadImageAsync(capturedImage);
+    }, 1000); // debounce for 1 second
   }, []);
 
-  const getWebcamSize = () => {
-    if (isSmallScreen || isMediumScreen) {
-      return {
-        width: "100vw",
-        height: "100vh",
-      };
-    } else {
-      return {
-        width: "80%",
-        height: "auto",
-      };
-    }
-  };
+  const captureAndUpload = useCallback(() => {
+    if (!webcamRef.current) return;
 
-  const webcamSize = getWebcamSize();
+    const imageSrc = webcamRef.current?.getScreenshot();
+    console.log("Image Src: ", imageSrc);
+
+    if (imageSrc) {
+      setCapturedImage(imageSrc);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isUploaded === true) {
+      setShowMarkDone(true);
+
+      delay(() => {
+        onUpload?.(true);
+        setShowMarkDone(false);
+      }, 1000);
+    }
+  }, [isUploaded]);
+
+  useEffect(() => {
+    return () => {
+      setCameraActive(false);
+      setCapturedImage(null);
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      debouncedUpload.cancel();
+    };
+  }, [debouncedUpload]);
+
+  function handleButtonClick(): void {
+    if (cameraActive && !capturedImage) {
+      captureAndUpload();
+    } else if (capturedImage) {
+      debouncedUpload(capturedImage);
+    } else {
+      setCameraActive(true);
+    }
+  }
 
   return (
     <Box
@@ -106,7 +148,7 @@ const CameraCapture = ({
           color={"success"}
           sx={{ fontSize: 48, margin: 0, padding: 0 }}
         />
-      ) : isMarkDone && capturedImage ? (
+      ) : (isMarkDone || checkMarkDone) && capturedImage ? (
         // if marked done and image captured, show image and check icon
         <>
           <Box
@@ -167,31 +209,20 @@ const CameraCapture = ({
               <AddAPhotoIcon fontSize="large" />
             </IconButton>
           )}
-
-          {buttonText && (
-            <Button
-              disabled={buttonDisabled}
-              variant="contained"
-              sx={styles.button}
-              onClick={() => {
-                if (cameraActive && !capturedImage) {
-                  captureAndUpload();
-                } else if (capturedImage) {
-                  uploadImageAsync(capturedImage);
-                } else {
-                  setCameraActive(true);
-                }
-              }}
-            >
-              {cameraActive
-                ? capturedImage
-                  ? "Uplaod Image"
-                  : isCapturing
-                    ? "Capturing..."
-                    : "Capture Image"
-                : buttonText}
-            </Button>
-          )}
+          <Button
+            disabled={buttonDisabled}
+            variant="contained"
+            sx={styles.button}
+            onClick={handleButtonClick}
+          >
+            {cameraActive
+              ? capturedImage
+                ? isUploading
+                  ? "Uploading..."
+                  : "Upload Image"
+                : "Capture Image"
+              : buttonText}
+          </Button>
         </>
       )}
     </Box>
