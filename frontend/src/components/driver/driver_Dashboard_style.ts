@@ -54,7 +54,8 @@ const useStyles = {
   sideGrid: {
     overflowY: "auto",
     maxHeight: "100%",
-    pr: 1,
+    px: 1,
+    pt: 1,
     scrollbarWidth: "thin",
     "&::-webkit-scrollbar": {
       width: 1,

@@ -87,62 +87,8 @@ const BoardDriver = () => {
     <Box display="flex" bgcolor="white.100" height="100%">
       <Sidebar menuItems={menuItems} onMenuItemClick={setSelectedPath} />
 
-      <Box flexGrow={1} p={1}>
+      <Box flexGrow={1}>
         <Box>{renderContent()}</Box>
-
-        {/* <Stack direction="row" spacing={1}>
-          <Card variant="outlined" sx={styles.cardBody}>
-            <CardContent>
-              <Typography>
-                Welcome to your work place. Make a self Check-in.
-              </Typography>
-              <CardActions>
-                <Button size="small" variant="contained">
-                  Check In
-                </Button>
-              </CardActions>
-            </CardContent>
-          </Card>
-          <Card variant="outlined" sx={styles.cardBody}>
-            <CardContent>
-              <Typography>
-                Take a photo when items are loaded in the truck.
-              </Typography>
-              <CardActions>
-                <Button size="small" variant="outlined">
-                  Upload Photo
-                </Button>
-              </CardActions>
-            </CardContent>
-          </Card>
-          <Card variant="outlined" sx={styles.cardBody}>
-            <CardContent>
-              <Typography>Check vehicle status and fuel level.</Typography>
-              <CardActions>
-                <Button size="small" variant="outlined">
-                  Upload Photo
-                </Button>
-              </CardActions>
-            </CardContent>
-          </Card>
-          <PieChart
-            series={[
-              {
-                data: piechartData,
-                innerRadius: 20,
-                outerRadius: 35,
-                paddingAngle: 5,
-                cornerRadius: 5,
-                startAngle: -45,
-                endAngle: 275,
-                cx: 40,
-                cy: 60,
-              },
-            ]}
-            width={200}
-            height={110}
-          />
-        </Stack> */}
       </Box>
     </Box>
   );

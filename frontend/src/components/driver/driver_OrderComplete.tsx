@@ -166,6 +166,7 @@ const OrderComplete = ({ onComplete }: Props) => {
             color="primary"
             onClick={() => onComplete?.(true)}
             sx={styles.notifyButton}
+            disabled={!(isImageUploaded && isSigUploaded && rating > 0)}
           >
             Delivered
           </Button>

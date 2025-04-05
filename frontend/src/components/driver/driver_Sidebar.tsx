@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import MenuIcon from "@mui/icons-material/Menu";
 import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
-import { Link } from "react-router-dom";
 import Divider from "@mui/material/Divider";
 import Box from "@mui/material/Box";
 import List from "@mui/material/List";
@@ -12,14 +11,13 @@ import ListItemText from "@mui/material/ListItemText";
 import IconButton from "@mui/material/IconButton";
 import { grey } from "@mui/material/colors";
 import { getCurrentUser } from "../../services/auth.service";
-import Toolbar from "@mui/material/Toolbar";
 
-interface SidebarProps {
+interface Props {
   menuItems: { text: string; icon: React.ReactNode; path: string }[];
   onMenuItemClick: (path: string) => void;
 }
 
-const Sidebar = ({ menuItems, onMenuItemClick }: SidebarProps) => {
+const Sidebar = ({ menuItems, onMenuItemClick }: Props) => {
   const [isOpen, setIsOpen] = useState(false);
   const userImage = "https://www.w3schools.com/howto/img_avatar.png";
   const username = "John Doe";
@@ -32,13 +30,12 @@ const Sidebar = ({ menuItems, onMenuItemClick }: SidebarProps) => {
   };
 
   return (
-    <Box display="flex">
+    <Box display="flex" bgcolor= {grey[700]}>
       <Box
         sx={{
           display: "flex",
           flexDirection: "column",
-          width: isOpen ? 240 : 60,
-          bgcolor: "grey.100",
+          width: isOpen ? 240 : 60,          
           transition: "width 0.3s",
         }}
       >
@@ -88,11 +85,6 @@ const Sidebar = ({ menuItems, onMenuItemClick }: SidebarProps) => {
             </ListItem>
           ))}
         </List>
-        <Box
-          bgcolor={grey[200]}
-          height={isOpen ? "10vh" : "5vh"}
-          mt={"auto"}
-        ></Box>
       </Box>
     </Box>
   );

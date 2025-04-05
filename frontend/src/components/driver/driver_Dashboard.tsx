@@ -112,7 +112,7 @@ const Dashboard = () => {
   );
 
   return (
-    <Grid2 container spacing={1} height={"92vh"} p={0}>
+    <Grid2 container spacing={0} height={"92vh"} p={0}>
       <Grid2 size={{ xs: 4, md: 3, lg: 3 }} sx={styles.sideGrid}>
         {!tripData ? (
           preTripChecks
