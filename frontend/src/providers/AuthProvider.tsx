@@ -54,6 +54,8 @@ export function AuthProvider({ children }: Props) {
 
     return () => {
       EventBus.remove("logout", logout);
+      // AuthContext.Provider = null; // Context clean up to avoid memory leaks
+      setCurrentUser(null);
     };
   }, []);
 

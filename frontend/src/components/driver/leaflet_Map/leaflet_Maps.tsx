@@ -10,7 +10,6 @@ import "leaflet/dist/leaflet.css";
 import * as L from "leaflet";
 // Loading marker icon in Leaflet
 import markerIconPng from "leaflet/dist/images/marker-icon.png";
-import markerIconRed from "leaflet/dist/images/marker-icon-red.png";
 import markerShadowPng from "leaflet/dist/images/marker-shadow.png";
 
 import { getRoute } from "./graphhopper";
@@ -24,6 +23,7 @@ const customIcon = new L.Icon({
   popupAnchor: [1, -34],
 });
 
+const markerIconRed = "/marker-icon-red.png";
 const redIcon = new L.Icon({
   iconUrl: markerIconRed,
   shadowUrl: markerShadowPng,

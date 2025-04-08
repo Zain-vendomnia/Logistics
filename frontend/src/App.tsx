@@ -8,14 +8,28 @@ import GlobalChecksProvider from "./providers/GlobalChecksProvider";
 import { AuthProvider } from "./providers/AuthProvider";
 import AppRoutes from "./AppRoutes";
 import NavBar from "./components/NavBar";
+import Sidebar from "./components/Sidebar";
+import { Box } from "@mui/material";
 
 const App: React.FC = () => {
   return (
     <SnackbarProvider>
       <GlobalChecksProvider>
         <AuthProvider>
-          <NavBar />
-          <AppRoutes />
+          <Box
+            display={"flex"}
+            flexDirection={"column"}
+            overflow={"hidden"}
+            height={"100%"}
+          >
+            <NavBar />
+            <Box display={"flex"} overflow={"hidden"} flexGrow={1}>
+              <Sidebar />
+              <Box flexGrow={1} p={0} overflow={"auto"}>
+                <AppRoutes />
+              </Box>
+            </Box>
+          </Box>
         </AuthProvider>
       </GlobalChecksProvider>
     </SnackbarProvider>

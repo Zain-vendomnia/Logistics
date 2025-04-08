@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import EventBus from "../../common/EventBus";
-import Sidebar from "../driver/driver_Sidebar";
+import Sidebar from "../Sidebar";
 import Dashboard from "../driver/driver_Dashboard";
 import { getDriverBoard } from "../../services/user.service";
 
@@ -24,21 +24,21 @@ const BoardDriver = () => {
       icon: <DashboardIcon sx={{ color: "primary.main" }} />,
       path: "/dashboard",
     },
-    {
-      text: "Warehouse Check-in",
-      icon: <WarehouseIcon sx={{ color: "primary.main" }} />,
-      path: "/warehouse-checkin",
-    },
-    {
-      text: "Order Shipping",
-      icon: <LocalShippingIcon sx={{ color: "primary.main" }} />,
-      path: "/order-shipping",
-    },
-    {
-      text: "Gas Refill",
-      icon: <LocalGasStationIcon sx={{ color: "primary.main" }} />,
-      path: "/gasManagement",
-    },
+    // {
+    //   text: "Warehouse Check-in",
+    //   icon: <WarehouseIcon sx={{ color: "primary.main" }} />,
+    //   path: "/warehouse-checkin",
+    // },
+    // {
+    //   text: "Order Shipping",
+    //   icon: <LocalShippingIcon sx={{ color: "primary.main" }} />,
+    //   path: "/order-shipping",
+    // },
+    // {
+    //   text: "Gas Refill",
+    //   icon: <LocalGasStationIcon sx={{ color: "primary.main" }} />,
+    //   path: "/gasManagement",
+    // },
   ];
 
   useEffect(() => {
@@ -84,11 +84,11 @@ const BoardDriver = () => {
   ];
 
   return (
-    <Box display="flex" bgcolor="white.100" height="100%">
-      <Sidebar menuItems={menuItems} onMenuItemClick={setSelectedPath} />
+    <Box display="flex" bgcolor="white.100" height="100%" width="100%">
+      {/* <Sidebar menuItems={menuItems} onMenuItemClick={setSelectedPath} /> */}
 
-      <Box flexGrow={1}>
-        <Box>{renderContent()}</Box>
+      <Box flexGrow={1} overflow={"hidden"} height="100%">
+        <Box height="100%">{renderContent()}</Box>
       </Box>
     </Box>
   );
