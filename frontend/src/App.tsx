@@ -23,7 +23,12 @@ const App: React.FC = () => {
             height={"100%"}
           >
             <NavBar />
-            <Box display={"flex"} overflow={"hidden"} flexGrow={1}>
+            <Box
+              display={"flex"}
+              overflow={"hidden"}
+              flexGrow={1}
+              bgcolor={"grey.100"}
+            >
               <Sidebar />
               <Box flexGrow={1} p={0} overflow={"auto"}>
                 <AppRoutes />

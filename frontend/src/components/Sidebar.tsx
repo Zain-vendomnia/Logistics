@@ -37,7 +37,12 @@ const Sidebar = ({ menuItems, onMenuItemClick }: Props) => {
 
   if (!user) return null;
   return (
-    <Box display="flex" bgcolor={grey[700]}>
+    <Box
+      display="flex"
+      height={"100vh"}
+      borderRight={"1px solid"}
+      borderColor={"grey.300"}
+    >
       <Box
         sx={{
           display: "flex",
