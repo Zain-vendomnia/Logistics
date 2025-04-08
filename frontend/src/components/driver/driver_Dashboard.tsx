@@ -21,7 +21,7 @@ const Dashboard = () => {
       description: "Ensure all items are laoded on the truck and take a photo.",
     },
     {
-      title: "OrderShipping",
+      title: "Order Shipping",
       description: "Kilometers Driven and Fuel Guage photo from the odometer.",
     },
   ];

@@ -39,12 +39,9 @@ const CameraCapture = ({
   const webcamRef = useRef<Webcam>(null);
   const lastUploadedImageRef = useRef<string | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
-  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [imageCaptured, setImageCaptured] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [isUploaded, setIsUploaded] = useState<boolean>(false);
-  const [checkMarkDone, setShowMarkDone] = useState<boolean>(
-    isMarkDone ?? false
-  );
 
   const webcamSize = useMemo(
     () => ({
@@ -62,8 +59,8 @@ const CameraCapture = ({
 
     // for temporary testing
     setTimeout(() => {
-      setIsUploading(false);
       setIsUploaded(true);
+      // setIsUploading(false);
     }, 1000);
 
     // try {
@@ -99,27 +96,17 @@ const CameraCapture = ({
     const imageSrc = webcamRef.current?.getScreenshot();
     console.log("Image Src: ", imageSrc);
     if (imageSrc) {
-      setCapturedImage(imageSrc);
+      setImageCaptured(imageSrc);
     }
   }, []);
 
   useEffect(() => {
-    if (isUploaded === true) {
-      setShowMarkDone(true);
-
+    if (isUploaded) {
       delay(() => {
         onUpload?.(true);
-        setShowMarkDone(false);
-      }, 1000);
+      }, 2000);
     }
   }, [isUploaded]);
-
-  useEffect(() => {
-    return () => {
-      setCameraActive(false);
-      setCapturedImage(null);
-    };
-  }, []);
 
   useEffect(() => {
     return () => {
@@ -128,16 +115,16 @@ const CameraCapture = ({
   }, [debouncedUpload]);
 
   function handleButtonClick(): void {
-    if (cameraActive && !capturedImage) {
+    if (cameraActive && !imageCaptured) {
       captureAndUpload();
-    } else if (capturedImage) {
-      debouncedUpload(capturedImage);
+    } else if (imageCaptured) {
+      debouncedUpload(imageCaptured);
     } else {
       setCameraActive(true);
     }
   }
 
-  const retakeImage = () => setCapturedImage(null);
+  const retakeImage = () => setImageCaptured(null);
 
   return (
     <Box
@@ -147,17 +134,17 @@ const CameraCapture = ({
       justifyContent="center"
       gap={2}
     >
-      {isMarkDone && !capturedImage ? (
+      {isMarkDone && !imageCaptured ? (
         <CheckCircleIcon
           color={"success"}
           sx={{ fontSize: 48, margin: 0, padding: 0 }}
         />
-      ) : (isMarkDone || checkMarkDone) && capturedImage ? (
+      ) : isUploaded && imageCaptured ? (
         // if marked done and image captured, show image and check icon
         <>
           <Box
             component={"img"}
-            src={capturedImage}
+            src={imageCaptured}
             alt="captured image"
             sx={{
               width: "auto",
@@ -171,7 +158,7 @@ const CameraCapture = ({
         </>
       ) : (
         <>
-          {cameraActive && !capturedImage && (
+          {cameraActive && !imageCaptured && (
             <Webcam
               audio={false}
               ref={webcamRef}
@@ -194,10 +181,10 @@ const CameraCapture = ({
               }}
             />
           )}
-          {capturedImage && (
+          {imageCaptured && (
             <Box
               component="img"
-              src={capturedImage}
+              src={imageCaptured}
               alt="captured image"
               sx={{
                 width: "auto",
@@ -221,15 +208,19 @@ const CameraCapture = ({
               onClick={handleButtonClick}
             >
               {cameraActive
-                ? capturedImage
+                ? imageCaptured
                   ? isUploading
                     ? "Uploading..."
                     : "Upload"
-                  : "Capture Image"
+                  : "Capture"
                 : buttonText}
             </Button>
-            {capturedImage && !isUploading && (
-              <Button variant="outlined" onClick={retakeImage}>
+            {imageCaptured && !isUploading && (
+              <Button
+                variant="outlined"
+                sx={styles.button}
+                onClick={retakeImage}
+              >
                 Retake
               </Button>
             )}
@@ -260,7 +251,7 @@ const styles = {
   },
   button: {
     width: "auto",
-    minWidth: 120,
+    minWidth: 60,
     minHeight: "48px",
     "&:active": {
       backgroundColor: "primary.dark", // Visual feedback on tap

@@ -98,7 +98,7 @@ const useStyles = {
   },
   cardLarge: {
     height: "auto",
-    p: "20px",
+    p: 2,
     borderWidth: "2px",
     borderStyle: "solid",
     borderColor: "primary.main",
