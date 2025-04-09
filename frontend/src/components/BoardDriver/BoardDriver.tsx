@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import EventBus from "../../common/EventBus";
 import Sidebar from "../driver/driver_Sidebar";
 import OrderShipping from "../driver/driver_OrderShipping";
-import Dashboard from "../driver/driver_Dashboard";
+
 import Dashboard_01 from "../driver/driver_Dashboard_01";
 import { getDriverBoard } from "../../services/user.service";
 
@@ -66,16 +66,7 @@ const BoardDriver = () => {
 
   const renderContent = () => {
     switch (selectedPath) {
-      case "/dashboard":
-        return <Dashboard />;
-      case "/warehouse-checkin":
-        return <Dashboard_01 />;
-      case "/order-shipping":
-        return <OrderShipping />;
-      case "/gasManagement":
-        return <GasManagement />;
-      default:
-        return <Dashboard />;
+    
     }
   };
 
@@ -89,7 +80,7 @@ const BoardDriver = () => {
       <Sidebar menuItems={menuItems} onMenuItemClick={setSelectedPath} />
 
       <Box flexGrow={1} p={1}>
-        <Box>{renderContent()}</Box>
+      
 
         {/* <Stack direction="row" spacing={1}>
           <Card variant="outlined" sx={styles.cardBody}>
