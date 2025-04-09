@@ -26,6 +26,7 @@ export const login = (username: string, password: string) => {
 };
 
 export const logout = () => {
+  // Server call to end User session > Pending
   localStorage.removeItem("user");
 };
 

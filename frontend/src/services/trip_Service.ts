@@ -46,8 +46,9 @@ const fakeTripData: TripData = {
   tripDate: "2025-03-14",
   startPoint: "Warehouse A",
   endPoint: "Customer B",
-  startCoordinates: "25.1816° N, 55.2715° E",
-  destinationCoordinates: "25° 13' 13.69\" N, 55° 17' 7.87\" E",
+  startCoordinates: null,
+  // destinationCoordinates: "25° 13' 13.69\" N, 55° 17' 7.87\" E",
+  destinationCoordinates: [25.1972, 55.2744],
   startTime: new Date().toISOString(),
 
   client: {
@@ -65,8 +66,8 @@ export default interface TripData {
   tripDate: string;
   startPoint: string;
   endPoint: string;
-  startCoordinates: string;
-  destinationCoordinates: string;
+  startCoordinates: [number, number] | null;
+  destinationCoordinates: [number, number] | null;
   startTime: string;
   client: ClientData;
   vehicle: string;

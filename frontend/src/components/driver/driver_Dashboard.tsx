@@ -22,12 +22,8 @@ const Dashboard = () => {
       description: "Ensure all items are laoded on the truck and take a photo.",
     },
     {
-      title: "OrderShipping",
+      title: "Order Shipping",
       description: "Kilometers Driven and Fuel Guage photo from the odometer.",
-    },
-    {
-      title: "Gas Check",
-      description: "Check gas level before start the trip.",
     },
   ];
 
@@ -36,9 +32,10 @@ const Dashboard = () => {
     new Array(componentCheckList.length).fill(false)
   );
   const [tripData, setTripData] = useState<TripData | null>(null);
+  const [loadOrderComplete, setLoadOrderComplete] = useState(true);
 
   useEffect(() => {
-    // localStorage.setItem("cameraEnabled", "false");
+    // startTrip();
     const isAllComplied = componentStatus.every((status) => status === true);
     setIsComplied(isAllComplied);
   }, [componentStatus]);
@@ -64,10 +61,10 @@ const Dashboard = () => {
       spacing={1}
       position={"relative"}
       height={"100%"}
-      p={1}
+      p={2}
       sx={{
         border: "1px solid #e0e0e0",
-        borderRadius: "8px",
+        borderRadius: 2,
       }}
     >
       {componentCheckList.map(
@@ -77,6 +74,7 @@ const Dashboard = () => {
               <CheckBoxItem
                 title={item.title}
                 description={item.description}
+                showCameraIcon={true}
                 disabled={index !== 0 && !componentStatus[index - 1]}
                 onImageUpload={(result) => handleImageUpload(index, result)}
                 isMarkDone={componentStatus[index]}
@@ -94,7 +92,7 @@ const Dashboard = () => {
                   {item.title}
                 </Typography>
               }
-              isMarkDone={true} //componentStatus[index]}
+              isMarkDone={componentStatus[index]}
             />
           </Card>
         ))}
@@ -111,19 +109,40 @@ const Dashboard = () => {
   );
 
   return (
-    <Grid2 container spacing={1} height={"92vh"} p={0}>
-      <Grid2 size={{ xs: 4, md: 3, lg: 3 }}>
-        {!tripData ? preTripChecks : <ShippingDetails tripData={tripData} />}
+    <Grid2 container spacing={0} height={"100%"} p={0}>
+      <Grid2
+        size={{ xs: 4, md: 3, lg: 3 }}
+        sx={styles.sideGrid}
+        height={"100%"}
+      >
+        {!tripData ? (
+          preTripChecks
+        ) : (
+          <ShippingDetails
+            tripData={tripData}
+            isArrived={true}
+            notifyCustomer={true}
+            onNotified={(result) =>
+              console.log("Driver Pressed Notify Button", result)
+            }
+            isLoadOrderComplete={loadOrderComplete}
+            onMarkedComplete={() => console.log("Order Completed by Driver...")}
+          />
+        )}
       </Grid2>
 
       <Grid2
         display={"flex"}
         justifyContent={"center"}
         alignItems={"center"}
+        height={"100%"}
         size={{ xs: 8, md: 9, lg: 9 }}
       >
         <Box width={"100%"} height={"100%"}>
-          {/* <LeafletMaps destination={null} /> */}
+          <LeafletMaps
+            destination={tripData ? tripData.destinationCoordinates : null}
+          />
+          {/* burj Khalifa: [25.1972, 55.2744] */}
         </Box>
       </Grid2>
     </Grid2>

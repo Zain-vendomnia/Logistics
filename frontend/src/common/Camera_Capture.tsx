@@ -1,5 +1,7 @@
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect, useMemo } from "react";
 import Webcam from "react-webcam";
+import { debounce, delay } from "lodash";
+
 import {
   Box,
   Button,
@@ -9,6 +11,7 @@ import {
 } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import AddAPhotoIcon from "@mui/icons-material/AddAPhoto";
+
 import { uploadImage } from "../services/trip_Service";
 import { useSnackbar } from "../providers/SnackbarProvider";
 
@@ -34,73 +37,128 @@ const CameraCapture = ({
   const isLargeScreen = useMediaQuery(theme.breakpoints.up("md"));
 
   const webcamRef = useRef<Webcam>(null);
-  const [isCapturing, setIsCapturing] = useState<boolean>(false);
+  const lastUploadedImageRef = useRef<string | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
-  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [imageCaptured, setImageCaptured] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [isUploaded, setIsUploaded] = useState<boolean>(false);
+
+  const webcamSize = useMemo(
+    () => ({
+      width: isSmallScreen || isMediumScreen ? "100vw" : "80%",
+      height: isSmallScreen || isMediumScreen ? "100vh" : "auto",
+    }),
+    [isSmallScreen, isMediumScreen]
+  );
 
   const uploadImageAsync = async (imageSrc: string) => {
-    if (!imageSrc) return;
+    if (!imageSrc || imageSrc === lastUploadedImageRef.current) return;
 
-    // temporairy for testing
-    onUpload?.(true);
-    return;
+    lastUploadedImageRef.current = imageSrc;
+    setIsUploading(true);
 
-    console.log("Uploading image initiated...");
+    // for temporary testing
+    setTimeout(() => {
+      setIsUploaded(true);
+      // setIsUploading(false);
+    }, 1000);
 
-    const formData = new FormData();
-    formData.append("file", dataURItoBlob(imageSrc), "image.jpg");
+    // try {
+    //   const formData = new FormData();
+    //   formData.append("file", dataURItoBlob(imageSrc), "image.jpg");
 
-    const result = await uploadImage(formData);
-    if (result) {
-      onUpload?.(true);
-      showSnackbar("Image uploaded susseccfully.");
-      console.log("Image uploaded successfully:", result);
-    } else {
-      showSnackbar("Fail to uploading Image, please try again.", "error");
-      console.log("Failed to upload image");
-    }
+    //   const result = await uploadImage(formData);
+    //   if (result) {
+    //     setIsUploaded(true);
+    //     onUpload?.(true);
+    //     showSnackbar("Image uploaded successfully.");
+    //   } else {
+    //     throw new Error("Upload failed");
+    //   }
+    // } catch (error) {
+    //   showSnackbar("Failed to upload image, please try again.", "error");
+    // } finally {
+    //   setIsUploading(false);
+    // }
   };
+
+  const debouncedUpload = useMemo(
+    () =>
+      debounce(async (capturedImage: string) => {
+        await uploadImageAsync(capturedImage);
+      }, 1000),
+    []
+  );
 
   const captureAndUpload = useCallback(() => {
-    setIsCapturing(true);
-    setTimeout(() => {
-      const imageSrc = webcamRef.current?.getScreenshot();
-      console.log("Image Src: ", imageSrc);
+    if (!webcamRef.current) return;
 
-      if (imageSrc) {
-        setCapturedImage(imageSrc);
-      }
-
-      setIsCapturing(false);
-    }, 1000);
+    const imageSrc = webcamRef.current?.getScreenshot();
+    console.log("Image Src: ", imageSrc);
+    if (imageSrc) {
+      setImageCaptured(imageSrc);
+    }
   }, []);
 
-  const getWebcamSize = () => {
-    if (isSmallScreen || isMediumScreen) {
-      return {
-        width: "100vw",
-        height: "100vh",
-      };
-    } else {
-      return {
-        width: "80%",
-        height: "auto",
-      };
+  useEffect(() => {
+    if (isUploaded) {
+      delay(() => {
+        onUpload?.(true);
+      }, 2000);
     }
-  };
+  }, [isUploaded]);
 
-  const webcamSize = getWebcamSize();
+  useEffect(() => {
+    return () => {
+      debouncedUpload.cancel();
+    };
+  }, [debouncedUpload]);
+
+  function handleButtonClick(): void {
+    if (cameraActive && !imageCaptured) {
+      captureAndUpload();
+    } else if (imageCaptured) {
+      debouncedUpload(imageCaptured);
+    } else {
+      setCameraActive(true);
+    }
+  }
+
+  const retakeImage = () => setImageCaptured(null);
 
   return (
-    <Box display="flex" flexDirection="column" alignItems="center" p={0}>
-      {isMarkDone ? (
-        // if Image uploaded already
-        <Button disabled={isMarkDone} size="large">
-          <CheckCircleIcon sx={{ fontSize: 56, color: "#4caf50" }} />
-        </Button>
+    <Box
+      display="flex"
+      flexDirection="column"
+      alignItems="center"
+      justifyContent="center"
+      gap={2}
+    >
+      {isMarkDone && !imageCaptured ? (
+        <CheckCircleIcon
+          color={"success"}
+          sx={{ fontSize: 48, margin: 0, padding: 0 }}
+        />
+      ) : isUploaded && imageCaptured ? (
+        // if marked done and image captured, show image and check icon
+        <>
+          <Box
+            component={"img"}
+            src={imageCaptured}
+            alt="captured image"
+            sx={{
+              width: "auto",
+              height: "50%",
+            }}
+          />
+          <CheckCircleIcon
+            color={"success"}
+            sx={{ fontSize: 48, margin: 0, padding: 0 }}
+          />
+        </>
       ) : (
         <>
-          {cameraActive && !capturedImage && (
+          {cameraActive && !imageCaptured && (
             <Webcam
               audio={false}
               ref={webcamRef}
@@ -112,8 +170,8 @@ const CameraCapture = ({
                 objectFit: "cover",
                 position:
                   isSmallScreen || isMediumScreen ? "fixed" : "relative",
-                top: 0,
-                left: 0,
+                top: isSmallScreen ? 0 : "auto",
+                left: isSmallScreen ? 0 : "auto",
                 zIndex: isSmallScreen || isMediumScreen ? 1000 : "auto",
               }}
               videoConstraints={{
@@ -123,14 +181,14 @@ const CameraCapture = ({
               }}
             />
           )}
-          {capturedImage && (
+          {imageCaptured && (
             <Box
               component="img"
-              src={capturedImage}
+              src={imageCaptured}
               alt="captured image"
               sx={{
-                width: "100%",
-                height: "auto",
+                width: "auto",
+                height: "50%",
               }}
             />
           )}
@@ -142,33 +200,31 @@ const CameraCapture = ({
               <AddAPhotoIcon fontSize="large" />
             </IconButton>
           )}
-
-          {buttonText && (
+          <Box display="flex" gap={1}>
             <Button
               disabled={buttonDisabled}
-              size="small"
               variant="contained"
               sx={styles.button}
-              onClick={() => {
-                if (cameraActive && !capturedImage) {
-                  captureAndUpload();
-                } else if (capturedImage) {
-                  uploadImageAsync(capturedImage);
-                } else {
-                  setCameraActive(true);
-                }
-              }}
+              onClick={handleButtonClick}
             >
-              {/* {isCapturing ? "Capturing..." : buttonText} */}
               {cameraActive
-                ? capturedImage
-                  ? "Uplaod Image"
-                  : isCapturing
-                    ? "Capturing..."
-                    : "Capture Image"
+                ? imageCaptured
+                  ? isUploading
+                    ? "Uploading..."
+                    : "Upload"
+                  : "Capture"
                 : buttonText}
             </Button>
-          )}
+            {imageCaptured && !isUploading && (
+              <Button
+                variant="outlined"
+                sx={styles.button}
+                onClick={retakeImage}
+              >
+                Retake
+              </Button>
+            )}
+          </Box>
         </>
       )}
     </Box>
@@ -195,9 +251,8 @@ const styles = {
   },
   button: {
     width: "auto",
-    height: "48px",
-    my: 3,
-    minWidth: 120,
+    minWidth: 60,
+    minHeight: "48px",
     "&:active": {
       backgroundColor: "primary.dark", // Visual feedback on tap
     },

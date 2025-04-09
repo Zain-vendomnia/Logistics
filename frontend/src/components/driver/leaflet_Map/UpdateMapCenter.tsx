@@ -3,7 +3,7 @@ import { useMap } from "react-leaflet";
 
 const UpdateMapCenter = ({ center }: { center: [number, number] }) => {
   const map = useMap();
-  console.log("map center:", map.getCenter());
+  // console.log("map center:", map.getCenter());
 
   useEffect(() => {
     map.setView(center, map.getZoom(), {
