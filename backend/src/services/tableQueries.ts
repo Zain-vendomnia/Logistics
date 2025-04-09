@@ -1,0 +1,162 @@
+export const CREATE_DRIVER_DETAILS_TABLE = `
+  CREATE TABLE driver_details (
+    id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(45) NOT NULL,
+    mob INT NOT NULL,
+    address VARCHAR(45) NOT NULL,
+    warehouse_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (warehouse_id) REFERENCES warehouse_details(warehouse_id) ON DELETE CASCADE
+  );
+`;
+
+export const CREATE_DRIVER_LOCATIONS_TABLE = `
+  CREATE TABLE driver_locations (
+    id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+    tour_id INT NOT NULL,
+    driver_id INT NOT NULL,
+    latitude DECIMAL(10,8) NOT NULL,
+    longitude DECIMAL(11,8) NOT NULL,
+    route_segment_id INT NOT NULL,
+    comments VARCHAR(45),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (tour_id) REFERENCES tourInfo_master(id) ON DELETE CASCADE,
+    FOREIGN KEY (driver_id) REFERENCES driver_details(id) ON DELETE CASCADE
+  );
+`;
+
+export const CREATE_TOUR_INFO_MASTER_TABLE = `
+  CREATE TABLE tourInfo_master (
+    id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+    tour_name VARCHAR(45) NOT NULL,
+    driver_id INT NOT NULL,
+    tour_date DATETIME NOT NULL,
+    warehouse_id INT NOT NULL,
+    order_ids VARCHAR(45) NOT NULL,
+    customer_ids VARCHAR(45) NOT NULL,
+    item_total_qty_truck INT NOT NULL,
+    truck_loaded_img BLOB,
+    tour_end_truck_qty_pic BLOB,
+    tour_end_fuel_pic BLOB,
+    tour_start_km INT NOT NULL,
+    tour_end_km INT NOT NULL,
+    tour_total_km VARCHAR(45) NOT NULL,
+    tour_start_fuel_pic BLOB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (driver_id) REFERENCES driver_details(id) ON DELETE CASCADE,
+    FOREIGN KEY (warehouse_id) REFERENCES warehouse_details(warehouse_id) ON DELETE CASCADE
+  );
+`;
+
+export const CREATE_ROUTE_UPDATES_TABLE = `
+  CREATE TABLE route_updates (
+    id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+    tour_id INT NOT NULL,
+    driver_id INT NOT NULL,
+    latitude VARCHAR(45) NOT NULL,
+    longitude VARCHAR(45) NOT NULL,
+    current_location VARCHAR(45) NOT NULL,
+    customer_id VARCHAR(45) NOT NULL,
+    status VARCHAR(45) NOT NULL,
+    route_response VARCHAR(45),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+    order_id INT NOT NULL,
+    segment_id INT NOT NULL,
+    FOREIGN KEY (tour_id) REFERENCES tourInfo_master(id) ON DELETE CASCADE,
+    FOREIGN KEY (driver_id) REFERENCES driver_details(id) ON DELETE CASCADE,
+    FOREIGN KEY (order_id) REFERENCES logistic_order(order_id) ON DELETE CASCADE,
+    FOREIGN KEY (segment_id) REFERENCES route_segments(id) ON DELETE CASCADE
+  );
+`;
+export const CREATE_API_RESPONSE_LOG_TABLE = `
+  CREATE TABLE api_response_log (
+    id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+    route_segment_id INT NOT NULL,
+    api_response JSON NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (route_segment_id) REFERENCES route_segments(id) ON DELETE CASCADE
+  );
+`;
+
+export const CREATE_ROUTE_SEGMENTS_TABLE = `
+  CREATE TABLE route_segments (
+    id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+    tour_id INT NOT NULL,
+    start_latitude FLOAT,
+    start_longitude FLOAT,
+    end_latitude FLOAT,
+    end_longitude FLOAT,
+    route_response JSON,
+    status VARCHAR(45),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+    start_customer_id VARCHAR(45),
+    end_customer_id VARCHAR(45),
+    delivered_item_pic BLOB,
+    customer_signature VARCHAR(45),
+    order_id INT NOT NULL,
+    comments VARCHAR(45),
+    FOREIGN KEY (tour_id) REFERENCES tourInfo_master(id) ON DELETE CASCADE,
+    FOREIGN KEY (order_id) REFERENCES logistic_order(order_id) ON DELETE CASCADE
+  );
+`;
+
+export const CREATE_WAREHOUSE_DETAILS_TABLE = `
+  CREATE TABLE warehouse_details (
+    warehouse_id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+    warehouse_name VARCHAR(45) NOT NULL,
+    clerk_name VARCHAR(45) NOT NULL,
+    clerk_mob INT NOT NULL,
+    address VARCHAR(45) NOT NULL,
+    email VARCHAR(45) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
+  );
+`;
+export const LOGIC_ORDER_TABLE = `
+   CREATE TABLE logistic_order (
+      order_id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+      order_number VARCHAR(45) NOT NULL,
+      customer_id VARCHAR(45) NOT NULL,
+      invoice_amount VARCHAR(45) NOT NULL,
+      payment_id INT NOT NULL,
+      order_time DATETIME NOT NULL,
+      expected_delivery_time DATETIME NOT NULL,
+      warehouse_id INT NOT NULL,
+      quantity INT NOT NULL,
+      article_order_number VARCHAR(45) NOT NULL,
+      customer_number VARCHAR(45) NOT NULL,
+      firstname VARCHAR(45) NOT NULL,
+      lastname VARCHAR(45) NOT NULL,
+      email VARCHAR(45) NOT NULL,
+      street VARCHAR(45) NOT NULL,
+      zipcode VARCHAR(10) NOT NULL,
+      city VARCHAR(45) NOT NULL,
+      phone VARCHAR(45) NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
+    );
+`;
+export const LOGIC_PAYMENT_TABLE = `
+   CREATE TABLE logistic_payment (
+          id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+          name VARCHAR(100) NOT NULL,
+          description VARCHAR(255) NOT NULL
+    );
+`;
+
+export const USERS_TABLE = `
+   CREATE TABLE IF NOT EXISTS users(
+        user_id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+        username VARCHAR(20) NOT NULL UNIQUE,
+        email VARCHAR(30) NOT NULL UNIQUE,
+        password VARCHAR(100) NOT NULL,
+        role VARCHAR(20) NOT NULL DEFAULT 'user',  -- Adding role field with default 'user'
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+`;

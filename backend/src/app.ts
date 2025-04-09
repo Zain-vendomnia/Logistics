@@ -4,6 +4,14 @@ import morgan from "morgan";
 import authRouter from "./router/auth.routes";
 import userRouter from "./router/auth.routes";
 import config from "./config";
+import { fetchScheduleOrderInfo } from './services/scheduleFetching';
+import { upload } from "./config/multer";
+
+// Import the controller fucntion for the order info
+import { orderInfoController } from "./controller/Admin_Api/orderInfo.controller";
+import { scheduleOrderInfoController } from "./controller/Admin_Api/scheduleOrderInfo.controller";
+
+import { addData } from "./controller/customer/route_segments.controller";
 
 import { GeocodingController } from "./controller/Admin_RouteOptimzation/geocodingController";
 import { optimizeRouteController } from "./controller/Admin_RouteOptimzation/optimizeRouteController";
@@ -27,4 +35,24 @@ app.use("/api", userRouter);
 app.use("/api/test", userRouter);  
 app.use('/api/admin/geocode', GeocodingController.getLatLng);
 app.use('/api/admin/route/optimize', optimizeRouteController);
+
+// Directly link the controller (no router file)
+app.get("/api/admin/orderinfo", orderInfoController);
+app.get("/api/admin/scheduleOrderInfo", scheduleOrderInfoController);
+// Routes
+app.post("/route_segments/addData", upload.single("image"), addData);
+
+// Catch-all 404 Handler (keep this LAST)
+app.use((req, res) => {
+  res.status(404).json({
+    message: `Oops! Route [${req.method}] ${req.originalUrl} not found on this server.`,
+    suggestion: "Check your URL or method type (GET, POST, etc.)"
+  });
+});
+
+
+// You can now use the fetchScheduleOrderInfo function in this file
+fetchScheduleOrderInfo();
+
+
 export default app;
