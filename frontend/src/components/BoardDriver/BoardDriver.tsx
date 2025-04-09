@@ -18,29 +18,6 @@ const BoardDriver = () => {
   const [content, setContent] = useState<string>("");
   const [selectedPath, setSelectedPath] = useState<string>("/dashboard");
 
-  const menuItems = [
-    {
-      text: "Dashboard",
-      icon: <DashboardIcon sx={{ color: "primary.main" }} />,
-      path: "/dashboard",
-    },
-    // {
-    //   text: "Warehouse Check-in",
-    //   icon: <WarehouseIcon sx={{ color: "primary.main" }} />,
-    //   path: "/warehouse-checkin",
-    // },
-    // {
-    //   text: "Order Shipping",
-    //   icon: <LocalShippingIcon sx={{ color: "primary.main" }} />,
-    //   path: "/order-shipping",
-    // },
-    // {
-    //   text: "Gas Refill",
-    //   icon: <LocalGasStationIcon sx={{ color: "primary.main" }} />,
-    //   path: "/gasManagement",
-    // },
-  ];
-
   useEffect(() => {
     getDriverBoard().then(
       (response) => {
@@ -85,8 +62,6 @@ const BoardDriver = () => {
 
   return (
     <Box display="flex" height="100%" width="100%">
-      {/* <Sidebar menuItems={menuItems} onMenuItemClick={setSelectedPath} /> */}
-
       <Box flexGrow={1} overflow={"hidden"} height="100%">
         <Box height="100%">{renderContent()}</Box>
       </Box>

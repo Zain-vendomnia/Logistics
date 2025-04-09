@@ -1,7 +1,9 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 
 import MenuIcon from "@mui/icons-material/Menu";
+import PersonIcon from "@mui/icons-material/Person";
 import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
+import DashboardIcon from "@mui/icons-material/Dashboard";
 import {
   Divider,
   Box,
@@ -17,29 +19,55 @@ import {
 import { grey } from "@mui/material/colors";
 
 import { useAuth } from "../providers/AuthProvider";
+import { useLocation, Link } from "react-router-dom";
+
+type sidebarMenuOption = { text: string; icon?: ReactNode; path: string };
 
 interface Props {
-  menuItems?: { text: string; icon: ReactNode; path: string }[];
+  menuOptions?: sidebarMenuOption[];
   onMenuItemClick?: (path: string) => void;
 }
 
-const Sidebar = ({ menuItems, onMenuItemClick }: Props) => {
+const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
+  const location = useLocation();
+
   const { user, showDriverBoard, showAdminBoard, showSuperAdminBoard } =
     useAuth();
 
   const userImage = "https://www.w3schools.com/howto/img_avatar.png";
+
   const [isOpen, setIsOpen] = useState(false);
-  const [menu, setMenu] = useState(menuItems ?? []);
+
+  const [menuItems, setMenuItems] = useState<sidebarMenuOption[]>(
+    menuOptions || []
+  );
 
   const displayName = user?.username.split("@")[0] || user?.username;
 
   const toggleSidebar = () => setIsOpen(!isOpen);
 
+  useEffect(() => {
+    if (showAdminBoard) {
+      setMenuItems([
+        { text: "Dashboard", icon: <DashboardIcon />, path: "/" },
+        { text: "Profile", icon: <PersonIcon />, path: "/profile" },
+        // { text: "Register", icon: <PersonIcon />, path: "/register" },
+      ]);
+    }
+    if (showSuperAdminBoard) {
+      setMenuItems([
+        { text: "Dashboard", icon: <DashboardIcon />, path: "/" },
+        // { text: "Profile", icon: <PersonIcon />, path: "/profile" },
+        // { text: "Register", icon: <PersonIcon />, path: "/register" },
+      ]);
+    }
+  }, [showAdminBoard, showSuperAdminBoard]);
+
   if (!user) return null;
   return (
     <Box
       display="flex"
-      height={"100vh"}
+      height={"100%"}
       borderRight={"1px solid"}
       borderColor={"grey.300"}
     >
@@ -47,7 +75,7 @@ const Sidebar = ({ menuItems, onMenuItemClick }: Props) => {
         sx={{
           display: "flex",
           flexDirection: "column",
-          width: isOpen ? 240 : 60,
+          width: isOpen ? { xs: 170, md: 200, lg: 280 } : 60,
           transition: "width 0.3s",
         }}
       >
@@ -118,15 +146,56 @@ const Sidebar = ({ menuItems, onMenuItemClick }: Props) => {
           )}
         </Box>
         <Divider />
-        <List sx={{ backgroundColor: grey[200], py: "20px", mt: "10px" }}>
+        <List sx={{ bgcolor: grey[200], py: "20px", mt: "10px" }}>
           {menuItems?.map((item, index) => (
             <ListItem key={index} disablePadding>
-              <ListItemButton onClick={() => onMenuItemClick?.(item.path)}>
-                {" "}
-                {/* component={Link} to={item.path} */}
-                {/* 311bf3 */}
-                <ListItemIcon>{item.icon}</ListItemIcon>
-                {isOpen && <ListItemText primary={item.text} />}
+              <ListItemButton
+                component={Link}
+                to={item.path}
+                onClick={() => onMenuItemClick?.(item.path)}
+                sx={{
+                  px: 2,
+                  color:
+                    location.pathname === item.path
+                      ? "primary.dark"
+                      : "transparent",
+                  "&:hover": {
+                    backgroundColor: "#f5f5f5",
+                  },
+                  "&.Mui-selected": {
+                    backgroundColor: "#f5f5f5",
+                  },
+                }}
+              >
+                <ListItemIcon
+                  sx={{
+                    minWidth: 0,
+                    mr: isOpen ? 1.5 : 0,
+                    display: "flex",
+                    justifyContent: "center",
+                    color:
+                      location.pathname === item.path ? "primary.dark" : "#222",
+                  }}
+                >
+                  {item.icon}
+                </ListItemIcon>
+                {isOpen && (
+                  <ListItemText
+                    primary={item.text}
+                    sx={{
+                      m: 0,
+                      textAlign: "left",
+                      whiteSpace: "nowrap",
+                      "& .MuiTypography-root": {
+                        color:
+                          location.pathname === item.path
+                            ? "primary.dark"
+                            : "#222",
+                        transition: "color 0.2s ease",
+                      },
+                    }}
+                  />
+                )}
               </ListItemButton>
             </ListItem>
           ))}
