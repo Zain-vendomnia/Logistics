@@ -7,6 +7,7 @@ import config from "./config";
 
 import { GeocodingController } from "./controller/Admin_RouteOptimzation/geocodingController";
 import { optimizeRouteController } from "./controller/Admin_RouteOptimzation/optimizeRouteController";
+import { updatelatlngController } from "./controller/Admin_RouteOptimzation/updatelatlngController";
 
 const app = express();
 app.use(cors());
@@ -27,4 +28,5 @@ app.use("/api", userRouter);
 app.use("/api/test", userRouter);  
 app.use('/api/admin/geocode', GeocodingController.getLatLng);
 app.use('/api/admin/route/optimize', optimizeRouteController);
+app.use('/api/admin/customer/updatelatlng', updatelatlngController);
 export default app;

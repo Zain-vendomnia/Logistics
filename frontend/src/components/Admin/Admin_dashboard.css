@@ -1,0 +1,42 @@
+.dashboard {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+  }
+  
+  h1 {
+    text-align: center;
+  }
+  
+  .vehicle-map-container {
+    text-align: center;
+    margin-bottom: 30px;
+  }
+  
+  .vehicle-icon {
+    width: 100px;
+  }
+  
+  .shipment-table {
+    margin-bottom: 30px;
+  }
+  
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+  }
+  
+  th, td {
+    padding: 8px;
+    text-align: left;
+    border: 1px solid #ddd;
+  }
+  
+  th {
+    background-color: #f4f4f4;
+  }
+  
+  .shipment-graph {
+    margin-top: 30px;
+  }
+  

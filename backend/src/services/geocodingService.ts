@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { OrderDetails } from '../model/OrderDetails';
+import connect from '../database';
 
 interface GeocodingResponse {
   hits: Array<{
@@ -20,7 +21,6 @@ export class GeocodingService {
   static async getLatLngFromAddress(address: string): Promise<{ lat: number; lng: number } | null> {
     try {
      
-
       const response = await axios.get<GeocodingResponse>(this.BASE_URL, {
         params: {
           q: address,
@@ -76,4 +76,41 @@ export class GeocodingService {
 
     return results;
   }
+ 
+  static async geocodeAllcustomer(): Promise<{ id: string; type: string; address: { location_id: string; lat: number; lon: number } }[]> {
+    const orders = await OrderDetails.getAllcustomerAddress();  // Get all orders
+    const results: { id: string; type: string; address: { location_id: string; lat: number; lon: number } }[] = [];
+
+    // Iterate over the orders and geocode them
+    for (let index = 0; index < orders.length; index++) {
+      const order = orders[index];
+      const latLng = await this.getLatLngFromAddress(order.address);  // Get lat/lng from geocoding service
+
+      if (latLng) {
+        try {
+          // Get a connection to the database
+          const connection = await connect();
+          // Execute the update query to set latitude and longitude in the database
+          const [result] = await connection.execute(
+            'UPDATE `orderdetails` SET `lattitude` = ?, `longitude` = ? WHERE `id` = ?',
+            [latLng.lat, latLng.lng, order.id] 
+          );
+          // The result is an array, and the first item contains the `affectedRows` property
+          const { affectedRows } = result as { affectedRows: number };  // Type assertion
+          // Check if the row was successfully updated
+          if (affectedRows > 0) {
+            console.log(`Successfully updated order with ID: ${order.id}`);
+       
+          } else {
+            console.warn(`No rows updated for order ID: ${order.id}`);
+          }
+        } catch (error) {
+          console.error(`Error updating order ID: ${order.id}`, error);
+        }
+      }
+    }
+
+    return results;
+  }
+  
 }

@@ -15,4 +15,11 @@ export class OrderDetails {
     const [rows] = await connection.execute('SELECT * FROM  `orderdata`');  
     return rows as OrderDetails[];
   }
+
+  static async getAllcustomerAddress(): Promise<OrderDetails[]> {
+    const connection = await connect(); // Get a connection from the pool
+    const [rows] = await connection.execute('SELECT * FROM  `orderdetails`');  
+    return rows as OrderDetails[];
+  }
+
 }

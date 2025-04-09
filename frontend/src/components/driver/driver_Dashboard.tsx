@@ -8,7 +8,6 @@ import CheckBoxItem from "./driver_CheckBoxItem";
 import ShippingDetails from "./driver_Shipping_Details";
 import { useSnackbar } from "../../providers/SnackbarProvider";
 
-//import LeafletMaps from "./leaflet_Map/Leaflet_Maps";
 
 import GoogleMaps from "./GoogleMaps";
 

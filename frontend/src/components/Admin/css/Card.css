@@ -1,0 +1,57 @@
+/* src/components/Card.css */
+.card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    margin: 15px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    position: relative;
+  }
+  
+  .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  }
+  
+  .card-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+  
+  .card-text {
+    flex-grow: 1;
+    text-align: left;
+  }
+  
+  .card-icon {
+    margin-left: 10px; /* Space between icon and text */
+  }
+  
+  .card-icon img {
+    width: 40px;  /* Set the icon width */
+    height: 40px; /* Set the icon height */
+  }
+  
+  .card-title {
+    font-size: 1.25rem;
+    margin: 0;
+    color: #333;
+  }
+  
+  .card-description {
+    font-size: 1rem;
+    color: #666;
+  }
+  
+  /* Optional: Adding clearfix if cards float */
+  .card-container::after {
+    content: "";
+    display: table;
+    clear: both;
+  }
+  

@@ -1,6 +1,6 @@
 import React from "react";
 import { useState, useEffect } from "react";
-import { Routes, Route, Link } from "react-router-dom";
+
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./App.css";
 import * as AuthService from "./services/auth.service";
@@ -9,13 +9,16 @@ import Login from "./components/Login";
 import Register from "./components/Register";
 import Home from "./components/Home";
 import Profile from "./components/Profile";
-import BoardAdmin from "./components/BoardAdmin";
+import BoardAdmin from "./components/BoardAdmin/BoardAdmin";
 import EventBus from "./common/EventBus";
 import SuperAdmin from "./components/SuperAdmin";
 import BoardDriver from "./components/BoardDriver/BoardDriver";
 import { AppBar, Box, Button, Stack, Toolbar, Typography } from "@mui/material";
 import SnackbarProvider from "./providers/SnackbarProvider";
 import GlobalChecksProvider from "./providers/GlobalChecksProvider";
+
+import Admin_dashboard from "./components/Admin/Admin_dashboard";
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 
 const App: React.FC = () => {
   const [showDriverBoard, setshowDriverBoard] = useState<boolean>(false);
@@ -129,8 +132,8 @@ const App: React.FC = () => {
               <Route path="/superadmin" element={<SuperAdmin />} />
               <Route path="/driver" element={<BoardDriver />} />
               <Route path="/admin" element={<BoardAdmin />} />
-            
-          
+              <Route path ="/dashboard" element = {<Admin_dashboard/>}/>
+                    
             </Routes>
           </div>
         </>

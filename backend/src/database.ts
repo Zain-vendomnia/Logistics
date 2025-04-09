@@ -6,9 +6,9 @@ async function connect(): Promise<Pool> {
     user: "root",
     password: "",
     database: "logistics",
-    connectionLimit: 5,
+    connectionLimit: 10,
   });
-  console.log("MySQL connected");
+ // console.log("MySQL connected");
   return connection;
 }
 

@@ -2,39 +2,58 @@ import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Polyline, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import adminApiService from '../../services/adminApiService';
+import axios from 'axios';
 
 const RouteMap = () => {
   const [routePoints, setRoutePoints] = useState<[number, number][][]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Function to fetch route data
   const fetchRouteData = async () => {
     try {
-      const response = await fetch("http://localhost:8080/api/admin/route/optimize");
-      if (!response.ok) {
-        throw new Error("Failed to fetch route data");
-      }
-
-      const data = await response.json();
+      const response = await adminApiService.fetchRouteData();  // Call the service method
+      const data = response.data;  // Axios response has data in the 'data' property
       console.log("API response:", data);
-
+  
       if (data && data.solution && data.solution.routes.length > 0) {
         const routes = data.solution.routes[0].points;
         console.log("Route points:", routes);
-
+  
         const formattedRoutes = routes.map((route: { coordinates: [any, any][] }) => {
           return route.coordinates.map(([lon, lat]) => [lat, lon]);
         });
-
+  
         setRoutePoints(formattedRoutes);
       }
-
-      setLoading(false);
+  
+      setLoading(false);  // Set loading to false after the data is fetched
     } catch (error) {
+      setLoading(false);  // Ensure loading is set to false if there is an error
       console.error("Error fetching route data:", error);
-      setLoading(false);
+  
+      // Handle different types of error responses:
+      if (axios.isAxiosError(error)) {
+        // Handle axios-specific errors (e.g., network errors, response errors)
+        if (error.response) {
+          // The request was made, but the server responded with an error code
+          console.error("Server responded with an error:", error.response.data);
+          alert(`Error: ${error.response.status} - ${error.response.statusText}`);
+        } else if (error.request) {
+          // The request was made, but no response was received
+          console.error("No response received:", error.request);
+          alert("Network error: No response received from the server.");
+        } else {
+          // Other errors (e.g., bad configuration)
+          console.error("Error in setting up the request:", error.message);
+          alert(`Error: ${error.message}`);
+        }
+      } else {
+        // Non-axios errors (unexpected errors)
+        alert("An unexpected error occurred while fetching the route data.");
+      }
     }
   };
+  
 
   useEffect(() => {
     fetchRouteData();
