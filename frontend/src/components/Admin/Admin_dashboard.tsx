@@ -13,10 +13,10 @@ const Admin_dashboard: React.FC = () => {
         <Card
           title="Vehicles On the Roads"
           description="Vehicles On the Roads."
-         // icon={require('../../../src/assets/images/truck.jpg')}  // Your image path
+         // icon={require('../../../src/assets/images/truck.jpg')}  
           bgColor="#e76f51"
-          width="300px"  // Set custom width
-          height="200px" // Set custom height
+          width="300px"  
+          height="200px" 
         />
         <Card
           title="Total Orders"

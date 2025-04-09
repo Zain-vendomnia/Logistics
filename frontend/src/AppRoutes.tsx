@@ -8,10 +8,10 @@ import Login from "./components/Login";
 import Register from "./components/Register";
 import Home from "./components/Home";
 import Profile from "./components/Profile";
-import BoardAdmin from "./components/BoardAdmin";
+import BoardAdmin from "./components/BoardAdmin/BoardAdmin";
 import SuperAdmin from "./components/SuperAdmin";
 import BoardDriver from "./components/BoardDriver/BoardDriver";
-import RouteEstimateComponent from "./components/RouteEstimateComponent";
+//import RouteEstimateComponent from "./components/RouteEstimateComponent";
 // import NotFound from "../pages/NotFound";
 
 const ProtectedRoute = ({ element }: { element: JSX.Element }) => {
@@ -64,9 +64,9 @@ const AppRoutes = () => {
       />
 
       <Route path="/register" element={<Register />} />
-      <Route path="/api/estimate" element={<RouteEstimateComponent />} />
-
-      {/* <Route path="*" element={<NotFound />} /> */}
+{/*       <Route path="/api/estimate" element={<RouteEstimateComponent />} />
+ */}
+     
     </Routes>
   );
 };

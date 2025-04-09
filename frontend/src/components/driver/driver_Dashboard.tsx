@@ -10,6 +10,7 @@ import { useSnackbar } from "../../providers/SnackbarProvider";
 
 
 import GoogleMaps from "./GoogleMaps";
+import LeafletMaps from "./leaflet_Map/leaflet_Maps";
 
 const Dashboard = () => {
   const { showSnackbar } = useSnackbar();
