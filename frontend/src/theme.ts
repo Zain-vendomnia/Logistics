@@ -55,6 +55,26 @@ const themeOptions: ThemeOptions = {
         },
       },
     },
+    MuiButton: {
+      defaultProps: {
+        color: "primary",
+      },
+      styleOverrides: {
+        root: ({ ownerState, theme }) => ({
+          transition: "all 0.2s ease",
+          "&:hover": {
+            backgroundColor:
+              ownerState.color === "primary"
+                ? "#fff"
+                : theme.palette.primary.dark,
+            color:
+              ownerState.color === "primary"
+                ? theme.palette.primary.dark
+                : "#fff",
+          },
+        }),
+      },
+    },
   },
   breakpoints: {
     values: {
