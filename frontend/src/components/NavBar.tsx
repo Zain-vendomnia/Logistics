@@ -1,12 +1,5 @@
 import React from "react";
-import {
-  AppBar,
-  Box,
-  Button,
-  Stack,
-  Toolbar,
-  Typography,
-} from "@mui/material";
+import { AppBar, Box, Button, Stack, Toolbar, Typography } from "@mui/material";
 import { Link } from "react-router-dom";
 import { useAuth } from "../providers/AuthProvider";
 import EventBus from "../common/EventBus";

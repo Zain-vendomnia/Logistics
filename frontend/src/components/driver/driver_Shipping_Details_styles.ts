@@ -35,7 +35,7 @@ const useStyles = makeStyles((theme: Theme) => ({
     padding: theme.spacing(2),
     backgroundColor: theme.palette.grey[300],
     border: "1px solid",
-    borderColor: theme.palette.grey[300],
+    borderColor: theme.palette.grey[400],
     borderRadius: theme.shape.borderRadius,
   },
 }));

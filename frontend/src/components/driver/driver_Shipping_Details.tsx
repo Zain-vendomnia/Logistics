@@ -9,6 +9,7 @@ import {
   Stack,
   Typography,
   CircularProgress,
+  Container,
 } from "@mui/material";
 import { grey } from "@mui/material/colors";
 import MyLocationIcon from "@mui/icons-material/MyLocation";
@@ -83,12 +84,14 @@ const ShippingDetails = ({
           width="100%"
           height="100%"
         >
-          <Typography variant={"h5"}>Ongoing Delivery</Typography>
+          <Typography variant={"h5"} fontWeight={"bold"}>
+            Ongoing Delivery
+          </Typography>
           <Box
             display={"flex"}
             flexDirection={"column"}
             gap={3}
-            p={1}
+            pt={1}
             height="100%"
           >
             <Box
@@ -96,42 +99,47 @@ const ShippingDetails = ({
               alignItems={"flex-start"}
               justifyContent={"space-between"}
             >
-              <Box display={"flex"} flexDirection={"column"}>
-                <Typography
-                  variant="body1"
-                  fontStyle={"small"}
-                  color={grey[600]}
-                >
-                  Order number
-                </Typography>
-                <Typography variant="h6">{tripData?.shippingId}</Typography>
-                <Typography
-                  variant="body1"
-                  fontStyle={"small"}
-                  color={grey[600]}
-                >
-                  Item name
-                </Typography>
-                <Typography variant="body2">
-                  SUNNIVA® Balkonkraftwerk
-                </Typography>
-                <Typography
-                  variant="body2"
-                  fontSize={"small"}
-                  color={grey[500]}
-                >
-                  Fragile Cargo
-                </Typography>
-              </Box>
+              {/* 1st Block */}
               <Box
-                component="img"
-                src="/cargo.png"
-                alt="cargo"
-                sx={{ width: 90, height: 60, borderRadius: "8px" }}
-              />
+                display={"flex"}
+                flexDirection={"column"}
+                gap={1}
+                width={"100%"}
+              >
+                <Box
+                  display={"flex"}
+                  alignItems={"flex-start"}
+                  justifyContent={"space-between"}
+                  width="100%"
+                >
+                  <Container disableGutters>
+                    <Typography variant="body1">Order number</Typography>
+                    <Typography variant="h6" fontWeight={"bold"}>
+                      {tripData?.shippingId}
+                    </Typography>
+                  </Container>
+                  <Box
+                    component="img"
+                    src="/cargo.png"
+                    alt="cargo"
+                    sx={{ width: 90, height: 60 }}
+                  />
+                </Box>
+
+                <Container disableGutters>
+                  <Typography variant="body1">Item name</Typography>
+                  <Typography variant="body1" fontWeight={"bold"}>
+                    SUNNIVA® Balkonkraftwerk
+                  </Typography>
+                  <Typography variant="body1" color={grey[600]}>
+                    Fragile Cargo
+                  </Typography>
+                </Container>
+              </Box>
             </Box>
-            <Divider color={grey[100]} />
-            <Box
+            {/* <Divider color={grey[100]} /> */}
+            {/* 2nd Block */}
+            {/* <Box
               display={"flex"}
               alignItems={"flex-start"}
               justifyContent={"space-between"}
@@ -140,7 +148,6 @@ const ShippingDetails = ({
                 <Box display={"flex"} alignItems={"center"} gap={2}>
                   <MyLocationIcon fontSize="small" sx={{ color: "#16C47F" }} />
                   <Typography variant="body2">
-                    {" "}
                     {tripData?.startPoint}
                   </Typography>
                 </Box>
@@ -176,82 +183,88 @@ const ShippingDetails = ({
                 <Typography variant="body2"> Postal Code </Typography>
                 <Typography variant="body1">00000</Typography>
               </Box>
-            </Box>
+            </Box> */}
             <Divider color={grey[100]} />
+            {/* 3rd Block */}
             {isArrived && (
-              <Box
-                display={"flex"}
-                alignItems={"center"}
-                justifyContent={"space-between"}
-              >
-                <Box display={"flex"} gap={2}>
-                  <ImageListItem>
-                    <img
-                      src="https://cdn.vectorstock.com/i/1000v/00/74/young-man-profile-vector-14770074.avif"
-                      alt="client_image"
-                      style={{
-                        width: "40px",
-                        height: "40px",
-                        borderRadius: "50%",
-                      }}
-                    />
-                  </ImageListItem>
-                  <Stack spacing={0}>
-                    <Typography variant="body1" color={grey[600]}>
-                      Customer
-                    </Typography>
-                    <Typography variant="body1" fontSize={"large"}>
-                      {" "}
-                      {tripData?.client.name}
-                    </Typography>
-                  </Stack>
-                </Box>
-                <Box display={"flex"} gap={1} mx={1}>
-                  <IconButton
-                    onClick={() => setShowMessageBox(!showMessageBox)}
-                    color="primary"
-                  >
-                    <CommentIcon fontSize="medium" />
-                  </IconButton>
-
-                  <IconButton onClick={() => {}} color="primary">
-                    <CallIcon fontSize="medium" />
-                  </IconButton>
-                </Box>
-              </Box>
-            )}
-
-            {isArrived && showMessageBox && (
-              <Box className={styles.messageBox}>
+              <Stack spacing={2}>
                 <Box
                   display={"flex"}
                   alignItems={"center"}
                   justifyContent={"space-between"}
-                  borderRadius={1}
-                  mb={2}
                 >
-                  <Typography variant="body1" color={grey[700]}>
-                    Send Message
-                  </Typography>
-                  <IconButton
-                    onClick={() => setShowMessageBox(false)}
-                    sx={{ color: "grey.700" }}
-                  >
-                    <CloseIcon fontSize="small" />
-                  </IconButton>
-                </Box>
+                  <Box display={"flex"} gap={2}>
+                    <ImageListItem>
+                      <img
+                        src="https://cdn.vectorstock.com/i/1000v/00/74/young-man-profile-vector-14770074.avif"
+                        alt="client_image"
+                        style={{
+                          width: "40px",
+                          height: "40px",
+                          borderRadius: "50%",
+                        }}
+                      />
+                    </ImageListItem>
+                    <Stack spacing={0}>
+                      <Typography variant="body1" color={grey[600]}>
+                        Customer
+                      </Typography>
+                      <Typography variant="body1" fontSize={"large"}>
+                        {" "}
+                        {tripData?.client.name}
+                      </Typography>
+                    </Stack>
+                  </Box>
+                  <Box display={"flex"} gap={0} mx={0}>
+                    <IconButton
+                      onClick={() => setShowMessageBox(!showMessageBox)}
+                      color="primary"
+                    >
+                      <CommentIcon fontSize="large" />
+                    </IconButton>
 
-                {quickMessages.map((item) => (
-                  <Chip
-                    label={item}
-                    key={item}
-                    variant="outlined"
-                    className={styles.chip}
-                  />
-                ))}
-              </Box>
+                    <IconButton onClick={() => {}} color="primary">
+                      <CallIcon fontSize="large" />
+                    </IconButton>
+                  </Box>
+                </Box>
+                {showMessageBox && (
+                  <Box className={styles.messageBox}>
+                    <Box
+                      display={"flex"}
+                      alignItems={"center"}
+                      justifyContent={"space-between"}
+                      borderRadius={1}
+                      mb={1}
+                    >
+                      <Typography
+                        variant="body1"
+                        fontWeight={"bold"}
+                        color={grey[900]}
+                      >
+                        Send Message
+                      </Typography>
+                      <IconButton
+                        onClick={() => setShowMessageBox(false)}
+                        sx={{ color: "grey.900" }}
+                      >
+                        <CloseIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                    {quickMessages.map((item) => (
+                      <Chip
+                        label={item}
+                        key={item}
+                        variant="outlined"
+                        className={styles.chip}
+                      />
+                    ))}
+                  </Box>
+                )}
+              </Stack>
             )}
 
+            {/* Notification Button */}
             {notifyCustomer && (
               <Box display={"flex"} justifyContent={"center"}>
                 <Button
@@ -274,9 +287,9 @@ const ShippingDetails = ({
             <Button
               variant="contained"
               onClick={() => setShowOrderComplete(true)}
-              sx={{ mt: "auto", fontSize: "1.05rem" }}
+              sx={{ mt: "auto", bgcolor: "primary.dark" }}
             >
-              Complete
+              Reached
             </Button>
           )}
         </Box>

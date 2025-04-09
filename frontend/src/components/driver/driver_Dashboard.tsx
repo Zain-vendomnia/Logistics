@@ -56,16 +56,7 @@ const Dashboard = () => {
   };
 
   const preTripChecks = (
-    <Stack
-      spacing={1}
-      position={"relative"}
-      height={"100%"}
-      p={2}
-      sx={{
-        border: "1px solid #e0e0e0",
-        borderRadius: 2,
-      }}
-    >
+    <Stack spacing={1}>
       {componentCheckList.map(
         (item, index) =>
           componentStatus.lastIndexOf(true) + 1 === index && (
@@ -98,9 +89,13 @@ const Dashboard = () => {
 
       <Button
         variant="contained"
-        disabled={!isComplied}
+        disabled={isComplied}
         onClick={startTrip}
-        sx={{ ...styles.st_Button, bgcolor: "primary.dark" }}
+        sx={{
+          ...styles.st_Button,
+          bgcolor: "primary.dark",
+          // fontSize: "1.05rem",
+        }}
       >
         Start Trip
       </Button>
@@ -114,20 +109,32 @@ const Dashboard = () => {
         sx={styles.sideGrid}
         height={"100%"}
       >
-        {!tripData ? (
-          preTripChecks
-        ) : (
-          <ShippingDetails
-            tripData={tripData}
-            isArrived={true}
-            notifyCustomer={true}
-            onNotified={(result) =>
-              console.log("Driver Pressed Notify Button", result)
-            }
-            isLoadOrderComplete={loadOrderComplete}
-            onMarkedComplete={() => console.log("Order Completed by Driver...")}
-          />
-        )}
+        <Box
+          position={"relative"}
+          height={"100%"}
+          p={2}
+          sx={{
+            border: "1px solid #e0e0e0",
+            borderRadius: 2,
+          }}
+        >
+          {!tripData ? (
+            preTripChecks
+          ) : (
+            <ShippingDetails
+              tripData={tripData}
+              isArrived={true}
+              notifyCustomer={true}
+              onNotified={(result) =>
+                console.log("Driver Pressed Notify Button", result)
+              }
+              isLoadOrderComplete={loadOrderComplete}
+              onMarkedComplete={() =>
+                console.log("Order Completed by Driver...")
+              }
+            />
+          )}
+        </Box>
       </Grid2>
 
       <Grid2

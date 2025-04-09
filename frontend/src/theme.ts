@@ -58,19 +58,41 @@ const themeOptions: ThemeOptions = {
     MuiButton: {
       defaultProps: {
         color: "primary",
+        disableElevation: true, // Optional: removes box-shadow by default
       },
       styleOverrides: {
         root: ({ ownerState, theme }) => ({
-          transition: "all 0.2s ease",
+          textTransform: "none",
+          fontWeight: 500,
+          fontSize: "1rem", // default for md and up
+          padding: "6px 16px",
+          letterSpacing: 0.25,
+          transition: "all 0.2s ease-in-out",
+          borderRadius: theme.shape.borderRadius * 2,
+
+          // Responsive: md and below
+          [theme.breakpoints.down("lg")]: {
+            fontSize: "1.05rem",
+            letterSpacing: 0.5,
+            padding: "8px 18px",
+          },
+
+          // Custom hover styles
           "&:hover": {
             backgroundColor:
               ownerState.color === "primary"
-                ? "#fff"
-                : theme.palette.primary.dark,
-            color:
-              ownerState.color === "primary"
                 ? theme.palette.primary.dark
-                : "#fff",
+                : ownerState.color === "secondary"
+                  ? theme.palette.secondary.dark
+                  : theme.palette.action.hover,
+            color: "#fff",
+            textDecoration: "none",
+          },
+
+          // Keep color consistent on focus/active (especially for Link buttons)
+          "&:focus, &:active": {
+            color: "#fff",
+            textDecoration: "none",
           },
         }),
       },
