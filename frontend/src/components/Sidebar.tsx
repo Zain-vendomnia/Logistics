@@ -51,19 +51,17 @@ const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
       setMenuItems([
         { text: "Dashboard", icon: <DashboardIcon />, path: "/" },
         { text: "Profile", icon: <PersonIcon />, path: "/profile" },
-        // { text: "Register", icon: <PersonIcon />, path: "/register" },
       ]);
     }
     if (showSuperAdminBoard) {
       setMenuItems([
         { text: "Dashboard", icon: <DashboardIcon />, path: "/" },
         // { text: "Profile", icon: <PersonIcon />, path: "/profile" },
-        // { text: "Register", icon: <PersonIcon />, path: "/register" },
       ]);
     }
   }, [showAdminBoard, showSuperAdminBoard]);
 
-  if (!user) return null;
+  if (!user || showDriverBoard) return null;
   return (
     <Box
       display="flex"

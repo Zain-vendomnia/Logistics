@@ -1,4 +1,5 @@
 import React from "react";
+import { useLocation } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 
 import "./App.css";
@@ -12,6 +13,10 @@ import Sidebar from "./components/Sidebar";
 import { Box } from "@mui/material";
 
 const App: React.FC = () => {
+  const location = useLocation();
+  const hideSidebar = ["/login", "/register"].includes(
+    location.pathname.toLocaleLowerCase()
+  );
   return (
     <SnackbarProvider>
       <GlobalChecksProvider>
@@ -29,7 +34,7 @@ const App: React.FC = () => {
               flexGrow={1}
               bgcolor={"grey.100"}
             >
-              <Sidebar />
+              {!hideSidebar && <Sidebar />}
               <Box flexGrow={1} p={0} overflow={"auto"}>
                 <AppRoutes />
               </Box>
