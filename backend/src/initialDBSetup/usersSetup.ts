@@ -1,24 +1,15 @@
 import bcrypt from "bcryptjs";
-import connect from "./database";
+import connect from "../database";
 import { RowDataPacket } from 'mysql2';  // Add this import
+import { USERS_TABLE } from "../services/tableQueries";
 
 const initialSetup = async () => {
   const conn = await connect();
   try {
-    // Check if the tables exist and create them if they don't
-    const createUserTableQuery = `
-      CREATE TABLE IF NOT EXISTS users(
-        user_id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
-        username VARCHAR(20) NOT NULL UNIQUE,
-        email VARCHAR(30) NOT NULL UNIQUE,
-        password VARCHAR(100) NOT NULL,
-        role VARCHAR(20) NOT NULL DEFAULT 'user',  -- Adding role field with default 'user'
-        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-      );
-    `;
+   
 
     // Create users table if not exists
-    await conn.query(createUserTableQuery);
+    await conn.query(USERS_TABLE);
     console.log("Table USER created or already exists");
 
       // Check if the admin user already exists to avoid creating a duplicate
