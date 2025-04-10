@@ -50,8 +50,8 @@ const SignatureBox = ({ open, onClose, onSubmit }: Props) => {
           boxShadow: 24,
           p: 3,
           borderRadius: 2,
-          width: "80%",
-          maxWidth: 700,
+          width: "90%",
+          maxWidth: 900,
         }}
       >
         <Box
@@ -60,11 +60,11 @@ const SignatureBox = ({ open, onClose, onSubmit }: Props) => {
           alignItems="center"
           justifyContent={"space-between"}
         >
-          <Typography variant="h6" color={"primary"} fontWeight={600}>
+          <Typography variant="h4" color={"primary"} fontWeight={600}>
             Customer's Signature
           </Typography>
           <IconButton onClick={onClose} sx={{ ml: "auto" }}>
-            <CloseIcon sx={{ color: "grey.800" }} />
+            <CloseIcon sx={{ color: "grey.900" }} />
           </IconButton>
         </Box>
         <SignatureCanvas
@@ -75,8 +75,8 @@ const SignatureBox = ({ open, onClose, onSubmit }: Props) => {
           maxWidth={2.5}
           velocityFilterWeight={0.7}
           canvasProps={{
-            width: 600,
-            height: 200,
+            width: 800,
+            height: 350,
             color: "white",
             className: "sigCanvas",
             style: { border: "2px dashed #000", borderRadius: 12 },
