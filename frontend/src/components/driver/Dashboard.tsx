@@ -94,7 +94,6 @@ const Dashboard = () => {
         sx={{
           ...styles.st_Button,
           bgcolor: "primary.dark",
-          // fontSize: "1.05rem",
         }}
       >
         Start Trip

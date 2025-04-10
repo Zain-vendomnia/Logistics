@@ -1,11 +1,14 @@
 import React from "react";
 import { AppBar, Box, Button, Stack, Toolbar, Typography } from "@mui/material";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../providers/AuthProvider";
 import EventBus from "../../common/EventBus";
 import PersonIcon from "@mui/icons-material/Person";
 
 const NavBar: React.FC = () => {
+  const navigate = useNavigate();
+  const logo = "/sunniva_white.svg";
+
   const { user, showDriverBoard, showAdminBoard, showSuperAdminBoard } =
     useAuth();
 
@@ -19,7 +22,14 @@ const NavBar: React.FC = () => {
       }}
     >
       <Toolbar sx={{ minHeight: "50px !important", px: 2 }}>
-        <Box display="flex" flexGrow={1} alignItems="center">
+        <Box display="flex" flexGrow={1} alignItems="center" gap={2}>
+          <Box
+            component="img"
+            src={logo}
+            alt="Logo"
+            onClick={() => navigate("/")}
+            sx={{ height: 32, width: "auto", cursor: "pointer" }}
+          />
           <Typography
             variant="h5"
             component={Link}
