@@ -16,6 +16,7 @@ import StarBorderIcon from "@mui/icons-material/StarBorder";
 
 import CameraCapture from "../common/Camera_Capture";
 import SignatureBox from "../common/Signature_Box";
+import { grey } from "@mui/material/colors";
 
 interface Props {
   isReachedToDestination?: (isCompleted: boolean) => void;
@@ -28,7 +29,6 @@ const PostTripChecks = ({ isReachedToDestination: onComplete }: Props) => {
   const [showSigBox, setShowSigBox] = useState(false);
   const [signature, setSignature] = useState<string | null>(null);
   const [isSigUploaded, setSigUploaded] = useState(false);
-  const [rating, setRating] = useState<number>(0);
 
   const handleSigBoxClose = () => {
     setShowSigBox(false);
@@ -47,16 +47,14 @@ const PostTripChecks = ({ isReachedToDestination: onComplete }: Props) => {
     setSigUploaded(true);
   };
 
-  const handleRatingChange = (value: number) => {
-    console.log(value);
-  };
-
   return (
     <Box
+      height={"100%"}
       display={"flex"}
       gap={2}
       flexDirection={"column"}
       alignItems={"flex-start"}
+      justifyContent={"center"}
     >
       <IconButton
         onClick={() => onComplete?.(false)}
@@ -77,10 +75,10 @@ const PostTripChecks = ({ isReachedToDestination: onComplete }: Props) => {
           <Box
             display={"flex"}
             justifyContent={"center"}
-            // p={4}
-            // borderRadius={2}
-            // border={"1px solid"}
-            // borderColor={grey[400]}
+            p={4}
+            borderRadius={2}
+            border={"1px solid"}
+            borderColor={grey[400]}
           >
             <CameraCapture
               showCameraIcon={true}
@@ -137,41 +135,18 @@ const PostTripChecks = ({ isReachedToDestination: onComplete }: Props) => {
             )}
           </Box>
         </Container>
-
-        <Divider />
-        <Container disableGutters sx={{ padding: 0, margin: 0 }}>
-          <Typography variant="h6">Customer Rating</Typography>
-
-          {/* <StartRating rating={7} /> */}
-          <Box m={0} p={0}>
-            <Rating
-              name="customer-review"
-              defaultValue={0}
-              value={rating}
-              precision={1}
-              emptyIcon={<StarBorderIcon color="primary" fontSize="inherit" />}
-              sx={{ fontSize: "40px" }}
-              // onChange={(event, value) => console.log(value)}
-              onChange={(_, value) => {
-                console.log(value);
-                setRating(value as number);
-              }}
-            />
-          </Box>
-        </Container>
-
-        <Box display="flex" justifyContent={"center"}>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => onComplete?.(true)}
-            sx={styles.notifyButton}
-            disabled={!(isImageUploaded && isSigUploaded && rating > 0)}
-          >
-            Delivered
-          </Button>
-        </Box>
       </Stack>
+      <Box display={"flex"} justifyContent={"center"} width={"100%"}>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => onComplete?.(true)}
+          sx={styles.notifyButton}
+          disabled={!(isImageUploaded && isSigUploaded)}
+        >
+          Delivered
+        </Button>
+      </Box>
     </Box>
   );
 };
