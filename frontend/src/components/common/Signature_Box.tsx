@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 
-import { Button, Box, Modal, IconButton } from "@mui/material";
+import { Button, Box, Modal, IconButton, Typography } from "@mui/material";
 import SignatureCanvas from "react-signature-canvas";
 import CloseIcon from "@mui/icons-material/Close";
-import EditIcon from "@mui/icons-material/Edit";
 
 interface Props {
   open: boolean;
@@ -41,7 +40,7 @@ const SignatureBox = ({ open, onClose, onSubmit }: Props) => {
         display="flex"
         flexDirection="column"
         alignItems="center"
-        gap={1}
+        gap={2}
         sx={{
           position: "absolute",
           top: "50%",
@@ -52,12 +51,22 @@ const SignatureBox = ({ open, onClose, onSubmit }: Props) => {
           p: 3,
           borderRadius: 2,
           width: "80%",
-          maxWidth: 600,
+          maxWidth: 700,
         }}
       >
-        <IconButton onClick={onClose} sx={{ ml: "auto" }}>
-          <CloseIcon />
-        </IconButton>
+        <Box
+          width={"100%"}
+          display="flex"
+          alignItems="center"
+          justifyContent={"space-between"}
+        >
+          <Typography variant="h6" color={"primary"} fontWeight={600}>
+            Customer's Signature
+          </Typography>
+          <IconButton onClick={onClose} sx={{ ml: "auto" }}>
+            <CloseIcon sx={{ color: "grey.800" }} />
+          </IconButton>
+        </Box>
         <SignatureCanvas
           ref={sigCanvas}
           penColor="black"
@@ -66,11 +75,11 @@ const SignatureBox = ({ open, onClose, onSubmit }: Props) => {
           maxWidth={2.5}
           velocityFilterWeight={0.7}
           canvasProps={{
-            width: 500,
+            width: 600,
             height: 200,
             color: "white",
             className: "sigCanvas",
-            style: { border: "1px dashed #000", borderRadius: 12 },
+            style: { border: "2px dashed #000", borderRadius: 12 },
           }}
         />
         <Box mt={2} display="flex" gap={2}>
