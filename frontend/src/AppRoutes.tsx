@@ -4,10 +4,10 @@ import { useAuth } from "./providers/AuthProvider";
 import { isSuperAdmin, isAdmin, isDriver } from "./types/user.type";
 
 // Pages
-import Login from "./components/Login";
-import Register from "./components/Register";
-import Home from "./components/Home";
-import Profile from "./components/Profile";
+import Login from "./components/pages/Login";
+import Register from "./components/pages/Register";
+import Home from "./components/pages/Home";
+import Profile from "./components/pages/Profile";
 import BoardAdmin from "./components/BoardAdmin";
 import SuperAdmin from "./components/SuperAdmin";
 import BoardDriver from "./components/BoardDriver/BoardDriver";

@@ -2,13 +2,13 @@ import { useEffect, useState } from "react";
 
 import { Box, Button, Card, Grid2, Stack, Typography } from "@mui/material";
 
-import useStyles from "./driver_Dashboard_style";
+import useStyles from "./Dashboard_style";
 import TripData, { getTripData } from "../../services/trip_Service";
-import CheckBoxItem from "./driver_CheckBoxItem";
-import ShippingDetails from "./driver_Shipping_Details";
+import CheckBoxItem from "../common/CheckBoxItem";
+import ShippingDetails from "./Shipping_Details";
 import { useSnackbar } from "../../providers/SnackbarProvider";
-import LeafletMaps from "./leaflet_Map/Leaflet_Maps";
-import GoogleMaps from "./GoogleMaps";
+import LeafletMaps from "../common/leaflet_Map/Leaflet_Maps";
+import GoogleMaps from "../common/GoogleMaps";
 
 const Dashboard = () => {
   const { showSnackbar } = useSnackbar();
@@ -31,7 +31,7 @@ const Dashboard = () => {
     new Array(componentCheckList.length).fill(false)
   );
   const [tripData, setTripData] = useState<TripData | null>(null);
-  const [loadOrderComplete, setLoadOrderComplete] = useState(true);
+  // const [loadOrderComplete, setLoadOrderComplete] = useState(true);
 
   useEffect(() => {
     // startTrip();
@@ -128,8 +128,8 @@ const Dashboard = () => {
               onNotified={(result) =>
                 console.log("Driver Pressed Notify Button", result)
               }
-              isLoadOrderComplete={loadOrderComplete}
-              onMarkedComplete={() =>
+              isOrderReached={true} // loadOrderComplete}
+              onMarkedReached={() =>
                 console.log("Order Completed by Driver...")
               }
             />

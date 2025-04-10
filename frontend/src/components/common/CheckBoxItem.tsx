@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import CameraCapture from "../../common/Camera_Capture";
+import CameraCapture from "./Camera_Capture";
 import { Box, Stack, Typography } from "@mui/material";
 
 interface Props {

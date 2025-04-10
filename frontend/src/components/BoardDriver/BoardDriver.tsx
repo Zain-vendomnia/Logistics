@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import EventBus from "../../common/EventBus";
-import Sidebar from "../Sidebar";
-import Dashboard from "../driver/driver_Dashboard";
+import Sidebar from "../layout/Sidebar";
+import Dashboard from "../driver/Dashboard";
 import { getDriverBoard } from "../../services/user.service";
 
 import WarehouseIcon from "@mui/icons-material/Warehouse";

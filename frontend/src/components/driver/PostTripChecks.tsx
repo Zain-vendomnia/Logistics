@@ -14,14 +14,14 @@ import KeyboardBackspaceIcon from "@mui/icons-material/KeyboardBackspace";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 
-import CameraCapture from "../../common/Camera_Capture";
-import SignatureBox from "../../common/Signature_Box";
+import CameraCapture from "../common/Camera_Capture";
+import SignatureBox from "../common/Signature_Box";
 
 interface Props {
-  onComplete?: (isCompleted: boolean) => void;
+  isReachedToDestination?: (isCompleted: boolean) => void;
 }
 
-const OrderComplete = ({ onComplete }: Props) => {
+const PostTripChecks = ({ isReachedToDestination: onComplete }: Props) => {
   const styles = useStyles;
 
   const [isImageUploaded, setIsImageUploaded] = useState(false);
@@ -176,7 +176,7 @@ const OrderComplete = ({ onComplete }: Props) => {
   );
 };
 
-export default OrderComplete;
+export default PostTripChecks;
 
 const useStyles = {
   notifyButton: {

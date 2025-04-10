@@ -8,8 +8,8 @@ import GlobalChecksProvider from "./providers/GlobalChecksProvider";
 
 import { AuthProvider } from "./providers/AuthProvider";
 import AppRoutes from "./AppRoutes";
-import NavBar from "./components/NavBar";
-import Sidebar from "./components/Sidebar";
+import NavBar from "./components/layout/NavBar";
+import Sidebar from "./components/layout/Sidebar";
 import { Box } from "@mui/material";
 
 const App: React.FC = () => {

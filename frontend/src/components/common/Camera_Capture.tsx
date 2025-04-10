@@ -12,8 +12,8 @@ import {
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import AddAPhotoIcon from "@mui/icons-material/AddAPhoto";
 
-import { uploadImage } from "../services/trip_Service";
-import { useSnackbar } from "../providers/SnackbarProvider";
+import { uploadImage } from "../../services/trip_Service";
+import { useSnackbar } from "../../providers/SnackbarProvider";
 
 interface Props {
   buttonText?: string;

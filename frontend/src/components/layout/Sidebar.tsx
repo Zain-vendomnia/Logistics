@@ -18,7 +18,7 @@ import {
 } from "@mui/material";
 import { grey } from "@mui/material/colors";
 
-import { useAuth } from "../providers/AuthProvider";
+import { useAuth } from "../../providers/AuthProvider";
 import { useLocation, Link } from "react-router-dom";
 
 type sidebarMenuOption = { text: string; icon?: ReactNode; path: string };

@@ -19,17 +19,17 @@ import CommentIcon from "@mui/icons-material/Comment";
 import CloseIcon from "@mui/icons-material/Close";
 
 import TripData from "../../services/trip_Service";
-import useStyles from "./driver_Shipping_Details_styles";
+import useStyles from "./Shipping_Details_styles";
 import { useSnackbar } from "../../providers/SnackbarProvider";
-import OrderComplete from "./driver_OrderComplete";
+import PostTripChecks from "./PostTripChecks";
 
 interface Props {
   tripData: TripData | null;
   isArrived?: boolean;
   notifyCustomer?: boolean;
   onNotified: (customerNotified: boolean) => void;
-  isLoadOrderComplete?: boolean;
-  onMarkedComplete?: (isComplete: boolean) => void;
+  isOrderReached?: boolean;
+  onMarkedReached?: (isReached: boolean) => void;
 }
 
 const ShippingDetails = ({
@@ -37,8 +37,8 @@ const ShippingDetails = ({
   isArrived = false,
   notifyCustomer = false,
   onNotified,
-  isLoadOrderComplete = false,
-  onMarkedComplete,
+  isOrderReached = false,
+  onMarkedReached: onMarkedComplete,
 }: Props) => {
   const styles = useStyles();
   const { showSnackbar } = useSnackbar();
@@ -53,7 +53,7 @@ const ShippingDetails = ({
   const [showMessageBox, setShowMessageBox] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hideNotify, setHideNotify] = useState(false);
-  const [showOrderComplete, setShowOrderComplete] = useState(false);
+  const [showOrderReached, setShowOrderReached] = useState(false);
 
   useEffect(() => {
     if (hideNotify === true) {
@@ -77,7 +77,7 @@ const ShippingDetails = ({
   if (!tripData) return null;
   return (
     <Stack width="100%" height="100%">
-      {!showOrderComplete ? (
+      {!showOrderReached ? (
         <Box
           display={"flex"}
           flexDirection={"column"}
@@ -137,9 +137,9 @@ const ShippingDetails = ({
                 </Container>
               </Box>
             </Box>
-            {/* <Divider color={grey[100]} /> */}
             {/* 2nd Block */}
-            {/* <Box
+            {/* <Divider color={grey[100]} />
+            <Box
               display={"flex"}
               alignItems={"flex-start"}
               justifyContent={"space-between"}
@@ -184,6 +184,7 @@ const ShippingDetails = ({
                 <Typography variant="body1">00000</Typography>
               </Box>
             </Box> */}
+
             <Divider color={grey[100]} />
             {/* 3rd Block */}
             {isArrived && (
@@ -283,10 +284,10 @@ const ShippingDetails = ({
             )}
           </Box>
 
-          {isLoadOrderComplete && !showOrderComplete && (
+          {isOrderReached && !showOrderReached && (
             <Button
               variant="contained"
-              onClick={() => setShowOrderComplete(true)}
+              onClick={() => setShowOrderReached(true)}
               sx={{ mt: "auto", bgcolor: "primary.dark" }}
             >
               Reached
@@ -294,10 +295,10 @@ const ShippingDetails = ({
           )}
         </Box>
       ) : (
-        <OrderComplete
-          onComplete={(isCompleted) => {
-            setShowOrderComplete(isCompleted);
-            onMarkedComplete?.(isCompleted);
+        <PostTripChecks
+          isReachedToDestination={(isReached) => {
+            setShowOrderReached(isReached);
+            onMarkedComplete?.(isReached);
           }}
         />
       )}
