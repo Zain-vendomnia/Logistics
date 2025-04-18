@@ -67,6 +67,7 @@ const PostTripChecks = ({ isReachedToDestination: onComplete }: Props) => {
       >
         <KeyboardBackspaceIcon color="primary" fontSize="medium" />
       </IconButton>
+
       <Stack spacing={3} width="100%" height="100%">
         <Container disableGutters sx={{ padding: 0, margin: 0 }}>
           <Typography variant={"h6"} pb={isImageUploaded ? 0 : 3}>
@@ -83,7 +84,7 @@ const PostTripChecks = ({ isReachedToDestination: onComplete }: Props) => {
             <CameraCapture
               showCameraIcon={true}
               isMarkDone={isImageUploaded}
-              onUpload={(res) => setIsImageUploaded(res)}
+              onComplete={(res) => setIsImageUploaded(res)}
             />
           </Box>
         </Container>

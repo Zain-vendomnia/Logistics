@@ -1,0 +1,66 @@
+import CheckBoxItem from "./CheckBoxItem";
+import SignatureUpload from "./Signature_Upload";
+import ReturnToWarehouse from "./Return_To_Warehouse";
+import MarkAsNotDelivered from "./Mark_As_Not_Delivered";
+import CameraCapture from "./Camera_Capture";
+
+const getLabel = (step: string) => {
+  switch (step) {
+    case "captureDoorstepImage":
+      return "Capture Client's Doorstep Image";
+    case "captureParcelImage":
+      return "Capture Parcel Image";
+    case "captureNeighborDoorstepImage":
+      return "Capture Neighbor's Doorstep Image";
+    case "captureCustomerSignature":
+      return "Capture Customer's Signature";
+    case "captureNeighborSignature":
+      return "Capture Neighbor's Signature";
+    case "markAsNotDelivered":
+      return "Mark As Not Delivered";
+    case "returnToWarehouse":
+      return "Return To Warehouse";
+
+    default:
+      return "";
+  }
+};
+
+type Props = {
+  step: string;
+  onComplete: () => void;
+};
+
+export const DeliveryStepRenderer = ({ step, onComplete }: Props) => {
+  const label = getLabel(step);
+
+  switch (step) {
+    case "captureDoorstepImage":
+    case "captureParcelImage":
+    case "captureNeighborDoorstepImage":
+      return (
+        <CheckBoxItem
+          title={label}
+          showCameraIcon={true}
+          onImageUpload={onComplete}
+        />
+      );
+    case "captureCustomerSignature":
+    case "captureNeighborSignature":
+      return <SignatureUpload label={label} onComplete={onComplete} />;
+    // case "sendSms":
+    // should be an API call, to send automated message to customer.
+    // return <SendSMS onComplete={onComplete} />;
+    // case "makeCall":
+    // should be message (popup), to show customer's number.
+    // return <CallCustomer onComplete={onComplete} />;
+    case "markAsNotDelivered":
+      return <MarkAsNotDelivered onMarked={onComplete} />;
+    case "returnToWarehouse":
+      return <ReturnToWarehouse onComplete={onComplete} />;
+    // case "waitForResponse":
+    //   return <WaitForResponseTimeout onComplete={onComplete} />;
+    default:
+      return null;
+  }
+};

@@ -41,7 +41,8 @@ export const updateTripData = (data: any) => {
 };
 
 const fakeTripData: TripData = {
-  shippingId: "SV-2025002346",
+  // orderId: "SV-2025002346",
+  orderId: generateRandomString(),
   shippingStatus: "In Progress",
   tripDate: "2025-03-14",
   startPoint: "Warehouse A",
@@ -60,8 +61,8 @@ const fakeTripData: TripData = {
   vehicleNumber: "001",
 };
 
-export default interface TripData {
-  shippingId: string;
+export interface TripData {
+  orderId: string;
   shippingStatus: string;
   tripDate: string;
   startPoint: string;
@@ -77,4 +78,14 @@ export default interface TripData {
 interface ClientData {
   name: string;
   address: string;
+}
+
+function generateRandomString(length: number = 6): string {
+  const chars =
+    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let result = "";
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return `SL-${result}`;
 }

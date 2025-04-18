@@ -10,7 +10,7 @@ type Rating = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 interface Props {
   rating: Rating;
 }
-const StartRating = ({ rating }: Props) => {
+const StarRating = ({ rating }: Props) => {
   const [stars, setStars] = useState<JSX.Element[]>([]);
 
   useEffect(() => {
@@ -40,4 +40,4 @@ const StartRating = ({ rating }: Props) => {
   return <Box display={"flex"}>{stars}</Box>;
 };
 
-export default StartRating;
+export default StarRating;

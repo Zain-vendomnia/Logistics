@@ -5,12 +5,13 @@ import SignatureCanvas from "react-signature-canvas";
 import CloseIcon from "@mui/icons-material/Close";
 
 interface Props {
+  label?: string;
   open: boolean;
   onClose: () => void;
   onSubmit: (signatureData: string) => void;
 }
 
-const SignatureBox = ({ open, onClose, onSubmit }: Props) => {
+const SignatureBox = ({ label, open, onClose, onSubmit }: Props) => {
   const sigCanvas = useRef<SignatureCanvas>(null);
   const [isSigned, setIsSigned] = useState(false);
 
@@ -61,7 +62,7 @@ const SignatureBox = ({ open, onClose, onSubmit }: Props) => {
           justifyContent={"space-between"}
         >
           <Typography variant="h4" color={"primary"} fontWeight={600}>
-            Customer's Signature
+            {label ?? "Customer's Signature"}
           </Typography>
           <IconButton onClick={onClose} sx={{ ml: "auto" }}>
             <CloseIcon sx={{ color: "grey.900" }} />
