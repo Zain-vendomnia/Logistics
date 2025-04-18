@@ -1,4 +1,11 @@
-import { useRef, useState, useCallback, useEffect, useMemo } from "react";
+import {
+  useRef,
+  useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  ReactNode,
+} from "react";
 import Webcam from "react-webcam";
 import { debounce, delay } from "lodash";
 
@@ -6,6 +13,8 @@ import {
   Box,
   Button,
   IconButton,
+  Stack,
+  Typography,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
@@ -16,17 +25,24 @@ import { uploadImage } from "../../services/trip_Service";
 import { useSnackbar } from "../../providers/SnackbarProvider";
 
 interface Props {
+  styleCard?: boolean;
+  title?: ReactNode;
+  description?: string;
+
   buttonText?: string;
   showCameraIcon?: boolean;
   buttonDisabled?: boolean;
-  onUpload?: (imageUploaded: boolean) => void;
+  onComplete?: (imageUploaded: boolean) => void;
   isMarkDone?: boolean;
 }
 const CameraCapture = ({
+  styleCard = true,
+  title = "",
+  description = "",
   buttonText = "Open Camera",
   showCameraIcon = false,
   buttonDisabled,
-  onUpload,
+  onComplete,
   isMarkDone,
 }: Props) => {
   const { showSnackbar } = useSnackbar();
@@ -103,10 +119,10 @@ const CameraCapture = ({
   useEffect(() => {
     if (isUploaded) {
       delay(() => {
-        onUpload?.(true);
+        onComplete?.(true);
       }, 2000);
     }
-  }, [isUploaded]);
+  }, [isUploaded, onComplete]);
 
   useEffect(() => {
     return () => {
@@ -128,62 +144,38 @@ const CameraCapture = ({
 
   return (
     <Box
-      display="flex"
-      flexDirection="column"
-      alignItems="center"
-      justifyContent="center"
-      gap={2}
+      display={"flex"}
+      flexDirection={"column"}
+      gap={3}
+      height={"100%"}
+      width={"100%"}
+      sx={styleCard ? styles.container : undefined}
     >
-      {isMarkDone && !imageCaptured ? (
-        <CheckCircleIcon
-          color={"success"}
-          sx={{ fontSize: 48, margin: 0, padding: 0 }}
-        />
-      ) : isUploaded && imageCaptured ? (
-        // if marked done and image captured, show image and check icon
-        <>
-          <Box
-            component={"img"}
-            src={imageCaptured}
-            alt="captured image"
-            sx={{
-              width: "auto",
-              height: "50%",
-            }}
-          />
+      <Stack spacing={1} width={"100%"}>
+        <Typography variant="h5" fontWeight="bold">
+          {title}
+        </Typography>
+        <Typography variant="body1">{description}</Typography>
+      </Stack>
+
+      <Box
+        mt={"auto"}
+        display="flex"
+        flexDirection="column"
+        alignItems="center"
+        justifyContent="center"
+        gap={2}
+      >
+        {isMarkDone && !imageCaptured ? (
           <CheckCircleIcon
             color={"success"}
             sx={{ fontSize: 48, margin: 0, padding: 0 }}
           />
-        </>
-      ) : (
-        <>
-          {cameraActive && !imageCaptured && (
-            <Webcam
-              audio={false}
-              ref={webcamRef}
-              screenshotFormat="image/jpeg"
-              imageSmoothing={true}
-              style={{
-                width: webcamSize.width,
-                height: webcamSize.height,
-                objectFit: "cover",
-                position:
-                  isSmallScreen || isMediumScreen ? "fixed" : "relative",
-                top: isSmallScreen ? 0 : "auto",
-                left: isSmallScreen ? 0 : "auto",
-                zIndex: isSmallScreen || isMediumScreen ? 1000 : "auto",
-              }}
-              videoConstraints={{
-                width: 1280,
-                height: 720,
-                // facingMode: { exact: "environment" }
-              }}
-            />
-          )}
-          {imageCaptured && (
+        ) : isUploaded && imageCaptured ? (
+          // if marked done and image captured, show image and check icon
+          <>
             <Box
-              component="img"
+              component={"img"}
               src={imageCaptured}
               alt="captured image"
               sx={{
@@ -191,42 +183,83 @@ const CameraCapture = ({
                 height: "50%",
               }}
             />
-          )}
-          {showCameraIcon && !cameraActive && (
-            <IconButton
-              onClick={() => setCameraActive(true)}
-              sx={styles.iconButton}
-            >
-              <AddAPhotoIcon fontSize="large" />
-            </IconButton>
-          )}
-          <Box display="flex" gap={1}>
-            <Button
-              disabled={buttonDisabled}
-              variant="contained"
-              sx={styles.button}
-              onClick={handleButtonClick}
-            >
-              {cameraActive
-                ? imageCaptured
-                  ? isUploading
-                    ? "Uploading..."
-                    : "Upload"
-                  : "Capture"
-                : buttonText}
-            </Button>
-            {imageCaptured && !isUploading && (
-              <Button
-                variant="outlined"
-                sx={styles.button}
-                onClick={retakeImage}
-              >
-                Retake
-              </Button>
+            <CheckCircleIcon
+              color={"success"}
+              sx={{ fontSize: 48, margin: 0, padding: 0 }}
+            />
+          </>
+        ) : (
+          <>
+            {cameraActive && !imageCaptured && (
+              <Webcam
+                audio={false}
+                ref={webcamRef}
+                screenshotFormat="image/jpeg"
+                imageSmoothing={true}
+                style={{
+                  width: webcamSize.width,
+                  height: webcamSize.height,
+                  objectFit: "cover",
+                  position:
+                    isSmallScreen || isMediumScreen ? "fixed" : "relative",
+                  top: isSmallScreen ? 0 : "auto",
+                  left: isSmallScreen ? 0 : "auto",
+                  zIndex: isSmallScreen || isMediumScreen ? 1000 : "auto",
+                }}
+                videoConstraints={{
+                  width: 1280,
+                  height: 720,
+                  // facingMode: { exact: "environment" }
+                }}
+              />
             )}
-          </Box>
-        </>
-      )}
+            {imageCaptured && (
+              <Box
+                component="img"
+                src={imageCaptured}
+                alt="captured image"
+                sx={{
+                  width: "auto",
+                  height: "50%",
+                }}
+              />
+            )}
+            {showCameraIcon && !cameraActive && (
+              <IconButton
+                onClick={() => setCameraActive(true)}
+                sx={styles.iconButton}
+              >
+                <AddAPhotoIcon fontSize="large" />
+              </IconButton>
+            )}
+            <Box display="flex" gap={1}>
+              <Button
+                disabled={buttonDisabled}
+                variant="contained"
+                sx={styles.button}
+                onClick={handleButtonClick}
+              >
+                {cameraActive
+                  ? imageCaptured
+                    ? isUploading
+                      ? "Uploading..."
+                      : "Upload"
+                    : "Capture"
+                  : buttonText}
+              </Button>
+              {imageCaptured && !isUploading && (
+                <Button
+                  variant="outlined"
+                  sx={styles.button}
+                  onClick={retakeImage}
+                >
+                  Retake
+                </Button>
+              )}
+            </Box>
+          </>
+        )}
+      </Box>
     </Box>
   );
 };
@@ -234,7 +267,15 @@ const CameraCapture = ({
 export default CameraCapture;
 
 const styles = {
+  container: {
+    p: 2,
+    borderWidth: "2px",
+    borderStyle: "solid",
+    borderColor: "primary.main",
+    borderRadius: "10px",
+  },
   iconButton: {
+    // mt: "5vh",
     width: 120,
     height: 120,
     border: "2px dashed",

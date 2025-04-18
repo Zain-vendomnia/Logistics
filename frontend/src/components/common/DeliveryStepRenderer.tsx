@@ -39,10 +39,12 @@ export const DeliveryStepRenderer = ({ step, onComplete }: Props) => {
     case "captureParcelImage":
     case "captureNeighborDoorstepImage":
       return (
-        <CheckBoxItem
+        <CameraCapture
+          styleCard={false}
           title={label}
+          buttonText={"Upload Image"}
           showCameraIcon={true}
-          onImageUpload={onComplete}
+          onComplete={onComplete}
         />
       );
     case "captureCustomerSignature":

@@ -157,16 +157,16 @@ const Dashboard = () => {
       {componentCheckList.map(
         (item, index) =>
           componentStatus.lastIndexOf(true) + 1 === index && (
-            <Card key={index} variant="outlined" sx={styles.cardLarge}>
-              <CheckBoxItem
-                title={item.title}
-                description={item.description}
-                showCameraIcon={true}
-                disabled={index !== 0 && !componentStatus[index - 1]}
-                onImageUpload={(result) => handleImageUpload(index, result)}
-                isMarkDone={componentStatus[index]}
-              />
-            </Card>
+            <CameraCapture
+              // styleCard={true}
+              title={item.title}
+              description={item.description}
+              buttonText={"Upload Image"}
+              showCameraIcon={true}
+              buttonDisabled={index !== 0 && !componentStatus[index - 1]}
+              onComplete={(result: boolean) => handleImageUpload(index, result)}
+              isMarkDone={componentStatus[index]}
+            />
           )
       )}
 

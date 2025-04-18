@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import CameraCapture from "./Camera_Capture";
 import { Box, Stack, Typography } from "@mui/material";
+import { useSnackbar } from "../../providers/SnackbarProvider";
 
 interface Props {
   title: ReactNode;
@@ -19,6 +20,13 @@ const CheckBoxItem = ({
   isMarkDone = false,
   onImageUpload,
 }: Props) => {
+  const { showSnackbar } = useSnackbar();
+
+  const handleComplete = (result: boolean) => {
+    onImageUpload?.(result);
+    showSnackbar(`${title} Completed!`, "success");
+  };
+
   return (
     <Box
       display={"flex"}
@@ -38,7 +46,7 @@ const CheckBoxItem = ({
           buttonText={"Upload Image"}
           showCameraIcon={showCameraIcon}
           buttonDisabled={disabled}
-          onUpload={(result) => onImageUpload && onImageUpload(result)}
+          onComplete={(result) => handleComplete(result)}
           isMarkDone={isMarkDone}
         />
       </Box>
