@@ -20,7 +20,8 @@ export const fetchOrders = async () => {
         Authorization: `Basic ${AUTH_CREDENTIALS}`,
       },
     });
-
+    // console.log("Response from API:", response.data);
+    // console.log(response.data.data[0]) // Log the response data
     return response.data;
   } catch (error) {
     console.error("Error fetching orders from API:", error);

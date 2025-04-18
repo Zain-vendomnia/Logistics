@@ -39,7 +39,9 @@ export const fetchOrders = async (lastOrderNumber: string, type: string) => {
 
     // Filter only new orders
     const newOrders = orders.filter(order => !existingOrderNumbers.has(order.ordernumber));
+    
     console.log(`New orders to insert: ${newOrders.length}`);
+    console.log("newOrders", newOrders);
 
     if (newOrders.length === 0) {
       console.info("All fetched orders already exist in the database. No new orders to insert.");
@@ -71,7 +73,6 @@ export const fetchOrders = async (lastOrderNumber: string, type: string) => {
 
     await conn.query(query, [insertData]);
     console.log("✅ New orders inserted successfully!");
-    
     return { message: "New orders inserted successfully.", insertedOrders: newOrders.length };
   } catch (error) {
     console.error("❌ Error fetching orders from API:", error);

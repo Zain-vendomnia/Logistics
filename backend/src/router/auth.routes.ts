@@ -23,7 +23,7 @@ router.get("/admin", validateToken, roleCheck(["admin"]), (_req, res) => {
     res.render("admin"); 
 });
 // Route to get driver board, only accessible to drivers
-router.get("/test/driver ", validateToken, roleCheck(["driver"]), driverCtrl.getDriverBoard);
+router.get("/test/driver", validateToken, roleCheck(["driver"]), driverCtrl.getDriverBoard);
 
 
 
