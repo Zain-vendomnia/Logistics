@@ -1,4 +1,3 @@
-import CheckBoxItem from "./CheckBoxItem";
 import SignatureUpload from "./Signature_Upload";
 import ReturnToWarehouse from "./Return_To_Warehouse";
 import MarkAsNotDelivered from "./Mark_As_Not_Delivered";

@@ -291,7 +291,7 @@ const ShippingDetails = ({
           // >
           //   Reached
           // </Button>
-          <>
+          <Stack spacing={1} p={3}>
             <Button
               variant="contained"
               onClick={() => {
@@ -325,7 +325,7 @@ const ShippingDetails = ({
             >
               Customer Unavailable
             </Button>
-          </>
+          </Stack>
         )}
       </Box>
       {/* {!showOrderReached ? (

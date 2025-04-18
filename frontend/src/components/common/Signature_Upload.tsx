@@ -1,17 +1,19 @@
 import { useState } from "react";
 
-import { Alert, Box, Button } from "@mui/material";
+import { Box, Button, Typography } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 
 import UploadImage from "../../common/Upload_Image";
 import SignatureBox from "./Signature_Box";
+import { flatten } from "lodash";
+import { grey } from "@mui/material/colors";
 
 interface Props {
   label: string;
   onComplete: () => void;
 }
 const SignatureUpload = ({ label, onComplete }: Props) => {
-  const [showSigBox, setShowSigBox] = useState(false);
+  const [showSigBox, setShowSigBox] = useState(true);
   const [signature, setSignature] = useState<string | null>(null);
   const [isSigUploaded, setSigUploaded] = useState(false);
 
@@ -37,43 +39,62 @@ const SignatureUpload = ({ label, onComplete }: Props) => {
   };
 
   return (
-    <Box display={"flex"} justifyContent={"center"}>
+    <Box
+      display={"flex"}
+      flexDirection={"column"}
+      justifyContent={"space-between"}
+      height={"100%"}
+      width={"100%"}
+    >
       <SignatureBox
         label={label}
         open={showSigBox}
         onClose={handleSigBoxClose}
         onSubmit={(sigData) => handleSigBoxSubmit(sigData)}
       />
-      {!signature ? (
-        <Button variant="outlined" onClick={() => setShowSigBox(true)}>
-          Take Signature
-        </Button>
+      <Typography variant="h5" color={"secondry"} fontWeight={600}>
+        {label ?? "Customer's Signature"}
+      </Typography>
+      {signature ? (
+        <Box
+          component={"img"}
+          src={signature}
+          alt={"signature data"}
+          border={"1px dashed"}
+          width={"auto"}
+          height={100}
+        />
       ) : (
-        <Box>
-          <Box
-            component={"img"}
-            src={signature}
-            alt={"signature data"}
-            border={"1px dashed"}
-            width={"auto"}
-            height={100}
-          />
-
-          <Box display={"flex"} justifyContent={"center"} mt={2}>
-            {isSigUploaded ? (
-              <CheckCircleIcon color={"success"} sx={{ fontSize: "48px" }} />
-            ) : (
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={uploadSignature}
-              >
-                Upload
-              </Button>
-            )}
-          </Box>
-        </Box>
+        <Box
+          color={"#fff"}
+          border={"1px dashed"}
+          borderColor={grey[400]}
+          width={"auto"}
+          height={100}
+        />
       )}
+      <Box display={"flex"} justifyContent={"center"}>
+        {isSigUploaded ? (
+          <CheckCircleIcon color={"success"} sx={{ fontSize: "48px" }} />
+        ) : signature ? (
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={uploadSignature}
+            sx={{ width: "15vw" }}
+          >
+            Upload
+          </Button>
+        ) : (
+          <Button
+            variant="outlined"
+            onClick={() => setShowSigBox(true)}
+            sx={{ width: "15vw" }}
+          >
+            Take Signature
+          </Button>
+        )}
+      </Box>
     </Box>
   );
 };

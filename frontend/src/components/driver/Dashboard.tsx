@@ -11,12 +11,10 @@ import {
 } from "@mui/material";
 
 import { useSnackbar } from "../../providers/SnackbarProvider";
-import { TripData, getTripData } from "../../services/trip_Service";
 import ShippingDetails from "./Shipping_Details";
 import Delivery from "./Delivery";
 
 import useStyles from "./Dashboard_style";
-import CheckBoxItem from "../common/CheckBoxItem";
 import LeafletMaps from "../common/leaflet_Map/Leaflet_Maps";
 import { useDeliveryStore } from "../../store/useDeliveryStore";
 import { DeliveryScenario } from "../common/delieryScenarios";
@@ -158,7 +156,7 @@ const Dashboard = () => {
         (item, index) =>
           componentStatus.lastIndexOf(true) + 1 === index && (
             <CameraCapture
-              // styleCard={true}
+              key={index}
               title={item.title}
               description={item.description}
               buttonText={"Upload Image"}
@@ -173,7 +171,8 @@ const Dashboard = () => {
       {isComplied &&
         componentCheckList.map((item, index) => (
           <Card key={index} variant="outlined" sx={styles.cardHighlight}>
-            <CheckBoxItem
+            <CameraCapture
+              styleCard={false}
               title={
                 <Typography variant="h5" fontWeight="bold">
                   {item.title}

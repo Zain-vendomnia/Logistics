@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import {
   deliveryScenarios,
-  Step,
   DeliveryStep,
   DeliveryScenario,
 } from "./delieryScenarios";
@@ -74,6 +73,8 @@ export const DeliveryFlowExecutor = ({ scenarioKey, deliveryState }: Props) => {
         borderRadius={2}
         border={"2px solid"}
         borderColor={"primary.dark"}
+        height={"100%"}
+        width={"100%"}
       >
         {stepsToRender.map((step, i) => (
           <DeliveryStepRenderer
