@@ -5,8 +5,8 @@ import { DeliveryScenario } from "../common/delieryScenarios";
 
 const Delivery = () => {
   const store = useDeliveryStore();
-  console.log("Order Id in progess-:-> ", store.deliveryId);
-  console.log("Optimal Delivery Scenario-:-> ", store.scenarioKey);
+  // console.log("Order Id in progess-:-> ", store.deliveryId);
+  // console.log("Optimal Delivery Scenario-:-> ", store.scenarioKey);
 
   const { deliveryState } = useDeliveryStore();
   const scenarioKey = useDeliveryStore((s) => s.scenarioKey);
@@ -21,8 +21,8 @@ const Delivery = () => {
     >
       <Typography>Delivery...</Typography>
       <DeliveryFlowExecutor
-        scenarioKey={scenarioKey ?? DeliveryScenario.foundCustomer}
-        // deliveryState={deliveryState}
+      // scenarioKey={scenarioKey ?? DeliveryScenario.foundCustomer}
+      // deliveryState={deliveryState}
       />
     </Box>
   );

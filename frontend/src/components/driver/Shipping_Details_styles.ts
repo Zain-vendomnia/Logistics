@@ -1,5 +1,5 @@
 import { makeStyles } from "@mui/styles";
-import { Theme } from "@mui/material/styles";
+import { alpha, Theme } from "@mui/material";
 
 const useStyles = makeStyles((theme: Theme) => ({
   leftStack: {
@@ -37,6 +37,20 @@ const useStyles = makeStyles((theme: Theme) => ({
     border: "1px solid",
     borderColor: theme.palette.grey[400],
     borderRadius: theme.shape.borderRadius,
+  },
+  iconBlinks: {
+    position: "relative",
+    overflow: "hidden",
+    "&:before": {
+      content: '""',
+      position: "absolute",
+      top: 0,
+      left: 0,
+      width: "100%",
+      height: "100%",
+      background: alpha(theme.palette.primary.light, 0.3),
+      borderRadius: "50%",
+    },
   },
 }));
 

@@ -77,6 +77,8 @@ const CameraCapture = ({
     setTimeout(() => {
       setIsUploaded(true);
       // setIsUploading(false);
+
+      onComplete?.(true);
     }, 1000);
 
     // try {
@@ -115,14 +117,6 @@ const CameraCapture = ({
       setImageCaptured(imageSrc);
     }
   }, []);
-
-  useEffect(() => {
-    if (isUploaded) {
-      delay(() => {
-        onComplete?.(true);
-      }, 2000);
-    }
-  }, [isUploaded, onComplete]);
 
   useEffect(() => {
     return () => {

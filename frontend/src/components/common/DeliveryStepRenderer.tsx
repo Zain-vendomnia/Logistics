@@ -6,15 +6,15 @@ import CameraCapture from "./Camera_Capture";
 const getLabel = (step: string) => {
   switch (step) {
     case "captureDoorstepImage":
-      return "Capture Client's Doorstep Image";
+      return "Client's Doorstep Image";
     case "captureParcelImage":
       return "Capture Parcel Image";
     case "captureNeighborDoorstepImage":
-      return "Capture Neighbor's Doorstep Image";
+      return "Neighbor's Doorstep Image";
     case "captureCustomerSignature":
-      return "Capture Customer's Signature";
+      return "Customer's Signature";
     case "captureNeighborSignature":
-      return "Capture Neighbor's Signature";
+      return "Neighbor's Signature";
     case "markAsNotDelivered":
       return "Mark As Not Delivered";
     case "returnToWarehouse":

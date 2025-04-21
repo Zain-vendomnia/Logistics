@@ -10,6 +10,8 @@ import {
   Typography,
   CircularProgress,
   Container,
+  keyframes,
+  alpha,
 } from "@mui/material";
 import { grey } from "@mui/material/colors";
 import MyLocationIcon from "@mui/icons-material/MyLocation";
@@ -24,6 +26,12 @@ import { useSnackbar } from "../../providers/SnackbarProvider";
 import PostTripChecks from "./PostTripChecks";
 import { useDeliveryStore } from "../../store/useDeliveryStore";
 import { DeliveryScenario } from "../common/delieryScenarios";
+
+const blinkOverlay = keyframes`
+  0% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.2; transform: scale(1.2); }
+  100% { opacity: 0.5; transform: scale(1); }
+`;
 
 interface Props {
   tripData: TripData | null;
@@ -57,7 +65,15 @@ const ShippingDetails = ({
   const [hideNotify, setHideNotify] = useState(false);
   // const [showOrderReached, setShowOrderReached] = useState(false);
 
-  const { deliveryId, setScenario } = useDeliveryStore();
+  const deliveryId = useDeliveryStore((s) => s.deliveryId);
+  const { setScenario, updateState } = useDeliveryStore();
+
+  const [isBlinking, setIsBlinking] = useState(true);
+
+  const handleIconClick = (action: () => void) => {
+    setIsBlinking(false); // Stop blinking when any button is clicked
+    action();
+  };
 
   useEffect(() => {
     if (hideNotify === true) {
@@ -209,20 +225,38 @@ const ShippingDetails = ({
                       Customer
                     </Typography>
                     <Typography variant="body1" fontSize={"large"}>
-                      {" "}
                       {tripData?.client.name}
                     </Typography>
                   </Stack>
                 </Box>
+
                 <Box display={"flex"} gap={0} mx={0}>
                   <IconButton
-                    onClick={() => setShowMessageBox(!showMessageBox)}
+                    // onClick={() => setShowMessageBox(!showMessageBox)}
+                    onClick={() =>
+                      handleIconClick(() => setShowMessageBox(!showMessageBox))
+                    }
                     color="primary"
+                    className={styles.iconBlinks}
+                    sx={{
+                      animation: isBlinking
+                        ? `${blinkOverlay} 1.5s infinite`
+                        : "none",
+                    }}
                   >
                     <CommentIcon fontSize="large" />
                   </IconButton>
 
-                  <IconButton onClick={() => {}} color="primary">
+                  <IconButton
+                    onClick={() => handleIconClick(() => {})}
+                    color="primary"
+                    className={styles.iconBlinks}
+                    sx={{
+                      animation: isBlinking
+                        ? `${blinkOverlay} 1.5s infinite`
+                        : "none",
+                    }}
+                  >
                     <CallIcon fontSize="large" />
                   </IconButton>
                 </Box>
@@ -284,13 +318,6 @@ const ShippingDetails = ({
 
         {/* {isOrderReached && !showOrderReached && ( */}
         {isOrderReached && (
-          // <Button
-          //   variant="contained"
-          //   onClick={() => onReachedToDestination(true)} //setShowOrderReached(true)}
-          //   sx={{ mt: "auto", bgcolor: "primary.dark" }}
-          // >
-          //   Reached
-          // </Button>
           <Stack spacing={1} p={3}>
             <Button
               variant="contained"
@@ -320,10 +347,21 @@ const ShippingDetails = ({
                   deliveryId,
                   DeliveryScenario.customerUnavailableWithNoPermit
                 );
+                updateState({
+                  customerResponded: false,
+                  neighborAccepts: true,
+                });
               }}
               sx={{ mt: "auto", bgcolor: "primary.dark" }}
             >
               Customer Unavailable
+            </Button>
+            <Button
+              variant="contained"
+              onClick={() => onReachedToDestination(true)} //setShowOrderReached(true)}
+              sx={{ mt: "auto", bgcolor: "primary.dark" }}
+            >
+              Reached
             </Button>
           </Stack>
         )}

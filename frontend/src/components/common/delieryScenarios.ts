@@ -24,8 +24,8 @@ export type Step = DeliveryStep | ConditionalStep;
 
 export const deliveryScenarios: Record<DeliveryScenario, Step[]> = {
   [DeliveryScenario.foundCustomer]: [
-    "captureDoorstepImage",
-    "captureParcelImage",
+    // "captureDoorstepImage",
+    // "captureParcelImage",
     "captureCustomerSignature",
   ],
   [DeliveryScenario.hasPermit]: ["captureDoorstepImage", "captureParcelImage"],

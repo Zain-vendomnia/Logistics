@@ -5,12 +5,14 @@ import { TripData, getTripData } from "../services/trip_Service";
 export type DeliveryState = {
   customerResponded: boolean;
   neighborAccepts: boolean;
+  noAcceptance: boolean;
 };
 
 type DeliveryStore = {
+  deliveryInstanceKey: number;
   deliveryId: string;
 
-  scenarioKey: DeliveryScenario | null;
+  scenarioKey: DeliveryScenario;
   deliveryState: DeliveryState;
 
   deliveryCompleted: boolean;
@@ -31,11 +33,13 @@ type DeliveryStore = {
 };
 
 const createDeliveryStore: StateCreator<DeliveryStore> = (set, get) => ({
+  deliveryInstanceKey: 0,
   deliveryId: "",
-  scenarioKey: null,
+  scenarioKey: DeliveryScenario.foundCustomer,
   deliveryState: {
     customerResponded: false,
     neighborAccepts: false,
+    noAcceptance: false,
   },
 
   deliveryCompleted: false,
@@ -51,6 +55,7 @@ const createDeliveryStore: StateCreator<DeliveryStore> = (set, get) => ({
       deliveryState: {
         customerResponded: false,
         neighborAccepts: false,
+        noAcceptance: false,
       },
     })),
   updateState: (updates) =>
@@ -91,31 +96,36 @@ const createDeliveryStore: StateCreator<DeliveryStore> = (set, get) => ({
         deliveryState: {
           customerResponded: false,
           neighborAccepts: false,
+          noAcceptance: false,
         },
         tripData: newTrip,
       });
     }
   },
   tripData: null,
-  fetchTripData: async () => {
-    const state = get();
-    const { tripData, ordersDeliveredSuccessfully, ordersReturnToWareHouse } =
-      state;
 
-    if (
-      tripData &&
-      !ordersDeliveredSuccessfully.includes(tripData.orderId) &&
-      !ordersReturnToWareHouse.includes(tripData.orderId)
-    ) {
+  fetchTripData: async () => {
+    const { deliveryCompleted, tripData, deliveryId, deliveryInstanceKey } =
+      get();
+
+    if (tripData && deliveryCompleted === false) {
+      console.log("Store (cached):", tripData);
       return tripData;
     }
-    const data = await getTripData();
-    if (!data) throw new Error("Failed to fetch trip data");
 
-    set({ tripData: data });
-    return data;
+    const newData = await getTripData();
+    if (!newData) throw new Error("Failed to fetch trip data");
+
+    set({
+      deliveryInstanceKey: deliveryInstanceKey + 1,
+      deliveryId: newData.orderId,
+      tripData: newData,
+      deliveryCompleted: false,
+    });
+
+    console.log("Store: ", newData);
+    return newData;
   },
-  // setTripData: (data: TripData) => set({ tripData: data }),
 });
 
 export const useDeliveryStore = create<DeliveryStore>(createDeliveryStore);

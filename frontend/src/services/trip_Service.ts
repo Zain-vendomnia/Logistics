@@ -24,10 +24,31 @@ export const uploadImage = (data: FormData) => {
     });
 };
 
-export const getTripData = async () => {
+export const getTripData = async (): Promise<TripData> => {
   //   const response = axios.get(API_URL + "getTripData", {
   //     headers: authHeader(),
   //   });
+
+  const fakeTripData: TripData = {
+    // orderId: "SV-2025002346",
+    orderId: generateRandomString(),
+    shippingStatus: "In Progress",
+    tripDate: "2025-03-14",
+    startPoint: "Warehouse A",
+    endPoint: "Customer B",
+    startCoordinates: null,
+    // destinationCoordinates: "25° 13' 13.69\" N, 55° 17' 7.87\" E",
+    destinationCoordinates: [25.1972, 55.2744],
+    startTime: new Date().toISOString(),
+
+    client: {
+      name: "John Doe",
+      address: "Park Lane 38, West Zone",
+    },
+
+    vehicle: "Truck",
+    vehicleNumber: "001",
+  };
 
   return await Promise.resolve(fakeTripData);
 };
@@ -38,27 +59,6 @@ export const updateTripData = (data: any) => {
   });
 
   return response;
-};
-
-const fakeTripData: TripData = {
-  // orderId: "SV-2025002346",
-  orderId: generateRandomString(),
-  shippingStatus: "In Progress",
-  tripDate: "2025-03-14",
-  startPoint: "Warehouse A",
-  endPoint: "Customer B",
-  startCoordinates: null,
-  // destinationCoordinates: "25° 13' 13.69\" N, 55° 17' 7.87\" E",
-  destinationCoordinates: [25.1972, 55.2744],
-  startTime: new Date().toISOString(),
-
-  client: {
-    name: "John Doe",
-    address: "Park Lane 38, West Zone",
-  },
-
-  vehicle: "Truck",
-  vehicleNumber: "001",
 };
 
 export interface TripData {

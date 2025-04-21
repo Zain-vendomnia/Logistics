@@ -18,8 +18,6 @@ import useStyles from "./Dashboard_style";
 import LeafletMaps from "../common/leaflet_Map/Leaflet_Maps";
 import { useDeliveryStore } from "../../store/useDeliveryStore";
 import { DeliveryScenario } from "../common/delieryScenarios";
-import { useStore } from "zustand";
-import DeliveryCompleteOverlay from "../common/DeliveryCompleteOverlay";
 import CameraCapture from "../common/Camera_Capture";
 // import GoogleMaps from "../common/GoogleMaps";
 
@@ -47,14 +45,16 @@ const Dashboard = () => {
   const store = useDeliveryStore();
   const tripData = useDeliveryStore((s) => s.tripData);
   const deliveryCompleted = useDeliveryStore((s) => s.deliveryCompleted);
+  const deliveryId = useDeliveryStore((s) => s.deliveryId);
   const {
-    deliveryId,
     setScenario,
     fetchTripData,
-    ordersDeliveredSuccessfully,
     ordersReturnToWareHouse,
     addOrdersDeliveredSuccessfully,
   } = useDeliveryStore();
+  const ordersDeliveredSuccessfully = useDeliveryStore(
+    (s) => s.ordersDeliveredSuccessfully
+  );
 
   // const [tripData, setTripData] = useState<TripData | null>(null);
   // const [loadOrderComplete, setLoadOrderComplete] = useState(true);
@@ -62,60 +62,61 @@ const Dashboard = () => {
   const [isReachedToDestination, setIsReachedToDestination] = useState(false);
   const [isTripStarted, setIsTripStarted] = useState(false);
 
+  const startNewTrip = () => {
+    console.log("Delivery Instance Key:: ", store.deliveryInstanceKey);
+    const currentOrderId = tripData?.orderId;
+
+    // Store previous trip info BEFORE attemping to fetch new trip
+    const prevTripCompleted = deliveryCompleted;
+    const prevTripId = deliveryId;
+
+    const isPrevTripUnrecordedSuccess =
+      prevTripCompleted &&
+      prevTripId &&
+      !ordersDeliveredSuccessfully.includes(prevTripId);
+
+    if (isPrevTripUnrecordedSuccess) {
+      addOrdersDeliveredSuccessfully(prevTripId);
+      // Set deliveryCompelted after fetchTripData,
+      // to avoid getting same data from cache.
+      console.log("Added to ordersDeliveredSuccessfully::", prevTripId);
+    }
+
+    // Check if order exists and is not setteled
+    const isTripHandled =
+      currentOrderId &&
+      (ordersDeliveredSuccessfully.includes(currentOrderId) ||
+        ordersReturnToWareHouse.includes(currentOrderId));
+
+    console.log("isTripHandled:: ", isTripHandled);
+
+    const shouldLoadNewTrip =
+      deliveryCompleted === true || !tripData || isTripHandled;
+
+    if (shouldLoadNewTrip) {
+      fetchTripData()
+        .then((data) => {
+          // Scenario Switcher
+          setScenario(data.orderId, DeliveryScenario.hasPermit);
+          setIsReachedToDestination(false);
+          // Set deliveryComplted to false,
+          // to avoid adding newTripData to OrdersDelivered Array accidently
+          store.setDeliveryCompleted(false);
+          console.log("🚚 New Order Id:: ", data.orderId);
+        })
+        .catch((err) => {
+          showSnackbar(err.message ?? err, "error");
+        });
+    }
+  };
+
   useEffect(() => {
+    startNewTrip();
+
+    console.log("Orders Delivered Successfully::", ordersDeliveredSuccessfully);
     console.log("Order Id:: ", deliveryId);
-    console.log("Order Delivery Completed:: ", deliveryCompleted);
-    console.log("Orders Completed:: ", ordersDeliveredSuccessfully);
-
-    const resetDashboard = () => {
-      const currentOrderId = tripData?.orderId;
-
-      // Add order to delivered orders Array if it's completed.
-      if (
-        deliveryCompleted === true &&
-        currentOrderId &&
-        !ordersDeliveredSuccessfully.includes(currentOrderId)
-      ) {
-        addOrdersDeliveredSuccessfully(currentOrderId);
-      }
-
-      // Check if order exists and is not setteled
-      const isTripHandled =
-        currentOrderId &&
-        (ordersDeliveredSuccessfully.includes(currentOrderId) ||
-          ordersReturnToWareHouse.includes(currentOrderId));
-      console.log("isTripHandled:: ", isTripHandled);
-
-      const shouldLoadNewTrip =
-        deliveryCompleted === true || !tripData || isTripHandled;
-
-      if (shouldLoadNewTrip) {
-        fetchTripData()
-          .then((data) => {
-            // Scenario Switcher
-            setScenario(data.orderId, DeliveryScenario.hasPermit);
-            // setTripData(data);
-            console.log("New Order Id:: ", data.orderId);
-            setIsReachedToDestination(false);
-          })
-          .catch((err) => {
-            showSnackbar(err.message ?? err, "error");
-          });
-      }
-    };
-
-    resetDashboard();
-  }, [
-    tripData,
-    deliveryCompleted,
-    setScenario,
-    fetchTripData,
-    ordersDeliveredSuccessfully,
-    ordersReturnToWareHouse,
-    addOrdersDeliveredSuccessfully,
-    showSnackbar,
-    deliveryId,
-  ]);
+    console.log("Is Order Delivery Completed:: ", deliveryCompleted);
+  }, [deliveryCompleted]);
 
   useEffect(() => {
     const isAllComplied = componentStatus.every((status) => status === true);
@@ -123,33 +124,18 @@ const Dashboard = () => {
   }, [componentStatus]);
 
   const handleImageUpload = (index: number, isImageUplaoded: boolean) => {
-    console.log("isImageUplaoded Parent: ", isImageUplaoded);
-    console.log("Image Uploaded for Component at: ", index);
     setComponentStatus((prevState) => {
       const newState = [...prevState];
       newState[index] = true;
-      console.log(newState);
       return newState;
     });
   };
 
-  const startTrip = async () => {
-    const data = await fetchTripData();
-    setScenario(`${data.orderId}`, DeliveryScenario.foundCustomer);
-
-    setIsTripStarted(true);
-
-    console.log("Trip started 1st time:: ", deliveryId);
-
-    // setTripData(data);
-    // store.deliveryId = data?.orderId;
-  };
-
   const handleReachedToDestination = () => {
     setIsReachedToDestination(true);
-    showSnackbar("You have now readched to destination.", "info");
-    console.log("Driver reached to destination...::");
+    showSnackbar("You have now readched to Customer location.", "info");
   };
+
   const preTripChecks = (
     <Stack spacing={1}>
       {componentCheckList.map(
@@ -186,7 +172,10 @@ const Dashboard = () => {
       <Button
         variant="contained"
         disabled={isComplied}
-        onClick={startTrip}
+        onClick={() => {
+          startNewTrip();
+          setIsTripStarted(true);
+        }}
         sx={{
           ...styles.st_Button,
           bgcolor: "primary.dark",
@@ -219,7 +208,7 @@ const Dashboard = () => {
             <Delivery />
           ) : (
             <ShippingDetails
-              key={deliveryId}
+              key={`${deliveryId}`}
               tripData={tripData}
               isArrived={true}
               notifyCustomer={true}
@@ -263,7 +252,6 @@ const Dashboard = () => {
           {/* burj Khalifa: [25.1972, 55.2744] */}
         </Box>
       </Grid2>
-      <DeliveryCompleteOverlay />
     </Grid2>
   );
 };
