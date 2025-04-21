@@ -25,11 +25,7 @@ export const uploadImage = (data: FormData) => {
 };
 
 export const getTripData = async () => {
-  //   const response = axios.get(API_URL + "getTripData", {
-  //     headers: authHeader(),
-  //   });
-
-  return await Promise.resolve(fakeTripData);
+   return await Promise.resolve(fakeTripData);
 };
 
 export const updateTripData = (data: any) => {

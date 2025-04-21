@@ -1,15 +1,16 @@
-import { Pool, createPool } from "mysql2/promise";
+import { createPool } from "mysql2/promise";
+import dotenv from "dotenv";
 
-async function connect(): Promise<Pool> {
-  const connection = await createPool({
-    host: "127.0.0.1",
-    user: "root",
-    password: "",
-    database: "logistics",
-    connectionLimit: 10,
-  });
- // console.log("MySQL connected");
-  return connection;
-}
+dotenv.config(); 
 
-export default connect;
+const pool = createPool({
+  host: "127.0.0.1",
+  user: "root",
+  password: "",
+  database: "logistics",
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+});
+
+export default pool;

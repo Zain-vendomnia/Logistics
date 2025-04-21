@@ -1,15 +1,13 @@
 import { Request, Response } from "express";
 import { fetchOrders } from "../../services/scheduleOrderInfo.service";
-import connect from "../../database";  // Import database connection
+import pool from "../../database";  // Import database connection
 import { RowDataPacket } from "mysql2";
 
 export const scheduleOrderInfoController = async (_: Request, res: Response) => {
   try {
-    // Connect to the database
-    const conn = await connect();
-
+  
     // Fetch the latest lastOrderNumber from logistic_order table
-    const [rows] = await conn.execute<RowDataPacket[]>(
+    const [rows] = await pool.execute<RowDataPacket[]>(
       "SELECT order_number FROM logistic_order ORDER BY order_id DESC LIMIT 1"
     );
 

@@ -18,6 +18,6 @@ const fetchScheduleOrderInfo = async () => {
 export { fetchScheduleOrderInfo };
 
 // Call fetchScheduleOrderInfo every 15 minutes (900,000 ms)
-setInterval(fetchScheduleOrderInfo, 900000); // 900,000 ms = 15 minutes
+setInterval(fetchScheduleOrderInfo, 60000); // 900,000 ms = 15 minutes
 
 

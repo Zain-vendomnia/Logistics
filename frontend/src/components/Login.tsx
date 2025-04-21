@@ -43,10 +43,7 @@ const Login: React.FC<Props> = () => {
           navigate("/admin");  
         } else if (user.role === "driver") {
           navigate("/driver");  
-
-
         } else if (user.role === "super_admin") {
-
           navigate("/super_admin");  
         } 
           // Reload the page to refresh the user context

@@ -1,5 +1,4 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-
 import { useAuth } from "./providers/AuthProvider";
 import { isSuperAdmin, isAdmin, isDriver } from "./types/user.type";
 
@@ -11,8 +10,11 @@ import Profile from "./components/Profile";
 import BoardAdmin from "./components/BoardAdmin/BoardAdmin";
 import SuperAdmin from "./components/SuperAdmin";
 import BoardDriver from "./components/BoardDriver/BoardDriver";
-//import RouteEstimateComponent from "./components/RouteEstimateComponent";
-// import NotFound from "../pages/NotFound";
+import AdminDashboard from "./components/Admin/Admin_dashboard";
+import AdminAddTour from "./components/Admin/Admin_AddTour";
+import Admin_TourTemplates from "./components/Admin/Admin_TourTemplates";
+import Admin_MapComponent from "./components/Admin/Admin_MapComponent";
+import Admin_TourMapView from "./components/Admin/Admin_TourMapView";
 
 const ProtectedRoute = ({ element }: { element: JSX.Element }) => {
   const { user } = useAuth();
@@ -62,12 +64,15 @@ const AppRoutes = () => {
         path="/profile"
         element={<ProtectedRoute element={<Profile />} />}
       />
-
-      <Route path="/register" element={<Register />} />
-{/*       <Route path="/api/estimate" element={<RouteEstimateComponent />} />
- */}
-     
+      <Route path = "/register" element={<Register />} />
+      <Route path = "/admin_dashboard" element={<AdminDashboard />} />
+      <Route path = "/admin_addtour" element={<AdminAddTour/>}/>
+      <Route path = "/admin_tourtemplates" element={<Admin_TourTemplates/>}/>
+      <Route path = "/admin_mapComponent/:id"  element = {<Admin_MapComponent/>}/>
+      <Route path = "/Admin_TourMapView/:id" element = {<Admin_TourMapView/>}/>
     </Routes>
+
+
   );
 };
 

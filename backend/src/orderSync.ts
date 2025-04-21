@@ -1,10 +1,10 @@
 import axios from "axios";
-import connect from "./database";
+import pool from "./database";
 import { RowDataPacket } from "mysql2";
 import { ONE_TIME_ORDERINFO_URL } from "./services/apiUrl";
 
 export async function syncOrderData() {
-  const conn = await connect();
+ 
   try {
     console.log("Fetching order data from API...");
 
@@ -21,7 +21,7 @@ export async function syncOrderData() {
     console.log(`Received ${orders.length} orders. Checking existing orders...`);
 
     // Fetch existing order numbers
-    const [existingOrders] = await conn.query<RowDataPacket[]>(`SELECT order_number FROM logistic_order`);
+    const [existingOrders] = await pool.query<RowDataPacket[]>(`SELECT order_number FROM logistic_order`);
     const existingOrderNumbers = new Set(existingOrders.map(order => order.order_number));
 
     const formattedOrderNumbers = existingOrders.map(order => `orderNumber: ${order.order_number}`).join(", ");
@@ -45,7 +45,7 @@ export async function syncOrderData() {
       // Format as MySQL datetime string (YYYY-MM-DD HH:MM:SS)
       const expectedDeliveryTime = orderDate.toISOString().slice(0, 19).replace("T", " ");
 
-      await conn.query(
+      await pool.query(
         `INSERT INTO logistic_order 
         (order_number, customer_id, invoice_amount, payment_id, order_time, expected_delivery_time, warehouse_id, quantity, 
          article_order_number, customer_number, firstname, lastname, email, street, zipcode, city, phone) 
@@ -53,7 +53,7 @@ export async function syncOrderData() {
         [
           order.ordernumber, order.user_id, order.invoice_amount, order.paymentID,
           order.ordertime, expectedDeliveryTime, order.warehouse_id, order.fkt_total_quantity,
-          order.fkt_articleordernumber, order.customernumber, order.user_firstname, order.user_lastname,
+          order.slmdl_articleordernumber, order.customernumber, order.user_firstname, order.user_lastname,
           order.user_email, order.shipping_street, order.shipping_zipcode, order.shipping_city,
           order.shipping_phone
         ]
@@ -63,7 +63,5 @@ export async function syncOrderData() {
     console.log("New orders inserted successfully");
   } catch (error) {
     console.error("Error in syncing order data:", error instanceof Error ? error.message : String(error));
-  } finally {
-    await conn.end();
-  }
+  } 
 }

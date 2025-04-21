@@ -4,6 +4,10 @@ import MenuIcon from "@mui/icons-material/Menu";
 import PersonIcon from "@mui/icons-material/Person";
 import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
 import DashboardIcon from "@mui/icons-material/Dashboard";
+import Admin_dashboard from '../components/Admin/Admin_dashboard';
+import TourIcon from "@mui/icons-material/AcUnitRounded";
+import { Admin_TourTemplates } from "./Admin/Admin_TourTemplates";
+
 import {
   Divider,
   Box,
@@ -15,11 +19,12 @@ import {
   IconButton,
   Stack,
   Typography,
-} from "@mui/material";
+} from "@mui/material"; 
 import { grey } from "@mui/material/colors";
 
 import { useAuth } from "../providers/AuthProvider";
 import { useLocation, Link } from "react-router-dom";
+import { TouchAppSharp, Tour } from "@mui/icons-material";
 
 type sidebarMenuOption = { text: string; icon?: ReactNode; path: string };
 
@@ -49,26 +54,26 @@ const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
   useEffect(() => {
     if (showAdminBoard) {
       setMenuItems([
-        { text: "Dashboard", icon: <DashboardIcon />, path: "/" },
-        { text: "Profile", icon: <PersonIcon />, path: "/profile" },
+        {text: "Dashboard", icon: <DashboardIcon />, path: "/Admin_dashboard" },
+        {text: "Add Tour", icon:<TourIcon/>, path: "/Admin_AddTour" },
+        {text: "Tour Templates", icon:<Tour/>, path: "/Admin_TourTemplates" },
       ]);
     }
     if (showSuperAdminBoard) {
       setMenuItems([
-        { text: "Dashboard", icon: <DashboardIcon />, path: "/" },
-        // { text: "Profile", icon: <PersonIcon />, path: "/profile" },
+        { text: "Dashboard", icon: <DashboardIcon />, path: "/Admin_dashboard" },
       ]);
     }
   }, [showAdminBoard, showSuperAdminBoard]);
 
   if (!user || showDriverBoard) return null;
   return (
-    <Box
-      display="flex"
-      height={"100%"}
-      borderRight={"1px solid"}
-      borderColor={"grey.300"}
-    >
+      <Box
+        display="flex"
+        height={"100%"}
+        borderRight={"1px solid"}
+        borderColor={"grey.300"}
+      >
       <Box
         sx={{
           display: "flex",
@@ -106,9 +111,9 @@ const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
                   whiteSpace: "normal",
                 }}
               >
-                <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" color="text.secondary">
                   {user?.email}
-                </Typography>
+              </Typography>
               </Box>
             </Stack>
           )}

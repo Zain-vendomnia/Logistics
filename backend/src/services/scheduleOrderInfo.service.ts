@@ -1,7 +1,9 @@
 import axios from "axios";
 import dotenv from "dotenv";
-import  connect  from "../database"; // Use the global connection variable
+import pool from "../database";
 import { RowDataPacket } from "mysql2/promise"; // Ensure it's from `mysql2/promise`
+
+import { GeocodingService } from "./geocodingService";
 
 dotenv.config();
 
@@ -9,11 +11,12 @@ const API_URL = process.env.API_URL!;
 const AUTH_CREDENTIALS = Buffer.from(
   `${process.env.API_USERNAME}:${process.env.API_PASSWORD}`
 ).toString("base64");
+
 export const fetchOrders = async (lastOrderNumber: string, type: string) => {
   console.log(`Fetching orders from API with lastOrderNumber: ${lastOrderNumber} and type: ${type}`);
 
   try {
-    const conn = await connect();
+   
     const params = { lastOrderNumber, type };
 
     // Fetch orders from API
@@ -32,7 +35,7 @@ export const fetchOrders = async (lastOrderNumber: string, type: string) => {
     console.log(`Received ${orders.length} orders. Checking for duplicates...`);
 
     // Fetch existing order numbers in a single query
-    const [existingOrders] = await conn.query<RowDataPacket[]>(`SELECT order_number FROM logistic_order`);
+    const [existingOrders] = await pool.query<RowDataPacket[]>(`SELECT order_number FROM logistic_order`);
     const existingOrderNumbers = new Set(existingOrders.map(order => order.order_number));
 
     console.log(`Found ${existingOrderNumbers.size} existing orders in the database.`);
@@ -69,12 +72,39 @@ export const fetchOrders = async (lastOrderNumber: string, type: string) => {
       VALUES ?
     `;
 
-    await conn.query(query, [insertData]);
+    await pool.query(query, [insertData]);
     console.log("✅ New orders inserted successfully!");
     
+    const [ordersWithMissingCoords] = await pool.execute<RowDataPacket[]>(
+      'SELECT order_id, street, city, zipcode FROM logistic_order WHERE lattitude IS NULL OR longitude IS NULL'
+    );
+    for (const order of ordersWithMissingCoords) {
+      await checkAndUpdateLatLng(order.order_id, order.street, order.city, order.zipcode);
+    }
     return { message: "New orders inserted successfully.", insertedOrders: newOrders.length };
   } catch (error) {
     console.error("❌ Error fetching orders from API:", error);
     throw new Error("Failed to fetch order data");
   }
+  
 };
+
+const checkAndUpdateLatLng = async (_order_id: any, _street: any, _city: any, _zipcode: any) => {
+  
+    try {
+      // Call the GeocodingService to update lat/lng based on the address
+      const serviceData = await GeocodingService.geocodeOrderUpdatedCustomer(_order_id, _street, _city, _zipcode);
+      
+      // After getting lat/lng, update the database
+      if (serviceData) {        
+            
+          console.log(`Successfully updated lat/lng for order ID `);
+        } else {
+          console.warn(`Failed to update lat/lng for order ID `);
+        }
+      
+    } catch (error) {
+      console.error(`Error while updating lat/lng for order ID :`, error);
+    }
+ 
+}; 

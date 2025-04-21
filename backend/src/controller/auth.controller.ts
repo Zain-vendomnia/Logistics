@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import connect from "../database";
+import pool from "../database";
 import { RowDataPacket } from "mysql2";
 import { User } from "../interface/interface";
 import bcrypt from "bcryptjs";
@@ -9,10 +9,10 @@ import config from "../config";
 export async function signup(req: Request, res: Response) {
   try {
     const { body } = req;
-    const conn = await connect();
+   
 
     // Check if the username already exists
-    const [t] = await conn.query<RowDataPacket[]>(
+    const [t] = await pool.query<RowDataPacket[]>(
       "SELECT * FROM users WHERE username = ? ",
       [body.username]
     );
@@ -37,7 +37,7 @@ export async function signup(req: Request, res: Response) {
     };
 
     // Insert new user into the database
-    const [result] = await conn.query<any>("INSERT INTO users SET ?", [newUser]);
+    const [result] = await pool.query<any>("INSERT INTO users SET ?", [newUser]);
 
     // Generate JWT token with the user role
     const token = jwt.sign({ user_id: result.insertId, role: role }, config.SECRET, {
@@ -61,9 +61,9 @@ export async function signup(req: Request, res: Response) {
 
 export async function login(req: Request, res: Response) {
   const { body } = req;
-  const conn = await connect();
+ 
 
-  const [user] = await conn.query<RowDataPacket[]>(
+  const [user] = await pool.query<RowDataPacket[]>(
     "SELECT * FROM users WHERE username = ?",
     [body.username]
   );

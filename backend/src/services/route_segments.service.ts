@@ -1,4 +1,4 @@
-import connect from "../database";
+import pool from "../database";
 
 // Insert route segment data into DB
 export const insertRouteSegment = async (data: {
@@ -18,8 +18,8 @@ export const insertRouteSegment = async (data: {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-    const conn = await connect();
-    const [result] = await conn.query(query, [
+   
+    const [result] = await pool.query(query, [
       data.tour_id,
       data.order_id,
       data.start_latitude ?? null,

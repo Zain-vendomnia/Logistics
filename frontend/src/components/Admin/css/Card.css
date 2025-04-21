@@ -9,8 +9,12 @@
     margin: 15px;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     position: relative;
+    background: linear-gradient(45deg, rgb(161 161 161), rgba(0, 0, 0, 0.12));
+    width:97% !important;
   }
-  
+  .css-14ay05g-MuiPaper-root-MuiTableContainer-root{
+    background-color: #c7c6c6 !important;
+  }
   .card:hover {
     transform: translateY(-5px);
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);

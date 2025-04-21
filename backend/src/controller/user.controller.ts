@@ -1,13 +1,13 @@
 import { Request, Response } from "express";
-import connect from "../database";
+import pool from "../database";
 import { RowDataPacket } from "mysql2";
 import jwt from "jsonwebtoken";
 
 export async function getAllUsers(_req: Request, res: Response) {
     try {
-      const conn = await connect();
+     
       // Fetch all users from the database
-      const [users] = await conn.query<RowDataPacket[]>("SELECT user_id, username, email, role FROM users");
+      const [users] = await pool.query<RowDataPacket[]>("SELECT user_id, username, email, role FROM users");
       if (users.length === 0) {
         return res.status(404).json({ message: "No users found" });
       }
@@ -31,8 +31,8 @@ export async function getUserDetails(req: Request, res: Response) {
         const tokenData = (await jwt.decode(bearerToken)) as jwt.JwtPayload;
   
         // Fetch user details from the database using the user_id from the token
-        const conn = await connect();
-        const [user] = await conn.query<RowDataPacket[]>(
+    
+        const [user] = await pool.query<RowDataPacket[]>(
           "SELECT username, email FROM users WHERE user_id = ?",
           [tokenData?.user_id]
         );

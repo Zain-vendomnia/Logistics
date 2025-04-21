@@ -1,7 +1,7 @@
 /* src/components/Admin_dashboard.css */
 
 .dashboard {
-    display: flex;
+   
     flex-direction: column;
     align-items: center;
     padding: 20px;
@@ -19,19 +19,39 @@
     flex-wrap: wrap;
     justify-content: space-evenly; /* Align cards evenly */
     gap: 20px;  /* Space between the cards */
-    max-width: 1200px; /* Max width for the container */
+  /*   max-width: 1200px;  */
     width: 100%;
     margin-top: 20px;
   }
   
   .card-container .card {
-    flex: 1 1 30%;  /* Flex basis for cards, takes 30% width of the container */
-    max-width: 350px;  /* Prevent cards from growing too large */
-    min-width: 250px;  /* Prevent cards from shrinking too small */
+    flex: 1 1 20%;  
+   /*  max-width: 350px;  */
+    min-width: 250px;  
   }
   
   .card-container .card:hover {
     transform: scale(1.05);  /* Optional: Hover effect */
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);  /* Optional: Hover shadow */
   }
-  
+  .css-g4t5el{
+    float: right;
+  }
+  .css-1hvk7z4-MuiInputBase-root-MuiOutlinedInput-root{
+    height:57px;
+  }
+  .css-13meb6w-MuiInputBase-input-MuiOutlinedInput-input{
+    height: 40px !important;
+  }
+  .css-19kzrtu {
+    background: linear-gradient(45deg,rgb(241, 233, 231), #2a9d8f); /* Gradient with two colors */
+    background-color: rgb(219, 219, 219); /* Fallback background */
+    border-radius: 20px; /* Equal border-radius for all corners */
+    margin: 10px !important;
+  }
+  .css-1a7iywq-MuiTableHead-root{
+    background: linear-gradient(45deg, rgb(118 118 118), #4f9d93);
+  }
+  .css-ifh4tf-MuiPaper-root-MuiAppBar-root{
+    background-color: #ed9e3f !important;
+  }

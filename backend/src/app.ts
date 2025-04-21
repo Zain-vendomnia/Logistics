@@ -16,6 +16,10 @@ import { addData } from "./controller/customer/route_segments.controller";
 import { GeocodingController } from "./controller/Admin_RouteOptimzation/geocodingController";
 import { optimizeRouteController } from "./controller/Admin_RouteOptimzation/optimizeRouteController";
 import { updatelatlngController } from "./controller/Admin_RouteOptimzation/updatelatlngController";
+import {  getAllLogisticOrders, getcountcheck } from './controller/Admin_RouteOptimzation/order.controller';
+import { createTourController, getTourcountcheck } from './controller/Admin_RouteOptimzation/tourController';
+import { getAllTourController } from "./controller/Admin_RouteOptimzation/getAllTourController";
+
 
 const app = express();
 app.use(cors());
@@ -35,11 +39,14 @@ app.use("/api/auth", authRouter);
 app.use("/api", userRouter);  
 app.use("/api/test", userRouter);  
 app.use('/api/admin/geocode', GeocodingController.getLatLng);
-app.use('/api/admin/route/optimize', optimizeRouteController);
+app.use('/api/admin/route/routeoptimize/optimize', optimizeRouteController);
 app.use('/api/admin/customer/updatelatlng', updatelatlngController);
+app.use('/api/admin/routeoptimize/orders', getAllLogisticOrders);
+app.use('/api/admin/routeoptimize/ordercount', getcountcheck);
+app.use('/api/admin/routeoptimize/createtour', createTourController);
+app.use('/api/admin/routeoptimize/getAlltours', getAllTourController);
+app.use('/api/admin/routeoptimize/tourcount', getTourcountcheck);
 
-
-// Directly link the controller (no router file)
 app.get("/api/admin/orderinfo", orderInfoController);
 app.get("/api/admin/scheduleOrderInfo", scheduleOrderInfoController);
 // Routes
@@ -53,9 +60,6 @@ app.use((req, res) => {
   });
 });
 
-
-// You can now use the fetchScheduleOrderInfo function in this file
 fetchScheduleOrderInfo();
-
 
 export default app;
