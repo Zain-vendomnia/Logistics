@@ -11,11 +11,8 @@ import {
   CircularProgress,
   Container,
   keyframes,
-  alpha,
 } from "@mui/material";
 import { grey } from "@mui/material/colors";
-import MyLocationIcon from "@mui/icons-material/MyLocation";
-import PinDropIcon from "@mui/icons-material/PinDrop";
 import CallIcon from "@mui/icons-material/Call";
 import CommentIcon from "@mui/icons-material/Comment";
 import CloseIcon from "@mui/icons-material/Close";
@@ -23,13 +20,12 @@ import CloseIcon from "@mui/icons-material/Close";
 import { TripData } from "../../services/trip_Service";
 import useStyles from "./Shipping_Details_styles";
 import { useSnackbar } from "../../providers/SnackbarProvider";
-import PostTripChecks from "./PostTripChecks";
 import { useDeliveryStore } from "../../store/useDeliveryStore";
 import { DeliveryScenario } from "../common/delieryScenarios";
 
 const blinkOverlay = keyframes`
   0% { opacity: 0.5; transform: scale(1); }
-  50% { opacity: 0.2; transform: scale(1.2); }
+  50% { opacity: 0.7; transform: scale(1.06); }
   100% { opacity: 0.5; transform: scale(1); }
 `;
 
@@ -51,6 +47,7 @@ const ShippingDetails = ({
   onReachedToDestination,
 }: Props) => {
   const styles = useStyles();
+
   const { showSnackbar } = useSnackbar();
 
   const quickMessages = [
@@ -71,7 +68,7 @@ const ShippingDetails = ({
   const [isBlinking, setIsBlinking] = useState(true);
 
   const handleIconClick = (action: () => void) => {
-    setIsBlinking(false); // Stop blinking when any button is clicked
+    setIsBlinking(false);
     action();
   };
 
@@ -237,7 +234,7 @@ const ShippingDetails = ({
                       handleIconClick(() => setShowMessageBox(!showMessageBox))
                     }
                     color="primary"
-                    className={styles.iconBlinks}
+                    className={isBlinking ? styles.iconBlinks : undefined}
                     sx={{
                       animation: isBlinking
                         ? `${blinkOverlay} 1.5s infinite`
@@ -250,7 +247,7 @@ const ShippingDetails = ({
                   <IconButton
                     onClick={() => handleIconClick(() => {})}
                     color="primary"
-                    className={styles.iconBlinks}
+                    className={isBlinking ? styles.iconBlinks : undefined}
                     sx={{
                       animation: isBlinking
                         ? `${blinkOverlay} 1.5s infinite`
@@ -366,16 +363,6 @@ const ShippingDetails = ({
           </Stack>
         )}
       </Box>
-      {/* {!showOrderReached ? (
-        
-      ) : (
-        <PostTripChecks
-          isReachedToDestination={(isReached) => {
-            setShowOrderReached(isReached);
-            onMarkedComplete?.(isReached);
-          }}
-        />
-      )} */}
     </Stack>
   );
 };
