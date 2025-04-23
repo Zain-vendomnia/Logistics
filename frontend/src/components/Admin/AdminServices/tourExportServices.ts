@@ -82,7 +82,6 @@ export const exportTours = async (tourIds: string[]) => {
         // Clean up
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
-
         return tours;
     } catch (error) {
         console.error('Error exporting tours:', error);
