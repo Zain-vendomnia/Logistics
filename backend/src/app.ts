@@ -17,7 +17,7 @@ import { GeocodingController } from "./controller/Admin_RouteOptimzation/geocodi
 import { optimizeRouteController } from "./controller/Admin_RouteOptimzation/optimizeRouteController";
 import { updatelatlngController } from "./controller/Admin_RouteOptimzation/updatelatlngController";
 import {  getAllLogisticOrders, getcountcheck } from './controller/Admin_RouteOptimzation/order.controller';
-import { createTourController, getTourcountcheck } from './controller/Admin_RouteOptimzation/tourController';
+import { createTourController, getgraphhopperRoute, getTourcountcheck } from './controller/Admin_RouteOptimzation/tourController';
 import { getAllTourController } from "./controller/Admin_RouteOptimzation/getAllTourController";
 
 
@@ -46,6 +46,7 @@ app.use('/api/admin/routeoptimize/ordercount', getcountcheck);
 app.use('/api/admin/routeoptimize/createtour', createTourController);
 app.use('/api/admin/routeoptimize/getAlltours', getAllTourController);
 app.use('/api/admin/routeoptimize/tourcount', getTourcountcheck);
+app.use('/api/admin/routeoptimize/getGraphhopperRoute', getgraphhopperRoute);
 
 app.get("/api/admin/orderinfo", orderInfoController);
 app.get("/api/admin/scheduleOrderInfo", scheduleOrderInfoController);

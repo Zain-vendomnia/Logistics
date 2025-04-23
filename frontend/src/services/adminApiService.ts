@@ -29,6 +29,10 @@ const createTour = (tourData: any) => {
   return axios.post(API_BaseUrl + "createtour", tourData, { headers: authHeader(), });
 };
 
+const getRouteResponse = (tour_id: number) => {
+  return axios.post(API_BaseUrl + "getGraphhopperRoute", { tour_id }, { headers: authHeader() });
+};
+
 /* const createtour = (params: { routeId: number }) => {
   return axios.get(API_BaseUrl + "details", { headers: authHeader(), params });
 }; */
@@ -40,4 +44,5 @@ export default {
   fetchOrderCount,
   fetchAllOrders,
   createTour,
+  getRouteResponse,
 };

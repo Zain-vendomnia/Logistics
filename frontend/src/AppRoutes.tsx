@@ -69,7 +69,7 @@ const AppRoutes = () => {
       <Route path = "/admin_addtour" element={<AdminAddTour/>}/>
       <Route path = "/admin_tourtemplates" element={<Admin_TourTemplates/>}/>
       <Route path = "/admin_mapComponent/:id"  element = {<Admin_MapComponent/>}/>
-      <Route path = "/Admin_TourMapView/:id" element = {<Admin_TourMapView/>}/>
+      <Route path = "/Admin_TourMapView/:tour_id" element = {<Admin_TourMapView/>}/>
     </Routes>
 
 

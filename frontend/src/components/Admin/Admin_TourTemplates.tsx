@@ -29,16 +29,15 @@ export const Admin_TourTemplates = () => {
         const fetchTours = async () => {
             try {
                 const instance = latestOrderServices.getInstance();
-                const tourData = await instance.getTours(); // ✅ correct async call
-
-                // Map TourInfo[] to UI-friendly Tour[]
+                const tourData = await instance.getTours(); 
+              
                 const mappedTours: Tour[] = tourData.map((tour: TourInfo) => ({
                     id: tour.id.toString(),
                     tour_name: tour.tour_name,
                     date: new Date(tour.tour_date).toLocaleDateString(),
-                    color: tour.tour_route_color, // Change color logic if needed
+                    color: tour.tour_route_color, 
                     amount: tour.orders.length,
-                    timeRange: tour.tour_startTime.slice(0, 5) + ' - ' + tour.tour_endTime.slice(0, 5), // You can calculate dynamically if available
+                    timeRange: tour.tour_startTime.slice(0, 5) + ' - ' + tour.tour_endTime.slice(0, 5), 
                     driver: tour.driver?.driver_name || 'N/A',
 
                 }));

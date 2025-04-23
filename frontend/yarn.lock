@@ -1948,6 +1948,11 @@
   resolved "https://registry.npmjs.org/@react-leaflet/core/-/core-2.1.0.tgz"
   integrity sha512-Qk7Pfu8BSarKGqILj4x7bCSZ1pjuAPZ+qmRwH5S7mDS91VSbVVsJSrW4qA+GPrro8t69gFYVMWb1Zc4yFmPiVg==
 
+"@react-leaflet/core@^3.0.0":
+  version "3.0.0"
+  resolved "https://registry.npmjs.org/@react-leaflet/core/-/core-3.0.0.tgz"
+  integrity sha512-3EWmekh4Nz+pGcr+xjf0KNyYfC3U2JjnkWsh0zcqaexYqmmB5ZhH37kz41JXGmKzpaMZCnPofBBm64i+YrEvGQ==
+
 "@react-spring/animated@~9.7.5":
   version "9.7.5"
   resolved "https://registry.npmjs.org/@react-spring/animated/-/animated-9.7.5.tgz"
@@ -6812,6 +6817,18 @@ language-tags@^1.0.5:
   dependencies:
     language-subtag-registry "~0.3.2"
 
+leaflet-polylinedecorator@^1.6.0:
+  version "1.6.0"
+  resolved "https://registry.npmjs.org/leaflet-polylinedecorator/-/leaflet-polylinedecorator-1.6.0.tgz"
+  integrity sha512-kn3krmZRetgvN0wjhgYL8kvyLS0tUogAl0vtHuXQnwlYNjbl7aLQpkoFUo8UB8gVZoB0dhI4Tb55VdTJAcYzzQ==
+  dependencies:
+    leaflet-rotatedmarker "^0.2.0"
+
+leaflet-rotatedmarker@^0.2.0:
+  version "0.2.0"
+  resolved "https://registry.npmjs.org/leaflet-rotatedmarker/-/leaflet-rotatedmarker-0.2.0.tgz"
+  integrity sha512-yc97gxLXwbZa+Gk9VCcqI0CkvIBC9oNTTjFsHqq4EQvANrvaboib4UdeQLyTnEqDpaXHCqzwwVIDHtvz2mUiDg==
+
 leaflet-routing-machine@^3.2.12:
   version "3.2.12"
   resolved "https://registry.npmjs.org/leaflet-routing-machine/-/leaflet-routing-machine-3.2.12.tgz"
@@ -6820,6 +6837,11 @@ leaflet-routing-machine@^3.2.12:
     "@mapbox/corslite" "0.0.7"
     "@mapbox/polyline" "^0.2.0"
     osrm-text-instructions "^0.13.2"
+
+leaflet.markercluster@^1.5.3:
+  version "1.5.3"
+  resolved "https://registry.npmjs.org/leaflet.markercluster/-/leaflet.markercluster-1.5.3.tgz"
+  integrity sha512-vPTw/Bndq7eQHjLBVlWpnGeLa3t+3zGiuM7fJwCkiMFq+nmRuG3RI3f7f4N4TDX7T4NpbAXpR2+NTRSEGfCSeA==
 
 leaflet@^1.9.4:
   version "1.9.4"
@@ -8375,12 +8397,29 @@ react-is@^19.0.0:
   resolved "https://registry.npmjs.org/react-is/-/react-is-19.0.0.tgz"
   integrity sha512-H91OHcwjZsbq3ClIDHMzBShc1rotbfACdWENsmEf0IFvZ3FgGPtdHMcsv45bQ1hAbgdfiA8SnxTKfDS+x/8m2g==
 
+react-leaflet-markercluster@^5.0.0-rc.0:
+  version "5.0.0-rc.0"
+  resolved "https://registry.npmjs.org/react-leaflet-markercluster/-/react-leaflet-markercluster-5.0.0-rc.0.tgz"
+  integrity sha512-jWa4bPD5LfLV3Lid1RWgl+yKUuQtnqeYtJzzLb/fiRjvX+rtwzY8pMoUFuygqyxNrWxMTQlWKBHxkpI7Sxvu4Q==
+  dependencies:
+    "@react-leaflet/core" "^3.0.0"
+    leaflet "^1.9.4"
+    leaflet.markercluster "^1.5.3"
+    react-leaflet "^5.0.0"
+
 react-leaflet@^4.2.1:
   version "4.2.1"
   resolved "https://registry.npmjs.org/react-leaflet/-/react-leaflet-4.2.1.tgz"
   integrity sha512-p9chkvhcKrWn/H/1FFeVSqLdReGwn2qmiobOQGO3BifX+/vV/39qhY8dGqbdcPh1e6jxh/QHriLXr7a4eLFK4Q==
   dependencies:
     "@react-leaflet/core" "^2.1.0"
+
+react-leaflet@^5.0.0:
+  version "5.0.0"
+  resolved "https://registry.npmjs.org/react-leaflet/-/react-leaflet-5.0.0.tgz"
+  integrity sha512-CWbTpr5vcHw5bt9i4zSlPEVQdTVcML390TjeDG0cK59z1ylexpqC6M1PJFjV8jD7CF+ACBFsLIDs6DRMoLEofw==
+  dependencies:
+    "@react-leaflet/core" "^3.0.0"
 
 react-refresh@^0.11.0:
   version "0.11.0"

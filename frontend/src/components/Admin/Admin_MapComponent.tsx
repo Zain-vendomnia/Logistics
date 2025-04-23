@@ -73,7 +73,6 @@ const RouteMap = () => {
 
   return (
     <div>
-      
       <MapContainer
         center={[51.19156615, 10.00519040096668]} // Default center point for map (start location)
         zoom={10}

@@ -63,4 +63,16 @@ export class LogisticOrder  {
     const [rows] = await pool.execute('SELECT * FROM `logistic_order` WHERE `lattitude` IS NULL AND `longitude` IS NULL');  
     return rows as LogisticOrder[];
   }
+
+  static async getOrdersByIds(orderIds: number[]): Promise<LogisticOrder[]> {
+    if (orderIds.length === 0) return [];
+  
+    const placeholders = orderIds.map(() => '?').join(', ');
+    const [rows] = await pool.execute(
+      `SELECT * FROM logistic_order WHERE order_id IN (${placeholders})`,
+      orderIds
+    );
+  
+    return rows as LogisticOrder[];
+  }
 }
