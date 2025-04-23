@@ -12,7 +12,7 @@ export const getPublicContent = () => {
 }; 
 
 export const getDriverBoard = () => {
-  return Promise.resolve({data: 'success'}); //axios.get(API_URL + "driver", { headers: authHeader() });
+  return Promise.resolve({data: 'success'}); 
 };
 
 export const getAdminBoard = () => {

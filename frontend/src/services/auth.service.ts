@@ -18,7 +18,6 @@ export const login = (username: string, password: string) => {
     })
     .then((response) => {
       if (response.data.accessToken) {
-       
         localStorage.setItem("user", JSON.stringify(response.data));
       }
 
@@ -27,6 +26,7 @@ export const login = (username: string, password: string) => {
 };
 
 export const logout = () => {
+  // Server call to end User session > Pending
   localStorage.removeItem("user");
 };
 

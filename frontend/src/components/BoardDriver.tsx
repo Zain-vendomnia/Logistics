@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useRoutes, useNavigate } from "react-router-dom";
-import Sidebar from "./driver/Sidebar";
+import Sidebar from "./driver/driver_Dashboard";
 import WarehouseIcon from "@mui/icons-material/Warehouse";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import { getDriverBoard } from "../services/user.service";
 import EventBus from "../common/EventBus";
-import OrderShipping from "./driver/OrderShipping";
-import Dashboard from "./driver/Dashboard";
+
+import Dashboard from "./driver/driver_Dashboard";
 import {
   Button,
   Card,
@@ -16,7 +16,6 @@ import {
   Typography,
 } from "@mui/material";
 
-// const Dashboard = () => <div>Dashboard Content</div>;
 const WarehouseCheckIn = () => <div>Warehouse Check-in Content</div>;
 
 const BoardDriver: React.FC = () => {
@@ -66,8 +65,7 @@ const BoardDriver: React.FC = () => {
         return <Dashboard />;
       case "/warehouse-checkin":
         return <WarehouseCheckIn />;
-      case "/order-shipping":
-        return <OrderShipping />;
+     
       default:
         return <Dashboard />;
     }
@@ -75,8 +73,8 @@ const BoardDriver: React.FC = () => {
 
   const routes = useRoutes([
     { path: "/dashboard", element: <Dashboard /> },
-    { path: "/warehouse-checkin", element: <WarehouseCheckIn /> },
-    { path: "/order-shipping", element: <OrderShipping /> },
+    { path: "/warehouse-checkin", element: <WarehouseCheckIn /> }
+   
   ]);
   const handleMenuItemClick = (path: string) => {
     navigate(path);
@@ -86,7 +84,7 @@ const BoardDriver: React.FC = () => {
 
     <>
       <div style={{ display: "flex", height: "100vh" }}>
-        <Sidebar menuItems={menuItems} onMenuItemClick={setSelectedPath} />
+      {/*   <Sidebar menuItems={menuItems} onMenuItemClick={setSelectedPath} /> */}
         <Card>
           <CardContent>
             <Typography>
@@ -95,8 +93,7 @@ const BoardDriver: React.FC = () => {
           </CardContent>
         </Card>
         
-            <div style={{ flexGrow: 1, padding: "0 0 0 20px" }}>
-          
+          <div style={{ flexGrow: 1, padding: "0 0 0 20px" }}>
           <div className="d-flex justify-content-space" style={{ height: "20vh" }}>
           <Card>
             <CardContent>

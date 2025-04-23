@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Formik, Field, Form, ErrorMessage } from "formik";
 import * as Yup from "yup";
 
-import IUser from "../types/user.type";
+import IUser, { UserRole } from "../types/user.type";
 import { register } from "../services/auth.service";
 
 const Register: React.FC = () => {
@@ -13,7 +13,7 @@ const Register: React.FC = () => {
     username: "",
     email: "",
     password: "",
-    role:"",
+    role: UserRole.DRIVER,
   };
 
   const validationSchema = Yup.object().shape({
@@ -22,9 +22,7 @@ const Register: React.FC = () => {
         "len",
         "The username must be between 3 and 20 characters.",
         (val: any) =>
-          val &&
-          val.toString().length >= 3 &&
-          val.toString().length <= 20
+          val && val.toString().length >= 3 && val.toString().length <= 20
       )
       .required("This field is required!"),
     email: Yup.string()
@@ -35,9 +33,7 @@ const Register: React.FC = () => {
         "len",
         "The password must be between 6 and 40 characters.",
         (val: any) =>
-          val &&
-          val.toString().length >= 6 &&
-          val.toString().length <= 40
+          val && val.toString().length >= 6 && val.toString().length <= 40
       )
       .required("This field is required!"),
   });
@@ -115,7 +111,9 @@ const Register: React.FC = () => {
                 </div>
 
                 <div className="form-group">
-                  <button type="submit" className="btn btn-primary btn-block">Sign Up</button>
+                  <button type="submit" className="btn btn-primary btn-block">
+                    Sign Up
+                  </button>
                 </div>
               </div>
             )}

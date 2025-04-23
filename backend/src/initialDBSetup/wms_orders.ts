@@ -1,9 +1,9 @@
-import connect from "../database";
+import pool from "../database";
 import { RowDataPacket } from "mysql2";
 import { WMS_ORDER } from "../services/tableQueries";
 
 const WMSOrderSetup = async () => {
-  const conn = await connect();
+  const conn = await pool.getConnection();
   try {
     console.log("Checking if 'WMS ORDER' table exists...");
 
@@ -22,7 +22,7 @@ const WMSOrderSetup = async () => {
   } catch (error) {
     console.error("Error during table setup:", error instanceof Error ? error.message : String(error));
   } finally {
-    await conn.end(); // Ensure proper closure of the connection
+    conn.release(); // Ensure proper closure of the connection
   }
 };
 

@@ -30,6 +30,7 @@ async function main() {
     await routeUpdatesSetup();
     await apiResponseLogSetup();
 
+    
     app.listen(app.get("port"), async () => {
       // Now fetch and insert order data only after tables exist
       try {

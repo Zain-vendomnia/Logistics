@@ -1,13 +1,13 @@
 import axios from "axios";
-import connect from "./database";
+import pool from "./database";
 import { RowDataPacket } from "mysql2";
 import { ONE_TIME_ORDERINFO_URL } from "./services/apiUrl";
 
 export async function syncOrderData() {
-  const conn = await connect();
+  const conn = await pool.getConnection();
+
   try {
     console.log("Fetching order data from API...");
-
     const response = await axios.get(ONE_TIME_ORDERINFO_URL);
     const ordersData = response.data.data || [];
 
@@ -17,10 +17,7 @@ export async function syncOrderData() {
     }
 
     console.log(`Received ${ordersData.length} order records. Processing...`);
-    
-  
 
-    // Group by orderID and collect OrderDetails
     const ordersMap = new Map<string, any>();
     for (const item of ordersData) {
       if (!ordersMap.has(item.orderID)) {
@@ -46,23 +43,21 @@ export async function syncOrderData() {
         });
       }
 
-      item.OrderDetails.forEach((detail: any) => {
-        console.log("Detail:", detail);
-        ordersMap.get(item.orderID).OrderDetails.push({
-          slmdl_article_id: detail.slmdl_article_id,
-          slmdl_articleordernumber: detail.slmdl_articleordernumber,
-          slmdl_quantity: detail.slmdl_quantity,
-          warehouse_id: detail.warehouse_id
+      if (item.OrderDetails && Array.isArray(item.OrderDetails)) {
+        item.OrderDetails.forEach((detail: any) => {
+          ordersMap.get(item.orderID).OrderDetails.push({
+            slmdl_article_id: detail.slmdl_article_id,
+            slmdl_articleordernumber: detail.slmdl_articleordernumber,
+            slmdl_quantity: detail.slmdl_quantity,
+            warehouse_id: detail.warehouse_id
+          });
         });
-      });
-
-
+      }
     }
 
     const orders = Array.from(ordersMap.values());
     console.log(`Found ${orders.length} unique orders after grouping.`);
 
-    // Check existing orders to avoid duplicates
     const [existingOrders] = await conn.query<RowDataPacket[]>(
       "SELECT order_number FROM logistic_order"
     );
@@ -76,32 +71,38 @@ export async function syncOrderData() {
 
     console.log(`Inserting ${newOrders.length} new orders...`);
 
-    await conn.query("SET autocommit = 0");
     await conn.query("START TRANSACTION");
 
     try {
       for (const order of newOrders) {
+        if (!order.OrderDetails || order.OrderDetails.length === 0) {
+          console.warn(`Skipping order ${order.ordernumber} due to missing OrderDetails.`);
+          continue;
+        }
+
+        const warehouse_id = order.OrderDetails[0].warehouse_id ?? 0;
+
         const orderDate = new Date(order.ordertime);
         orderDate.setDate(orderDate.getDate() + 14);
         const expectedDeliveryTime = orderDate.toISOString().slice(0, 19).replace("T", " ");
 
-        // Insert main order
         const [result] = await conn.query(
           `INSERT INTO logistic_order (
-            order_number, customer_id, invoice_amount, payment_id, order_time,
+            order_number, customer_id, invoice_amount, payment_id, warehouse_id, order_time,
             expected_delivery_time, customer_number, firstname, lastname,
             email, street, zipcode, city, phone
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             order.ordernumber,
             order.user_id,
             order.invoice_amount,
             order.paymentID,
+            warehouse_id,
             order.ordertime,
             expectedDeliveryTime,
             order.customernumber,
-            order.user_firstname,
-            order.user_lastname,
+            order.shipping_firstname || order.user_firstname,
+            order.shipping_lastname || order.user_lastname,
             order.user_email,
             order.shipping_street,
             order.shipping_zipcode,
@@ -112,26 +113,21 @@ export async function syncOrderData() {
 
         const orderId = (result as any).insertId;
 
-        // Insert order items
-        if (order.OrderDetails && order.OrderDetails.length > 0) {
-          for (const item of order.OrderDetails) {
-            console.log("Inserting item:", item);
-
-            await conn.query(
-              `INSERT INTO logistic_order_items (
-                order_id, order_number, slmdl_article_id,
-                slmdl_articleordernumber, quantity, warehouse_id
-              ) VALUES (?, ?, ?, ?, ?, ?)`,
-              [
-                orderId,
-                order.ordernumber,
-                item.slmdl_article_id,
-                item.slmdl_articleordernumber,
-                item.slmdl_quantity,
-                item.warehouse_id
-              ]
-            );
-          }
+        for (const item of order.OrderDetails) {
+          await conn.query(
+            `INSERT INTO logistic_order_items (
+              order_id, order_number, slmdl_article_id,
+              slmdl_articleordernumber, quantity, warehouse_id
+            ) VALUES (?, ?, ?, ?, ?, ?)`,
+            [
+              orderId,
+              order.ordernumber,
+              item.slmdl_article_id,
+              item.slmdl_articleordernumber,
+              item.slmdl_quantity,
+              item.warehouse_id
+            ]
+          );
         }
 
         console.log(`Inserted order ${order.ordernumber} with ${order.OrderDetails.length} items`);
@@ -143,13 +139,10 @@ export async function syncOrderData() {
       await conn.query("ROLLBACK");
       console.error("❌ Transaction rolled back due to error:", error instanceof Error ? error.message : String(error));
       throw error;
-    } finally {
-      await conn.query("SET autocommit = 1");
     }
-
   } catch (error) {
     console.error("🚨 Error in syncing order data:", error instanceof Error ? error.message : String(error));
   } finally {
-    await conn.end();
+    conn.release();
   }
 }

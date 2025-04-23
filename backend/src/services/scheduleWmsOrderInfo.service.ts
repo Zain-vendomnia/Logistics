@@ -1,6 +1,6 @@
 import axios from "axios";
 import dotenv from "dotenv";
-import connect from "../database";
+import pool from "../database";
 import { RowDataPacket } from "mysql2/promise";
 
 dotenv.config();
@@ -12,7 +12,7 @@ const AUTH_CREDENTIALS = Buffer.from(
 
 export const fetchWmsOrder = async (from: string, to: string) => {
   try {
-    const conn = await connect();
+    const conn = await pool.getConnection();
     const params = { from, to }; // ✅ change keys here
 
     const requestUrl = `${WMS_API_URL}?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;

@@ -17,6 +17,11 @@ import { uploadImageController } from "./controller/Admin_Api/uploadImage.contro
 
 import { GeocodingController } from "./controller/Admin_RouteOptimzation/geocodingController";
 import { optimizeRouteController } from "./controller/Admin_RouteOptimzation/optimizeRouteController";
+import { updatelatlngController } from "./controller/Admin_RouteOptimzation/updatelatlngController";
+import {  getAllLogisticOrders, getcountcheck } from './controller/Admin_RouteOptimzation/order.controller';
+import { createTourController, getTourcountcheck, deleteTourController, ExportTourController } from './controller/Admin_RouteOptimzation/tourController';
+import { getAllTourController } from "./controller/Admin_RouteOptimzation/getAllTourController";
+
 
 // import { getImageById } from "./controller/Admin_Api/route_segments.controller";
 
@@ -44,14 +49,22 @@ app.use("/api/test", authRouter);
 // app.use("/api", userRouter);  
 // app.use("/api/test", userRouter);  
 app.use('/api/admin/geocode', GeocodingController.getLatLng);
-app.use('/api/admin/route/optimize', optimizeRouteController);
+app.use('/api/admin/route/routeoptimize/optimize', optimizeRouteController);
+app.use('/api/admin/customer/updatelatlng', updatelatlngController);
+app.use('/api/admin/routeoptimize/orders', getAllLogisticOrders);
+app.use('/api/admin/routeoptimize/ordercount', getcountcheck);
+app.use('/api/admin/routeoptimize/createtour', createTourController);
+app.use('/api/admin/routeoptimize/getAlltours', getAllTourController);
+app.use('/api/admin/routeoptimize/tourcount', getTourcountcheck);
+// --------------------------------------------------------------------
+app.use('/api/admin/routeoptimize/deleteTours', deleteTourController);
+app.use('/api/admin/routeoptimize/exportTours', ExportTourController);
 
-// Directly link the controller (no router file)
+// --------------------------------------------------------------------
 app.get("/api/admin/orderinfo", orderInfoController);
 app.get("/api/admin/scheduleOrderInfo", scheduleOrderInfoController);
 app.get("/api/admin/scheduleWmsOrderInfo", scheduleWmsOrderController);
 
-// --------------------------------------------------------------------
 
 app.post("/upload_image", uploadImageController);
 
@@ -59,7 +72,6 @@ app.post("/upload_image", uploadImageController);
 
 // app.get("/route_segments/:id/image", getImageById);
 
-// --------------------------------------------------------------------
 // Catch-all 404 Handler (keep this LAST)
 app.use((req, res) => {
   res.status(404).json({
@@ -68,10 +80,7 @@ app.use((req, res) => {
   });
 });
 
-
-// You can now use the fetchScheduleOrderInfo function in this file
 fetchScheduleOrderInfo();
 fetchScheduleWmsOrderInfo();
-
 
 export default app;

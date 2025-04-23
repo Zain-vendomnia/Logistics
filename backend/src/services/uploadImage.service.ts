@@ -1,6 +1,6 @@
 // services/uploadImage.service.ts
 
-import connect from "../database";
+import pool from "../database";
 import { ImageFor } from "../enums";
 
 export const insertOrUpdateImageByType = async (
@@ -8,7 +8,7 @@ export const insertOrUpdateImageByType = async (
   imageBuffer: Buffer,
   referenceId?: string // now optional
 ) => {
-  const conn = await connect();
+  const conn = await pool.getConnection();
   let query = "";
   let params: any[] = [];
 

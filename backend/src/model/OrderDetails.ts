@@ -1,4 +1,4 @@
-import connect from '../database';
+import pool from '../database';
 
 export class OrderDetails {
   public id!: number;
@@ -11,8 +11,13 @@ export class OrderDetails {
 
   // Method to get all orders (specifically addresses) from the database
   static async getAllOrders(): Promise<OrderDetails[]> {
-    const connection = await connect(); // Get a connection from the pool
-    const [rows] = await connection.execute('SELECT * FROM  `orderdata`');  
+    const [rows] = await pool.execute('SELECT * FROM  `orderdata`');  
     return rows as OrderDetails[];
   }
+
+  static async getAllcustomerAddress(): Promise<OrderDetails[]> {
+    const [rows] = await pool.execute('SELECT * FROM  `orderdetails`');  
+    return rows as OrderDetails[];
+  }
+
 }

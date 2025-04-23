@@ -1,5 +1,7 @@
 import axios from 'axios';
 import { OrderDetails } from '../model/OrderDetails';
+import { LogisticOrder } from '../model/LogisticOrders';
+import pool from '../database';
 
 interface GeocodingResponse {
   hits: Array<{
@@ -15,12 +17,9 @@ export class GeocodingService {
   private static GRAPH_HOPPER_API_KEY='10fd4ad9-4793-402d-acdc-a22bc9693b85'; 
 
   private static BASE_URL = 'https://graphhopper.com/api/1/geocode';
-
-  
   static async getLatLngFromAddress(address: string): Promise<{ lat: number; lng: number } | null> {
     try {
      
-
       const response = await axios.get<GeocodingResponse>(this.BASE_URL, {
         params: {
           q: address,
@@ -50,6 +49,9 @@ export class GeocodingService {
    // Geocode all orders (addresses) from the database
    static async geocodeAllOrders(): Promise<{ id: string; type: string; address: { location_id: string; lat: number; lon: number } }[]> {
     const orders = await OrderDetails.getAllOrders();
+
+    
+
     const results: { id: string; type: string; address: { location_id: string; lat: number; lon: number } }[] = [];
 
     // Iterate over the orders and geocode them
@@ -60,13 +62,13 @@ export class GeocodingService {
 
       if (latLng) {
         // Dynamically create the service id (e.g., s1, s2, etc.)
-        const serviceId = `s${index + 1}`; // Dynamic ID starting from s1
+        const serviceId = `s${index + 1}`;
 
         results.push({
-          id: serviceId, // Dynamic ID
-          type: "service", // Static type value
+          id: serviceId, 
+          type: "service",
           address: {
-            location_id: serviceId, // Same as ID
+            location_id: serviceId, 
             lat: latLng.lat,
             lon: latLng.lng,
           }
@@ -76,4 +78,81 @@ export class GeocodingService {
 
     return results;
   }
+
+  static async geocodeOrderUpdatedCustomer(_order_id: any, _street: any, _city: any, _zipcode: any): Promise<{ id: string; type: string; address: { location_id: string; lat: number; lon: number } }[]> {
+    // const orders = await OrderDetails.getAllcustomerAddress();  // Get all orders
+     const orders = await LogisticOrder.getlatlngNullcustomerAddress(); 
+     
+     const results: { id: string; type: string; address: { location_id: string; lat: number; lon: number } }[] = [];
+ 
+     // Iterate over the orders and geocode them
+     for (let index = 0; index < orders.length; index++) {
+       const order = orders[index];
+       const address =order.street +','+ order.city +',' + order.zipcode;
+       const latLng = await this.getLatLngFromAddress(address);  
+ 
+       if (latLng) {
+         try {
+              
+           // Execute the update query to set latitude and longitude in the database
+           const [result] = await pool.execute(
+             'UPDATE `logistic_order` SET `lattitude` = ?, `longitude` = ? WHERE `order_id` = ?',
+             [latLng.lat, latLng.lng, order.order_id] 
+           );
+           // The result is an array, and the first item contains the `affectedRows` property
+           const { affectedRows } = result as { affectedRows: number };  // Type assertion
+           // Check if the row was successfully updated
+           if (affectedRows > 0) {
+             console.log(`Successfully updated order with ID: ${order.order_id}`);
+        
+           } else {
+             console.warn(`No rows updated for order ID: ${order.order_id}`);
+           }
+         } catch (error) {
+           console.error(`Error updating order ID: ${order.order_id}`, error);
+         }
+       }
+     }
+ 
+     return results;
+   }
+ 
+  static async geocodeAllcustomer(): Promise<{ id: string; type: string; address: { location_id: string; lat: number; lon: number } }[]> {
+   // const orders = await OrderDetails.getAllcustomerAddress();  // Get all orders
+    const orders = await LogisticOrder.getAllcustomerAddress(); 
+    
+    const results: { id: string; type: string; address: { location_id: string; lat: number; lon: number } }[] = [];
+
+    // Iterate over the orders and geocode them
+    for (let index = 0; index < orders.length; index++) {
+      const order = orders[index];
+      const address =order.street +','+ order.city +',' + order.zipcode;
+      const latLng = await this.getLatLngFromAddress(address);  
+
+      if (latLng) {
+        try {
+        
+          // Execute the update query to set latitude and longitude in the database
+          const [result] = await pool.execute(
+            'UPDATE `logistic_order` SET `lattitude` = ?, `longitude` = ? WHERE `order_id` = ?',
+            [latLng.lat, latLng.lng, order.order_id] 
+          );
+          // The result is an array, and the first item contains the `affectedRows` property
+          const { affectedRows } = result as { affectedRows: number };  // Type assertion
+          // Check if the row was successfully updated
+          if (affectedRows > 0) {
+            console.log(`Successfully updated order with ID: ${order.order_id}`);
+       
+          } else {
+            console.warn(`No rows updated for order ID: ${order.order_id}`);
+          }
+        } catch (error) {
+          console.error(`Error updating order ID: ${order.order_id}`, error);
+        }
+      }
+    }
+
+    return results;
+  }
+  
 }

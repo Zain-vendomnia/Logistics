@@ -4,7 +4,7 @@ import { optimizeRoute } from '../../services/routeOptimization.service';
 
 export const optimizeRouteController = async (_req: Request, res: Response) => {
   try {
-    // Assuming you already have service data from your GeocodingService
+    //  service data from your GeocodingService
     const serviceData = await GeocodingService.geocodeAllOrders(); // Or your pre-existing service data
     console.log("serviceData" + JSON.stringify(serviceData));
 

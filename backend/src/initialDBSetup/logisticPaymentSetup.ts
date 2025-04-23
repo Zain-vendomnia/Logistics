@@ -1,21 +1,21 @@
-import connect from "../database";
+import pool from "../database";
 import { RowDataPacket } from "mysql2";
 import { LOGIC_PAYMENT_TABLE } from "../services/tableQueries";
 
 const logisticPaymentSetup = async () => {
-  const conn = await connect();
+ 
   try {
     console.log("Checking if 'logistic_payment' table exists...");
     
     // Check if the table already exists
-    const [rows] = await conn.query<RowDataPacket[]>("SHOW TABLES LIKE 'logistic_payment'");
+    const [rows] = await pool.query<RowDataPacket[]>("SHOW TABLES LIKE 'logistic_payment'");
     if (rows.length > 0) {
       console.log("Table 'logistic_payment' already exists.");
     } else {
       console.log("Table not found. Creating 'logistic_payment' table...");
       
       // Execute the query to create the table
-      await conn.query(LOGIC_PAYMENT_TABLE);
+      await pool.query(LOGIC_PAYMENT_TABLE);
       console.log("Table 'logistic_payment' successfully created.");
     }
     
@@ -50,13 +50,11 @@ const logisticPaymentSetup = async () => {
         (26, 'SwagPaymentPayPalUnifiedSepa', 'Lastschrift');
     `;
     
-    await conn.query(insertQuery);
+    await pool.query(insertQuery);
     console.log("Predefined records inserted successfully.");
   } catch (error) {
     console.error("Error during table setup:", error instanceof Error ? error.message : String(error));
-  } finally {
-    conn.end();
-  }
+  } 
 };
 
 export default logisticPaymentSetup;

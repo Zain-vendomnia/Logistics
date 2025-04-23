@@ -1,0 +1,73 @@
+.css-17r6khe-MuiDataGrid-root .MuiDataGrid-container--top [role=row], .css-17r6khe-MuiDataGrid-root .MuiDataGrid-container--bottom [role=row]{
+    background: linear-gradient(45deg, rgb(165 165 165), #528b83) !important;
+}
+.card-children{
+   /*  background: linear-gradient(45deg, rgb(241, 233, 231), #2a9d8f); */
+    background-color: rgb(219, 219, 219);
+    border-radius: 20px;
+    margin: 10px !important;
+}
+#ordertableCard{
+    background: linear-gradient(45deg, #f7931c, #2a9d8f)!important;
+}
+.MuiTablePagination-selectLabel {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333; 
+    margin-right: 1rem;
+    margin-top:14px !important;
+  }
+  .css-1gtv474-MuiDataGrid-columnHeaders{
+    color:white;
+  }
+  .css-13e9ae6-MuiPaper-root-MuiCard-root{
+    float: left !important;
+    margin-left: 20px !important;
+   /*  background: linear-gradient(45deg, #f7931c, #2a9d8f)!important; */
+ 
+
+  
+  }
+  .css-yseucu-MuiDataGrid-columnHeaderRow{
+    background: linear-gradient(45deg, #f7931c, #2a9d8f)!important;
+
+  }
+  .css-1osp0uc-MuiButtonBase-root-MuiButton-root{
+    background: linear-gradient(45deg,rgb(112, 108, 102), #2a9d8f)!important;
+    color:  #FFF !important;
+  }
+  .css-1osp0uc-MuiButtonBase-root-MuiButton-root:hover{
+    color:  #00509d !important;
+  }
+  /* header  */
+  .css-ifh4tf-MuiPaper-root-MuiAppBar-root{
+  
+  }
+  .css-1tktgsa-MuiPaper-root-MuiPopover-paper-MuiMenu-paper{
+    max-height: calc(100% - 430px) !important;
+    
+  }
+  .css-xu4nd2-MuiButtonBase-root-MuiButton-root{
+    background: linear-gradient(45deg, #47c2b6, #ff991e) !important;
+    color: #FFF !important;
+  }
+  .css-xu4nd2-MuiButtonBase-root-MuiButton-root:hover{
+    color:  #00509d !important;
+  }
+  .css-r5hgnd-MuiPaper-root-MuiAlert-root{
+    background: linear-gradient(45deg,rgb(21, 22, 22),rgb(32, 32, 32)) !important;
+    height: 100px;
+    margin-top: 250px;
+    font-size: 19px !important;
+    padding-top:25px !important;
+    color:white !important;
+  }
+  .css-1ckov0h-MuiSvgIcon-root{
+    font-size: 32px !important;
+  }
+  .MuiBox-root .css-k60h3s{
+    background: linear-gradient(45deg, #f7941d36, #898989) !important;
+  }
+  .css-ifh4tf-MuiPaper-root-MuiAppBar-root {
+    background: linear-gradient(135deg, #ff7e00, #ffa500) !important;
+  }

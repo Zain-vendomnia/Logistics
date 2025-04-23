@@ -34,8 +34,11 @@ export const CREATE_TOUR_INFO_MASTER_TABLE = `
     driver_id INT NOT NULL,
     tour_date DATETIME NOT NULL,
     warehouse_id INT NOT NULL,
-    order_ids VARCHAR(45) NOT NULL,
-    customer_ids VARCHAR(45) NOT NULL,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    order_ids JSON NOT NULL,
+    comments VARCHAR(255) NOT NULL,
+    customer_ids VARCHAR(255) NOT NULL,
     item_total_qty_truck INT NOT NULL,
     truck_loaded_img BLOB,
     tour_end_truck_qty_pic BLOB,
@@ -44,12 +47,15 @@ export const CREATE_TOUR_INFO_MASTER_TABLE = `
     tour_end_km INT NOT NULL,
     tour_total_km VARCHAR(45) NOT NULL,
     tour_start_fuel_pic BLOB,
+    route_color VARCHAR(7) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (driver_id) REFERENCES driver_details(id) ON DELETE CASCADE,
     FOREIGN KEY (warehouse_id) REFERENCES warehouse_details(warehouse_id) ON DELETE CASCADE
   );
 `;
+
+
 
 export const CREATE_ROUTE_UPDATES_TABLE = `
   CREATE TABLE route_updates (
@@ -125,6 +131,7 @@ export const LOGIC_ORDER_TABLE = `
       customer_id VARCHAR(45) NOT NULL,
       invoice_amount VARCHAR(45) NOT NULL,
       payment_id INT NOT NULL,
+      warehouse_id INT NOT NULL,
       order_time DATETIME NOT NULL,
       expected_delivery_time DATETIME NOT NULL,
       customer_number VARCHAR(45) NOT NULL,
@@ -135,10 +142,13 @@ export const LOGIC_ORDER_TABLE = `
       zipcode VARCHAR(10) NOT NULL,
       city VARCHAR(45) NOT NULL,
       phone VARCHAR(45) NOT NULL,
+      lattitude 	decimal(10,7),
+      longitude	decimal(10,7),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
     );
 `;
+
 export const LOGIC_ORDER_ITEMS_TABLE = `
    CREATE TABLE logistic_order_items (
     id INT AUTO_INCREMENT PRIMARY KEY,
