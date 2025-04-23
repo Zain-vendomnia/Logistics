@@ -103,7 +103,7 @@ export const CREATE_ROUTE_SEGMENTS_TABLE = `
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
     start_customer_id VARCHAR(45),
     end_customer_id VARCHAR(45),
-    delivered_item_pic BLOB,
+    delivered_item_pic VARCHAR(1000),
     customer_signature VARCHAR(45),
     order_id INT NOT NULL,
     comments VARCHAR(45),
@@ -131,11 +131,9 @@ export const LOGIC_ORDER_TABLE = `
       customer_id VARCHAR(45) NOT NULL,
       invoice_amount VARCHAR(45) NOT NULL,
       payment_id INT NOT NULL,
+      warehouse_id INT NOT NULL,
       order_time DATETIME NOT NULL,
       expected_delivery_time DATETIME NOT NULL,
-      warehouse_id INT NOT NULL,
-      quantity INT NOT NULL,
-      article_order_number VARCHAR(45) NOT NULL,
       customer_number VARCHAR(45) NOT NULL,
       firstname VARCHAR(45) NOT NULL,
       lastname VARCHAR(45) NOT NULL,
@@ -151,6 +149,22 @@ export const LOGIC_ORDER_TABLE = `
     );
 `;
 
+export const LOGIC_ORDER_ITEMS_TABLE = `
+   CREATE TABLE logistic_order_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT NOT NULL,
+    order_number VARCHAR(50) NOT NULL,
+    slmdl_article_id VARCHAR(50) NOT NULL,
+    slmdl_articleordernumber VARCHAR(100) NOT NULL,
+    quantity INT NOT NULL,
+    warehouse_id VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id) REFERENCES logistic_order(order_id) ON DELETE CASCADE,
+    INDEX (order_number),
+    INDEX (slmdl_articleordernumber)
+);
+`;
 export const LOGIC_PAYMENT_TABLE = `
    CREATE TABLE logistic_payment (
           id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
@@ -158,6 +172,28 @@ export const LOGIC_PAYMENT_TABLE = `
           description VARCHAR(255) NOT NULL
     );
 `;
+export const WMS_ORDER = `
+  CREATE TABLE IF NOT EXISTS wms_orders (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT NOT NULL,
+    order_number VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+`;
+
+export const WMS_ORDER_ARTICLES = `
+  CREATE TABLE IF NOT EXISTS wms_order_articles (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    wms_order_id INT NOT NULL,
+    article_id INT NOT NULL,
+    article_detail_id INT NOT NULL,
+    article_number VARCHAR(100),
+    quantity INT,
+    warehouse_id INT,
+    FOREIGN KEY (wms_order_id) REFERENCES wms_orders(id)
+  );
+`;
+
 
 export const USERS_TABLE = `
    CREATE TABLE IF NOT EXISTS users(

@@ -11,9 +11,11 @@ export const scheduleOrderInfoController = async (_: Request, res: Response) => 
       "SELECT order_number FROM logistic_order ORDER BY order_id DESC LIMIT 1"
     );
 
-    // If no order is found, return an appropriate message
     if (rows.length === 0) {
-      return res.status(404).json({ error: "No orders found in logistic_order table" });
+      return res.status(200).json({ 
+        message: "last order numbder not found", 
+        data: [] 
+      });
     }
 
     // Extract lastOrderNumber from the query result

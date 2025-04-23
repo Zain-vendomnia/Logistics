@@ -7,14 +7,26 @@ import {
   Toolbar,
   Typography,
 } from "@mui/material";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../providers/AuthProvider";
 import EventBus from "../common/EventBus";
 import PersonIcon from "@mui/icons-material/Person";
 
 const NavBar: React.FC = () => {
-  const { user, showDriverBoard, showAdminBoard, showSuperAdminBoard } =
-    useAuth();
+  const { user, showDriverBoard, showAdminBoard, showSuperAdminBoard, logout } = useAuth();
+  const navigate = useNavigate();
+
+  React.useEffect(() => {
+    // Subscribe to logout event
+    const cleanup = EventBus.on("logout", () => {
+      logout();
+      navigate("/login");
+    });
+
+    return () => {
+      cleanup(); // Cleanup on component unmount
+    };
+  }, [logout, navigate]);
 
   return (
     <AppBar
@@ -89,7 +101,6 @@ const NavBar: React.FC = () => {
             <Button
               color="inherit"
               onClick={() => {
-                console.log("Logout Clicked");
                 EventBus.dispatch("logout");
               }}
             >

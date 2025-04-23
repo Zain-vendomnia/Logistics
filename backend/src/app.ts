@@ -2,32 +2,40 @@ import express from "express";
 import cors from 'cors';
 import morgan from "morgan";
 import authRouter from "./router/auth.routes";
-import userRouter from "./router/auth.routes";
+// import userRouter from "./router/auth.routes";
 import config from "./config";
-import { fetchScheduleOrderInfo } from './services/scheduleFetching';
-import { upload } from "./config/multer";
+import { fetchScheduleOrderInfo,fetchScheduleWmsOrderInfo } from './services/scheduleFetching';
 
 // Import the controller fucntion for the order info
 import { orderInfoController } from "./controller/Admin_Api/orderInfo.controller";
 import { scheduleOrderInfoController } from "./controller/Admin_Api/scheduleOrderInfo.controller";
+import { scheduleWmsOrderController } from "./controller/Admin_Api/scheduleWmsOrderInfo.controller";
 
-import { addData } from "./controller/customer/route_segments.controller";
+// import { addData,getImageById } from "./controller/Admin_Api/route_segments.controller";
+import { uploadImageController } from "./controller/Admin_Api/uploadImage.controller";
+
 
 import { GeocodingController } from "./controller/Admin_RouteOptimzation/geocodingController";
 import { optimizeRouteController } from "./controller/Admin_RouteOptimzation/optimizeRouteController";
 import { updatelatlngController } from "./controller/Admin_RouteOptimzation/updatelatlngController";
 import {  getAllLogisticOrders, getcountcheck } from './controller/Admin_RouteOptimzation/order.controller';
-import { createTourController, getgraphhopperRoute, getTourcountcheck } from './controller/Admin_RouteOptimzation/tourController';
+
+import { createTourController, getgraphhopperRoute, getTourcountcheck, deleteTourController, ExportTourController} from './controller/Admin_RouteOptimzation/tourController';
 import { getAllTourController } from "./controller/Admin_RouteOptimzation/getAllTourController";
 
+
+// import { getImageById } from "./controller/Admin_Api/route_segments.controller";
 
 const app = express();
 app.use(cors());
 
 app.set("port", config.PORT);
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+// app.use(express.json());
+// app.use(express.urlencoded({ extended: false }));
 app.use(morgan("dev"));
+
+app.use(express.json({ limit: '50mb' })); // Increase limit if sending large images
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Define the root route to prevent "Cannot GET /"
 app.get('/', (_req, res) => {
@@ -36,8 +44,11 @@ app.get('/', (_req, res) => {
 
 // Router
 app.use("/api/auth", authRouter);
-app.use("/api", userRouter);  
-app.use("/api/test", userRouter);  
+app.use("/api", authRouter);  
+app.use("/api/test", authRouter);
+  
+// app.use("/api", userRouter);  
+// app.use("/api/test", userRouter);  
 app.use('/api/admin/geocode', GeocodingController.getLatLng);
 app.use('/api/admin/route/routeoptimize/optimize', optimizeRouteController);
 app.use('/api/admin/customer/updatelatlng', updatelatlngController);
@@ -46,12 +57,22 @@ app.use('/api/admin/routeoptimize/ordercount', getcountcheck);
 app.use('/api/admin/routeoptimize/createtour', createTourController);
 app.use('/api/admin/routeoptimize/getAlltours', getAllTourController);
 app.use('/api/admin/routeoptimize/tourcount', getTourcountcheck);
+// --------------------------------------------------------------------
+app.use('/api/admin/routeoptimize/deleteTours', deleteTourController);
+app.use('/api/admin/routeoptimize/exportTours', ExportTourController);
 app.use('/api/admin/routeoptimize/getGraphhopperRoute', getgraphhopperRoute);
 
+// --------------------------------------------------------------------
 app.get("/api/admin/orderinfo", orderInfoController);
 app.get("/api/admin/scheduleOrderInfo", scheduleOrderInfoController);
-// Routes
-app.post("/route_segments/addData", upload.single("image"), addData);
+app.get("/api/admin/scheduleWmsOrderInfo", scheduleWmsOrderController);
+
+
+app.post("/upload_image", uploadImageController);
+
+// app.post("/route_segments/addData",addData);
+
+// app.get("/route_segments/:id/image", getImageById);
 
 // Catch-all 404 Handler (keep this LAST)
 app.use((req, res) => {
@@ -62,5 +83,6 @@ app.use((req, res) => {
 });
 
 fetchScheduleOrderInfo();
+fetchScheduleWmsOrderInfo();
 
 export default app;

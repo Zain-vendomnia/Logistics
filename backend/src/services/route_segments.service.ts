@@ -1,6 +1,5 @@
 import pool from "../database";
 
-// Insert route segment data into DB
 export const insertRouteSegment = async (data: {
   tour_id: string;
   order_id: string;
@@ -9,7 +8,7 @@ export const insertRouteSegment = async (data: {
   end_latitude?: string;
   end_longitude?: string;
   status?: string;
-  image?: string; // Image filename
+  image?: Buffer | null; // Already decoded from base64 in the controller
 }) => {
   try {
     const query = `
@@ -18,8 +17,9 @@ export const insertRouteSegment = async (data: {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-   
-    const [result] = await pool.query(query, [
+    const conn = await pool.getConnection();
+
+    const [result] = await conn.query(query, [
       data.tour_id,
       data.order_id,
       data.start_latitude ?? null,
@@ -27,12 +27,30 @@ export const insertRouteSegment = async (data: {
       data.end_latitude ?? null,
       data.end_longitude ?? null,
       data.status ?? null,
-      data.image ?? null,
+      data.image ?? null, // Insert the image buffer directly
     ]);
 
     return result;
   } catch (err) {
     console.error("❌ DB Insert Error in insertRouteSegment:", err);
-    throw err; // Let the controller handle the HTTP response
+    throw err;
+  }
+};
+
+export const getRouteSegmentImage = async (id: string): Promise<Buffer | null> => {
+  try {
+    const [rows]: any = await pool.query(
+      "SELECT delivered_item_pic FROM route_segments WHERE id = ?",
+      [id]
+    );
+
+    if (rows.length === 0 || !rows[0].delivered_item_pic) {
+      return null;
+    }
+
+    return rows[0].delivered_item_pic; // This is a Buffer
+  } catch (err) {
+    console.error("❌ DB Error fetching image:", err);
+    throw err;
   }
 };
