@@ -20,7 +20,7 @@ import { TripData } from "../../services/trip_Service";
 import useStyles from "./Shipping_Details_styles";
 import { useSnackbar } from "../../providers/SnackbarProvider";
 import { useDeliveryStore } from "../../store/useDeliveryStore";
-import { DeliveryScenario } from "../common/delieryScenarios";
+import { DeliveryScenario } from "../delivery/delieryScenarios";
 import MessageBox from "../communications/Message_Box";
 import ContactIcons from "../communications/Contact_Icons";
 import ClientDetails from "../communications/Client_Details";
@@ -52,7 +52,6 @@ const ShippingDetails = ({
 
   const { showSnackbar } = useSnackbar();
 
- 
   const [isLoading, setIsLoading] = useState(false);
   const [hideNotify, setHideNotify] = useState(false);
   // const [showOrderReached, setShowOrderReached] = useState(false);

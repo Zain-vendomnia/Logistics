@@ -1,7 +1,7 @@
-import SignatureUpload from "./Signature_Upload";
+import SignatureUpload from "../common/Signature_Upload";
 import ReturnToWarehouse from "./Return_To_Warehouse";
 import MarkAsNotDelivered from "./Mark_As_Not_Delivered";
-import CameraCapture from "./Camera_Capture";
+import CameraCapture from "../common/Camera_Capture";
 import ContactPromptAlert from "../communications/Contact_Prompt_Alert";
 
 const getLabel = (step: string) => {

@@ -16,14 +16,14 @@ import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrow
 
 import { useSnackbar } from "../../providers/SnackbarProvider";
 import ShippingDetails from "./Shipping_Details";
-import Delivery from "./Delivery";
+import Delivery from "../delivery/Delivery";
 
 import useStyles from "./Dashboard_style";
 import LeafletMaps from "../common/leaflet_Map/Leaflet_Maps";
 import { useDeliveryStore } from "../../store/useDeliveryStore";
-import { DeliveryScenario } from "../common/delieryScenarios";
+import { DeliveryScenario } from "../delivery/delieryScenarios";
 import CameraCapture from "../common/Camera_Capture";
-import DeliveryDrawer from "./Delivery_Drawer";
+import DeliveryDrawer from "../delivery/Delivery_Drawer";
 // import GoogleMaps from "../common/GoogleMaps";
 
 const blinkOverlay = keyframes`

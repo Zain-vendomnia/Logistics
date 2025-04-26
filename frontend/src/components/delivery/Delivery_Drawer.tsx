@@ -9,7 +9,7 @@ import SupervisedUserCircleIcon from "@mui/icons-material/SupervisedUserCircle";
 import NoAccountsIcon from "@mui/icons-material/NoAccounts";
 
 import { useDeliveryStore } from "../../store/useDeliveryStore";
-import { DeliveryScenario } from "../common/delieryScenarios";
+import { DeliveryScenario } from "./delieryScenarios";
 
 const useStyles = makeStyles({
   scenarioBox: {

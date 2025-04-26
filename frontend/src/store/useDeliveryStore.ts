@@ -2,7 +2,7 @@ import { create, StateCreator } from "zustand";
 import {
   DeliveryScenario,
   DeliveryStep,
-} from "../components/common/delieryScenarios";
+} from "../components/delivery/delieryScenarios";
 import { TripData, getTripData } from "../services/trip_Service";
 
 const allDeliverySteps: DeliveryStep[] = [
@@ -165,8 +165,7 @@ const createDeliveryStore: StateCreator<DeliveryStore> = (set, get) => ({
 
   tripData: null,
   fetchTripData: async () => {
-    const { deliveryCompleted, tripData, deliveryId, deliveryInstanceKey } =
-      get();
+    const { deliveryCompleted, tripData, deliveryInstanceKey } = get();
 
     if (tripData && deliveryCompleted === false) {
       console.log("Store (cached):", tripData);
