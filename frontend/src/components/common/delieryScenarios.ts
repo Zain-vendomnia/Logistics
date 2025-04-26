@@ -1,14 +1,21 @@
 export enum DeliveryScenario {
-  foundCustomer = "foundCustomer",
   hasPermit = "hasPermit",
-  customerUnavailableWithNoPermit = "customerUnavailableWithNoPermit",
+  foundCustomer = "foundCustomer",
+  customerNotFound = "customerNotFound",
+  // customerUnavailableWithNoPermit = "customerUnavailableWithNoPermit",
+  customerResponded = "customerResponded",
+  findNeighborNearby = "findNeighborNearby",
+  neighborAccepts = "neighborAccepts",
+  noAcceptance = "noAcceptance",
 }
 export type DeliveryStep =
   | "captureDoorstepImage"
   | "captureParcelImage"
   | "captureCustomerSignature"
+  | "findNeighbor"
   | "captureNeighborDoorstepImage"
   | "captureNeighborSignature"
+  | "showContactPromptAlert"
   | "sendSms"
   | "makeCall"
   | "waitForResponse"
@@ -22,38 +29,63 @@ type ConditionalStep = {
 
 export type Step = DeliveryStep | ConditionalStep;
 
-export const deliveryScenarios: Record<DeliveryScenario, Step[]> = {
+export const deliveryScenarios: Record<DeliveryScenario, DeliveryStep[]> = {
   [DeliveryScenario.foundCustomer]: [
-    // "captureDoorstepImage",
-    // "captureParcelImage",
+    "captureDoorstepImage",
+    "captureParcelImage",
     "captureCustomerSignature",
   ],
+  [DeliveryScenario.customerNotFound]: [
+    "showContactPromptAlert",
+    "sendSms",
+    "makeCall",
+  ],
   [DeliveryScenario.hasPermit]: ["captureDoorstepImage", "captureParcelImage"],
-  [DeliveryScenario.customerUnavailableWithNoPermit]: [
+  // [DeliveryScenario.customerUnavailableWithNoPermit]: [
+  //   "captureDoorstepImage",
+  //   "showContactPromptAlert",
+  //   // "sendSms",
+  //   // "makeCall",
+  //   // "waitForResponse",
+  //   {
+  //     condition: "customerResponded",
+  //     actions: ["captureParcelImage", "captureCustomerSignature"],
+  //   },
+  //   {
+  //     condition: "neighborAccepts",
+  //     actions: [
+  //       "captureNeighborDoorstepImage",
+  //       "captureParcelImage",
+  //       "captureNeighborSignature",
+  //     ],
+  //   },
+  //   {
+  //     condition: "noAcceptance",
+  //     actions: [
+  //       "captureDoorstepImage",
+  //       "captureParcelImage", // proof image
+  //       "markAsNotDelivered",
+  //       "returnToWarehouse",
+  //     ],
+  //   },
+  // ],
+  [DeliveryScenario.customerResponded]: [
+    "captureParcelImage",
+    "captureCustomerSignature",
+  ],
+
+  [DeliveryScenario.findNeighborNearby]: ["showContactPromptAlert", "findNeighbor"],
+
+  [DeliveryScenario.neighborAccepts]: [
     "captureDoorstepImage",
-    // "sendSms",
-    // "makeCall",
-    // "waitForResponse",
-    {
-      condition: "customerResponded",
-      actions: ["captureParcelImage", "captureCustomerSignature"],
-    },
-    {
-      condition: "neighborAccepts",
-      actions: [
-        "captureNeighborDoorstepImage",
-        "captureParcelImage",
-        "captureNeighborSignature",
-      ],
-    },
-    {
-      condition: "noAcceptance",
-      actions: [
-        "captureDoorstepImage",
-        "captureParcelImage", // proof image
-        "markAsNotDelivered",
-        "returnToWarehouse",
-      ],
-    },
+    "captureNeighborDoorstepImage",
+    "captureParcelImage",
+    "captureNeighborSignature",
+  ],
+  [DeliveryScenario.noAcceptance]: [
+    "captureDoorstepImage",
+    "captureParcelImage", // proof image
+    "markAsNotDelivered",
+    "returnToWarehouse",
   ],
 };

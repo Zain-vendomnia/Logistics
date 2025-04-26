@@ -15,13 +15,15 @@ import {
 import { grey } from "@mui/material/colors";
 import CallIcon from "@mui/icons-material/Call";
 import CommentIcon from "@mui/icons-material/Comment";
-import CloseIcon from "@mui/icons-material/Close";
 
 import { TripData } from "../../services/trip_Service";
 import useStyles from "./Shipping_Details_styles";
 import { useSnackbar } from "../../providers/SnackbarProvider";
 import { useDeliveryStore } from "../../store/useDeliveryStore";
 import { DeliveryScenario } from "../common/delieryScenarios";
+import MessageBox from "../communications/Message_Box";
+import ContactIcons from "../communications/Contact_Icons";
+import ClientDetails from "../communications/Client_Details";
 
 const blinkOverlay = keyframes`
   0% { opacity: 0.5; transform: scale(1); }
@@ -50,20 +52,10 @@ const ShippingDetails = ({
 
   const { showSnackbar } = useSnackbar();
 
-  const quickMessages = [
-    "Arriving soon",
-    "I'm nearby",
-    "I'm arrived",
-    "At your doorstep",
-  ];
-
-  const [showMessageBox, setShowMessageBox] = useState(false);
+ 
   const [isLoading, setIsLoading] = useState(false);
   const [hideNotify, setHideNotify] = useState(false);
   // const [showOrderReached, setShowOrderReached] = useState(false);
-
-  const deliveryId = useDeliveryStore((s) => s.deliveryId);
-  const { setScenario, updateState } = useDeliveryStore();
 
   const [isBlinking, setIsBlinking] = useState(true);
 
@@ -148,7 +140,6 @@ const ShippingDetails = ({
               </Container>
             </Box>
           </Box>
-          {/* 2nd Block */}
           {/* <Divider color={grey[100]} />
             <Box
               display={"flex"}
@@ -197,104 +188,8 @@ const ShippingDetails = ({
             </Box> */}
 
           <Divider color={grey[100]} />
-          {/* 3rd Block */}
-          {isArrived && (
-            <Stack spacing={2}>
-              <Box
-                display={"flex"}
-                alignItems={"center"}
-                justifyContent={"space-between"}
-              >
-                <Box display={"flex"} gap={2}>
-                  <ImageListItem>
-                    <img
-                      src="https://cdn.vectorstock.com/i/1000v/00/74/young-man-profile-vector-14770074.avif"
-                      alt="client_image"
-                      style={{
-                        width: "40px",
-                        height: "40px",
-                        borderRadius: "50%",
-                      }}
-                    />
-                  </ImageListItem>
-                  <Stack spacing={0}>
-                    <Typography variant="body1" color={grey[600]}>
-                      Customer
-                    </Typography>
-                    <Typography variant="body1" fontSize={"large"}>
-                      {tripData?.client.name}
-                    </Typography>
-                  </Stack>
-                </Box>
+          {isArrived && <ClientDetails />}
 
-                <Box display={"flex"} gap={0} mx={0}>
-                  <IconButton
-                    // onClick={() => setShowMessageBox(!showMessageBox)}
-                    onClick={() =>
-                      handleIconClick(() => setShowMessageBox(!showMessageBox))
-                    }
-                    color="primary"
-                    className={isBlinking ? styles.iconBlinks : undefined}
-                    sx={{
-                      animation: isBlinking
-                        ? `${blinkOverlay} 1.5s infinite`
-                        : "none",
-                    }}
-                  >
-                    <CommentIcon fontSize="large" />
-                  </IconButton>
-
-                  <IconButton
-                    onClick={() => handleIconClick(() => {})}
-                    color="primary"
-                    className={isBlinking ? styles.iconBlinks : undefined}
-                    sx={{
-                      animation: isBlinking
-                        ? `${blinkOverlay} 1.5s infinite`
-                        : "none",
-                    }}
-                  >
-                    <CallIcon fontSize="large" />
-                  </IconButton>
-                </Box>
-              </Box>
-              {showMessageBox && (
-                <Box className={styles.messageBox}>
-                  <Box
-                    display={"flex"}
-                    alignItems={"center"}
-                    justifyContent={"space-between"}
-                    borderRadius={1}
-                    mb={1}
-                  >
-                    <Typography
-                      variant="body1"
-                      fontWeight={"bold"}
-                      color={grey[900]}
-                    >
-                      Send Message
-                    </Typography>
-                    <IconButton
-                      onClick={() => setShowMessageBox(false)}
-                      sx={{ color: "grey.900" }}
-                    >
-                      <CloseIcon fontSize="small" />
-                    </IconButton>
-                  </Box>
-                  {quickMessages.map((item) => (
-                    <Chip
-                      label={item}
-                      key={item}
-                      variant="outlined"
-                      className={styles.chip}
-                    />
-                  ))}
-                </Box>
-              )}
-            </Stack>
-          )}
-
-          {/* Notification Button */}
           {notifyCustomer && (
             <Box display={"flex"} justifyContent={"center"}>
               <Button
@@ -315,52 +210,13 @@ const ShippingDetails = ({
 
         {/* {isOrderReached && !showOrderReached && ( */}
         {isOrderReached && (
-          <Stack spacing={1} p={3}>
-            <Button
-              variant="contained"
-              onClick={() => {
-                onReachedToDestination(true);
-                setScenario(deliveryId, DeliveryScenario.foundCustomer);
-              }}
-              sx={{ mt: "auto", bgcolor: "primary.dark" }}
-            >
-              Customer Found
-            </Button>
-            <Button
-              variant="contained"
-              onClick={() => {
-                onReachedToDestination(true);
-                setScenario(deliveryId, DeliveryScenario.hasPermit);
-              }}
-              sx={{ mt: "auto", bgcolor: "primary.dark" }}
-            >
-              Delivery Permission
-            </Button>
-            <Button
-              variant="contained"
-              onClick={() => {
-                onReachedToDestination(true);
-                setScenario(
-                  deliveryId,
-                  DeliveryScenario.customerUnavailableWithNoPermit
-                );
-                updateState({
-                  customerResponded: false,
-                  neighborAccepts: true,
-                });
-              }}
-              sx={{ mt: "auto", bgcolor: "primary.dark" }}
-            >
-              Customer Unavailable
-            </Button>
-            <Button
-              variant="contained"
-              onClick={() => onReachedToDestination(true)} //setShowOrderReached(true)}
-              sx={{ mt: "auto", bgcolor: "primary.dark" }}
-            >
-              Reached
-            </Button>
-          </Stack>
+          <Button
+            variant="contained"
+            onClick={() => onReachedToDestination(true)} //setShowOrderReached(true)}
+            sx={{ mt: "auto", bgcolor: "primary.dark" }}
+          >
+            Reached
+          </Button>
         )}
       </Box>
     </Stack>

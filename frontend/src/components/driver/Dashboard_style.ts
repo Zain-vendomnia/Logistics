@@ -122,6 +122,13 @@ const useStyles = {
     height: "100%",
     borderRadius: "8px",
   },
+  animate: {
+    "@keyframes blink": {
+      "0%": { opacity: 1 },
+      "50%": { opacity: 0 },
+      "100%": { opacity: 1 },
+    },
+  },
 };
 
 export default useStyles;

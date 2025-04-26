@@ -4,11 +4,15 @@ import {
   Box,
   Button,
   Card,
+  Fab,
   Grid2,
+  keyframes,
   Paper,
   Stack,
+  Tooltip,
   Typography,
 } from "@mui/material";
+import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
 
 import { useSnackbar } from "../../providers/SnackbarProvider";
 import ShippingDetails from "./Shipping_Details";
@@ -19,7 +23,14 @@ import LeafletMaps from "../common/leaflet_Map/Leaflet_Maps";
 import { useDeliveryStore } from "../../store/useDeliveryStore";
 import { DeliveryScenario } from "../common/delieryScenarios";
 import CameraCapture from "../common/Camera_Capture";
+import DeliveryDrawer from "./Delivery_Drawer";
 // import GoogleMaps from "../common/GoogleMaps";
+
+const blinkOverlay = keyframes`
+   0% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.06); }
+  100% { opacity: 0.7; transform: scale(1); }
+`;
 
 const Dashboard = () => {
   const { showSnackbar } = useSnackbar();
@@ -36,7 +47,6 @@ const Dashboard = () => {
       description: "Kilometers Driven and Fuel Guage photo from the odometer.",
     },
   ];
-
   const [isComplied, setIsComplied] = useState(false);
   const [componentStatus, setComponentStatus] = useState(
     new Array(componentCheckList.length).fill(false)
@@ -59,8 +69,12 @@ const Dashboard = () => {
   // const [tripData, setTripData] = useState<TripData | null>(null);
   // const [loadOrderComplete, setLoadOrderComplete] = useState(true);
 
-  const [isReachedToDestination, setIsReachedToDestination] = useState(false);
+  const [isFabClicked, setIsFabClicked] = useState(false);
+  const [showDeliveryDrawer, setShowDeliveryDrawer] = useState(false);
+  const [isReachedToDestination, setIsReachedToDestination] = useState(true);
   const [isTripStarted, setIsTripStarted] = useState(false);
+
+  const [isDeliveryStarted, setIsDeliveryStarted] = useState(false);
 
   const startNewTrip = () => {
     console.log("Delivery Instance Key:: ", store.deliveryInstanceKey);
@@ -96,12 +110,12 @@ const Dashboard = () => {
     if (shouldLoadNewTrip) {
       fetchTripData()
         .then((data) => {
-          // Scenario Switcher
-          setScenario(data.orderId, DeliveryScenario.hasPermit);
-          setIsReachedToDestination(false);
-          // Set deliveryComplted to false,
-          // to avoid adding newTripData to OrdersDelivered Array accidently
+          // setScenario(data.orderId, DeliveryScenario.hasPermit);
+          // setIsReachedToDestination(false);
+          setIsDeliveryStarted(false);
+          // Avoid adding newTrip data to OrdersDelivered Array
           store.setDeliveryCompleted(false);
+          store.resetActionsCompleted();
           console.log("🚚 New Order Id:: ", data.orderId);
         })
         .catch((err) => {
@@ -133,7 +147,8 @@ const Dashboard = () => {
 
   const handleReachedToDestination = () => {
     setIsReachedToDestination(true);
-    showSnackbar("You have now readched to Customer location.", "info");
+    setIsDeliveryStarted(true);
+    showSnackbar("Reached to delivery location", "info");
   };
 
   const preTripChecks = (
@@ -186,6 +201,41 @@ const Dashboard = () => {
     </Stack>
   );
 
+  const getFab = (
+    <>
+      <Tooltip title="Delivey Options">
+        <Fab
+          onClick={() => {
+            setIsFabClicked(true);
+            setShowDeliveryDrawer(!showDeliveryDrawer);
+          }}
+          color="primary"
+          aria-label="open delivery drawer"
+          sx={{
+            position: "absolute",
+            top: 70,
+            right: showDeliveryDrawer ? 255 : 8,
+            zIndex: 1500,
+            transition: "right 0.3s ease-in-out",
+            animation: !isFabClicked ? `${blinkOverlay} 1.5s infinite` : "none",
+          }}
+        >
+          <KeyboardDoubleArrowLeftIcon
+            sx={{
+              transform: showDeliveryDrawer ? "rotate(180deg)" : "rotate(0deg)",
+              transition: "transform 0.7s",
+            }}
+          />
+        </Fab>
+      </Tooltip>
+      <DeliveryDrawer
+        open={showDeliveryDrawer}
+        onClose={() => setShowDeliveryDrawer(!showDeliveryDrawer)}
+        onScenarioSelected={handleReachedToDestination}
+      />
+    </>
+  );
+
   return (
     <Grid2 container spacing={0} height={"100%"} p={0}>
       <Grid2
@@ -204,7 +254,7 @@ const Dashboard = () => {
         >
           {!isTripStarted ? (
             preTripChecks
-          ) : isReachedToDestination ? (
+          ) : isDeliveryStarted ? (
             <Delivery />
           ) : (
             <ShippingDetails
@@ -252,6 +302,9 @@ const Dashboard = () => {
           {/* burj Khalifa: [25.1972, 55.2744] */}
         </Box>
       </Grid2>
+
+      {/* {getFab} */}
+      {isReachedToDestination && getFab}
     </Grid2>
   );
 };

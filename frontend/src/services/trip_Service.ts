@@ -41,6 +41,7 @@ export const getTripData = async (): Promise<TripData> => {
     destinationCoordinates: [25.1972, 55.2744],
     startTime: new Date().toISOString(),
 
+    hasPermit: false,
     client: {
       name: "John Doe",
       address: "Park Lane 38, West Zone",
@@ -70,6 +71,7 @@ export interface TripData {
   startCoordinates: [number, number] | null;
   destinationCoordinates: [number, number] | null;
   startTime: string;
+  hasPermit: boolean;
   client: ClientData;
   vehicle: string;
   vehicleNumber: string;

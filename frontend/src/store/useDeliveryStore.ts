@@ -1,10 +1,45 @@
 import { create, StateCreator } from "zustand";
-import { DeliveryScenario } from "../components/common/delieryScenarios";
+import {
+  DeliveryScenario,
+  DeliveryStep,
+} from "../components/common/delieryScenarios";
 import { TripData, getTripData } from "../services/trip_Service";
+
+const allDeliverySteps: DeliveryStep[] = [
+  "captureDoorstepImage",
+  "captureParcelImage",
+  "captureCustomerSignature",
+  "captureNeighborDoorstepImage",
+  "captureNeighborSignature",
+  "showContactPromptAlert",
+  "sendSms",
+  "makeCall",
+  "waitForResponse",
+  "markAsNotDelivered",
+  "returnToWarehouse",
+];
+const defaultActionsCompleted: DeliveryActionsCompleted = {
+  numberOfMessagesSent: 0,
+  numberOfCallsMade: 0,
+  ...Object.fromEntries(allDeliverySteps.map((step) => [step, false])),
+};
+
+export type DeliveryActionsCompleted = {
+  [key in DeliveryStep]?: boolean;
+} & {
+  numberOfMessagesSent: number;
+  numberOfCallsMade: number;
+};
 
 export type DeliveryState = {
   customerResponded: boolean;
+  customerFoundAtLocation: boolean;
+
+  driverReachedToLocation: boolean;
+
+  neighborFound: boolean;
   neighborAccepts: boolean;
+
   noAcceptance: boolean;
 };
 
@@ -13,14 +48,14 @@ type DeliveryStore = {
   deliveryId: string;
 
   scenarioKey: DeliveryScenario;
+  setScenario: (deliveryId: string, scenarioKey: DeliveryScenario) => void;
+
   deliveryState: DeliveryState;
+  updateDeliveryState: (updates: Partial<DeliveryState>) => void;
 
   deliveryCompleted: boolean;
   ordersDeliveredSuccessfully: string[];
   ordersReturnToWareHouse: string[];
-
-  setScenario: (deliveryId: string, scenarioKey: DeliveryScenario) => void;
-  updateState: (updates: Partial<DeliveryState>) => void;
 
   setDeliveryCompleted: (value: boolean) => void;
   addOrdersDeliveredSuccessfully: (id: string) => void;
@@ -29,24 +64,53 @@ type DeliveryStore = {
   tripData: TripData | null;
   fetchTripData: () => Promise<TripData>;
   // setTripData: (data: TripData) => void;
+
+  actionsCompleted: DeliveryActionsCompleted;
+  resetActionsCompleted: () => void;
+  markStepCompleted: (step: DeliveryStep) => void;
+  incrementMessageSent: () => void;
+  incrementCallsMade: () => void;
+
   resetDriverDashboard: () => Promise<void>;
 };
 
 const createDeliveryStore: StateCreator<DeliveryStore> = (set, get) => ({
-  deliveryInstanceKey: 0,
-  deliveryId: "",
-  scenarioKey: DeliveryScenario.foundCustomer,
-  deliveryState: {
-    customerResponded: false,
-    neighborAccepts: false,
-    noAcceptance: false,
+  actionsCompleted: defaultActionsCompleted,
+  resetActionsCompleted() {
+    set(() => ({
+      actionsCompleted: defaultActionsCompleted,
+    }));
+  },
+  markStepCompleted: (step) =>
+    set((state) => ({
+      actionsCompleted: {
+        ...state.actionsCompleted,
+        [step]: true,
+      },
+    })),
+
+  incrementMessageSent: () => {
+    set((state) => ({
+      actionsCompleted: {
+        ...state.actionsCompleted,
+        numberOfMessagesSent: state.actionsCompleted.numberOfMessagesSent + 1,
+      },
+    }));
   },
 
-  deliveryCompleted: false,
+  incrementCallsMade: () => {
+    set((state) => ({
+      actionsCompleted: {
+        ...state.actionsCompleted,
+        numberOfCallsMade: state.actionsCompleted.numberOfCallsMade + 1,
+      },
+    }));
+  },
 
-  ordersReturnToWareHouse: [],
-  ordersDeliveredSuccessfully: [],
+  deliveryInstanceKey: 0,
+  deliveryId: "",
 
+  scenarioKey: DeliveryScenario.hasPermit,
   setScenario: (deliveryId, scenarioKey) =>
     set(() => ({
       deliveryId,
@@ -54,11 +118,23 @@ const createDeliveryStore: StateCreator<DeliveryStore> = (set, get) => ({
       deliveryCompleted: false,
       deliveryState: {
         customerResponded: false,
+        customerFoundAtLocation: false,
+        driverReachedToLocation: false,
+        neighborFound: false,
         neighborAccepts: false,
         noAcceptance: false,
       },
     })),
-  updateState: (updates) =>
+
+  deliveryState: {
+    customerResponded: false,
+    customerFoundAtLocation: false,
+    driverReachedToLocation: false,
+    neighborFound: false,
+    neighborAccepts: false,
+    noAcceptance: false,
+  },
+  updateDeliveryState: (updates) =>
     set((state: DeliveryStore) => ({
       deliveryState: {
         ...state.deliveryState,
@@ -66,6 +142,11 @@ const createDeliveryStore: StateCreator<DeliveryStore> = (set, get) => ({
       },
     })),
 
+  deliveryCompleted: false,
+  ordersReturnToWareHouse: [],
+  ordersDeliveredSuccessfully: [],
+
+  setDeliveryCompleted: (value: boolean) => set({ deliveryCompleted: value }),
   addOrdersReturnToWareHouse: () =>
     set((state) => ({
       ordersReturnToWareHouse: [
@@ -73,9 +154,6 @@ const createDeliveryStore: StateCreator<DeliveryStore> = (set, get) => ({
         state.deliveryId,
       ],
     })),
-
-  setDeliveryCompleted: (value: boolean) => set({ deliveryCompleted: value }),
-
   addOrdersDeliveredSuccessfully: (id: string) =>
     set((state) => ({
       ordersDeliveredSuccessfully: state.ordersDeliveredSuccessfully.includes(
@@ -85,25 +163,7 @@ const createDeliveryStore: StateCreator<DeliveryStore> = (set, get) => ({
         : [...state.ordersDeliveredSuccessfully, id],
     })),
 
-  resetDriverDashboard: async () => {
-    const newTrip = await getTripData();
-
-    if (newTrip) {
-      set({
-        deliveryId: `${newTrip.orderId}_Moc2`,
-        deliveryCompleted: false,
-        scenarioKey: DeliveryScenario.hasPermit,
-        deliveryState: {
-          customerResponded: false,
-          neighborAccepts: false,
-          noAcceptance: false,
-        },
-        tripData: newTrip,
-      });
-    }
-  },
   tripData: null,
-
   fetchTripData: async () => {
     const { deliveryCompleted, tripData, deliveryId, deliveryInstanceKey } =
       get();
@@ -125,6 +185,26 @@ const createDeliveryStore: StateCreator<DeliveryStore> = (set, get) => ({
 
     console.log("Store: ", newData);
     return newData;
+  },
+  resetDriverDashboard: async () => {
+    const newTrip = await getTripData();
+
+    if (newTrip) {
+      set({
+        deliveryId: `${newTrip.orderId}_Moc2`,
+        deliveryCompleted: false,
+        scenarioKey: DeliveryScenario.hasPermit,
+        deliveryState: {
+          customerResponded: false,
+          customerFoundAtLocation: false,
+          driverReachedToLocation: false,
+          neighborFound: false,
+          neighborAccepts: false,
+          noAcceptance: false,
+        },
+        tripData: newTrip,
+      });
+    }
   },
 });
 

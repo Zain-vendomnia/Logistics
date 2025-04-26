@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Box } from "@mui/material";
 import {
   deliveryScenarios,
   DeliveryStep,
@@ -7,88 +8,77 @@ import {
 } from "./delieryScenarios";
 import { DeliveryStepRenderer } from "./DeliveryStepRenderer";
 import { DeliveryState, useDeliveryStore } from "../../store/useDeliveryStore";
-import { Box } from "@mui/material";
 
-export const DeliveryFlowExecutor = () => {
-  const store = useDeliveryStore();
-  const currentScenarioKey = store.scenarioKey;
-  const currentDeliveryState = store.deliveryState;
-  const scenarioSteps = deliveryScenarios[currentScenarioKey];
+interface Props {
+  scenarioKey: DeliveryScenario;
+}
 
-  const setDeliveryCompleted = store.setDeliveryCompleted;
-  const addDeliveredOrder = store.addOrdersDeliveredSuccessfully;
-
-  const [currentIndex, setCurrentIndex] = useState(0);
+export const DeliveryFlowExecutor = ({ scenarioKey }: Props) => {
+  const {
+    deliveryState,
+    actionsCompleted,
+    markStepCompleted,
+    setDeliveryCompleted,
+  } = useDeliveryStore();
 
   const [stepsToRender, setStepsToRender] = useState<DeliveryStep[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
-    const steps = resolveSteps(
-      scenarioSteps,
-      currentDeliveryState,
-      currentIndex
-    );
-    if (steps.length === 0) {
-      advanceToNextValidStep();
-    } else {
-      console.log("Delivery Scenario: ", currentScenarioKey);
-      console.log("Resolved Steps to Render: ", steps);
-      setStepsToRender(steps);
-      setCurrentIndex(0);
+    const scenarioSteps = deliveryScenarios[scenarioKey] || [];
+    const resolvedSteps = resolveSteps(scenarioSteps, deliveryState, 0);
+
+    setStepsToRender(resolvedSteps);
+    setCurrentIndex(0);
+  }, [scenarioKey, deliveryState]);
+
+  useEffect(() => {
+    if (!stepsToRender.length) return;
+
+    const currentStep = stepsToRender[currentIndex];
+    if (actionsCompleted[currentStep]) {
+      advanceToNextStep();
     }
-  }, []);
+  }, [actionsCompleted, stepsToRender, currentIndex]);
 
   const resolveSteps = (
     steps: Step[],
     deliveryState: Partial<DeliveryState>,
-    index: number
+    startIndex: number
   ): DeliveryStep[] => {
     const actionSteps: DeliveryStep[] = [];
 
-    while (index < steps.length) {
-      const step = steps[index];
+    for (let i = startIndex; i < steps.length; i++) {
+      const step = steps[i];
 
       if (typeof step === "string") {
         actionSteps.push(step);
-        index++;
-        continue;
-        // return [step];
+      } else {
+        const condition = step.condition as keyof DeliveryState;
+        if (deliveryState[condition]) {
+          actionSteps.push(...step.actions);
+          break;
+        }
       }
-
-      const conditionKey = step.condition as keyof DeliveryState;
-      if (conditionKey in deliveryState && deliveryState[conditionKey]) {
-        // return step.actions;
-        actionSteps.push(...step.actions);
-        break;
-      }
-
-      // No match? Try next step
-      index++;
     }
     return actionSteps;
   };
 
-  const advanceToNextValidStep = () => {
-    // const nextIndex = currentIndex + 1;
-    // if (nextIndex < scenarioSteps.length) {
-
-    if (currentIndex < stepsToRender.length - 1) {
-      console.info("Next Step: ", stepsToRender[currentIndex + 1]);
-      // setCurrentIndex(nextIndex);
-
-      setCurrentIndex((prev) => prev + 1);
+  const advanceToNextStep = () => {
+    const nextIndex = currentIndex + 1;
+    if (nextIndex < stepsToRender.length) {
+      setCurrentIndex(nextIndex);
     } else {
       setDeliveryCompleted(true);
-      // addDeliveredOrder(store.deliveryId);
     }
   };
 
   const handleStepComplete = () => {
-    console.info("Completed step:", stepsToRender[currentIndex]);
-    advanceToNextValidStep();
+    markStepCompleted(stepsToRender[currentIndex]);
+    advanceToNextStep();
   };
 
-  if (stepsToRender.length === 0) return null;
+  if (!stepsToRender.length) return null;
 
   return (
     <Box
@@ -98,17 +88,16 @@ export const DeliveryFlowExecutor = () => {
       borderRadius={2}
       border="2px solid"
       borderColor="primary.dark"
-      height="100%"
+      height="50%"
       width="100%"
     >
-      <DeliveryStepRenderer
-        key={`${stepsToRender[currentIndex]}-${currentIndex}`}
-        step={stepsToRender[currentIndex]}
-        onComplete={handleStepComplete}
-      />
-      {/* {stepsToRender.map((step, i) => (
-        
-      ))} */}
+      {!actionsCompleted[stepsToRender[currentIndex]] && (
+        <DeliveryStepRenderer
+          key={`${stepsToRender[currentIndex]}-${currentIndex}`}
+          step={stepsToRender[currentIndex]}
+          onComplete={handleStepComplete}
+        />
+      )}
     </Box>
   );
 };

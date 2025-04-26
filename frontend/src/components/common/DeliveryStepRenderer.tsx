@@ -2,6 +2,7 @@ import SignatureUpload from "./Signature_Upload";
 import ReturnToWarehouse from "./Return_To_Warehouse";
 import MarkAsNotDelivered from "./Mark_As_Not_Delivered";
 import CameraCapture from "./Camera_Capture";
+import ContactPromptAlert from "../communications/Contact_Prompt_Alert";
 
 const getLabel = (step: string) => {
   switch (step) {
@@ -55,6 +56,8 @@ export const DeliveryStepRenderer = ({ step, onComplete }: Props) => {
     // case "makeCall":
     // should be message (popup), to show customer's number.
     // return <CallCustomer onComplete={onComplete} />;
+    case "showContactPromptAlert":
+      return <ContactPromptAlert onClose={onComplete} />;
     case "markAsNotDelivered":
       return <MarkAsNotDelivered onMarked={onComplete} />;
     case "returnToWarehouse":
