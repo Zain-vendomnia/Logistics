@@ -66,9 +66,6 @@ const Dashboard = () => {
     (s) => s.ordersDeliveredSuccessfully
   );
 
-  // const [tripData, setTripData] = useState<TripData | null>(null);
-  // const [loadOrderComplete, setLoadOrderComplete] = useState(true);
-
   const [isFabClicked, setIsFabClicked] = useState(false);
   const [showDeliveryDrawer, setShowDeliveryDrawer] = useState(false);
   const [isReachedToDestination, setIsReachedToDestination] = useState(true);
@@ -77,7 +74,6 @@ const Dashboard = () => {
   const [isDeliveryStarted, setIsDeliveryStarted] = useState(false);
 
   const startNewTrip = () => {
-    console.log("Delivery Instance Key:: ", store.deliveryInstanceKey);
     const currentOrderId = tripData?.orderId;
 
     // Store previous trip info BEFORE attemping to fetch new trip
@@ -93,7 +89,7 @@ const Dashboard = () => {
       addOrdersDeliveredSuccessfully(prevTripId);
       // Set deliveryCompelted after fetchTripData,
       // to avoid getting same data from cache.
-      console.log("Added to ordersDeliveredSuccessfully::", prevTripId);
+      console.log("Added to ordersDeliveredSuccessfully:", prevTripId);
     }
 
     // Check if order exists and is not setteled
@@ -102,7 +98,7 @@ const Dashboard = () => {
       (ordersDeliveredSuccessfully.includes(currentOrderId) ||
         ordersReturnToWareHouse.includes(currentOrderId));
 
-    console.log("isTripHandled:: ", isTripHandled);
+    console.log("isTripHandled: ", isTripHandled);
 
     const shouldLoadNewTrip =
       deliveryCompleted === true || !tripData || isTripHandled;
@@ -126,11 +122,14 @@ const Dashboard = () => {
 
   useEffect(() => {
     startNewTrip();
-
-    console.log("Orders Delivered Successfully::", ordersDeliveredSuccessfully);
-    console.log("Order Id:: ", deliveryId);
-    console.log("Is Order Delivery Completed:: ", deliveryCompleted);
-  }, [deliveryCompleted]);
+    console.log("🚚 Delivery#: ", store.deliveryInstanceKey);
+    console.log("🚚 Order Id: ", deliveryId);
+    console.log("🚚 Is Order Delivery Completed: ", deliveryCompleted);
+    console.log(
+      "🚚 Orders Delivered Successfully:",
+      ordersDeliveredSuccessfully
+    );
+  }, [deliveryCompleted, deliveryId]);
 
   useEffect(() => {
     const isAllComplied = componentStatus.every((status) => status === true);

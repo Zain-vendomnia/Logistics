@@ -8,6 +8,20 @@ import {
 } from "./delieryScenarios";
 import { DeliveryStepRenderer } from "./DeliveryStepRenderer";
 import { DeliveryState, useDeliveryStore } from "../../store/useDeliveryStore";
+import { BorderColor } from "@mui/icons-material";
+
+const Style = {
+  success: {
+    bgcolor: "success.light",
+    borderColor: "success.dark",
+    border: "6px solid",
+  },
+  error: {
+    bgcolor: "error.light",
+    borderColor: "error.dark",
+    border: "6px solid",
+  },
+};
 
 interface Props {
   scenarioKey: DeliveryScenario;
@@ -15,6 +29,8 @@ interface Props {
 
 export const DeliveryFlowExecutor = ({ scenarioKey }: Props) => {
   const {
+    success,
+    setSuccess,
     deliveryState,
     actionsCompleted,
     markStepCompleted,
@@ -23,6 +39,12 @@ export const DeliveryFlowExecutor = ({ scenarioKey }: Props) => {
 
   const [stepsToRender, setStepsToRender] = useState<DeliveryStep[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    setTimeout(() => {
+      setSuccess(null);
+    }, 2000);
+  }, [success]);
 
   useEffect(() => {
     const scenarioSteps = deliveryScenarios[scenarioKey] || [];
@@ -34,7 +56,7 @@ export const DeliveryFlowExecutor = ({ scenarioKey }: Props) => {
 
   useEffect(() => {
     if (!stepsToRender.length) return;
-
+    console.log("Steps to Follow: ", stepsToRender);
     const currentStep = stepsToRender[currentIndex];
     if (actionsCompleted[currentStep]) {
       advanceToNextStep();
@@ -90,6 +112,9 @@ export const DeliveryFlowExecutor = ({ scenarioKey }: Props) => {
       borderColor="primary.dark"
       height="50%"
       width="100%"
+      sx={
+        success === null ? {} : success === true ? Style.success : Style.error
+      }
     >
       {!actionsCompleted[stepsToRender[currentIndex]] && (
         <DeliveryStepRenderer

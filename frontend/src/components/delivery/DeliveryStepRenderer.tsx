@@ -3,6 +3,7 @@ import ReturnToWarehouse from "./Return_To_Warehouse";
 import MarkAsNotDelivered from "./Mark_As_Not_Delivered";
 import CameraCapture from "../common/Camera_Capture";
 import ContactPromptAlert from "../communications/Contact_Prompt_Alert";
+import FindNeighbor from "./Find_Neighbor";
 
 const getLabel = (step: string) => {
   switch (step) {
@@ -58,6 +59,8 @@ export const DeliveryStepRenderer = ({ step, onComplete }: Props) => {
     // return <CallCustomer onComplete={onComplete} />;
     case "showContactPromptAlert":
       return <ContactPromptAlert onClose={onComplete} />;
+    case "findNeighbor":
+      return <FindNeighbor onComplete={onComplete} />;
     case "markAsNotDelivered":
       return <MarkAsNotDelivered onMarked={onComplete} />;
     case "returnToWarehouse":

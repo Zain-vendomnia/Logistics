@@ -72,6 +72,9 @@ type DeliveryStore = {
   incrementCallsMade: () => void;
 
   resetDriverDashboard: () => Promise<void>;
+
+  success: boolean | null;
+  setSuccess: (success: boolean | null) => void;
 };
 
 const createDeliveryStore: StateCreator<DeliveryStore> = (set, get) => ({
@@ -205,6 +208,12 @@ const createDeliveryStore: StateCreator<DeliveryStore> = (set, get) => ({
       });
     }
   },
+
+  success: null,
+  setSuccess: (success) =>
+    set(() => ({
+      success,
+    })),
 });
 
 export const useDeliveryStore = create<DeliveryStore>(createDeliveryStore);

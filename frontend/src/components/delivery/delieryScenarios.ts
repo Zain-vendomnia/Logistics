@@ -36,9 +36,11 @@ export const deliveryScenarios: Record<DeliveryScenario, DeliveryStep[]> = {
     "captureCustomerSignature",
   ],
   [DeliveryScenario.customerNotFound]: [
+    "findNeighbor",
     "showContactPromptAlert",
     "sendSms",
     "makeCall",
+    "showContactPromptAlert", // to choose NeighborAccepts option from Delivery Panel
   ],
   [DeliveryScenario.hasPermit]: ["captureDoorstepImage", "captureParcelImage"],
   // [DeliveryScenario.customerUnavailableWithNoPermit]: [
@@ -74,7 +76,10 @@ export const deliveryScenarios: Record<DeliveryScenario, DeliveryStep[]> = {
     "captureCustomerSignature",
   ],
 
-  [DeliveryScenario.findNeighborNearby]: ["showContactPromptAlert", "findNeighbor"],
+  [DeliveryScenario.findNeighborNearby]: [
+    "showContactPromptAlert",
+    "findNeighbor",
+  ],
 
   [DeliveryScenario.neighborAccepts]: [
     "captureDoorstepImage",
