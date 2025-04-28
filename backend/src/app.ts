@@ -20,7 +20,7 @@ import { optimizeRouteController } from "./controller/Admin_RouteOptimzation/opt
 import { updatelatlngController } from "./controller/Admin_RouteOptimzation/updatelatlngController";
 import {  getAllLogisticOrders, getcountcheck } from './controller/Admin_RouteOptimzation/order.controller';
 
-import { createTourController, getgraphhopperRoute, getTourcountcheck, deleteTourController, ExportTourController} from './controller/Admin_RouteOptimzation/tourController';
+import { createTourController, getgraphhopperRoute, getTourcountcheck, deleteTourController} from './controller/Admin_RouteOptimzation/tourController';
 import { getAllTourController } from "./controller/Admin_RouteOptimzation/getAllTourController";
 
 
@@ -59,7 +59,7 @@ app.use('/api/admin/routeoptimize/getAlltours', getAllTourController);
 app.use('/api/admin/routeoptimize/tourcount', getTourcountcheck);
 // --------------------------------------------------------------------
 app.use('/api/admin/routeoptimize/deleteTours', deleteTourController);
-app.use('/api/admin/routeoptimize/exportTours', ExportTourController);
+//app.use('/api/admin/routeoptimize/exportTours', ExportTourController);
 app.use('/api/admin/routeoptimize/getGraphhopperRoute', getgraphhopperRoute);
 
 // --------------------------------------------------------------------

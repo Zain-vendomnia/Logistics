@@ -17,9 +17,8 @@ export const insertRouteSegment = async (data: {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-    const conn = await pool.getConnection();
-
-    const [result] = await conn.query(query, [
+   
+    const [result] = await pool.query(query, [
       data.tour_id,
       data.order_id,
       data.start_latitude ?? null,

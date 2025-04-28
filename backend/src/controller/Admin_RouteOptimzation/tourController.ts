@@ -1,83 +1,81 @@
 import { Request, Response } from 'express';
-<<<<<<< HEAD
-import { createTour } from '../../model/tourModel';
+import { createTour,deleteTours } from '../../model/tourModel';
 import { OkPacket } from 'mysql2';  
 import { tourInfo_master  } from '../../model/TourinfoMaster';
 import { createRoutedata } from '../../services/createRoutedata';
 
-=======
-import { createTour, deleteTours, exportToursWithOrders } from '../../model/tourModel';
-import { OkPacket } from 'mysql2';
-import { tourInfo_master } from '../../model/TourinfoMaster';
->>>>>>> 3a348fd879a83a2bb9a5b7470d9c18bf37c2d89b
 
 // Controller to create a new tour
 export const createTourController = async (req: Request, res: Response) => {
-  console.log('[createTourController] Request received to create tour');
+    const { tourName, comments, startTime, endTime, driverid, routeColor, tourDate, orderIds} = req.body;
   
-  const { tourName, comments, startTime, endTime, driverid, routeColor, tourDate, orderIds } = req.body;
-
-  console.log('[createTourController] Request body:', {
-    tourName,
-    comments,
-    startTime,
-    endTime,
-    driverid,
-    routeColor,
-    tourDate,
-    orderIds
-  });
-
-  try {
-    const result = await createTour({
-      tourName,
-      comments,
-      startTime,
-      endTime,
-      driverid,
-      routeColor,
-      tourDate,
-      orderIds,
-    });
-
-    const affectedRows = (result as OkPacket).affectedRows;
-
-    console.log('[createTourController] Database result:', result);
-
-    if (affectedRows > 0) {
-      console.log('[createTourController] Tour created successfully');
-      res.status(200).json({ message: 'Tour saved successfully' });
-    } else {
-      console.error('[createTourController] No rows affected when creating tour');
-      res.status(500).json({ message: 'Failed to save the tour' });
+    try {
+      const result = await createTour({
+        tourName,
+        comments,
+        startTime,
+        endTime,
+        driverid,
+        routeColor,
+        tourDate,
+        orderIds,
+      });
+  
+      // If result is of type OkPacket (from mysql2), it will contain affectedRows
+      const affectedRows = (result as OkPacket).affectedRows;
+      const insertedTourId = (result as OkPacket).insertId;
+      if (affectedRows > 0) {
+        await UpdateRouteData(orderIds, insertedTourId); 
+        res.status(200).json({ message: 'Tour saved successfully' });
+      } else {
+        res.status(500).json({ message: 'Failed to save the tour' });
+      }
+    } catch (error) {
+      console.error('Error saving tour:', error);
+      res.status(500).json({ message: 'Error saving tour' });
     }
-  } catch (error) {
-    console.error('[createTourController] Error:', error);
-    res.status(500).json({ 
-      message: 'Error saving tour',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-};
+  };
 
-// Controller to get total count of tours
-export const getTourcountcheck = async (_req: Request, res: Response) => {
-  console.log('[getTourcountcheck] Request received for tour count');
-  
-  try {
-    const orders = await tourInfo_master.getAllToursCount();
-    console.log('[getTourcountcheck] Total tours count:', orders);
-    res.status(200).json(orders);
-  } catch (error) {
-    console.error('[getTourcountcheck] Error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-};
+  export const getTourcountcheck = async(_req: Request, res: Response) => {
+    try {
+      const orders = await tourInfo_master.getAllToursCount();
+      res.status(200).json(orders);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  };
 
-// Controller to delete multiple tours
+  export const getgraphhopperRoute = async (_req: Request, res: Response)=>{
+    const { tour_id } = _req.body;
+    if (!tour_id) {
+      return res.status(400).json({ message: 'Tour ID is required.' });
+    }
+    try{
+      const routeRes = await tourInfo_master.getRouteResponse(parseInt(tour_id as string));
+      res.status(200).json(routeRes);
+    }catch(error){
+      console.error('Error fetching orders:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  }
+
+  async function UpdateRouteData(_orderIds: number[],_insertedTourId: number) {
+    try {
+      const serviceResponse = await createRoutedata(_orderIds);
+      console.log('Service call successful:', serviceResponse);
+      if (!serviceResponse) {
+        throw new Error("GraphHopper response is empty or undefined.");
+      }
+      const responseJson = JSON.stringify(serviceResponse);
+      // Save to DB
+      await tourInfo_master.updateGraphhopperResponse(_insertedTourId, responseJson);
+      console.log('GraphHopper response saved to tourInfo_master.');
+    } catch (error) {
+      console.error('ErError updating GraphHopper response:', error);
+    }
+  }
+  // Controller to delete multiple tours
 export const deleteTourController = async (req: Request, res: Response) => {
   console.log('[deleteTourController] Request received to delete tours');
   
@@ -118,88 +116,3 @@ export const deleteTourController = async (req: Request, res: Response) => {
     });
   }
 };
-
-// Controller to export tour info along with order details
-export const ExportTourController = async (req: Request, res: Response) => {
-  console.log('[ExportTourController] Request received to export tours');
-  
-<<<<<<< HEAD
-      // If result is of type OkPacket (from mysql2), it will contain affectedRows
-      const affectedRows = (result as OkPacket).affectedRows;
-      const insertedTourId = (result as OkPacket).insertId;
-      if (affectedRows > 0) {
-        await UpdateRouteData(orderIds, insertedTourId); 
-        res.status(200).json({ message: 'Tour saved successfully' });
-      } else {
-        res.status(500).json({ message: 'Failed to save the tour' });
-      }
-    } catch (error) {
-      console.error('Error saving tour:', error);
-      res.status(500).json({ message: 'Error saving tour' });
-=======
-  try {
-    const { tourIds } = req.body;
-    console.log('[ExportTourController] Tour IDs to export:', tourIds);
-
-    if (!tourIds || !Array.isArray(tourIds)) {
-      console.error('[ExportTourController] Invalid tour IDs provided');
-      return res.status(400).json({ message: 'Tour IDs must be an array' });
->>>>>>> 3a348fd879a83a2bb9a5b7470d9c18bf37c2d89b
-    }
-
-    if (tourIds.length === 0) {
-      console.error('[ExportTourController] Empty tour IDs array provided');
-      return res.status(400).json({ message: 'No tour IDs provided' });
-    }
-<<<<<<< HEAD
-  };
-
-  export const getgraphhopperRoute = async (_req: Request, res: Response)=>{
-    const { tour_id } = _req.body;
-    if (!tour_id) {
-      return res.status(400).json({ message: 'Tour ID is required.' });
-    }
-    try{
-      const routeRes = await tourInfo_master.getRouteResponse(parseInt(tour_id as string));
-      res.status(200).json(routeRes);
-    }catch(error){
-      console.error('Error fetching orders:', error);
-      res.status(500).json({ message: 'Internal server error' });
-    }
-  }
-
-  async function UpdateRouteData(_orderIds: number[],_insertedTourId: number) {
-    try {
-      const serviceResponse = await createRoutedata(_orderIds);
-      console.log('Service call successful:', serviceResponse);
-      if (!serviceResponse) {
-        throw new Error("GraphHopper response is empty or undefined.");
-      }
-      const responseJson = JSON.stringify(serviceResponse);
-      // Save to DB
-      await tourInfo_master.updateGraphhopperResponse(_insertedTourId, responseJson);
-      console.log('GraphHopper response saved to tourInfo_master.');
-    } catch (error) {
-      console.error('ErError updating GraphHopper response:', error);
-    }
-  }
-=======
-
-    const combinedData = await exportToursWithOrders(tourIds);
-    console.log('[ExportTourController] Combined data prepared:', combinedData);
-
-    res.status(200).json({
-      success: true,
-      message: 'Tour data exported successfully',
-      data: combinedData
-    });
-  } catch (error) {
-    console.error('[ExportTourController] Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error exporting tours',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-};
->>>>>>> 3a348fd879a83a2bb9a5b7470d9c18bf37c2d89b

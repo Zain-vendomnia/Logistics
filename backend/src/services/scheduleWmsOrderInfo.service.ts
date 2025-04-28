@@ -6,13 +6,14 @@ import { RowDataPacket } from "mysql2/promise";
 dotenv.config();
 
 const WMS_API_URL = process.env.WMS_API_URL!;
+
 const AUTH_CREDENTIALS = Buffer.from(
   `${process.env.WMS_API_USERNAME}:${process.env.WMS_API_PASSWORD}`
 ).toString("base64");
 
 export const fetchWmsOrder = async (from: string, to: string) => {
   try {
-    const conn = await pool.getConnection();
+  
     const params = { from, to }; // ✅ change keys here
 
     const requestUrl = `${WMS_API_URL}?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
@@ -33,7 +34,7 @@ export const fetchWmsOrder = async (from: string, to: string) => {
     console.log(`📦 Total orders received: ${orders.length}`);
 
     // Get existing order numbers
-    const [existing] = await conn.query<RowDataPacket[]>(
+    const [existing] = await pool.query<RowDataPacket[]>(
       "SELECT order_number FROM wms_orders"
     );
     const existingNumbers = new Set(existing.map((o) => o.order_number));
@@ -47,7 +48,7 @@ export const fetchWmsOrder = async (from: string, to: string) => {
 
     // Insert into `wms_orders` table
     for (const order of newOrders) {
-      const [result]: any = await conn.query(
+      const [result]: any = await pool.query(
         `INSERT INTO wms_orders (order_id, order_number) VALUES (?, ?)`,
         [order.order_id, order.order_number]
       );
@@ -57,7 +58,7 @@ export const fetchWmsOrder = async (from: string, to: string) => {
       // Insert related articles
       const articles = order.articles || [];
       for (const art of articles) {
-        await conn.query(
+        await pool.query(
           `INSERT INTO wms_order_articles 
             (wms_order_id, article_id, article_detail_id, article_number, quantity, warehouse_id)
             VALUES (?, ?, ?, ?, ?, ?)`,

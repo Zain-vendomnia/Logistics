@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   MapContainer,
   TileLayer,
@@ -18,6 +18,7 @@ import {
   IconButton,
   Avatar,
   Stack,
+  ListItemButton,
 } from '@mui/material';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
@@ -28,6 +29,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-polylinedecorator';
 import { useParams } from 'react-router-dom';
+import latestOrderServices from './AdminServices/latestOrderServices';
 
 type Stop = {
   id: string;
@@ -36,6 +38,8 @@ type Stop = {
   lon: number;
   arrival: string;
   type: string;
+  name?: string;
+  address?: string;
 };
 
 const TourMapPage: React.FC = () => {
@@ -45,24 +49,46 @@ const TourMapPage: React.FC = () => {
   const [routePoints, setRoutePoints] = useState<[number, number][][]>([]);
   const [stops, setStops] = useState<Stop[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedTour, setSelectedTour] = useState<any | null>(null);
+  const mapRef = useRef<L.Map>(null);
+  const [routeDistance, setRouteDistance] = useState<number>(0);
+  const [routeTime, setRouteTime] = useState<number>(0);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const instance = latestOrderServices.getInstance();
+      const toursdata = await instance.getTours();
+
+      const tour = toursdata.find((tour: any) => tour.id === Number(tour_id));
+      setSelectedTour(tour);
+    };
+
+    fetchData();
+  }, [tour_id]);
+
+  console.log(selectedTour);
 
   const fetchRouteData = async () => {
     try {
       if (parsedTourId !== null) {
         const response = await adminApiService.getRouteResponse(parsedTourId);
         const data = response.data;
-        console.log(data);
-
         if (data && data.solution && data.solution.routes.length > 0) {
           const route = data.solution.routes[0];
+          
+          const distance = data.solution.distance; // in meters
 
-          // Map polyline points
+          const distanceInKilometers = (distance / 1000).toFixed(2); // 2 decimal places
+          setRouteDistance(parseFloat(distanceInKilometers)); // Set distance in kilometers
+  
+          const time = data.solution.time; // in seconds
+        
+          setRouteTime(time);
           const formattedRoutes = route.points.map((routePoint: { coordinates: [number, number][] }) =>
             routePoint.coordinates.map(([lon, lat]) => [lat, lon])
           );
           setRoutePoints(formattedRoutes);
-
-          // Map stops from activities
+          
           const mappedStops: Stop[] = route.activities.map((activity: any, index: number) => ({
             id: activity.id || `${index + 1}`,
             location_id: activity.location_id,
@@ -71,6 +97,7 @@ const TourMapPage: React.FC = () => {
             arrival: activity.arr_date_time,
             type: activity.type
           }));
+          console.log("stops" + JSON.stringify(stops));
           setStops(mappedStops);
         }
         setLoading(false);
@@ -85,10 +112,10 @@ const TourMapPage: React.FC = () => {
     fetchRouteData();
   }, [parsedTourId]);
 
-  const createNumberedIcon = (number: number) =>
+  const createIcon = (label: string, bgColor: string) =>
     L.divIcon({
       html: `<div style="
-        background-color: #d32f2f;
+        background-color: ${bgColor};
         color: white;
         border-radius: 50%;
         width: 28px;
@@ -96,9 +123,9 @@ const TourMapPage: React.FC = () => {
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 12px;
-      ">${number}</div>`,
-      className: 'number-icon',
+        font-size: 13px;
+      ">${label}</div>`,
+      className: 'custom-icon',
       iconSize: [28, 28],
       iconAnchor: [14, 14],
     });
@@ -136,78 +163,111 @@ const TourMapPage: React.FC = () => {
     return null;
   };
 
+  const zoomToStop = (lat: number, lon: number) => {
+    const map = mapRef.current;
+    if (map) {
+      map.flyTo([lat, lon], 15, { duration: 0.5 });
+    }
+  };
+
   if (loading) {
     return <div>Loading route data...</div>;
   }
+  const formattedDate = new Date(selectedTour.tour_date);
+  const cleanDate = formattedDate.toISOString().split('T')[0]; // Extract YYYY-MM-DD
+  const formatTime = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    return `${hours}h ${minutes}m`;
+  };
 
+
+
+  // Format the tour start time (remove trailing :00)
+  const cleanStartTime = selectedTour.tour_startTime.replace(/:00$/, '');
   return (
-    <Box sx={{ display: 'flex', height: '100vh', fontFamily: 'Arial, sans-serif' }}>
-      <Paper
-        sx={{
-          width: 340,
-          p: 2,
-          overflowY: 'auto',
-          borderRight: '1px solid #ddd',
-          backgroundColor: '#f9f9f9',
-        }}
-        elevation={3}
-      >
-        <Typography variant="h6" gutterBottom>
-          Tour {tour_id}
+    <Box sx={{ display: 'flex', height: '100vh' }}>
+      <Paper sx={{ width: 340, p: 2, overflowY: 'auto', borderRight: '1px solid #ddd', backgroundColor: '#f9f9f9' }} elevation={3}>
+        <Typography variant="h6">
+          {selectedTour.tour_name} - {cleanDate} {cleanStartTime}
         </Typography>
+
+        <Box mt={1} display="flex" flexWrap="wrap" gap={1}>
+          <Typography variant="caption" sx={{ bgcolor: '#d0f0c0', px: 1, py: 0.5, borderRadius: 1 }}>
+            {stops.length} Ziele
+          </Typography>
+          <Typography variant="caption" sx={{ bgcolor: '#e0f7fa', px: 1, py: 0.5, borderRadius: 1 }}>
+              {routeDistance} km
+          </Typography>
+          <Typography variant="caption" sx={{ bgcolor: '#fff3e0', px: 1, py: 0.5, borderRadius: 1 }}>
+          {formatTime(routeTime)}
+          </Typography>
+        </Box>
+
         <Divider sx={{ my: 2 }} />
 
         <List disablePadding>
           {stops.map((stop, index) => (
-            <ListItem key={index}
+            <ListItem
+              key={index}
               sx={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                mb: 1.5,
+                mb: 1,
                 borderBottom: '1px dashed #ccc',
                 pb: 1,
-              }}>
-              <Avatar sx={{ bgcolor: '#d32f2f', width: 28, height: 28, fontSize: 14, mt: 0.5 }}>
-                {index + 1}
-              </Avatar>
-              <Box sx={{ ml: 2, flexGrow: 1 }}>
-                <Typography fontWeight="bold">{stop.location_id}</Typography>
-                <Typography variant="body2" color="textSecondary">
-                  {stop.type}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Ankunft: {stop.arrival}
-                </Typography>
-              </Box>
-              <Stack direction="row" spacing={0.5} sx={{ mt: 0.5 }}>
-                <IconButton size="small" color="primary">
-                  <Inventory2Icon fontSize="small" />
-                </IconButton>
-                <IconButton size="small" color="success">
-                  <CameraAltIcon fontSize="small" />
-                </IconButton>
-                <IconButton size="small" color="warning">
-                  <NoteAltIcon fontSize="small" />
-                </IconButton>
-                <IconButton size="small">
-                  <MoreVertIcon fontSize="small" />
-                </IconButton>
-              </Stack>
+                alignItems: 'flex-start',
+              }}
+              disableGutters
+            >
+              <ListItemButton onClick={() => zoomToStop(stop.lat, stop.lon)}>
+                <Avatar sx={{ bgcolor: '#4caf50', width: 28, height: 28, fontSize: 14, mt: 0.5 }}>
+                  {stop.type === 'start' ? 'S' : stop.type === 'end' ? 'E' : index}
+                </Avatar>
+
+                <Box sx={{ ml: 2, flexGrow: 1 }}>
+                  <Typography fontWeight="bold" variant="body2">
+                    {stop.name || `Stop ${index}`}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {stop.address || stop.location_id}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {stop.name }
+                  </Typography>
+                  <Typography variant="caption" display="block" mt={0.5}>
+                    Ankunft: {new Date(stop.arrival).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </Typography>
+                </Box>
+
+                <Stack direction="row" spacing={0.5} sx={{ mt: 0.5 }}>
+                  <IconButton size="small" color="primary"><Inventory2Icon fontSize="small" /></IconButton>
+                  <IconButton size="small" color="success"><CameraAltIcon fontSize="small" /></IconButton>
+                  <IconButton size="small" color="warning"><NoteAltIcon fontSize="small" /></IconButton>
+                  <IconButton size="small"><MoreVertIcon fontSize="small" /></IconButton>
+                </Stack>
+              </ListItemButton>
             </ListItem>
           ))}
         </List>
+
+
+        <Divider sx={{ my: 2 }} />
+        <Typography variant="body2">Legende:</Typography>
+        <Stack direction="row" spacing={1} mt={1}>
+          <Avatar sx={{ bgcolor: '#d32f2f', width: 28, height: 28, fontSize: 13 }}>S</Avatar>
+          <Typography variant="caption">Startpunkt</Typography>
+          <Avatar sx={{ bgcolor: '#2e7d32', width: 28, height: 28, fontSize: 13 }}>E</Avatar>
+          <Typography variant="caption">Zielpunkt</Typography>
+        </Stack>
       </Paper>
 
       <Box sx={{ flex: 1 }}>
         <MapContainer
           center={[stops[0]?.lat || 51.191566, stops[0]?.lon || 10.00519]}
           zoom={10}
+          ref={mapRef}
           style={{ height: "100vh", width: "100%" }}
         >
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          />
+          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap contributors' />
 
           {routePoints.length > 0 &&
             routePoints.map((route, index) => (
@@ -218,13 +278,17 @@ const TourMapPage: React.FC = () => {
             <Marker
               key={index}
               position={[stop.lat, stop.lon]}
-              icon={createNumberedIcon(index + 1)}
+              icon={
+                stop.type === 'start'
+                  ? createIcon('S', '#d32f2f')
+                  : stop.type === 'end'
+                    ? createIcon('E', '#2e7d32')
+                    : createIcon(String(index), '#1976d2')
+              }
             >
               <Popup>
-                <strong>{stop.location_id}</strong>
-                <br />
-                Type: {stop.type}
-                <br />
+                <strong>{stop.location_id}</strong><br />
+                Type: {stop.type}<br />
                 Arrival: {stop.arrival}
               </Popup>
             </Marker>

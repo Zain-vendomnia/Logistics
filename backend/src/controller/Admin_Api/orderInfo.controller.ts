@@ -5,7 +5,6 @@ export const orderInfoController = async (_: Request, res: Response) => {
   try {
     // Call fetchOrders without any query parameters
     const orders = await fetchOrders();
-
     return res.json(orders);
   } catch (error) {
     console.error("Error fetching orders:", error);

@@ -34,15 +34,32 @@ export const getAllTourController = async (_req: any, res: any) => {
         console.error("Error parsing order_ids for tour:", tour.id, err);
       }
 
-      let orders: RowDataPacket[] = [];
+      let orders: any[] = [];
 
       if (orderIds.length > 0) {
+        // First get the orders
         const placeholders = orderIds.map(() => '?').join(',');
         const [orderRows] = await pool.query<RowDataPacket[]>(`
           SELECT * FROM logistic_order
           WHERE order_id IN (${placeholders})
         `, orderIds);
-        orders = orderRows;
+        
+        // Then for each order, get the items
+        for (const order of orderRows) {
+          const [itemRows] = await pool.query<RowDataPacket[]>(`
+            SELECT 
+              slmdl_articleordernumber, 
+              quantity 
+            FROM logistic_order_items
+            WHERE order_id = ?
+          `, [order.order_id]);
+          
+          // Add items to the order object
+          orders.push({
+            ...order,
+            items: itemRows
+          });
+        }
       }
 
       // Assemble tour object

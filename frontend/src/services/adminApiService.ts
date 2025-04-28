@@ -38,20 +38,11 @@ const getRouteResponse = (tour_id: number) => {
 }; */
 
 const deleteTours = (tourIds: number[]) => {
-  return axios.delete(API_BaseUrl + "deleteTours", {
-    headers: authHeader(),
-    data: { tourIds } // Send IDs in the request body
-  });
+  return axios.delete(API_BaseUrl + "deleteTours", { headers: authHeader(), data: { tourIds } });
 };
 // Add this to your existing adminApiService
-const exportTours = (tourIds: number[] | string[]) => {
-  return axios.post(API_BaseUrl + "exportTours", 
-    { tourIds }, 
-    { headers: authHeader() }
-  );
+const exportTours = (tourIds: number[] | string[]) => {return axios.post(API_BaseUrl + "exportTours", { tourIds }, { headers: authHeader() });
 };
-
-// Update your export default at the bottom to include this
  
 export default {
   fetchRouteData,
@@ -60,10 +51,7 @@ export default {
   fetchOrderCount,
   fetchAllOrders,
   createTour,
-<<<<<<< HEAD
   getRouteResponse,
-=======
   deleteTours,
-  exportTours
->>>>>>> 3a348fd879a83a2bb9a5b7470d9c18bf37c2d89b
+  exportTours,
 };

@@ -35,26 +35,17 @@ export const Admin_TourTemplates = () => {
         const fetchTours = async () => {
             try {
                 const instance = latestOrderServices.getInstance();
-<<<<<<< HEAD
+
                 const tourData = await instance.getTours(); 
               
-=======
-                const tourData = await instance.getTours();
 
->>>>>>> 3a348fd879a83a2bb9a5b7470d9c18bf37c2d89b
                 const mappedTours: Tour[] = tourData.map((tour: TourInfo) => ({
                     id: tour.id.toString(),
                     tour_name: tour.tour_name,
                     date: new Date(tour.tour_date).toLocaleDateString(),
-<<<<<<< HEAD
-                    color: tour.tour_route_color, 
-                    amount: tour.orders.length,
-                    timeRange: tour.tour_startTime.slice(0, 5) + ' - ' + tour.tour_endTime.slice(0, 5), 
-=======
                     color: tour.tour_route_color,
                     amount: tour.orders.length,
                     timeRange: tour.tour_startTime.slice(0, 5) + ' - ' + tour.tour_endTime.slice(0, 5),
->>>>>>> 3a348fd879a83a2bb9a5b7470d9c18bf37c2d89b
                     driver: tour.driver?.driver_name || 'N/A',
                 }));
 

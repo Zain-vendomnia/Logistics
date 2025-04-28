@@ -1,5 +1,6 @@
 import axios from "axios";
 import {SCHEDULED_ORDERINFO_URL,SCHEDULED_WMS_ORDERINFO_URL} from './apiUrl'
+
 const fetchScheduleOrderInfo = async () => {
     try {
       const response = await axios.get(SCHEDULED_ORDERINFO_URL);
@@ -26,12 +27,11 @@ const fetchScheduleWmsOrderInfo = async () => {
       }
     }
 };
-
 // Export the function to make it accessible from other files
 export { fetchScheduleOrderInfo,fetchScheduleWmsOrderInfo };
-
 // Call fetchScheduleOrderInfo every 15 minutes (900,000 ms)
 setInterval(fetchScheduleOrderInfo, 900000); // 900,000 ms = 15 minutes
 setInterval(fetchScheduleWmsOrderInfo, 1800000); // 900,000 ms = 15 minutes
-
+//setInterval(fetchScheduleOrderInfo, 60000); // 60000 ms = 1 minutes
+//setInterval(fetchScheduleWmsOrderInfo, 60000); // 60000 ms = 1 minutes
 
