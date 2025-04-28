@@ -24,9 +24,8 @@ export class LogisticOrder  {
   public created_at!: Date;
   public updated_at!: Date | null;
  
-  // Get all logistic orders
+  // Get all logistic orders with items information
   static async getAll(): Promise<any[]> {
-   
     const [rows] = await pool.execute(`
       SELECT 
         lo.*, 
@@ -37,7 +36,17 @@ export class LogisticOrder  {
             'driver_mobile', dd.mob,
             'driver_address', dd.address
           )
-        ) AS drivers
+        ) AS drivers,
+        (
+          SELECT GROUP_CONCAT(loi.slmdl_articleordernumber SEPARATOR ', ')
+          FROM logistic_order_items loi
+          WHERE loi.order_id = lo.order_id
+        ) AS article_order_numbers,
+        (
+          SELECT SUM(loi.quantity)
+          FROM logistic_order_items loi
+          WHERE loi.order_id = lo.order_id
+        ) AS total_quantity
       FROM logistic_order lo
       INNER JOIN driver_details dd 
         ON lo.warehouse_id = dd.warehouse_id
@@ -46,20 +55,17 @@ export class LogisticOrder  {
     return rows as any[];
   }
  
-  static async getAllCount(): Promise<LogisticOrder[]>{
-    
+  static async getAllCount(): Promise<LogisticOrder[]> {
     const [rows] = await pool.execute('SELECT COUNT(*) AS count FROM logistic_order');
     return rows as LogisticOrder[];
   }
 
   static async getAllcustomerAddress(): Promise<LogisticOrder[]> {
-   
-    const [rows] = await pool.execute('SELECT * FROM  `logistic_order`');  
+    const [rows] = await pool.execute('SELECT * FROM `logistic_order`');  
     return rows as LogisticOrder[];
   }
 
   static async getlatlngNullcustomerAddress(): Promise<LogisticOrder[]> {
-   
     const [rows] = await pool.execute('SELECT * FROM `logistic_order` WHERE `lattitude` IS NULL AND `longitude` IS NULL');  
     return rows as LogisticOrder[];
   }

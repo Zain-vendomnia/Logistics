@@ -13,12 +13,12 @@ import {
   Button,
   Switch,
   FormControlLabel,
+  CircularProgress
 } from '@mui/material';
-
+import ClearIcon from '@mui/icons-material/Clear';
 import latestOrderServices from './AdminServices/latestOrderServices';
 
-
-interface Admin_MultiselectCardProps {
+interface AdminMultiselectCardProps {
   selectedZipcodes: string[];
   setSelectedZipcodes: (zips: string[]) => void;
 }
@@ -28,18 +28,26 @@ interface ZipOption {
   city: string;
 }
 
-const Admin_MultiselectCard: React.FC<Admin_MultiselectCardProps> = ({
-  selectedZipcodes,
+const AdminMultiselectCard: React.FC<AdminMultiselectCardProps> = ({
+  selectedZipcodes = [], // Default empty array
   setSelectedZipcodes,
 }) => {
   const [isMultiple, setIsMultiple] = useState(false);
   const [zipOptions, setZipOptions] = useState<ZipOption[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Properly handle both single and multi-select values
+  const selectValue = isMultiple 
+    ? selectedZipcodes 
+    : selectedZipcodes[0] || '';
 
   const handleChange = (event: any) => {
-    const {
-      target: { value },
-    } = event;
-    setSelectedZipcodes(typeof value === 'string' ? value.split(',') : value);
+    const value = event.target.value;
+    setSelectedZipcodes(
+      isMultiple 
+        ? (typeof value === 'string' ? value.split(',') : value) 
+        : [value].filter(Boolean) // Ensure we always return an array
+    );
   };
 
   const handleReset = () => {
@@ -48,28 +56,55 @@ const Admin_MultiselectCard: React.FC<Admin_MultiselectCardProps> = ({
 
   useEffect(() => {
     const fetchZipData = async () => {
-      const orderService = latestOrderServices.getInstance();
-      const orders = await orderService.getOrders();
+      try {
+        const orderService = latestOrderServices.getInstance();
+        const orders = await orderService.getOrders();
 
-      // Extract and de-duplicate ZIP + City combos
-      const uniqueZips = Array.from(
-        new Map(
-          orders.map((o) => [`${o.zipcode}-${o.city}`, { zipcode: o.zipcode, city: o.city }])
-        ).values()
-      );
+        // Extract and de-duplicate ZIP + City combos (your original logic)
+        const uniqueZips = Array.from(
+          new Map(
+            orders.map((o) => [`${o.zipcode}-${o.city}`, { zipcode: o.zipcode, city: o.city }])
+          ).values()
+        );
 
-      setZipOptions(uniqueZips);
+        setZipOptions(uniqueZips);
+        
+        // Filter out any selected zipcodes that don't exist in the new options
+        if (selectedZipcodes.length > 0) {
+          const availableZips = uniqueZips.map(z => z.zipcode);
+          setSelectedZipcodes(selectedZipcodes.filter(z => availableZips.includes(z)));
+        }
+      } catch (error) {
+        console.error('Error fetching zip data:', error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchZipData();
   }, []);
 
+  if (loading) {
+    return (
+      <Card sx={{ maxWidth: 600, margin: '0 auto', p: 2, textAlign: 'center' }}>
+        <CircularProgress />
+      </Card>
+    );
+  }
+
   return (
-    <Card sx={{ maxWidth: 600, margin: '2rem auto', padding: 2 }}>
+    <Card sx={{ maxWidth: 600, p: 2, border: '1px solid #e0e0e0' }}>
       <CardContent>
-        <Typography variant="h6" gutterBottom>
-          Select ZIP Codes
-        </Typography>
+      <Typography 
+        variant="h6" 
+        gutterBottom 
+        sx={{ 
+          fontWeight: 'bold',
+          color: '#f7941d'  // Direct hex color
+        }}
+      >
+        Select ZIP Codes
+      </Typography>
 
         <FormControlLabel
           control={
@@ -80,40 +115,58 @@ const Admin_MultiselectCard: React.FC<Admin_MultiselectCardProps> = ({
             />
           }
           label={isMultiple ? 'Multiple Selection' : 'Single Selection'}
+          sx={{ mb: 2 }}
         />
 
-        <FormControl sx={{ minWidth: 240, mt: 2 }}>
+        <FormControl fullWidth>
           <InputLabel id="zipcode-select-label">ZIP Codes</InputLabel>
           <Select
             labelId="zipcode-select-label"
-            value={selectedZipcodes}
+            value={selectValue}
             onChange={handleChange}
             multiple={isMultiple}
             input={<OutlinedInput label="ZIP Codes" />}
-            renderValue={(selected) => selected.join(', ')}
+            renderValue={(selected) => {
+              if (isMultiple) {
+                return (selected as string[]).join(', ');
+              }
+              return selected as string;
+            }}
           >
-            {zipOptions.map((opt) => (
-              <MenuItem key={opt.zipcode} value={opt.zipcode}>
-                {opt.city} - {opt.zipcode}
+            {zipOptions.map((option) => (
+              <MenuItem key={option.zipcode} value={option.zipcode}>
+                {option.city} - {option.zipcode}
               </MenuItem>
             ))}
           </Select>
         </FormControl>
 
-        <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-          {selectedZipcodes.map((zipcode) => (
-            <Chip key={zipcode} label={zipcode} />
-          ))}
-        </Box>
+        {selectedZipcodes.length > 0 && (
+          <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+            {selectedZipcodes.map((zipcode) => (
+              <Chip
+                key={zipcode}
+                label={zipcode}
+                color="primary"
+                onDelete={() => setSelectedZipcodes(selectedZipcodes.filter((zip) => zip !== zipcode))}
+                deleteIcon={<ClearIcon />}
+              />
+            ))}
+          </Box>
+        )}
 
-        <Box sx={{ mt: 2 }}>
-          <Button variant="outlined" color="secondary" onClick={handleReset}>
-            Reset Selection
-          </Button>
-        </Box>
+        <Button
+          fullWidth
+          variant="contained"
+          onClick={handleReset}
+          sx={{ mt: 2 }}
+          disabled={selectedZipcodes.length === 0}
+        >
+          Reset Selection
+        </Button>
       </CardContent>
     </Card>
   );
 };
 
-export default Admin_MultiselectCard;
+export default AdminMultiselectCard;

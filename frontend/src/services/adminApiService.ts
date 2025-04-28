@@ -47,6 +47,14 @@ const exportTours = (tourIds: number[] | string[]) => {
   );
 };
 
+// Add this to your existing adminApiService
+const updateTour = (tourData: any) => {
+  return axios.put(API_BaseUrl + "updateTour", tourData, {
+    headers: authHeader(),
+  });
+};
+
+
 // Update your export default at the bottom to include this
  
 export default {
@@ -57,5 +65,6 @@ export default {
   fetchAllOrders,
   createTour,
   deleteTours,
-  exportTours
+  exportTours,
+  updateTour,
 };

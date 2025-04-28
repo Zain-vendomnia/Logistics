@@ -43,6 +43,7 @@ export interface TourInfo {
   order_ids: number[];
   orders: LogisticOrder[];
   tour_date: string;
+  tour_comments: string;
 }
 
 class latestOrderServices {
@@ -112,6 +113,17 @@ class latestOrderServices {
     }
   }
 
+  public async RealTimeToursData(): Promise<TourInfo[]> {
+    try {
+      const response = await adminApiService.fetchAllTours();
+      this.tours = response.data as TourInfo[];
+      return this.tours;
+    } catch (error) {
+      console.error('❌ Error fetching tours:', error);
+      return [];
+    }
+  }
+
   private async fetchOrderCount(): Promise<number> {
     try {
       //const response = await fetch('http://localhost:8080/api/admin/routeoptimize/ordercount');
@@ -145,7 +157,7 @@ class latestOrderServices {
     console.log('📡 Fetching fresh full order data');
 
     try {
-      //const response = await fetch('http://localhost:8080/api/admin/routeoptimize/orders');
+      // const response = await fetch('http://localhost:8080/api/admin/routeoptimize/orders');
       const response = adminApiService.fetchAllOrders();
       const data = (await response).data as LogisticOrder[];
    
@@ -158,6 +170,7 @@ class latestOrderServices {
         new Map(allDrivers.map(d => [d.driver_id, d])).values()
       );
 
+      console.log("🚚 Unique drivers ----> last Order service:", uniqueDrivers);
       this.drivers = uniqueDrivers as Driver[];
       return this.orders;
 
@@ -170,6 +183,39 @@ class latestOrderServices {
   public getDrivers(): Driver[] {
     return this.drivers;
   }
+  public async fetchAllDrivers(): Promise<Driver[]> {
+    try {
+      // 1. First try to fetch from dedicated drivers endpoint if available
+      // const response = await adminApiService.fetchAllDrivers();
+      // this.drivers = response.data as Driver[];
+      // return this.drivers;
+
+      // 2. Fallback: Fetch from tours (where driver assignment is more reliable)
+      // const tours = await this.getTours();
+      // const tourDrivers = tours
+      //   .filter(tour => tour.driver)
+      //   .map(tour => tour.driver);
+
+      // 3. Additional fallback: Include drivers from orders
+      const orders = await this.getOrders();
+      const orderDrivers = orders
+        .filter(order => order.drivers?.length)
+        .flatMap(order => order.drivers);
+
+      // Combine and deduplicate
+      this.drivers = Array.from(
+        new Map([ ...orderDrivers].map(d => [d.driver_id, d])).values()
+      );
+
+      console.log("🚛 All available drivers:", this.drivers);
+      return this.drivers;
+    } catch (error) {
+      console.error('❌ Error fetching all drivers:', error);
+      return [];
+    }
+  }
+
+ 
 
   public clearCache(): void {
     console.log("♻️ Clearing all cached data...");

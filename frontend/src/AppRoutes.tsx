@@ -27,7 +27,7 @@ const AppRoutes = () => {
   const getUserBoard = () => {
     if (user) {
       if (isSuperAdmin(user)) return <Navigate to="/superadmin" replace />;
-      if (isAdmin(user)) return <Navigate to="/admin" replace />;
+      if (isAdmin(user)) return <Navigate to="/Admin_dashboard" replace />;
       if (isDriver(user)) return <Navigate to="/driver" replace />;
     }
     return <Navigate to="/login" replace />;

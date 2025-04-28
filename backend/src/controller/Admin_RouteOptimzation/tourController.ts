@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { createTour, deleteTours, exportToursWithOrders } from '../../model/tourModel';
+import { createTour, deleteTours,updateTour } from '../../model/tourModel';
 import { OkPacket } from 'mysql2';
 import { tourInfo_master } from '../../model/TourinfoMaster';
 
@@ -110,39 +110,65 @@ export const deleteTourController = async (req: Request, res: Response) => {
     });
   }
 };
+export const updateTourController = async (req: Request, res: Response) => {
+  console.log('[updateTourController] Request received to update tour');
 
-// Controller to export tour info along with order details
-export const ExportTourController = async (req: Request, res: Response) => {
-  console.log('[ExportTourController] Request received to export tours');
-  
+  // Destructuring request body
+  const { id, tourName, comments, startTime, endTime, driverid, routeColor, tourDate } = req.body;
+
+  console.log('[updateTourController] Request body:', {
+    id,
+    tourName,
+    comments,
+    startTime,
+    endTime,
+    driverid,
+    routeColor,
+    tourDate,
+  });
+
+  // Basic validation to ensure that `id` is provided
+  if (!id) {
+    return res.status(400).json({ message: 'Tour ID is required for update' });
+  }
+
+  // Validate other fields (ensure they are not empty or undefined)
+  if (!tourName || !comments || !startTime || !endTime || !driverid || !routeColor || !tourDate) {
+    return res.status(400).json({ message: 'All fields are required for the update' });
+  }
+
   try {
-    const { tourIds } = req.body;
-    console.log('[ExportTourController] Tour IDs to export:', tourIds);
-
-    if (!tourIds || !Array.isArray(tourIds)) {
-      console.error('[ExportTourController] Invalid tour IDs provided');
-      return res.status(400).json({ message: 'Tour IDs must be an array' });
-    }
-
-    if (tourIds.length === 0) {
-      console.error('[ExportTourController] Empty tour IDs array provided');
-      return res.status(400).json({ message: 'No tour IDs provided' });
-    }
-
-    const combinedData = await exportToursWithOrders(tourIds);
-    console.log('[ExportTourController] Combined data prepared:', combinedData);
-
-    res.status(200).json({
-      success: true,
-      message: 'Tour data exported successfully',
-      data: combinedData
+    // Call the updateTour function to update the tour in the database
+    const result = await updateTour({
+      id,
+      tourName,
+      comments,
+      startTime,
+      endTime,
+      driverid,
+      routeColor,
+      tourDate,
     });
+
+    // Get the number of affected rows to determine if the update was successful
+    const affectedRows = (result as OkPacket).affectedRows;
+
+    console.log('[updateTourController] Database result:', result);
+
+    if (affectedRows > 0) {
+      console.log('[updateTourController] Tour updated successfully');
+      res.status(200).json({ message: 'Tour updated successfully' });
+    } else {
+      // If no rows were affected, it might mean that the tour ID doesn't exist or no changes were made
+      console.error('[updateTourController] No rows affected during update');
+      res.status(404).json({ message: 'Tour not found or no changes made' });
+    }
   } catch (error) {
-    console.error('[ExportTourController] Error:', error);
+    // Handle any errors during the update process
+    console.error('[updateTourController] Error:', error);
     res.status(500).json({
-      success: false,
-      message: 'Error exporting tours',
-      error: error instanceof Error ? error.message : 'Unknown error'
+      message: 'Error updating tour',
+      error: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 };
