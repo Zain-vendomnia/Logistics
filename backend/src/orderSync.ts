@@ -2,9 +2,9 @@ import axios from "axios";
 import pool from "./database";
 import { RowDataPacket } from "mysql2";
 import { ONE_TIME_ORDERINFO_URL } from "./services/apiUrl";
+import { GeocodingService } from "./services/geocodingService";
 
 export async function syncOrderData() {
-  const conn = await pool.getConnection();
 
   try {
     console.log("Fetching order data from API...");
@@ -58,7 +58,7 @@ export async function syncOrderData() {
     const orders = Array.from(ordersMap.values());
     console.log(`Found ${orders.length} unique orders after grouping.`);
 
-    const [existingOrders] = await conn.query<RowDataPacket[]>(
+    const [existingOrders] = await pool.query<RowDataPacket[]>(
       "SELECT order_number FROM logistic_order"
     );
     const existingOrderNumbers = new Set(existingOrders.map(o => o.order_number));
@@ -71,7 +71,7 @@ export async function syncOrderData() {
 
     console.log(`Inserting ${newOrders.length} new orders...`);
 
-    await conn.query("START TRANSACTION");
+    await pool.query("START TRANSACTION");
 
     try {
       for (const order of newOrders) {
@@ -86,7 +86,7 @@ export async function syncOrderData() {
         orderDate.setDate(orderDate.getDate() + 14);
         const expectedDeliveryTime = orderDate.toISOString().slice(0, 19).replace("T", " ");
 
-        const [result] = await conn.query(
+        const [result] = await pool.query(
           `INSERT INTO logistic_order (
             order_number, customer_id, invoice_amount, payment_id, warehouse_id, order_time,
             expected_delivery_time, customer_number, firstname, lastname,
@@ -114,7 +114,7 @@ export async function syncOrderData() {
         const orderId = (result as any).insertId;
 
         for (const item of order.OrderDetails) {
-          await conn.query(
+          await pool.query(
             `INSERT INTO logistic_order_items (
               order_id, order_number, slmdl_article_id,
               slmdl_articleordernumber, quantity, warehouse_id
@@ -131,18 +131,43 @@ export async function syncOrderData() {
         }
 
         console.log(`Inserted order ${order.ordernumber} with ${order.OrderDetails.length} items`);
+         // Process orders with missing coordinates
+      const [ordersWithMissingCoords] = await pool.query<RowDataPacket[]>(
+        'SELECT order_id, street, city, zipcode FROM logistic_order WHERE lattitude IS NULL OR longitude IS NULL'
+      );
+
+      for (const order of ordersWithMissingCoords) {
+        await checkAndUpdateLatLng(order.order_id, order.street, order.city, order.zipcode);
+      }
       }
 
-      await conn.query("COMMIT");
+      await pool.query("COMMIT");
       console.log(`✅ Successfully inserted ${newOrders.length} orders with their items.`);
     } catch (error) {
-      await conn.query("ROLLBACK");
+      await pool.query("ROLLBACK");
       console.error("❌ Transaction rolled back due to error:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   } catch (error) {
     console.error("🚨 Error in syncing order data:", error instanceof Error ? error.message : String(error));
-  } finally {
-    conn.release();
-  }
+  } 
+  
 }
+
+const checkAndUpdateLatLng = async (order_id: number, street: string, city: string, zipcode: string) => {
+  try {
+    const serviceData = await GeocodingService.geocodeOrderUpdatedCustomer(
+      order_id, 
+      street, 
+      city, 
+      zipcode
+    );
+    if (serviceData) {
+      console.log(`Successfully updated lat/lng for order ID ${order_id}`);
+    } else {
+      console.warn(`Failed to update lat/lng for order ID ${order_id}`);
+    }
+  } catch (error) {
+    console.error(`Error while updating lat/lng for order ID ${order_id}:`, error);
+  }
+};

@@ -20,18 +20,17 @@ const Admin_AddTour = () => {
   const [selectedZipcodes, setSelectedZipcodes] = useState<string[]>([]);
   const [selectedOrders, setSelectedOrders] = useState<number[]>([]); 
   const [ordersData, setOrdersData] = useState<LogisticOrder[]>([]);
-  const [modalOpen, setModalOpen] = useState(false);
+
+  const [modalConfig, setModalConfig] = useState<{
+    open: boolean;
+    warehouseId?: number;
+  }>({ open: false });
+
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
   const [alertSeverity, setAlertSeverity] = useState<'warning' | 'error'>('warning');
 
-  const handleCreateTourClick = () => {
-    if (selectedOrders.length === 0) {
-      setAlertMessage('Please select orders before creating a tour.');
-      setAlertSeverity('warning');
-      setAlertOpen(true);
-      return;
-    }
+   
     
     const selectedOrdersData = ordersData.filter(order => 
       selectedOrders.includes(order.order_id)
@@ -41,15 +40,22 @@ const Admin_AddTour = () => {
     const allSameWarehouse = selectedOrdersData.every(
       order => order.warehouse_id === firstWarehouseId
     );
-    
+    const handleCreateTourClick = () => {
+      if (selectedOrders.length === 0) {
+        setAlertMessage('Please select orders before creating a tour.');
+        setAlertSeverity('warning');
+        setAlertOpen(true);
+        setModalConfig({ open: true, warehouseId: firstWarehouseId });
+        return;
+    }
     if (!allSameWarehouse) {
       setAlertMessage('All selected orders must be from the same warehouse.');
       setAlertSeverity('warning');
       setAlertOpen(true);
       return;
     }
-    
-    setModalOpen(true);
+    setModalConfig({ open: true, warehouseId: firstWarehouseId });
+
   };
 
   return (
@@ -119,12 +125,12 @@ const Admin_AddTour = () => {
       </Stack>
 
       {/* Create Tour Modal */}
-      <CreateTourModal 
-        open={modalOpen} 
-        handleClose={() => setModalOpen(false)}  
-        orderIds={selectedOrders} 
+       <CreateTourModal
+        open={modalConfig.open}
+        warehouseId={modalConfig.warehouseId}
+        handleClose={() => setModalConfig({ open: false })}
+        orderIds={selectedOrders}
       />
-
       {/* Centered Alert Notification */}
       {alertOpen && (
         <Box

@@ -40,6 +40,7 @@ export const getAllTourController = async (_req: any, res: any) => {
 
       if (orderIds.length > 0) {
         // First get the orders
+        // First get the orders
         const placeholders = orderIds.map(() => '?').join(',');
         const [orderRows] = await pool.query<RowDataPacket[]>(`
           SELECT * FROM logistic_order

@@ -48,13 +48,12 @@ export const CREATE_TOUR_INFO_MASTER_TABLE = `
     tour_total_km VARCHAR(45) NOT NULL,
     tour_start_fuel_pic BLOB,
     route_color VARCHAR(7) NOT NULL,
+    graphhopper_route JSON,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (driver_id) REFERENCES driver_details(id) ON DELETE CASCADE,
-    FOREIGN KEY (warehouse_id) REFERENCES warehouse_details(warehouse_id) ON DELETE CASCADE
+    FOREIGN KEY (driver_id) REFERENCES driver_details(id) ON DELETE CASCADE
   );
 `;
-
 
 
 export const CREATE_ROUTE_UPDATES_TABLE = `

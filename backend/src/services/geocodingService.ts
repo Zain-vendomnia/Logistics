@@ -45,12 +45,11 @@ export class GeocodingService {
     }
   }
 
-
+  
    // Geocode all orders (addresses) from the database
    static async geocodeAllOrders(): Promise<{ id: string; type: string; address: { location_id: string; lat: number; lon: number } }[]> {
     const orders = await OrderDetails.getAllOrders();
-
-    
+  
 
     const results: { id: string; type: string; address: { location_id: string; lat: number; lon: number } }[] = [];
 
@@ -79,6 +78,9 @@ export class GeocodingService {
     return results;
   }
 
+
+
+
   static async geocodeOrderUpdatedCustomer(_order_id: any, _street: any, _city: any, _zipcode: any): Promise<{ id: string; type: string; address: { location_id: string; lat: number; lon: number } }[]> {
     // const orders = await OrderDetails.getAllcustomerAddress();  // Get all orders
      const orders = await LogisticOrder.getlatlngNullcustomerAddress(); 
@@ -88,7 +90,7 @@ export class GeocodingService {
      // Iterate over the orders and geocode them
      for (let index = 0; index < orders.length; index++) {
        const order = orders[index];
-       const address =order.street +','+ order.city +',' + order.zipcode;
+       const address = order.street +','+ order.city +',' + order.zipcode;
        const latLng = await this.getLatLngFromAddress(address);  
  
        if (latLng) {

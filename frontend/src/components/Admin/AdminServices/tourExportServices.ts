@@ -1,5 +1,7 @@
 import adminApiService from "../../../services/adminApiService";
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx';  
+
+
 
 export const exportTours = async (tourIds: string[]) => {
     try {
@@ -130,5 +132,5 @@ export const exportTours = async (tourIds: string[]) => {
     } catch (error) {
         console.error('Error exporting tours:', error);
         throw error;
-    }
+    } 
 };

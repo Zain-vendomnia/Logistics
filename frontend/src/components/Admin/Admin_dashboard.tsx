@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Grid,
@@ -15,8 +15,8 @@ import {
   BarChart,
 } from '@mui/icons-material';
 import AdminShipmenttable from '../Admin/Admin_Shipmenttable';
-import { useNavigate } from 'react-router-dom';  // Use useNavigate for navigation
-
+import { useNavigate } from 'react-router-dom';
+import adminApiService from '../../services/adminApiService';
 // Custom Theme
 const theme = createTheme({
   palette: {
@@ -45,6 +45,7 @@ const StatCard = styled(Card)(({ theme }) => ({
   textAlign: 'center',
   padding: theme.spacing(2),
   borderRadius: theme.spacing(2),
+  cursor: 'pointer',
   '&:hover': {
     transform: 'translateY(-5px)',
     boxShadow: theme.shadows[6],
@@ -52,53 +53,77 @@ const StatCard = styled(Card)(({ theme }) => ({
 }));
 
 const AdminDashboard: React.FC = () => {
-  const navigate = useNavigate();  // Use useNavigate hook for navigation
+  const navigate = useNavigate();
+
+  // state for order count
+  const [orderCount, setOrderCount] = useState<number | null>(null);
+  const [loadingCount, setLoadingCount] = useState(true);
+  const [errorCount, setErrorCount] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadOrderCount = async () => {
+      setLoadingCount(true);
+      setErrorCount(null);
   
+      try {
+        const count = await adminApiService.getOrderCount(); 
+        setOrderCount(count);
+      } catch (err) {
+        setErrorCount('Error');
+      } finally {
+        setLoadingCount(false);
+      }
+    };
+  
+    loadOrderCount();
+  }, []);
+
   const stats = [
     { 
       icon: <DirectionsCar fontSize="large" />, 
       value: '24', 
       label: 'Vehicles On Road', 
       subLabel: 'Active vehicles currently tracking',
-      route: '/vehicles-on-road'  // Path to navigate on click
+      route: '/vehicles-on-road'
     },
     { 
       icon: <LocalShipping fontSize="large" />, 
-      value: '148', 
+      value: loadingCount
+        ? '…'
+        : errorCount
+        ? errorCount
+        : orderCount?.toString() ?? '0',
       label: 'Total Orders', 
-      subLabel: 'Orders this month',
-      route: '/total-orders'  // Path to navigate on click
+      subLabel: 'Orders from Shopware',
+      route: '/Admin_AddTour'
     },
     { 
       icon: <Assessment fontSize="large" />, 
       value: '92%', 
       label: 'Delivery Status', 
       subLabel: 'On-time delivery rate',
-      route: '/delivery-status'  // Path to navigate on click
+      route: '/delivery-status'
     },
     { 
       icon: <BarChart fontSize="large" />, 
       value: '87%', 
       label: 'Fleet Efficiency', 
       subLabel: 'Optimal route efficiency',
-      route: '/fleet-efficiency'  // Path to navigate on click
+      route: '/fleet-efficiency'
     },
   ];
 
-  // Handle card click and navigate to the respective page
   const handleCardClick = (route: string) => {
-    navigate(route);  // Navigate to the details page using useNavigate
+    navigate(route);
   };
 
   return (
     <ThemeProvider theme={theme}>
       <Box sx={{ p: 3, bgcolor: '#59555626', minHeight: 'calc(100vh - 50px)' }}>
-        {/* Header */}
         <Typography variant="h4" gutterBottom sx={{ fontWeight: 700, color: 'primary.main' }}>
           Dashboard Overview
         </Typography>
 
-        {/* Stat Cards */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
           {stats.map((stat, idx) => (
             <Grid item xs={12} sm={6} md={3} key={idx}>
@@ -118,7 +143,6 @@ const AdminDashboard: React.FC = () => {
           ))}
         </Grid>
 
-        {/* Main Content */}
         <AdminShipmenttable />
       </Box>
     </ThemeProvider>

@@ -23,18 +23,19 @@ import latestOrderServices from './AdminServices/latestOrderServices';
 interface CreateTourModalProps {
   open: boolean;
   handleClose: () => void;
+  warehouseId?: number;
   orderIds: number[];
 }
 
 interface Driver {
   driver_id: number | string;
   driver_name: string;
+  warehouse_id?: number ;
 }
 
-const CreateTourModal: React.FC<CreateTourModalProps> = ({ open, handleClose, orderIds }) => {
+const CreateTourModal: React.FC<CreateTourModalProps> = ({ open, handleClose,warehouseId, orderIds }) => {
   const theme = useTheme();
   const navigate = useNavigate();
-  
   // Form state
   const [tourName, setTourName] = useState('');
   const [comments, setComments] = useState('');
@@ -45,9 +46,11 @@ const CreateTourModal: React.FC<CreateTourModalProps> = ({ open, handleClose, or
   const [tourDate, setTourDate] = useState('');
 
   // Get drivers data
+  
   const drivers: Driver[] = latestOrderServices.getInstance().getDrivers();
 
-  // Generate time options (memoize this if component re-renders frequently)
+
+
   const timeOptions = Array.from({ length: 24 }, (_, i) => {
     const hour = i % 12 || 12;
     const period = i < 12 ? 'AM' : 'PM';
@@ -152,11 +155,14 @@ const CreateTourModal: React.FC<CreateTourModalProps> = ({ open, handleClose, or
             required
             size="medium"
           >
-            {drivers.map((driver) => (
-              <MenuItem key={driver.driver_id} value={driver.driver_id}>
-                {driver.driver_name}
-              </MenuItem>
-            ))}
+          {drivers
+          .filter(driver => driver.warehouse_id === warehouseId)
+          .map((driver) => (
+            <MenuItem key={driver.driver_id} value={driver.driver_id}>
+              {driver.driver_name}
+            </MenuItem>
+        ))}
+           
           </Select>
         </FormControl>
           </Grid>

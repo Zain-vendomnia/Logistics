@@ -8,7 +8,7 @@ export const insertOrUpdateImageByType = async (
   imageBuffer: Buffer,
   referenceId?: string // now optional
 ) => {
-  const conn = await pool.getConnection();
+ 
   let query = "";
   let params: any[] = [];
 
@@ -65,6 +65,6 @@ export const insertOrUpdateImageByType = async (
       throw new Error(`Invalid imageFor type: ${imageFor}`);
   }
 
-  const [result] = await conn.query(query, params);
+  const [result] = await pool.query(query, params);
   return result;
 };

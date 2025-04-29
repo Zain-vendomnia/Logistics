@@ -13,6 +13,7 @@ import routeSegmentsSetup from "./initialDBSetup/routeSegmentsSetup";
 import WMSOrderSetup from "./initialDBSetup/wms_orders";
 import WMSOrderArticlesSetup from "./initialDBSetup/wms_order_articles";
 import { syncOrderData } from "./orderSync";
+import { fetchScheduleOrderInfo,fetchScheduleWmsOrderInfo } from './services/scheduleFetching';
 
 async function main() {
   try {
@@ -36,6 +37,11 @@ async function main() {
       try {
         await syncOrderData();
         console.log("Order data synced successfully.");
+        // Call immediately after server start
+        fetchScheduleWmsOrderInfo();
+
+        setInterval(fetchScheduleOrderInfo, 900000); // 900,000 ms = 15 minutes
+        setInterval(fetchScheduleWmsOrderInfo, 1800000); // 900,000 ms = 30 minutes
       } catch (error) {
         console.error("Error syncing order data:", error);
       }

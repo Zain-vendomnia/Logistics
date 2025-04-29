@@ -13,9 +13,7 @@ const AUTH_CREDENTIALS = Buffer.from(
 
 export const fetchOrders = async (lastOrderNumber: string, type: string) => {
   console.log(`Fetching orders from API with lastOrderNumber: ${lastOrderNumber} and type: ${type}`);
-
-  const conn = await pool.getConnection();
-  
+ 
   try {
     const params = { lastOrderNumber, type };
     const response = await axios.get(API_URL, {
@@ -33,7 +31,7 @@ export const fetchOrders = async (lastOrderNumber: string, type: string) => {
     console.log(`Received ${orders.length} orders. Checking for duplicates...`);
 
     // Fetch existing order numbers in a single query
-    const [existingOrders] = await conn.query<RowDataPacket[]>(
+    const [existingOrders] = await pool.query<RowDataPacket[]>(
       "SELECT order_number FROM logistic_order"
     );
     const existingOrderNumbers = new Set(existingOrders.map(order => order.order_number));
@@ -50,7 +48,7 @@ export const fetchOrders = async (lastOrderNumber: string, type: string) => {
 
     console.log(`Processing ${newOrders.length} new orders...`);
 
-    await conn.query("START TRANSACTION");
+    await pool.query("START TRANSACTION");
 
     try {
       for (const order of newOrders) {
@@ -61,7 +59,7 @@ export const fetchOrders = async (lastOrderNumber: string, type: string) => {
 
         const warehouse_id = order.OrderDetails[0].warehouse_id ?? 0;
         // Insert main order
-        const [result] = await conn.query(
+        const [result] = await pool.query(
           `INSERT INTO logistic_order 
           (order_number, customer_id, invoice_amount, payment_id, warehouse_id, order_time, 
            expected_delivery_time,   
@@ -91,7 +89,7 @@ export const fetchOrders = async (lastOrderNumber: string, type: string) => {
         // Insert order items if they exist
         if (order.OrderDetails && Array.isArray(order.OrderDetails)) {
           for (const item of order.OrderDetails) {
-            await conn.query(
+            await pool.query(
               `INSERT INTO logistic_order_items 
               (order_id, order_number, slmdl_article_id, 
                slmdl_articleordernumber, quantity, warehouse_id) 
@@ -111,11 +109,11 @@ export const fetchOrders = async (lastOrderNumber: string, type: string) => {
         console.log(`Inserted order ${order.ordernumber} with ${order.OrderDetails?.length || 0} items`);
       }
 
-      await conn.query("COMMIT");
+      await pool.query("COMMIT");
       console.log("✅ Transaction committed successfully");
 
       // Process orders with missing coordinates
-      const [ordersWithMissingCoords] = await conn.query<RowDataPacket[]>(
+      const [ordersWithMissingCoords] = await pool.query<RowDataPacket[]>(
         'SELECT order_id, street, city, zipcode FROM logistic_order WHERE lattitude IS NULL OR longitude IS NULL'
       );
 
@@ -128,15 +126,13 @@ export const fetchOrders = async (lastOrderNumber: string, type: string) => {
         insertedOrders: newOrders.length 
       };
     } catch (error) {
-      await conn.query("ROLLBACK");
+      await pool.query("ROLLBACK");
       console.error("❌ Transaction rolled back due to error:", error);
       throw new Error("Failed to insert order data");
     }
   } catch (error) {
     console.error("Error in fetchOrders:", error);
     throw error;
-  } finally {
-    conn.release();
   }
 };
 

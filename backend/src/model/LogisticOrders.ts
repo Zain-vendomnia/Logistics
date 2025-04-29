@@ -34,7 +34,8 @@ export class LogisticOrder  {
             'driver_id', dd.id,
             'driver_name', dd.name,
             'driver_mobile', dd.mob,
-            'driver_address', dd.address
+            'driver_address', dd.address,
+            'warehouse_id', dd.warehouse_id
           )
         ) AS drivers,
         (
@@ -67,6 +68,18 @@ export class LogisticOrder  {
 
   static async getlatlngNullcustomerAddress(): Promise<LogisticOrder[]> {
     const [rows] = await pool.execute('SELECT * FROM `logistic_order` WHERE `lattitude` IS NULL AND `longitude` IS NULL');  
+    return rows as LogisticOrder[];
+  }
+
+  static async getOrdersByIds(orderIds: number[]): Promise<LogisticOrder[]> {
+    if (orderIds.length === 0) return [];
+  
+    const placeholders = orderIds.map(() => '?').join(', ');
+    const [rows] = await pool.execute(
+      `SELECT * FROM logistic_order WHERE order_id IN (${placeholders})`,
+      orderIds
+    );
+  
     return rows as LogisticOrder[];
   }
 }
