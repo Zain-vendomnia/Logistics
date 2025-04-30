@@ -30,6 +30,7 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet-polylinedecorator';
 import { useParams } from 'react-router-dom';
 import latestOrderServices from './AdminServices/latestOrderServices';
+import { Tour } from '@mui/icons-material';
 
 type Stop = {
   id: string;
@@ -45,7 +46,6 @@ type Stop = {
 const TourMapPage: React.FC = () => {
   const { tour_id } = useParams<{ tour_id: string }>();
   const parsedTourId = tour_id ? parseInt(tour_id, 10) : null;
-
   const [routePoints, setRoutePoints] = useState<[number, number][][]>([]);
   const [stops, setStops] = useState<Stop[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,8 +66,8 @@ const TourMapPage: React.FC = () => {
     fetchData();
   }, [tour_id]);
 
-  console.log(selectedTour);
-
+  //console.log(selectedTour);
+  console.log("stops" + JSON.stringify(stops));
   const fetchRouteData = async () => {
     try {
       if (parsedTourId !== null) {
@@ -80,7 +80,7 @@ const TourMapPage: React.FC = () => {
 
           const distanceInKilometers = (distance / 1000).toFixed(2); // 2 decimal places
           setRouteDistance(parseFloat(distanceInKilometers)); // Set distance in kilometers
-  
+          
           const time = data.solution.time; // in seconds
         
           setRouteTime(time);
@@ -90,15 +90,16 @@ const TourMapPage: React.FC = () => {
           setRoutePoints(formattedRoutes);
           
           const mappedStops: Stop[] = route.activities.map((activity: any, index: number) => ({
-            id: activity.id || `${index + 1}`,
+            id: `${index + 1}`,
             location_id: activity.location_id,
             lat: activity.address.lat,
             lon: activity.address.lon,
             arrival: activity.arr_date_time,
             type: activity.type
           }));
-          console.log("stops" + JSON.stringify(stops));
+          
           setStops(mappedStops);
+         
         }
         setLoading(false);
       }
@@ -135,7 +136,7 @@ const TourMapPage: React.FC = () => {
 
     useEffect(() => {
       const polyline = L.polyline(positions, {
-        color: 'Navy',
+        color: selectedTour.tour_route_color,
         weight: 5,
         opacity: 0.7,
       }).addTo(map);
@@ -148,7 +149,7 @@ const TourMapPage: React.FC = () => {
             symbol: (L as any).Symbol.arrowHead({
               pixelSize: 12,
               polygon: false,
-              pathOptions: { stroke: true, color: 'Navy' },
+              pathOptions: { stroke: true, color: selectedTour.tour_route_color },
             }),
           },
         ],
@@ -202,6 +203,9 @@ const TourMapPage: React.FC = () => {
           <Typography variant="caption" sx={{ bgcolor: '#fff3e0', px: 1, py: 0.5, borderRadius: 1 }}>
           {formatTime(routeTime)}
           </Typography>
+          <Typography variant="caption" sx={{ bgcolor: '#f7941d', px: 1, py: 0.5, borderRadius: 1 }}>
+          {selectedTour.tour_startTime } - {selectedTour.tour_endTime}
+          </Typography>
         </Box>
 
         <Divider sx={{ my: 2 }} />
@@ -225,7 +229,7 @@ const TourMapPage: React.FC = () => {
 
                 <Box sx={{ ml: 2, flexGrow: 1 }}>
                   <Typography fontWeight="bold" variant="body2">
-                    {stop.name || `Stop ${index}`}
+                    {stop.name }
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     {stop.address || stop.location_id}
@@ -251,14 +255,7 @@ const TourMapPage: React.FC = () => {
 
 
         <Divider sx={{ my: 2 }} />
-        <Typography variant="body2">Legende:</Typography>
-        <Stack direction="row" spacing={1} mt={1}>
-          <Avatar sx={{ bgcolor: '#d32f2f', width: 28, height: 28, fontSize: 13 }}>S</Avatar>
-          <Typography variant="caption">Startpunkt</Typography>
-          <Avatar sx={{ bgcolor: '#2e7d32', width: 28, height: 28, fontSize: 13 }}>E</Avatar>
-          <Typography variant="caption">Zielpunkt</Typography>
-        </Stack>
-      </Paper>
+        </Paper>
 
       <Box sx={{ flex: 1 }}>
         <MapContainer
@@ -280,10 +277,10 @@ const TourMapPage: React.FC = () => {
               position={[stop.lat, stop.lon]}
               icon={
                 stop.type === 'start'
-                  ? createIcon('S', '#d32f2f')
+                  ? createIcon('S', selectedTour.tour_route_color)
                   : stop.type === 'end'
-                    ? createIcon('E', '#2e7d32')
-                    : createIcon(String(index), '#1976d2')
+                    ? createIcon('E', selectedTour.tour_route_color)
+                    : createIcon(String(index), selectedTour.tour_route_color)
               }
             >
               <Popup>

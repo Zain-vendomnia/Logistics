@@ -11,10 +11,12 @@ import { useSnackbar } from "../../providers/SnackbarProvider";
 
 import GoogleMaps from "./GoogleMaps";
 import LeafletMaps from "./leaflet_Map/leaflet_Maps";
+import adminApiService from "../../services/adminApiService";
+import { LatLngTuple } from "leaflet";
 
 const Dashboard = () => {
   const { showSnackbar } = useSnackbar();
-
+  const [routePath, setRoutePath] = useState<LatLngTuple[]>([]);
   const styles = useStyles;
 
   const componentCheckList = [
@@ -40,6 +42,28 @@ const Dashboard = () => {
     const isAllComplied = componentStatus.every((status) => status === true);
     setIsComplied(isAllComplied);
   }, [componentStatus]);
+
+
+  const fetchRouteData = async () => {
+    try {
+      const response = await adminApiService.fetchRouteSegmentData(19);  // Call the service method
+      const data = response.data;
+      const coords = data.geometry.coordinates;  // Axios response has data in the 'data' property
+      console.log("coords", data);
+      const routePath: LatLngTuple[] = coords.map(
+        (c: number[]): LatLngTuple => [c[1], c[0]]
+      );
+      setRoutePath(routePath);
+      // Set loading to false after the data is fetched
+    } catch (error) {
+      // Ensure loading is set to false if there is an error
+      console.error("Error fetching route data:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchRouteData();
+  }, []);
 
   const handleImageUpload = (index: number, isImageUplaoded: boolean) => {
     console.log("isImageUplaoded Parent: ", isImageUplaoded);
@@ -142,8 +166,8 @@ const Dashboard = () => {
         <Box width={"100%"} height={"100%"}>
           <LeafletMaps
             destination={tripData ? tripData.destinationCoordinates : null}
+            routePath={routePath}
           />
-          {/* burj Khalifa: [25.1972, 55.2744] */}
         </Box>
       </Grid2>
     </Grid2>

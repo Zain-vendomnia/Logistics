@@ -20,8 +20,10 @@ import { optimizeRouteController } from "./controller/Admin_RouteOptimzation/opt
 import { updatelatlngController } from "./controller/Admin_RouteOptimzation/updatelatlngController";
 import {  getAllLogisticOrders, getcountcheck } from './controller/Admin_RouteOptimzation/order.controller';
 
-import { createTourController, getgraphhopperRoute, getTourcountcheck, deleteTourController} from './controller/Admin_RouteOptimzation/tourController';
+import { createTourController, getgraphhopperRoute, getTourcountcheck, deleteTourController, getSegmentRoutes} from './controller/Admin_RouteOptimzation/tourController';
 import { getAllTourController } from "./controller/Admin_RouteOptimzation/getAllTourController";
+import { HandleOrderDelivery } from "./controller/AdminDriverApi/HandleOrderDelivery";
+
 
 
 // import { getImageById } from "./controller/Admin_Api/route_segments.controller";
@@ -61,6 +63,10 @@ app.use('/api/admin/routeoptimize/tourcount', getTourcountcheck);
 app.use('/api/admin/routeoptimize/deleteTours', deleteTourController);
 //app.use('/api/admin/routeoptimize/exportTours', ExportTourController);
 app.use('/api/admin/routeoptimize/getGraphhopperRoute', getgraphhopperRoute);
+app.use('/api/admin/routeoptimize/getSegmentRoute', getSegmentRoutes);
+
+app.use('/api/admin/routeoptimize/updateLatlng', GeocodingController.getLatLngtest);
+app.use('/api/admindriver/tour/:tourId/order', HandleOrderDelivery);
 
 // --------------------------------------------------------------------
 app.get("/api/admin/orderinfo", orderInfoController);
