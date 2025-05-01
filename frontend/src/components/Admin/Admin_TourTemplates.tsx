@@ -1,309 +1,240 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, MouseEvent, ChangeEvent } from 'react';
 import {
-    Box, Typography, Table, TableHead, TableRow, TableCell,
-    TableBody, Checkbox, Button, IconButton, Menu, MenuItem,
-    TextField, Card, CardContent, CardHeader, Divider, Tooltip
+  Box, Typography, Table, TableHead, TableRow, TableCell, TableBody,
+  Checkbox, Button, IconButton, Menu, MenuItem, TextField, Card, CardContent,
+  CardHeader, Divider, Tooltip, Snackbar, Alert
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
-import DeleteIcon from '@mui/icons-material/Delete';
-import FileDownloadIcon from '@mui/icons-material/FileDownload';
-import MergeIcon from '@mui/icons-material/Merge';
+import { MoreVert as MoreVertIcon, Delete as DeleteIcon, FileDownload as FileDownloadIcon, Merge as MergeIcon } from '@mui/icons-material';
+
 import latestOrderServices, { TourInfo } from './AdminServices/latestOrderServices';
 import { deleteTours } from './AdminServices/tourDeletionServices';
 import { exportTours } from './AdminServices/tourExportServices';
+import EditTourModal from './Admin_EditTourModal';
 import '../Admin/css/Admin_TourTemplate.css';
 
 interface Tour {
-    id: string;
-    tour_name: string; 
-    date: string;
-    color: string;
-    amount: number;
-    timeRange: string;
-    driver: string;
+  id: string;
+  tour_name: string;
+  date: string;
+  color: string;
+  amount: number;
+  timeRange: string;
+  driver: string;
+  tour_comments: string;
+  driver_id?: number;
 }
 
+interface SnackbarState {
+  open: boolean;
+  message: string;
+  severity: 'success' | 'error' | 'info' | 'warning';
+}
+
+const ActionButton = ({ title, icon, color, onClick, disabled }: {
+  title: string, icon: JSX.Element, color: 'error' | 'secondary' | 'primary',
+  onClick: () => void, disabled: boolean
+}) => (
+  <Tooltip title={title}>
+    <span>
+      <Button variant="contained" color={color} startIcon={icon} size="small" onClick={onClick} disabled={disabled}>
+        {title}
+      </Button>
+    </span>
+  </Tooltip>
+);
+
 export const Admin_TourTemplates = () => {
-    const [tours, setTours] = useState<Tour[]>([]);
-    const [selected, setSelected] = useState<string[]>([]);
-    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-    const [searchTerm, setSearchTerm] = useState('');
-    const navigate = useNavigate();
+  const [tours, setTours] = useState<Tour[]>([]);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [currentTour, setCurrentTour] = useState<Tour | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [snackbar, setSnackbar] = useState<SnackbarState>({ open: false, message: '', severity: 'info' });
+  const navigate = useNavigate();
 
-    useEffect(() => {
-        const fetchTours = async () => {
-            try {
-                const instance = latestOrderServices.getInstance();
+  const loadTours = async () => {
+    try {
+      const instance = latestOrderServices.getInstance();
+      const tourData = await instance.RealTimeToursData();
+      const mapped = tourData.map(({ id, tour_name, tour_comments, tour_date, tour_route_color, orders, tour_startTime, tour_endTime, driver }: TourInfo): Tour => ({
+        id: id.toString(),
+        tour_name,
+        tour_comments,
+        date: new Date(tour_date).toLocaleDateString(),
+        color: tour_route_color,
+        amount: orders.length,
+        timeRange: `${tour_startTime.slice(0, 5)} - ${tour_endTime.slice(0, 5)}`,
+        driver: driver?.driver_name || 'N/A',
+        driver_id: driver?.driver_id || 0
+      }));
+      setTours(mapped);
+    } catch (error) {
+      console.error('Error fetching tours:', error);
+      showSnackbar('Failed to load tours', 'error');
+    }
+  };
 
-                const tourData = await instance.getTours(); 
-              
+  useEffect(() => { loadTours(); }, []);
 
-                const mappedTours: Tour[] = tourData.map((tour: TourInfo) => ({
-                    id: tour.id.toString(),
-                    tour_name: tour.tour_name,
-                    date: new Date(tour.tour_date).toLocaleDateString(),
-                    color: tour.tour_route_color,
-                    amount: tour.orders.length,
-                    timeRange: tour.tour_startTime.slice(0, 5) + ' - ' + tour.tour_endTime.slice(0, 5),
-                    driver: tour.driver?.driver_name || 'N/A',
-                }));
+  const filteredTours = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    return term ? tours.filter(tour => [tour.tour_name, tour.driver, tour.date, tour.timeRange, tour.id]
+      .some(field => field?.toLowerCase().includes(term))) : tours;
+  }, [tours, searchTerm]);
 
-                setTours(mappedTours);
-            } catch (error) {
-                console.error('Error fetching tours:', error);
-            }
-        };
+  const isSelected = (id: string) => selected.includes(id);
 
-        fetchTours();
-    }, []);
+  const handleSelectAllClick = (e: ChangeEvent<HTMLInputElement>) =>
+    setSelected(e.target.checked ? filteredTours.map(t => t.id) : []);
 
-    const filteredTours = useMemo(() => {
-        if (!searchTerm.trim()) return tours;
-        
-        const lowerCaseSearch = searchTerm.toLowerCase();
-        return tours.filter(tour => 
-            tour.tour_name.toLowerCase().includes(lowerCaseSearch) ||
-            (tour.driver && tour.driver.toLowerCase().includes(lowerCaseSearch)) ||
-            tour.date.toLowerCase().includes(lowerCaseSearch) ||
-            tour.timeRange.toLowerCase().includes(lowerCaseSearch)
-        );
-    }, [tours, searchTerm]);
+  const handleCheckboxClick = (e: MouseEvent, id: string) => {
+    e.stopPropagation();
+    setSelected(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
 
-    const handleSelectAllClick = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setSelected(event.target.checked ? filteredTours.map(tour => tour.id) : []);
-    };
+  const showSnackbar = (message: string, severity: SnackbarState['severity']) =>
+    setSnackbar({ open: true, message, severity });
 
-    const handleCheckboxClick = (event: React.MouseEvent<unknown>, id: string) => {
-        event.stopPropagation();
-        setSelected(prev => 
-            prev.includes(id) 
-                ? prev.filter(item => item !== id) 
-                : [...prev, id]
-        );
-    };
+  const handleAction = async (action: 'delete' | 'merge' | 'export') => {
+    if (!selected.length) return showSnackbar('No tours selected', 'warning');
 
-    const isSelected = (id: string) => selected.includes(id);
-
-    const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setSearchTerm(event.target.value);
-    };
-
-    const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
-        setAnchorEl(event.currentTarget);
-    };
-
-    const handleMenuClose = () => {
-        setAnchorEl(null);
-    };
-
-    const handleDeleteSelected = async () => {
-        if (selected.length === 0) return;
-        
-        try {
-            await deleteTours(selected);
-            // Refresh the tour list after deletion
-            const instance = latestOrderServices.getInstance();
-            const tourData = await instance.getTours();
-            const mappedTours: Tour[] = tourData.map((tour: TourInfo) => ({
-                id: tour.id.toString(),
-                tour_name: tour.tour_name,
-                date: new Date(tour.tour_date).toLocaleDateString(),
-                color: tour.tour_route_color,
-                amount: tour.orders.length,
-                timeRange: tour.tour_startTime.slice(0, 5) + ' - ' + tour.tour_endTime.slice(0, 5),
-                driver: tour.driver?.driver_name || 'N/A',
-            }));
-            setTours(mappedTours);
-            setSelected([]);
-        } catch (error) {
-            console.error('Error deleting tours:', error);
+    try {
+      if (action === 'delete') await handleDelete(selected);
+      if (action === 'merge') {
+        if (selected.length === 2) {
+          console.log('Merging tours:', selected);
+          showSnackbar('Merge functionality not yet implemented', 'info');
+        } else {
+          showSnackbar('Select exactly two tours to merge', 'warning');
         }
-    };
+      }
+      if (action === 'export') {
+        await exportTours(selected);
+        showSnackbar(`Successfully exported ${selected.length} tour(s)`, 'success');
+      }
+    } catch (error) {
+      console.error(`${action} failed:`, error);
+      showSnackbar(`${action.charAt(0).toUpperCase() + action.slice(1)} failed`, 'error');
+    }
+  };
 
-    const handleMergeSelected = () => {
-        if (selected.length !== 2) {
-            console.log('Please select exactly 2 tours to merge');
-            return;
-        }
-        console.log('Merging tours:', selected);
-        // Actual merge logic will be implemented later
-    };
+  const handleDelete = async (ids: string[]) => {
+    try {
+      await deleteTours(ids);
+      await loadTours();
+      setSelected(prev => prev.filter(id => !ids.includes(id)));
+      showSnackbar(`Deleted ${ids.length} tour(s)`, 'success');
+    } catch (error) {
+      console.error('Delete failed:', error);
+      showSnackbar('Failed to delete tour(s)', 'error');
+    }
+  };
 
-    // Update the handleExportSelected function in the component
-    const handleExportSelected = async () => {
-        if (selected.length === 0) {
-            console.log('No tours selected for export');
-            return;
-        }
-        
-        try {
-            await exportTours(selected);
-            // Optional: Show success message to user
-        } catch (error) {
-            console.error('Export failed:', error);
-            // Optional: Show error message to user
-        }
-    };
-    
-    return (
-        <Box p={3} sx={{ minHeight: '100vh' }}>
-            <Card sx={{ borderRadius: 4, boxShadow: 3 }}>
-                <CardHeader
-                    title="Tour Overview"
-                    sx={{ 
-                        bgcolor: '#1976d2', 
-                        color: 'white', 
-                        borderTopLeftRadius: 16, 
-                        borderTopRightRadius: 16,
-                        '& .MuiCardHeader-action': {
-                            alignSelf: 'center'
-                        }
-                    }}
-                />
-                <CardContent>
-                    <Box display="flex" justifyContent="space-between" flexWrap="wrap" mb={2} gap={2}>
-                        <TextField 
-                            placeholder="Search tours..." 
-                            size="small" 
-                            sx={{ flexGrow: 1, maxWidth: 300 }} 
-                            value={searchTerm}
-                            onChange={handleSearchChange}
-                        />
-                        <Box display="flex" gap={1} flexWrap="wrap">
-                            <Tooltip title={selected.length > 0 ? `Delete ${selected.length} selected items` : "Delete selected items"}>
-                                <Button 
-                                    variant="contained"
-                                    color="error"
-                                    startIcon={<DeleteIcon />}
-                                    size="small"
-                                    onClick={handleDeleteSelected}
-                                    disabled={selected.length === 0}
-                                >
-                                    Delete
-                                </Button>
-                            </Tooltip>
-                            <Tooltip title={selected.length > 0 ? `Merge ${selected.length} selected tours` : "Merge selected tours"}>
-                                <Button 
-                                    variant="contained"
-                                    color="secondary"
-                                    startIcon={<MergeIcon />}
-                                    size="small"
-                                    onClick={handleMergeSelected}
-                                    disabled={selected.length !== 2}
-                                >
-                                    Merge
-                                </Button>
-                            </Tooltip>
-                            <Tooltip title={selected.length > 0 ? `Export ${selected.length} selected items` : "Export selected items"}>
-                                <Button 
-                                    variant="contained"
-                                    color="primary"
-                                    startIcon={<FileDownloadIcon />}
-                                    size="small"
-                                    onClick={handleExportSelected}
-                                    disabled={selected.length === 0}
-                                >
-                                    Export
-                                </Button>
-                            </Tooltip>
+  const handleMenuClose = (): void => setAnchorEl(null);
+  return (
+    <Box p={3} sx={{ minHeight: '100vh' }}>
+      <Card sx={{ borderRadius: 4, boxShadow: 3 }}>
+        <CardHeader title="Tour Overview" sx={{
+          bgcolor: '#1976d2', color: 'white',
+          borderTopLeftRadius: 16, borderTopRightRadius: 16,
+          '& .MuiCardHeader-action': { alignSelf: 'center' }
+        }} />
+        <CardContent>
+          <Box display="flex" justifyContent="space-between" flexWrap="wrap" mb={2} gap={2}>
+            <TextField placeholder="Search tours..." size="small" sx={{ flexGrow: 1, maxWidth: 300 }} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+            <Box display="flex" gap={1} flexWrap="wrap">
+              <ActionButton title="Delete" icon={<DeleteIcon />} color="error" onClick={() => handleAction('delete')} disabled={!selected.length} />
+              <ActionButton title="Merge" icon={<MergeIcon />} color="secondary" onClick={() => handleAction('merge')} disabled={selected.length !== 2} />
+              <ActionButton title="Export" icon={<FileDownloadIcon />} color="primary" onClick={() => handleAction('export')} disabled={!selected.length} />
+            </Box>
+          </Box>
+          <Divider sx={{ mb: 2 }} />
+          <Table>
+            <TableHead>
+              <TableRow sx={{ bgcolor: '#f0f0f0' }}>
+                <TableCell padding="checkbox">
+                  <Checkbox
+                    indeterminate={selected.length > 0 && selected.length < filteredTours.length}
+                    checked={filteredTours.length > 0 && selected.length === filteredTours.length}
+                    onChange={handleSelectAllClick}
+                  />
+                </TableCell>
+                {['Name', 'Driver', 'Period', 'Actions'].map(title => (
+                  <TableCell key={title}><strong>{title}</strong></TableCell>
+                ))}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {filteredTours.map(tour => {
+                const selectedRow = isSelected(tour.id);
+                return (
+                  <TableRow key={tour.id} hover selected={selectedRow}
+                    sx={{ '&:hover td': { bgcolor: selectedRow ? 'action.selected' : '' } }}>
+                    <TableCell padding="checkbox">
+                      <Checkbox checked={selectedRow} onClick={e => handleCheckboxClick(e, tour.id)} />
+                    </TableCell>
+                    <TableCell>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <Box sx={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: tour.color }} />
+                        <Box>
+                          <Typography fontWeight="bold">{tour.tour_name} - {tour.date}</Typography>
+                          <Typography variant="body2" color="text.secondary">{tour.amount} orders · {tour.timeRange}</Typography>
                         </Box>
-                    </Box>
+                      </Box>
+                    </TableCell>
+                    <TableCell>{tour.driver}</TableCell>
+                    <TableCell>{tour.timeRange}</TableCell>
+                    <TableCell>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <Button variant="outlined" color="warning" size="small" onClick={() => navigate(`/Admin_TourMapView/${tour.id}`)}>View Map</Button>
+                        <IconButton onClick={e => { setAnchorEl(e.currentTarget); setCurrentTour(tour); }}><MoreVertIcon /></IconButton>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
 
-                    <Divider sx={{ mb: 2 }} />
+          <Menu anchorEl={anchorEl} open={!!anchorEl} onClose={() => setAnchorEl(null)} anchorOrigin={{ vertical: 'top', horizontal: 'right' }} transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
+            <MenuItem onClick={() => { setModalOpen(true); setAnchorEl(null); }}>Edit Tour</MenuItem>
 
-                    <Table>
-                        <TableHead>
-                            <TableRow sx={{ bgcolor: '#f0f0f0' }}>
-                                <TableCell padding="checkbox">
-                                    <Checkbox
-                                        indeterminate={selected.length > 0 && selected.length < filteredTours.length}
-                                        checked={filteredTours.length > 0 && selected.length === filteredTours.length}
-                                        onChange={handleSelectAllClick}
-                                    />
-                                </TableCell>
-                                <TableCell><strong>Name</strong></TableCell>
-                                <TableCell><strong>Driver</strong></TableCell>
-                                <TableCell><strong>Period</strong></TableCell>
-                                <TableCell><strong>Actions</strong></TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {filteredTours.map((tour) => {
-                                const isItemSelected = isSelected(tour.id);
-                                return (
-                                    <TableRow 
-                                        key={tour.id} 
-                                        hover
-                                        role="checkbox"
-                                        aria-checked={isItemSelected}
-                                        selected={isItemSelected}
-                                        sx={{ '&:hover td': { bgcolor: isItemSelected ? 'action.selected' : '' } }}
-                                    >
-                                        <TableCell padding="checkbox">
-                                            <Checkbox 
-                                                checked={isItemSelected}
-                                                onClick={(event) => handleCheckboxClick(event, tour.id)}
-                                            />
-                                        </TableCell>
-                                        <TableCell>
-                                            <Box display="flex" alignItems="center" gap={1}>
-                                                <Box sx={{
-                                                    width: 10,
-                                                    height: 10,
-                                                    borderRadius: '50%',
-                                                    backgroundColor: tour.color,
-                                                }} />
-                                                <Box>
-                                                    <Typography fontWeight="bold">
-                                                        {tour.tour_name} - {tour.date}
-                                                    </Typography>
-                                                    <Typography variant="body2" color="text.secondary">
-                                                        {tour.amount} orders · {tour.timeRange}
-                                                    </Typography>
-                                                </Box>
-                                            </Box>
-                                        </TableCell>
-                                        <TableCell>{tour.driver}</TableCell>
-                                        <TableCell>{tour.timeRange}</TableCell>
-                                        <TableCell>
-                                            <Box display="flex" alignItems="center" gap={1}>
-                                                <Button
-                                                    variant="outlined"
-                                                    color="warning"
-                                                    size="small"
-                                                    onClick={() => navigate(`/Admin_TourMapView/${tour.id}`)}
-                                                >
-                                                    View Map
-                                                </Button>
-                                                <IconButton onClick={handleMenuClick}>
-                                                    <MoreVertIcon />
-                                                </IconButton>
-                                            </Box>
-                                        </TableCell>
-                                    </TableRow>
-                                );
-                            })}
-                        </TableBody>
-                    </Table>
+            <MenuItem 
+  onClick={() => {
+    if (currentTour) {
+      navigate('/Admin_PickList', { state: { tour: currentTour } });
+    }
+    handleMenuClose();
+  }}
+>
+  Generate Pick List
+</MenuItem>
 
-                    <Menu
-                        anchorEl={anchorEl}
-                        open={Boolean(anchorEl)}
-                        onClose={handleMenuClose}
-                        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-                        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                    >
-                        <MenuItem onClick={handleMenuClose}>Edit Tour</MenuItem>
-                        <MenuItem onClick={handleMenuClose}>Duplicate</MenuItem>
-                        <MenuItem onClick={handleMenuClose}>View Details</MenuItem>
-                        <Divider />
-                        <MenuItem onClick={handleMenuClose} sx={{ color: 'error.main' }}>Delete</MenuItem>
-                    </Menu>
-                </CardContent>
-            </Card>
-        </Box>
-    );
+            <Divider />
+            <MenuItem onClick={() => currentTour && handleDelete([currentTour.id])} sx={{ color: 'error.main' }}>Delete</MenuItem>
+          </Menu>
+
+          <EditTourModal
+            open={modalOpen}
+            handleClose={() => setModalOpen(false)}
+            tourData={currentTour}
+            onTourUpdated={() => {
+              loadTours();
+              showSnackbar('Tour updated successfully', 'success');
+            }}
+          />
+        </CardContent>
+      </Card>
+
+      <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={() => setSnackbar(prev => ({ ...prev, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
+        <Alert onClose={() => setSnackbar(prev => ({ ...prev, open: false }))} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </Box>
+  );
 };
 
 export default Admin_TourTemplates;

@@ -1,10 +1,10 @@
 // adminApiService.ts
 import axios from 'axios';
-import authHeader from './auth-header'; 
+import authHeader from './auth-header';
 
 const API_BaseUrl = "http://localhost:8080/api/admin/routeoptimize/";
 
-// Fetch route data for optimization
+// Regular API calls using routeoptimize base
 const fetchRouteData = () => {
   return axios.get(API_BaseUrl + "optimize", { headers: authHeader() });
 };
@@ -26,29 +26,54 @@ const fetchAllOrders = () => {
 };
 
 const createTour = (tourData: any) => {
-  return axios.post(API_BaseUrl + "createtour", tourData, { headers: authHeader(), });
+  return axios.post(API_BaseUrl + "createtour", tourData, {
+    headers: authHeader(),
+  });
 };
 
 const getRouteResponse = (tour_id: number) => {
-  return axios.post(API_BaseUrl + "getGraphhopperRoute", { tour_id }, { headers: authHeader() });
+  return axios.post(API_BaseUrl + "getGraphhopperRoute", { tour_id }, {
+    headers: authHeader(),
+  });
 };
-
-/* const createtour = (params: { routeId: number }) => {
-  return axios.get(API_BaseUrl + "details", { headers: authHeader(), params });
-}; */
 
 const deleteTours = (tourIds: number[]) => {
-  return axios.delete(API_BaseUrl + "deleteTours", { headers: authHeader(), data: { tourIds } });
+  return axios.delete(API_BaseUrl + "deleteTours", {
+    headers: authHeader(),
+    data: { tourIds },
+  });
 };
-// Add this to your existing adminApiService
-const exportTours = (tourIds: number[] | string[]) => {return axios.post(API_BaseUrl + "exportTours", { tourIds }, { headers: authHeader() });
+
+const exportTours = (tourIds: number[] | string[]) => {
+  return axios.post(API_BaseUrl + "exportTours", { tourIds }, {
+    headers: authHeader(),
+  });
 };
- 
 const fetchRouteSegmentData  = (tour_id: number) => {
   return axios.post(API_BaseUrl + "getSegmentRoute", { tour_id }, { headers: authHeader() });
 };
 
-export default {
+const updateTour = (tourData: any) => {
+  return axios.put(API_BaseUrl + "updateTour", tourData, {
+    headers: authHeader(),
+  });
+};
+
+// ⬇️ This is outside the routeoptimize scope — it has its own endpoint
+const getOrderCount = async (): Promise<number> => {
+  try {
+    const response = await axios.get<{ ordersCount: number }>(
+      'http://localhost:8080/api/admin/orderCount'
+    );
+    return response.data.ordersCount;
+  } catch (error) {
+    console.error('Error fetching order count:', error);
+    throw new Error('Failed to fetch order count');
+  }
+};
+
+// Export all as named members under default
+const adminApiService = {
   fetchRouteData,
   fetchOrderTourCount,
   fetchAllTours,
@@ -58,5 +83,9 @@ export default {
   getRouteResponse,
   deleteTours,
   exportTours,
-  fetchRouteSegmentData
+  fetchRouteSegmentData,
+  updateTour,
+  getOrderCount, // <- the corrected async function, not to be confused with fetchOrderCount()
 };
+
+export default adminApiService;

@@ -1,7 +1,60 @@
 
 import { Request, Response } from 'express';
 import pool from '../../database';
-
+/**
+ * @swagger
+ * /api/admindriver/tour/{tourId}/order:
+ *   get:
+ *     summary: Fetch the first pending order in the tour.
+ *     tags: [Admin-Driver route segment response]
+ *     parameters:
+ *       - in: path
+ *         name: tourId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The ID of the tour.
+ *     responses:
+ *       200:
+ *         description: The next pending order was fetched successfully.
+ *       400:
+ *         description: Invalid tourId.
+ *       500:
+ *         description: Internal server error.
+ *   post:
+ *     summary: Update the order status and fetch the next pending order.
+ *     tags: [Admin-Driver route segment response]
+ *     parameters:
+ *       - in: path
+ *         name: tourId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The ID of the tour.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - status
+ *               - order_id
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 example: completed
+ *               order_id:
+ *                 type: string
+ *                 example: abc123
+ *     responses:
+ *       200:
+ *         description: Successfully updated and fetched the next order.
+ *       404:
+ *         description: Order not found or already updated.
+ *       500:
+ *         description: Internal server error.
+ */
 export async function HandleOrderDelivery(req: Request, res: Response) {
   const tourId = Number(req.params.tourId);
   const { status, order_id } = req.body;

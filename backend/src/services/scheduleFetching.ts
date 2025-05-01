@@ -13,25 +13,22 @@ const fetchScheduleOrderInfo = async () => {
         console.error("Unexpected error:", error);
       }
     }
-};
+
+  };
 const fetchScheduleWmsOrderInfo = async () => {
-    try {
-      const response = await axios.get(SCHEDULED_WMS_ORDERINFO_URL);
-      console.log("Fetching data at", new Date().toISOString());
-      console.log("API Response:", response.data);
-    } catch (error) {
-      if (error instanceof Error) {
-        console.error("Error fetching scheduleOrderInfo:", error.message);
-      } else {
-        console.error("Unexpected error:", error);
-      }
+  try {
+    const response = await axios.get(SCHEDULED_WMS_ORDERINFO_URL);
+    console.log("Fetching data at", new Date().toISOString());
+    console.log("API Response:", response.data);
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error("Error fetching scheduleOrderInfo:", error);
+    } else {
+      console.error("Unexpected error:", error);
     }
+  }
 };
 // Export the function to make it accessible from other files
 export { fetchScheduleOrderInfo,fetchScheduleWmsOrderInfo };
-// Call fetchScheduleOrderInfo every 15 minutes (900,000 ms)
-setInterval(fetchScheduleOrderInfo, 900000); // 900,000 ms = 15 minutes
-setInterval(fetchScheduleWmsOrderInfo, 1800000); // 900,000 ms = 15 minutes
-//setInterval(fetchScheduleOrderInfo, 60000); // 60000 ms = 1 minutes
-//setInterval(fetchScheduleWmsOrderInfo, 60000); // 60000 ms = 1 minutes
+
 

@@ -1,0 +1,81 @@
+/* Style the Popup */
+.custom-popup {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    max-width: 400px;
+    width: 100%;
+    font-family: Arial, sans-serif;
+    color: #333;
+  }
+  
+  /* Add a header style */
+  .custom-popup strong {
+    font-size: 1.2em;
+    color: #2c3e50;
+  }
+  
+  /* Styling for the order details */
+  .order-info {
+    margin-top: 15px;
+  }
+  
+  .order-info strong {
+    color: #34495e;
+  }
+  
+  .items-list {
+    margin-top: 10px;
+  }
+  
+  .items-list ul {
+    padding-left: 20px;
+  }
+  
+  .items-list .item {
+    margin-bottom: 8px;
+    font-size: 14px;
+  }
+  
+  .items-list .item strong {
+    color: #2980b9;
+  }
+  
+  /* Styling for the popup header */
+  .custom-popup .popup-header {
+    background-color: #2c3e50;
+    color: #fff;
+    padding: 10px;
+    font-size: 1.1em;
+    border-radius: 8px 8px 0 0;
+    text-align: center;
+  }
+  
+  /* Optional: Add a close button */
+  .custom-popup .close-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 50%;
+    z-index: 10;
+  }
+  
+  .custom-popup .close-btn:hover {
+    background-color: #c0392b;
+  }
+  
+  /* Optional: Add hover effect to list items */
+  .items-list .item:hover {
+    background-color: #ecf0f1;
+    padding: 5px;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+  }
+  

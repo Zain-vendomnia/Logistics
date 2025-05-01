@@ -1,48 +1,139 @@
 import React, { useEffect, useState } from 'react';
-import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import axios from 'axios';
-import latestOrderServices, {LogisticOrder} from './AdminServices/latestOrderServices';
-
+import { DataGrid, GridColDef, GridRowSelectionModel } from '@mui/x-data-grid';
+import latestOrderServices, { LogisticOrder } from './AdminServices/latestOrderServices';
+import { Box } from '@mui/material';
 
 const columns: GridColDef[] = [
-  { field: 'order_number', headerName: 'Order Number', width: 150 },
-  { field: 'article_order_number', headerName: 'Article Name', width: 180 },
-  { field: 'invoice_amount', headerName: 'Amount', width: 120 },
-  { field: 'quantity', headerName: 'Quantity', width: 100 },
-  { field: 'order_time', headerName: 'Order Time', width: 180 },
-  { field: 'expected_delivery_time', headerName: 'Expected Delivery Time', width: 180 },
-  { field: 'warehouse_id', headerName: 'Warehouse', width: 180 },
-  { field: 'firstname', headerName: 'First Name', width: 150 },
-  { field: 'lastname', headerName: 'Last Name', width: 150 },
-  { field: 'zipcode', headerName: 'Zipcode', width: 150 },
-  { field: 'email', headerName: 'Email', width: 200 },
-  { field: 'street', headerName: 'Street', width: 200 },
-  { field: 'city', headerName: 'City', width: 130 },
-  { field: 'phone', headerName: 'Phone', width: 150 },
+  { 
+    field: 'order_number', 
+    headerName: 'Order Number', 
+    width: 150,
+    headerAlign: 'center',
+    align: 'center'
+  },
+  { 
+    field: 'article_order_numbers', 
+    headerName: 'Article Name', 
+    width: 180,
+    headerAlign: 'center',
+    align: 'center'
+  },
+  { 
+    field: 'invoice_amount', 
+    headerName: 'Amount', 
+    width: 120,
+    headerAlign: 'center',
+    align: 'center'
+  },
+  { 
+    field: 'total_quantity', 
+    headerName: 'Quantity', 
+    width: 100,
+    headerAlign: 'center',
+    align: 'center'
+  },
+  { 
+    field: 'order_time', 
+    headerName: 'Order Time', 
+    width: 180,
+    headerAlign: 'center',
+    align: 'center'
+  },
+  { 
+    field: 'expected_delivery_time', 
+    headerName: 'Expected Delivery Time', 
+    width: 180,
+    headerAlign: 'center',
+    align: 'center'
+  },
+  { 
+    field: 'warehouse_id', 
+    headerName: 'Warehouse', 
+    width: 180,
+    headerAlign: 'center',
+    align: 'center'
+  },
+  { 
+    field: 'firstname', 
+    headerName: 'First Name', 
+    width: 150,
+    headerAlign: 'center',
+    align: 'center'
+  },
+  { 
+    field: 'lastname', 
+    headerName: 'Last Name', 
+    width: 150,
+    headerAlign: 'center',
+    align: 'center'
+  },
+  { 
+    field: 'zipcode', 
+    headerName: 'Zipcode', 
+    width: 150,
+    headerAlign: 'center',
+    align: 'center'
+  },
+  { 
+    field: 'email', 
+    headerName: 'Email', 
+    width: 200,
+    headerAlign: 'center',
+    align: 'center'
+  },
+  { 
+    field: 'street', 
+    headerName: 'Street', 
+    width: 200,
+    headerAlign: 'center',
+    align: 'center'
+  },
+  { 
+    field: 'city', 
+    headerName: 'City', 
+    width: 130,
+    headerAlign: 'center',
+    align: 'center'
+  },
+  { 
+    field: 'phone', 
+    headerName: 'Phone', 
+    width: 150,
+    headerAlign: 'center',
+    align: 'center'
+  },
 ];
 
 interface AdminOrderTableProps {
   selectedZipcodes: string[];
-  setSelectedOrders: React.Dispatch<React.SetStateAction<number[]>>; // Handle selected orders
+  setSelectedOrders: React.Dispatch<React.SetStateAction<number[]>>;
+  setOrdersData: React.Dispatch<React.SetStateAction<LogisticOrder[]>>;
 }
 
-const Admin_OrderTable: React.FC<AdminOrderTableProps> = ({ selectedZipcodes, setSelectedOrders }) => {
+const AdminOrderTable: React.FC<AdminOrderTableProps> = ({ 
+  selectedZipcodes, 
+  setSelectedOrders,
+  setOrdersData
+}) => {
   const [orders, setOrders] = useState<LogisticOrder[]>([]);
   const [loading, setLoading] = useState(true);
 
-
-  useEffect(()=>{
-    const fetchOrders = async()=>{
-      const order = latestOrderServices.getInstance();
-      const data = await order.getOrders();
-      setOrders(data);
-      setLoading(false);
-    }
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const order = latestOrderServices.getInstance();
+        const data = await order.getOrders();
+        setOrders(data);
+        setOrdersData(data);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching orders:', error);
+        setLoading(false);
+      }
+    };
     fetchOrders();
-  },[]);
+  }, [setOrdersData]);
 
-
-  
   const filteredOrders = selectedZipcodes.length === 0
     ? orders
     : orders.filter(order => selectedZipcodes.includes(order.zipcode));
@@ -52,27 +143,60 @@ const Admin_OrderTable: React.FC<AdminOrderTableProps> = ({ selectedZipcodes, se
     pageSize: 10,
   });
 
-  const handleCheckboxSelection = (ids: any) => {
-    setSelectedOrders(ids); // Update the selected orders (checkboxes)
+  const handleCheckboxSelection = (selectionModel: GridRowSelectionModel) => {
+    setSelectedOrders(selectionModel as number[]);
   };
 
   return (
-    <div style={{ height: 600, width: '100%' }}>
-      <DataGrid
-        rows={filteredOrders}
-        columns={columns}
-        getRowId={(row) => row.order_id}
-        loading={loading}
-        paginationModel={paginationModel}
-        onPaginationModelChange={setPaginationModel}
-        pageSizeOptions={[10, 20, 50]}
-        checkboxSelection
-        onRowSelectionModelChange={(newSelection) => {
-          handleCheckboxSelection(newSelection); // Capture selected order IDs (changed to onRowSelectionModelChange)
-        }}
-      />
-    </div>
+    <Box sx={{ 
+      padding: '24px', 
+      borderRadius: '8px'
+    }}>
+      <Box sx={{ 
+        height: 600, 
+        width: '100%', 
+        borderRadius: '8px',
+        '& .MuiDataGrid-root': {
+          border: 'none'
+        },
+        '& .MuiDataGrid-cell': {
+          borderBottom: '1px solid #e0e0e0'
+        },
+        '& .MuiDataGrid-columnHeaders': {
+          backgroundColor: '#f5f5f5',
+          borderBottom: '1px solid #e0e0e0'
+        },
+        '& .MuiDataGrid-footerContainer': {
+          borderTop: '1px solid #e0e0e0',
+          backgroundColor: '#f5f5f5'
+        }
+      }}>
+        <DataGrid
+          rows={filteredOrders}
+          columns={columns}
+          getRowId={(row) => row.order_id}
+          loading={loading}
+          paginationModel={paginationModel}
+          onPaginationModelChange={(newModel) => setPaginationModel(newModel)}
+          pageSizeOptions={[10, 20, 50]}
+          checkboxSelection
+          onRowSelectionModelChange={handleCheckboxSelection}
+          disableRowSelectionOnClick
+          sx={{
+            '& .MuiDataGrid-row:hover': {
+              backgroundColor: 'rgba(0, 0, 0, 0.04)'
+            },
+            '& .MuiDataGrid-row.Mui-selected': {
+              backgroundColor: 'rgba(25, 118, 210, 0.08)',
+              '&:hover': {
+                backgroundColor: 'rgba(25, 118, 210, 0.08)'
+              }
+            }
+          }}
+        />
+      </Box>
+    </Box>
   );
 };
 
-export default Admin_OrderTable;
+export default AdminOrderTable;

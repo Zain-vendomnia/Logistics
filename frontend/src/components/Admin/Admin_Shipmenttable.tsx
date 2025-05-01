@@ -15,6 +15,7 @@ import {
   ChipProps,
   TextField,
   InputAdornment,
+  Divider,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import { LocalizationProvider } from '@mui/x-date-pickers';
@@ -25,13 +26,13 @@ import dayjs, { Dayjs } from 'dayjs';
 type Shipment = {
   id: string;
   company: string;
-  arrivalDate: string; // format: 'MM-DD-YYYY'
+  arrivalDate: string;
   route: string;
   weight: string;
   status: string;
 };
 
-const Admin_Shipmenttable = () => {
+const AdminShipmenttable: React.FC = () => {
   const [tab, setTab] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState<Dayjs | null>(null);
@@ -64,7 +65,6 @@ const Admin_Shipmenttable = () => {
     Pending: 'default',
   };
 
-  // 🔍 Filter logic
   const filteredData = shipmentData.filter((row) => {
     const matchesTab = tab === 0 || row.status === tabs[tab];
     const matchesSearch =
@@ -77,75 +77,145 @@ const Admin_Shipmenttable = () => {
     return matchesTab && matchesSearch && matchesDate;
   });
 
-  // Handle search term change and clear the date filter
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
-    setSelectedDate(null); // Clear the date filter when search term changes
+    setSelectedDate(null);
   };
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <Box sx={{ p: 3 }}>
-        <Typography variant="h6" fontWeight="bold" mb={1}>
+      <Paper
+        elevation={0}
+        sx={{
+          p: 3,
+          borderRadius: 4,
+          backgroundColor: '#fafafa', // light clean background
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)', // soft shadow
+        }}
+      >
+        {/* Header */}
+        <Typography
+          variant="h5"
+          fontWeight="bold"
+          sx={{ color: 'primary.main' }} // updated orange tone
+          gutterBottom
+        >
           Shipments Overview
         </Typography>
         <Typography variant="body2" color="text.secondary" mb={2}>
-          Keep track of recent shipping activity
+          Monitor your logistics and recent shipment activity
         </Typography>
 
-        <Tabs value={tab} onChange={(e, newValue) => setTab(newValue)} sx={{ mb: 2 }}>
+        {/* Tabs */}
+        <Tabs
+          value={tab}
+          onChange={(e, newValue) => setTab(newValue)}
+          textColor="primary"
+          indicatorColor="primary"
+          sx={{ mb: 2 }}
+        >
           {tabs.map((label, idx) => (
-            <Tab key={idx} label={label} />
+            <Tab
+              key={idx}
+              label={label}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 600,
+                color: tab === idx ? 'primary.main' : 'text.secondary',
+              }}
+            />
           ))}
         </Tabs>
 
-        {/* Search and Date Filter Above the Table */}
+        {/* Search + Filter */}
         {tab === 0 && (
-          <Box sx={{ display: 'flex', mb: 2, gap: 2 }}>
-            {/* Search Bar */}
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: { xs: 'column', sm: 'row' },
+              gap: 2,
+              mb: 3,
+            }}
+          >
             <TextField
               fullWidth
               size="small"
-              placeholder="Search by Order ID"
+              variant="outlined"
+              placeholder="Search by Order ID or Company"
               value={searchTerm}
-              onChange={handleSearchChange} // Call handleSearchChange on input change
+              onChange={handleSearchChange}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  height: 48,
+                  backgroundColor: 'white',
+                  '& fieldset': { borderColor: '#e0e0e0' },
+                  '&:hover fieldset': { borderColor: 'primary.main' },
+                  '&.Mui-focused fieldset': { borderColor: 'primary.main' },
+                },
+              }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <SearchIcon />
+                    <SearchIcon fontSize="small" sx={{ color: 'action.active' }} />
                   </InputAdornment>
                 ),
               }}
             />
-
-            {/* Date Picker */}
             <DatePicker
               label="Filter by Date"
               value={selectedDate}
               onChange={(newDate) => setSelectedDate(newDate)}
-              slotProps={{ textField: { size: 'small', fullWidth: true } }}
+              sx={{
+                width: '100%',
+                '& .MuiOutlinedInput-root': {
+                  height: 48,
+                  backgroundColor: 'white',
+                  '& fieldset': { borderColor: '#e0e0e0' },
+                  '&:hover fieldset': { borderColor: 'primary.main' },
+                  '&.Mui-focused fieldset': { borderColor: 'primary.main' },
+                },
+              }}
+              slotProps={{
+                textField: {
+                  size: 'small',
+                  variant: 'outlined',
+                  fullWidth: true,
+                },
+              }}
             />
           </Box>
         )}
 
-        {/* Table with Filtered Data */}
-        <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
+        <Divider sx={{ mb: 2, borderColor: '#e0e0e0' }} />
+
+        {/* Table */}
+        <TableContainer
+          component={Paper}
+          variant="outlined"
+          sx={{
+            borderRadius: 3,
+            backgroundColor: 'white',
+          }}
+        >
           <Table>
             <TableHead>
-              <TableRow>
-                <TableCell>Order ID</TableCell>
-                <TableCell>Company</TableCell>
-                <TableCell>Arrival Date</TableCell>
-                <TableCell>Route</TableCell>
-                <TableCell>Weight</TableCell>
-                <TableCell>Status</TableCell>
+              <TableRow
+                sx={{
+                  backgroundColor: '#fbe9e7', // soft orange light background
+                }}
+              >
+                <TableCell sx={{ fontWeight: 'bold' }}>Order ID</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Company</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Arrival Date</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Route</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Weight</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
               </TableRow>
             </TableHead>
-
             <TableBody>
               {filteredData.length > 0 ? (
                 filteredData.map((row, index) => (
-                  <TableRow key={index}>
+                  <TableRow hover key={index}>
                     <TableCell>{row.id}</TableCell>
                     <TableCell>{row.company}</TableCell>
                     <TableCell>{row.arrivalDate}</TableCell>
@@ -155,14 +225,15 @@ const Admin_Shipmenttable = () => {
                       <Chip
                         label={row.status}
                         color={statusColors[row.status] || 'default'}
-                        variant="outlined"
+                        variant="filled"
+                        sx={{ fontWeight: 500 }}
                       />
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} align="center">
+                  <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
                     No shipments match your filter.
                   </TableCell>
                 </TableRow>
@@ -170,9 +241,9 @@ const Admin_Shipmenttable = () => {
             </TableBody>
           </Table>
         </TableContainer>
-      </Box>
+      </Paper>
     </LocalizationProvider>
   );
 };
 
-export default Admin_Shipmenttable;
+export default AdminShipmenttable;

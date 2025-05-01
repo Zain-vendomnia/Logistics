@@ -4,8 +4,7 @@ import morgan from "morgan";
 import authRouter from "./router/auth.routes";
 // import userRouter from "./router/auth.routes";
 import config from "./config";
-import { fetchScheduleOrderInfo,fetchScheduleWmsOrderInfo } from './services/scheduleFetching';
-
+import { setupSwagger } from './swagger';
 // Import the controller fucntion for the order info
 import { orderInfoController } from "./controller/Admin_Api/orderInfo.controller";
 import { scheduleOrderInfoController } from "./controller/Admin_Api/scheduleOrderInfo.controller";
@@ -20,11 +19,14 @@ import { optimizeRouteController } from "./controller/Admin_RouteOptimzation/opt
 import { updatelatlngController } from "./controller/Admin_RouteOptimzation/updatelatlngController";
 import {  getAllLogisticOrders, getcountcheck } from './controller/Admin_RouteOptimzation/order.controller';
 
-import { createTourController, getgraphhopperRoute, getTourcountcheck, deleteTourController, getSegmentRoutes} from './controller/Admin_RouteOptimzation/tourController';
+import { createTourController, getTourcountcheck, updateTourController, deleteTourController, getgraphhopperRoute,getSegmentRoutes } from './controller/Admin_RouteOptimzation/tourController';
+import { ExportTourController } from './controller/Admin_RouteOptimzation/exportTourController';
 import { getAllTourController } from "./controller/Admin_RouteOptimzation/getAllTourController";
 import { HandleOrderDelivery } from "./controller/AdminDriverApi/HandleOrderDelivery";
 
 
+// total orders count controller 
+import { getOrderCount } from "./controller/Admin_Api/orderCount.controller";
 
 // import { getImageById } from "./controller/Admin_Api/route_segments.controller";
 
@@ -38,6 +40,9 @@ app.use(morgan("dev"));
 
 app.use(express.json({ limit: '50mb' })); // Increase limit if sending large images
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Swagger setup
+setupSwagger(app);
 
 // Define the root route to prevent "Cannot GET /"
 app.get('/', (_req, res) => {
@@ -59,15 +64,18 @@ app.use('/api/admin/routeoptimize/ordercount', getcountcheck);
 app.use('/api/admin/routeoptimize/createtour', createTourController);
 app.use('/api/admin/routeoptimize/getAlltours', getAllTourController);
 app.use('/api/admin/routeoptimize/tourcount', getTourcountcheck);
-// --------------------------------------------------------------------
+app.use('/api/admin/routeoptimize/updateTour', updateTourController);
 app.use('/api/admin/routeoptimize/deleteTours', deleteTourController);
-//app.use('/api/admin/routeoptimize/exportTours', ExportTourController);
+app.use('/api/admin/routeoptimize/exportTours', ExportTourController);
 app.use('/api/admin/routeoptimize/getGraphhopperRoute', getgraphhopperRoute);
 app.use('/api/admin/routeoptimize/getSegmentRoute', getSegmentRoutes);
 
 app.use('/api/admin/routeoptimize/updateLatlng', GeocodingController.getLatLngtest);
 app.use('/api/admindriver/tour/:tourId/order', HandleOrderDelivery);
 
+// --------------------------------------------------------------------
+// total order count
+app.get("/api/admin/orderCount", getOrderCount);
 // --------------------------------------------------------------------
 app.get("/api/admin/orderinfo", orderInfoController);
 app.get("/api/admin/scheduleOrderInfo", scheduleOrderInfoController);
@@ -88,7 +96,6 @@ app.use((req, res) => {
   });
 });
 
-fetchScheduleOrderInfo();
-fetchScheduleWmsOrderInfo();
+
 
 export default app;

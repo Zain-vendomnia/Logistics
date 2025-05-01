@@ -51,8 +51,7 @@ export const CREATE_TOUR_INFO_MASTER_TABLE = `
     graphhopper_route JSON,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (driver_id) REFERENCES driver_details(id) ON DELETE CASCADE,
-    FOREIGN KEY (warehouse_id) REFERENCES warehouse_details(warehouse_id) ON DELETE CASCADE
+    FOREIGN KEY (driver_id) REFERENCES driver_details(id) ON DELETE CASCADE
   );
 `;
 
@@ -88,13 +87,13 @@ export const CREATE_API_RESPONSE_LOG_TABLE = `
     FOREIGN KEY (route_segment_id) REFERENCES route_segments(id) ON DELETE CASCADE
   );
 `;
-
 export const CREATE_ROUTE_SEGMENTS_TABLE = `
   CREATE TABLE route_segments (
     id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     tour_id INT NOT NULL,
     route_response JSON,
-    status ENUM('pending', 'in-progress', 'delivered') DEFAULT 'pending',
+    status ENUM('pending', 'in-progress', 'delivered', 'tour-completed') DEFAULT 'pending',
+    doorstep_pic BLOB,
     delivered_item_pic BLOB,
     customer_signature BLOB,
     neighbour_signature BLOB,

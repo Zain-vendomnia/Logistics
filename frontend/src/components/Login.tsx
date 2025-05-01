@@ -5,6 +5,18 @@ import * as Yup from "yup";
 import * as AuthService from "../services/auth.service";
 import { login } from "../services/auth.service";
 
+import {
+  Card,
+  CardContent,
+  Typography,
+  TextField,
+  Button,
+  CircularProgress,
+  Box,
+  Avatar,
+} from "@mui/material";
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+
 type Props = {}
 
 const Login: React.FC<Props> = () => {
@@ -34,19 +46,16 @@ const Login: React.FC<Props> = () => {
 
     login(username, password).then(
       () => {
-        // Assuming the response contains the user data and role
-        const user =  AuthService.getCurrentUser();; // Make sure the API returns this structure
-        localStorage.setItem("user", JSON.stringify(user)); // Store the user in localStorage
+        const user = AuthService.getCurrentUser();
+        localStorage.setItem("user", JSON.stringify(user));
 
-        // Check the role and navigate accordingly
         if (user.role === "admin") {
-          navigate("/admin");  
+          navigate("/Admin_dashboard");
         } else if (user.role === "driver") {
-          navigate("/driver");  
+          navigate("/driver");
         } else if (user.role === "super_admin") {
-          navigate("/super_admin");  
-        } 
-          // Reload the page to refresh the user context
+          navigate("/super_admin");
+        }
         window.location.reload();
       },
       (error) => {
@@ -63,61 +72,79 @@ const Login: React.FC<Props> = () => {
   };
 
   return (
-    <div className="col-md-12">
-      <div className="d-flex justify-content-center align-items-center vh-100">
-        <div className="card card-container">
-          <img
-            src="//ssl.gstatic.com/accounts/ui/avatar_2x.png"
-            alt="profile-img"
-            className="profile-img-card"
-          />
+    <Box
+      display="flex"
+      justifyContent="center"
+      alignItems="center"
+      minHeight="calc(100vh - 50px)"
+      bgcolor="#f5f5f5"
+    >
+      <Card sx={{ width: 350, p: 3, boxShadow: 3 }}>
+        <Box display="flex" justifyContent="center" mb={2}>
+          <Avatar sx={{ bgcolor: "primary.main", width: 60, height: 60 }}>
+            <AccountCircleIcon fontSize="large" />
+          </Avatar>
+        </Box>
+        <CardContent>
+          <Typography variant="h5" align="center" gutterBottom>
+            Login
+          </Typography>
           <Formik
             initialValues={initialValues}
             validationSchema={validationSchema}
             onSubmit={handleLogin}
           >
-            <Form>
-              <div className="form-group">
-                <label htmlFor="username">Username</label>
-                <Field name="username" type="text" className="form-control" />
-                <ErrorMessage
-                  name="username"
-                  component="div"
-                  className="alert alert-danger"
-                />
-              </div>
+            {({ errors, touched }) => (
+              <Form>
+                <Box mb={2}>
+                  <Field
+                    as={TextField}
+                    name="username"
+                    label="Username"
+                    fullWidth
+                    variant="outlined"
+                    error={touched.username && Boolean(errors.username)}
+                    helperText={<ErrorMessage name="username" />}
+                  />
+                </Box>
+                <Box mb={2}>
+                  <Field
+                    as={TextField}
+                    name="password"
+                    label="Password"
+                    type="password"
+                    fullWidth
+                    variant="outlined"
+                    error={touched.password && Boolean(errors.password)}
+                    helperText={<ErrorMessage name="password" />}
+                  />
+                </Box>
+                <Box mb={2}>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    color="primary"
+                    fullWidth
+                    disabled={loading}
+                    startIcon={loading ? <CircularProgress size={20} /> : null}
+                  >
+                    {loading ? "Logging in..." : "Login"}
+                  </Button>
+                </Box>
 
-              <div className="form-group">
-                <label htmlFor="password">Password</label>
-                <Field name="password" type="password" className="form-control" />
-                <ErrorMessage
-                  name="password"
-                  component="div"
-                  className="alert alert-danger"
-                />
-              </div>
-
-              <div className="form-group">
-                <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
-                  {loading && (
-                    <span className="spinner-border spinner-border-sm"></span>
-                  )}
-                  <span>Login</span>
-                </button>
-              </div>
-
-              {message && (
-                <div className="form-group">
-                  <div className="alert alert-danger" role="alert">
-                    {message}
-                  </div>
-                </div>
-              )}
-            </Form>
+                {message && (
+                  <Box mb={2}>
+                    <Typography color="error" align="center">
+                      {message}
+                    </Typography>
+                  </Box>
+                )}
+              </Form>
+            )}
           </Formik>
-        </div>
-      </div>
-    </div>
+        </CardContent>
+      </Card>
+    </Box>
   );
 };
 
