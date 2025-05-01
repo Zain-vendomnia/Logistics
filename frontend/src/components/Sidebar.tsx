@@ -1,15 +1,5 @@
 import { ReactNode, useEffect, useState } from "react";
-
-import MenuIcon from "@mui/icons-material/Menu";
-import PersonIcon from "@mui/icons-material/Person";
-import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
-import DashboardIcon from "@mui/icons-material/Dashboard";
-import Admin_dashboard from '../components/Admin/Admin_dashboard';
-import TourIcon from "@mui/icons-material/AcUnitRounded";
-import { Admin_TourTemplates } from "./Admin/Admin_TourTemplates";
-
 import {
-  Divider,
   Box,
   List,
   ListItem,
@@ -19,12 +9,20 @@ import {
   IconButton,
   Stack,
   Typography,
-} from "@mui/material"; 
-import { grey } from "@mui/material/colors";
-
+  Avatar,
+  Paper,
+} from "@mui/material";
+import {
+  Menu as MenuIcon,
+  NavigateBefore as NavigateBeforeIcon,
+  Dashboard as DashboardIcon,
+  AcUnitRounded as TourIcon,
+  Tour as TourOutlinedIcon,
+  DirectionsBusFilled,
+  Warehouse,
+} from "@mui/icons-material";
 import { useAuth } from "../providers/AuthProvider";
 import { useLocation, Link } from "react-router-dom";
-import { TouchAppSharp, Tour } from "@mui/icons-material";
 
 type sidebarMenuOption = { text: string; icon?: ReactNode; path: string };
 
@@ -35,18 +33,11 @@ interface Props {
 
 const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
   const location = useLocation();
-
-  const { user, showDriverBoard, showAdminBoard, showSuperAdminBoard } =
-    useAuth();
-
+  const { user, showDriverBoard, showAdminBoard, showSuperAdminBoard } = useAuth();
   const userImage = "https://www.w3schools.com/howto/img_avatar.png";
 
-  const [isOpen, setIsOpen] = useState(false);
-
-  const [menuItems, setMenuItems] = useState<sidebarMenuOption[]>(
-    menuOptions || []
-  );
-
+  const [isOpen, setIsOpen] = useState(true);
+  const [menuItems, setMenuItems] = useState<sidebarMenuOption[]>(menuOptions || []);
   const displayName = user?.username.split("@")[0] || user?.username;
 
   const toggleSidebar = () => setIsOpen(!isOpen);
@@ -54,154 +45,119 @@ const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
   useEffect(() => {
     if (showAdminBoard) {
       setMenuItems([
-        {text: "Dashboard", icon: <DashboardIcon />, path: "/Admin_dashboard" },
-        {text: "Add Tour", icon:<TourIcon/>, path: "/Admin_AddTour" },
-        {text: "Tour Templates", icon:<Tour/>, path: "/Admin_TourTemplates" },
-      ]);
-    }
-    if (showSuperAdminBoard) {
-      setMenuItems([
         { text: "Dashboard", icon: <DashboardIcon />, path: "/Admin_dashboard" },
+        { text: "Add Tour", icon: <TourIcon />, path: "/Admin_AddTour" },
+        { text: "Tour Templates", icon: <TourOutlinedIcon />, path: "/Admin_TourTemplates" },
+        { text: "Manage Drivers", icon: <DirectionsBusFilled />, path: "/manage_drivers" },
+        { text: "Manage Warehouse", icon: <Warehouse />, path: "/manage_warehouse" },
       ]);
+    } else if (showSuperAdminBoard) {
+      setMenuItems([{ text: "Dashboard", icon: <DashboardIcon />, path: "/Admin_dashboard" }]);
     }
   }, [showAdminBoard, showSuperAdminBoard]);
 
   if (!user || showDriverBoard) return null;
+
   return (
-      <Box
-        display="flex"
-        height={"100%"}
-        borderRight={"1px solid"}
-        borderColor={"grey.300"}
-      >
+    <Box
+      sx={{
+        display: "flex",
+        height: "100%",
+        bgcolor: "background.paper",
+        boxShadow: 2,
+      }}
+    >
       <Box
         sx={{
+          width: isOpen ? 260 : 72,
+          transition: "all 0.3s ease",
+          overflow: "hidden",
+          bgcolor: "#fafafa",
+          borderRight: "1px solid #ddd",
           display: "flex",
           flexDirection: "column",
-          width: isOpen ? { xs: 170, md: 200, lg: 280 } : 60,
-          transition: "width 0.3s",
+          borderRadius: "0 12px 12px 0",
         }}
       >
-        <Box
-          display={"flex"}
-          alignItems={"center"}
-          justifyContent={isOpen ? "space-between" : "center"}
-          height={"20vh"}
-          bgcolor={"grey.200"}
+        {/* User Info Section */}
+        <Paper
+          elevation={0}
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: isOpen ? "space-between" : "center",
+            p: isOpen ? 2 : 1,
+            height: 120,
+            borderBottom: "1px solid #eee",
+            borderRadius: 0,
+            bgcolor: "#f0f0f0",
+          }}
         >
           {isOpen && (
-            <Stack spacing={2} width={"80%"} pl={2}>
-              <Box display={"flex"} alignItems={"center"} gap={2}>
-                <Box
-                  component="img"
-                  src={userImage}
-                  alt="user image"
-                  borderRadius={"50%"}
-                  sx={{ width: 60, height: 60, objectFit: "cover" }}
-                />
-                <Box fontWeight={600}>{displayName}</Box>
-              </Box>
-              <Box
-                display="flex"
-                flexWrap="wrap"
-                width="100%"
-                sx={{
-                  overflowWrap: "anywhere",
-                  // wordBreak: "break-word",
-                  whiteSpace: "normal",
-                }}
-              >
-              <Typography variant="body2" color="text.secondary">
-                  {user?.email}
-              </Typography>
+            <Stack spacing={1}>
+              <Box display="flex" alignItems="center" gap={2}>
+                <Avatar src={userImage} sx={{ width: 48, height: 48 }} />
+                <Box>
+                  <Typography fontWeight="bold" noWrap>
+                    {displayName}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" noWrap>
+                    {user?.email}
+                  </Typography>
+                </Box>
               </Box>
             </Stack>
           )}
-          {isOpen ? (
-            <Box
-              width={"20%"}
-              height={"100%"}
-              display="flex"
-              alignItems="center"
-              justifyContent="center"
-              onClick={toggleSidebar}
-              sx={{
-                cursor: "pointer",
-                "&:hover": {
-                  backgroundColor: grey[400],
-                },
-                "&:focus": {
-                  backgroundColor: grey[400],
-                },
-                "&:active": {
-                  backgroundColor: grey[500],
-                },
-              }}
-            >
-              <IconButton onClick={toggleSidebar}>
-                <NavigateBeforeIcon fontSize="medium" />
-              </IconButton>
-            </Box>
-          ) : (
-            <IconButton onClick={toggleSidebar}>
-              <MenuIcon fontSize="medium" />
-            </IconButton>
-          )}
-        </Box>
-        <Divider />
-        <List sx={{ bgcolor: grey[200], py: "20px", mt: "10px" }}>
-          {menuItems?.map((item, index) => (
-            <ListItem key={index} disablePadding>
-              <ListItemButton
-                component={Link}
-                to={item.path}
-                onClick={() => onMenuItemClick?.(item.path)}
-                sx={{
-                  px: 2,
-                  color:
-                    location.pathname === item.path
-                      ? "primary.dark"
-                      : "transparent",
-                  "&:hover": {
-                    backgroundColor: "#f5f5f5",
-                  },
-                  "&.Mui-selected": {
-                    backgroundColor: "#f5f5f5",
-                  },
-                }}
-              >
-                <ListItemIcon
+          <IconButton size="small" onClick={toggleSidebar}>
+            {isOpen ? <NavigateBeforeIcon /> : <MenuIcon />}
+          </IconButton>
+        </Paper>
+
+        {/* Menu List */}
+        <List sx={{ flex: 1, py: 2 }}>
+          {menuItems.map((item, index) => {
+            const selected = location.pathname === item.path;
+            return (
+              <ListItem key={index} disablePadding sx={{ px: 1 }}>
+                <ListItemButton
+                  component={Link}
+                  to={item.path}
+                  onClick={() => onMenuItemClick?.(item.path)}
                   sx={{
-                    minWidth: 0,
-                    mr: isOpen ? 1.5 : 0,
-                    display: "flex",
-                    justifyContent: "center",
-                    color:
-                      location.pathname === item.path ? "primary.dark" : "#222",
+                    borderRadius: 2,
+                    px: 2,
+                    py: 1.5,
+                    my: 0.5,
+                    bgcolor: selected ? "primary.light" : "transparent",
+                    "&:hover": {
+                      bgcolor: selected ? "primary.light" : "grey.100",
+                    },
                   }}
                 >
-                  {item.icon}
-                </ListItemIcon>
-                {isOpen && (
-                  <ListItemText
-                    primary={item.text}
+                  <ListItemIcon
                     sx={{
-                      m: 0,
-                      textAlign: "left",
-                      whiteSpace: "nowrap",
-                      "& .MuiTypography-root": {
-                        color:
-                          location.pathname === item.path
-                            ? "primary.dark"
-                            : "#222",
-                        transition: "color 0.2s ease",
-                      },
+                      minWidth: 0,
+                      mr: isOpen ? 2 : "auto",
+                      color: selected ? "black" : "text.secondary",
+                      justifyContent: "center",
                     }}
-                  />
-                )}
-              </ListItemButton>
-            </ListItem>
-          ))}
+                  >
+                    {item.icon}
+                  </ListItemIcon>
+                  {isOpen && (
+                    <ListItemText
+                      primary={item.text}
+                      primaryTypographyProps={{
+                        fontWeight: selected ? "bold" : "normal",
+                        color: selected ? "black" : "text.primary",
+                        noWrap: true,
+                      }}
+                    />
+                  )}
+                </ListItemButton>
+              </ListItem>
+            );
+          })}
         </List>
       </Box>
     </Box>

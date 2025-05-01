@@ -81,7 +81,7 @@ const adminApiService = {
   deleteTours,
   exportTours,
   updateTour,
-  getOrderCount, // <- the corrected async function, not to be confused with fetchOrderCount()
+  getOrderCount, 
 };
 
 export default adminApiService;

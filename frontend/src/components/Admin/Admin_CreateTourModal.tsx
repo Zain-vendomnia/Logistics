@@ -30,13 +30,24 @@ interface CreateTourModalProps {
 interface Driver {
   driver_id: number | string;
   driver_name: string;
-  warehouse_id?: number ;
+  warehouse_id?: number;
 }
 
-const CreateTourModal: React.FC<CreateTourModalProps> = ({ open, handleClose,warehouseId, orderIds }) => {
+const generateTimeOptions = () => {
+  const options: string[] = [];
+  for (let h = 0; h < 24; h++) {
+    for (let m = 0; m < 60; m += 30) {
+      const hour = h.toString().padStart(2, '0');
+      const minute = m.toString().padStart(2, '0');
+      options.push(`${hour}:${minute}`);
+    }
+  }
+  return options;
+};
+const CreateTourModal: React.FC<CreateTourModalProps> = ({ open, handleClose, warehouseId, orderIds }) => {
   const theme = useTheme();
   const navigate = useNavigate();
-  // Form state
+
   const [tourName, setTourName] = useState('');
   const [comments, setComments] = useState('');
   const [startTime, setStartTime] = useState('');
@@ -45,17 +56,13 @@ const CreateTourModal: React.FC<CreateTourModalProps> = ({ open, handleClose,war
   const [selectedDriver, setSelectedDriver] = useState<string | number>('');
   const [tourDate, setTourDate] = useState('');
 
-  // Get drivers data
-  
+  const timeOptions = generateTimeOptions();
   const drivers: Driver[] = latestOrderServices.getInstance().getDrivers();
 
-
-
-  const timeOptions = Array.from({ length: 24 }, (_, i) => {
-    const hour = i % 12 || 12;
-    const period = i < 12 ? 'AM' : 'PM';
-    return `${hour}:00 ${period}`;
-  });
+  // 24-hour format time options
+  // const timeOptions = Array.from({ length: 24 }, (_, i) =>
+  //   `${i.toString().padStart(2, '0')}:00`
+  // );
 
   const handleDriverChange = (event: SelectChangeEvent<string | number>) => {
     setSelectedDriver(event.target.value);
@@ -71,12 +78,13 @@ const CreateTourModal: React.FC<CreateTourModalProps> = ({ open, handleClose,war
       const response = await adminApiService.createTour({
         tourName,
         comments,
-        startTime,
-        endTime,
+        startTime: `${startTime}:00`, // Add seconds
+        endTime: `${endTime}:00`,
         routeColor,
         driverid: selectedDriver,
         tourDate: `${tourDate} 00:00:00`,
         orderIds,
+        warehouseId
       });
 
       if (response.status === 200) {
@@ -105,7 +113,7 @@ const CreateTourModal: React.FC<CreateTourModalProps> = ({ open, handleClose,war
           outline: 'none'
         }}
       >
-        <Typography variant="h6" mb={3} sx={{ 
+        <Typography variant="h6" mb={3} sx={{
           display: 'flex',
           alignItems: 'center',
           gap: 1,
@@ -115,7 +123,6 @@ const CreateTourModal: React.FC<CreateTourModalProps> = ({ open, handleClose,war
         </Typography>
 
         <Grid container spacing={2}>
-          {/* Tour Name */}
           <Grid item xs={12}>
             <TextField
               label="Tour Name"
@@ -128,7 +135,6 @@ const CreateTourModal: React.FC<CreateTourModalProps> = ({ open, handleClose,war
             />
           </Grid>
 
-          {/* Comments */}
           <Grid item xs={12}>
             <TextField
               label="Comments"
@@ -142,32 +148,30 @@ const CreateTourModal: React.FC<CreateTourModalProps> = ({ open, handleClose,war
             />
           </Grid>
 
-          {/* Driver Selection */}
           <Grid item xs={12}>
-          <FormControl fullWidth size="medium">
-          <InputLabel sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Person fontSize="small" /> Driver *
-          </InputLabel>
-          <Select
-            value={selectedDriver}
-            onChange={handleDriverChange}
-            label="Driver *"
-            required
-            size="medium"
-          >
-          {drivers
-          .filter(driver => driver.warehouse_id === warehouseId)
-          .map((driver) => (
-            <MenuItem key={driver.driver_id} value={driver.driver_id}>
-              {driver.driver_name}
-            </MenuItem>
-        ))}
-           
-          </Select>
-        </FormControl>
+            <FormControl fullWidth size="medium">
+              <InputLabel sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Person fontSize="small" /> Driver *
+              </InputLabel>
+              <Select
+                value={selectedDriver}
+                onChange={handleDriverChange}
+                label="Driver *"
+                required
+                size="medium"
+              >
+                {drivers
+                  .filter(driver => driver.warehouse_id === warehouseId)
+                  .map((driver) => (
+                    <MenuItem key={driver.driver_id} value={driver.driver_id}>
+                      {driver.driver_name}
+                    </MenuItem>
+                  ))}
+              </Select>
+            </FormControl>
           </Grid>
 
-          {/* Time Selection */}
+          {/* Start Time */}
           <Grid item xs={12} sm={6}>
             <FormControl fullWidth size="medium">
               <InputLabel>Start Time *</InputLabel>
@@ -176,7 +180,6 @@ const CreateTourModal: React.FC<CreateTourModalProps> = ({ open, handleClose,war
                 onChange={(e) => setStartTime(e.target.value)}
                 label="Start Time *"
                 required
-                size="medium"
               >
                 {timeOptions.map((time) => (
                   <MenuItem key={time} value={time}>
@@ -187,6 +190,7 @@ const CreateTourModal: React.FC<CreateTourModalProps> = ({ open, handleClose,war
             </FormControl>
           </Grid>
 
+          {/* End Time */}
           <Grid item xs={12} sm={6}>
             <FormControl fullWidth size="medium">
               <InputLabel>End Time *</InputLabel>
@@ -195,7 +199,6 @@ const CreateTourModal: React.FC<CreateTourModalProps> = ({ open, handleClose,war
                 onChange={(e) => setEndTime(e.target.value)}
                 label="End Time *"
                 required
-                size="medium"
               >
                 {timeOptions.map((time) => (
                   <MenuItem key={time} value={time}>
@@ -219,10 +222,10 @@ const CreateTourModal: React.FC<CreateTourModalProps> = ({ open, handleClose,war
               variant="outlined"
               size="medium"
               InputProps={{
-                sx: { 
-                  '& input': { 
-                    py: 1.5,  // Increased padding for taller input
-                    height: '2em'  // Explicit height control
+                sx: {
+                  '& input': {
+                    py: 1.5,
+                    height: '2em'
                   }
                 }
               }}
@@ -248,10 +251,10 @@ const CreateTourModal: React.FC<CreateTourModalProps> = ({ open, handleClose,war
                   p: 0
                 }}
               />
-              <Chip 
-                label={routeColor.toUpperCase()} 
+              <Chip
+                label={routeColor.toUpperCase()}
                 size="small"
-                sx={{ 
+                sx={{
                   backgroundColor: routeColor,
                   color: theme.palette.getContrastText(routeColor),
                   minWidth: 80
@@ -261,20 +264,11 @@ const CreateTourModal: React.FC<CreateTourModalProps> = ({ open, handleClose,war
           </Grid>
         </Grid>
 
-        {/* Action Buttons */}
         <Stack direction="row" spacing={2} justifyContent="flex-end" mt={4}>
-          <Button 
-            variant="outlined" 
-            onClick={handleClose}
-            sx={{ px: 3 }}
-          >
+          <Button variant="outlined" onClick={handleClose} sx={{ px: 3 }}>
             Cancel
           </Button>
-          <Button 
-            variant="contained" 
-            onClick={handleSave}
-            sx={{ px: 3 }}
-          >
+          <Button variant="contained" onClick={handleSave} sx={{ px: 3 }}>
             Create Tour
           </Button>
         </Stack>

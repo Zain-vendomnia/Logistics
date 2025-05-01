@@ -1,5 +1,6 @@
 import app from "./app";
 import initialSetup from "./initialDBSetup/usersSetup";
+import tourDriverSetup from "./initialDBSetup/tourDriverSetup";
 import logisticOrderSetup from "./initialDBSetup/logisticOrderSetup";
 import logisticOrderItemsSetup from "./initialDBSetup/logisticOrderItemsSetup";
 import logisticPaymentSetup from "./initialDBSetup/logisticPaymentSetup";
@@ -27,6 +28,7 @@ async function main() {
     await routeSegmentsSetup();
     await WMSOrderSetup();
     await WMSOrderArticlesSetup();
+    await tourDriverSetup();
     await logisticOrderItemsSetup();
     await routeUpdatesSetup();
     await apiResponseLogSetup();

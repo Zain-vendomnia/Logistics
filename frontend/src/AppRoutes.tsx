@@ -15,6 +15,7 @@ import AdminAddTour from "./components/Admin/Admin_AddTour";
 import Admin_TourTemplates from "./components/Admin/Admin_TourTemplates";
 import Admin_MapComponent from "./components/Admin/Admin_MapComponent";
 import Admin_TourMapView from "./components/Admin/Admin_TourMapView";
+import ManageDrivers from "./components/Admin/ManageDrivers";
 
 const ProtectedRoute = ({ element }: { element: JSX.Element }) => {
   const { user } = useAuth();
@@ -67,10 +68,12 @@ const AppRoutes = () => {
       <Route path = "/register" element={<Register />} />
       <Route path = "/admin_dashboard" element={<AdminDashboard />} />
       <Route path = "/admin_addtour" element={<AdminAddTour/>}/>
+      <Route path = "/manage_drivers" element={<ManageDrivers/>}/>
       <Route path = "/admin_tourtemplates" element={<Admin_TourTemplates/>}/>
       <Route path = "/admin_mapComponent/:id"  element = {<Admin_MapComponent/>}/>
       <Route path = "/Admin_TourMapView/:tour_id" element = {<Admin_TourMapView/>}/>
-    </Routes>
+      {/* <Route path="/Admin_PickList" element={<Admin_PickListPage />} />  */}
+   </Routes>
 
 
   );

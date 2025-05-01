@@ -29,13 +29,13 @@ const modalStyle = {
 
 const generateTimeOptions = () => {
   const options: string[] = [];
-  ['AM', 'PM'].forEach(ampm => {
-    for (let h = 1; h <= 12; h++) {
-      ['00', '30'].forEach(minute => {
-        options.push(`${h}:${minute} ${ampm}`);
-      });
+  for (let h = 0; h < 24; h++) {
+    for (let m = 0; m < 60; m += 30) {
+      const hour = h.toString().padStart(2, '0');
+      const minute = m.toString().padStart(2, '0');
+      options.push(`${hour}:${minute}`);
     }
-  });
+  }
   return options;
 };
 
@@ -49,6 +49,7 @@ interface EditTourModalProps {
 interface Driver {
   driver_id: string | number;
   driver_name: string;
+  warehouse_id?: string | number;
 }
 
 const EditTourModal: React.FC<EditTourModalProps> = ({
@@ -70,8 +71,10 @@ const EditTourModal: React.FC<EditTourModalProps> = ({
   const timeOptions = generateTimeOptions();
 
   useEffect(() => {
-    if (open) fetchDrivers();
-  }, [open]);
+    if (open && tourData?.warehouseId) {
+      fetchDrivers(tourData.warehouseId);
+    }
+  }, [open, tourData?.warehouseId]);
 
   useEffect(() => {
     if (tourData) {
@@ -85,11 +88,16 @@ const EditTourModal: React.FC<EditTourModalProps> = ({
     }
   }, [tourData]);
 
-  const fetchDrivers = async () => {
+  const fetchDrivers = async (warehouseId: string | number) => {
     try {
       setLoading(true);
-      const driversData = await latestOrderServices.getInstance().fetchAllDrivers();
-      setDrivers(driversData);
+      const allDrivers = await latestOrderServices.getInstance().fetchAllDrivers();
+
+      const filtered = allDrivers.filter(
+        (driver: Driver) => String(driver.warehouse_id) === String(warehouseId)
+      );
+
+      setDrivers(filtered);
     } catch (error) {
       console.error('Error fetching drivers:', error);
     } finally {
@@ -99,14 +107,8 @@ const EditTourModal: React.FC<EditTourModalProps> = ({
 
   const setTimeRange = (timeRange: string) => {
     const [start, end] = timeRange.split(' - ');
-    setStartTime(formatTime(start, 'AM'));
-    setEndTime(formatTime(end, 'PM'));
-  };
-
-  const formatTime = (time: string, period: string) => {
-    const [hour, minute] = time.split(':');
-    const formattedHour = parseInt(hour, 10) % 12 || 12;
-    return `${formattedHour}:${minute} ${period}`;
+    setStartTime(start);
+    setEndTime(end);
   };
 
   const formatDateForInput = (dateString: string) => {
@@ -134,8 +136,8 @@ const EditTourModal: React.FC<EditTourModalProps> = ({
       id: tourData?.id,
       tourName,
       comments,
-      startTime,
-      endTime,
+      startTime: `${startTime}:00`,
+      endTime: `${endTime}:00`,
       routeColor,
       driverid: selectedDriver,
       driverName: selectedDriverObj.driver_name,
@@ -144,12 +146,8 @@ const EditTourModal: React.FC<EditTourModalProps> = ({
 
     try {
       setLoading(true);
-      await adminApiService.updateTour(updatedTourData); // Update the tour in the backend
-      console.log('Tour data to save:', updatedTourData);
-  
-      // After successfully saving, refresh the data
-      onTourUpdated(); 
-      // console.log('Updated data:', UpdatedData);
+      await adminApiService.updateTour(updatedTourData);
+      onTourUpdated();
       handleClose();
     } catch (error) {
       console.error('Error updating tour:', error);
