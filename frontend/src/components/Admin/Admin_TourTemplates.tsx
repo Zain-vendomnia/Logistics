@@ -23,6 +23,7 @@ interface Tour {
   driver: string;
   tour_comments: string;
   driver_id?: number;
+  warehouseId: number;
 }
 
 interface SnackbarState {
@@ -58,7 +59,8 @@ export const Admin_TourTemplates = () => {
     try {
       const instance = latestOrderServices.getInstance();
       const tourData = await instance.RealTimeToursData();
-      const mapped = tourData.map(({ id, tour_name, tour_comments, tour_date, tour_route_color, orders, tour_startTime, tour_endTime, driver }: TourInfo): Tour => ({
+      console.log('Fetched tour data:', tourData);
+      const mapped = tourData.map(({ id, tour_name, tour_comments, tour_date, tour_route_color, orders, tour_startTime, tour_endTime, driver,warehouseId }: TourInfo): Tour => ({
         id: id.toString(),
         tour_name,
         tour_comments,
@@ -67,6 +69,7 @@ export const Admin_TourTemplates = () => {
         amount: orders.length,
         timeRange: `${tour_startTime.slice(0, 5)} - ${tour_endTime.slice(0, 5)}`,
         driver: driver?.driver_name || 'N/A',
+        warehouseId: warehouseId,
         driver_id: driver?.driver_id || 0
       }));
       setTours(mapped);
@@ -132,9 +135,10 @@ export const Admin_TourTemplates = () => {
     }
   };
 
-  const handleMenuClose = (): void => setAnchorEl(null);
+  // const handleMenuClose = (): void => setAnchorEl(null);
+
   return (
-    <Box p={3} sx={{ minHeight: '100vh' }}>
+    <Box p={3} sx={{ minHeight: 'calc(100vh - 50px)'  }}>
       <Card sx={{ borderRadius: 4, boxShadow: 3 }}>
         <CardHeader title="Tour Overview" sx={{
           bgcolor: '#1976d2', color: 'white',
@@ -201,17 +205,7 @@ export const Admin_TourTemplates = () => {
           <Menu anchorEl={anchorEl} open={!!anchorEl} onClose={() => setAnchorEl(null)} anchorOrigin={{ vertical: 'top', horizontal: 'right' }} transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
             <MenuItem onClick={() => { setModalOpen(true); setAnchorEl(null); }}>Edit Tour</MenuItem>
 
-            <MenuItem 
-  onClick={() => {
-    if (currentTour) {
-      navigate('/Admin_PickList', { state: { tour: currentTour } });
-    }
-    handleMenuClose();
-  }}
->
-  Generate Pick List
-</MenuItem>
-
+       
             <Divider />
             <MenuItem onClick={() => currentTour && handleDelete([currentTour.id])} sx={{ color: 'error.main' }}>Delete</MenuItem>
           </Menu>
@@ -225,6 +219,8 @@ export const Admin_TourTemplates = () => {
               showSnackbar('Tour updated successfully', 'success');
             }}
           />
+
+
         </CardContent>
       </Card>
 

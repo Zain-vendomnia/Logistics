@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { createTour, deleteTours,updateTour } from '../../model/tourModel';
+import { createTour, deleteTours,updateTour,insertTourDriverData} from '../../model/tourModel';
 import { OkPacket } from 'mysql2';
 import { tourInfo_master } from '../../model/TourinfoMaster';
 import { createRoutedata } from '../../services/createRoutedata';
@@ -8,7 +8,7 @@ import { route_segments } from '../../model/routeSegments';
 
 // Controller to create a new tour
 export const createTourController = async (req: Request, res: Response) => {
-    const { tourName, comments, startTime, endTime, driverid, routeColor, tourDate, orderIds} = req.body;
+    const { tourName, comments, startTime, endTime, driverid, routeColor, tourDate, orderIds,warehouseId} = req.body;
   
     try {
       const result = await createTour({
@@ -20,13 +20,17 @@ export const createTourController = async (req: Request, res: Response) => {
         routeColor,
         tourDate,
         orderIds,
+        warehouseId,
       });
   
       // If result is of type OkPacket (from mysql2), it will contain affectedRows
       const affectedRows = (result as OkPacket).affectedRows;
       const insertedTourId = (result as OkPacket).insertId;
       if (affectedRows > 0) {
-        await UpdateRouteData(orderIds, insertedTourId); 
+        // await UpdateRouteData(orderIds, insertedTourId);
+        await UpdateRouteData(orderIds, insertedTourId, tourDate, driverid);
+
+
         res.status(200).json({ message: 'Tour saved successfully' });
       } else {
         res.status(500).json({ message: 'Failed to save the tour' });
@@ -75,19 +79,25 @@ export const createTourController = async (req: Request, res: Response) => {
     }
   }
 
-
-  async function UpdateRouteData(_orderIds: number[],_insertedTourId: number) {
+  async function UpdateRouteData(_orderIds: number[], _insertedTourId: number, tourDate: string, driverId: number) {
     try {
       const serviceResponse = await createRoutedata(_orderIds);
       console.log('Service call successful:', serviceResponse);
+  
       if (!serviceResponse) {
         throw new Error("GraphHopper response is empty or undefined.");
       }
+  
       const responseJson = JSON.stringify(serviceResponse);
-      // Save to DB
+  
+      // Save route data to tourInfo_master
       await tourInfo_master.updateGraphhopperResponse(_insertedTourId, responseJson);
 
       console.log('GraphHopper response saved to tourInfo_master.');
+        // Save mapping to tour_driver table
+        const datas={"tour_id": _insertedTourId, "driver_id": driverId, "tour_date": tourDate};
+        await insertTourDriverData(datas);
+        console.log('Tour-driver mapping inserted successfully.');
 
       const route = serviceResponse.solution.routes[0]; // assuming one route
       const segments = splitRouteSegments(route);
@@ -100,17 +110,16 @@ export const createTourController = async (req: Request, res: Response) => {
           throw new Error(`Segment has invalid order_id: ${JSON.stringify(segment)}`);
         }
        
-
         await route_segments.insertSegment(_insertedTourId, segmentJson, ordrid);
       }
   
       console.log(`Saved ${segments.length} segments to segmentTable.`);
-
-
+  
     } catch (error) {
-      console.error('ErError updating GraphHopper response:', error);
+      console.error('Error updating GraphHopper response or inserting tour-driver data:', error);
     }
   }
+
   // Controller to delete multiple tours
 export const deleteTourController = async (req: Request, res: Response) => {
   console.log('[deleteTourController] Request received to delete tours');
@@ -199,35 +208,21 @@ function splitRouteSegments(route: { activities: any[]; points: any[] }) {
   return segments;
 }
 
-export const updateTourController = async (req: Request, res: Response) => {
-  console.log('[updateTourController] Request received to update tour');
 
-  // Destructuring request body
+
+
+export const updateTourController = async (req: Request, res: Response) => {
   const { id, tourName, comments, startTime, endTime, driverid, routeColor, tourDate } = req.body;
 
-  console.log('[updateTourController] Request body:', {
-    id,
-    tourName,
-    comments,
-    startTime,
-    endTime,
-    driverid,
-    routeColor,
-    tourDate,
-  });
-
-  // Basic validation to ensure that `id` is provided
   if (!id) {
     return res.status(400).json({ message: 'Tour ID is required for update' });
   }
 
-  // Validate other fields (ensure they are not empty or undefined)
   if (!tourName || !comments || !startTime || !endTime || !driverid || !routeColor || !tourDate) {
     return res.status(400).json({ message: 'All fields are required for the update' });
   }
 
   try {
-    // Call the updateTour function to update the tour in the database
     const result = await updateTour({
       id,
       tourName,
@@ -239,22 +234,14 @@ export const updateTourController = async (req: Request, res: Response) => {
       tourDate,
     });
 
-    // Get the number of affected rows to determine if the update was successful
     const affectedRows = (result as OkPacket).affectedRows;
 
-    console.log('[updateTourController] Database result:', result);
-
     if (affectedRows > 0) {
-      console.log('[updateTourController] Tour updated successfully');
-      res.status(200).json({ message: 'Tour updated successfully' });
+      return res.status(200).json({ message: 'Tour updated successfully' });
     } else {
-      // If no rows were affected, it might mean that the tour ID doesn't exist or no changes were made
-      console.error('[updateTourController] No rows affected during update');
-      res.status(404).json({ message: 'Tour not found or no changes made' });
+      return res.status(404).json({ message: 'Tour not found or no changes made' });
     }
   } catch (error) {
-    // Handle any errors during the update process
-    console.error('[updateTourController] Error:', error);
     res.status(500).json({
       message: 'Error updating tour',
       error: error instanceof Error ? error.message : 'Unknown error',

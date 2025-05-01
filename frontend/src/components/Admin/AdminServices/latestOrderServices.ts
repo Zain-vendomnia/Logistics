@@ -31,6 +31,7 @@ export interface Driver {
   driver_name: string;
   driver_mobile: number;
   driver_address: string;
+  warehouse_id: number;
 }
 
 export interface TourInfo {
@@ -44,6 +45,7 @@ export interface TourInfo {
   orders: LogisticOrder[];
   tour_date: string;
   tour_comments: string;
+  warehouseId: number;
 }
 
 class latestOrderServices {

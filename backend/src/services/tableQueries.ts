@@ -200,3 +200,13 @@ export const USERS_TABLE = `
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
       );
 `;
+export const TOUR_DRIVER= `
+    CREATE TABLE IF NOT EXISTS tour_driver (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    tour_id INT NOT NULL,
+    driver_id INT NOT NULL,
+    tour_date DATE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  );
+`;
