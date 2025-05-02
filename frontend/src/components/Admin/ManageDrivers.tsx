@@ -1,74 +1,176 @@
-import React, { useState } from "react";
+// pages/admin/ManageDrivers.tsx
+import React, { useCallback, useEffect, useState } from "react";
 import {
-  Box,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Stack,
-  TextField,
-  Typography,
-  Paper,
+  Box, Button, Snackbar, Alert, Stack, Typography, Paper, CircularProgress
 } from "@mui/material";
 import { DataGrid, GridColDef, GridToolbar } from "@mui/x-data-grid";
 import { SaveAlt, Delete, Edit, Add } from "@mui/icons-material";
 import * as XLSX from "xlsx";
+import {
+  getAllDrivers, createDriver, updateDriver,
+  deleteDriver, deleteDriversBulk
+} from "../../services/driverService";
+import DriverDialog from "./DriverDialog";
+import ConfirmDialog from "./ConfirmDialog"; // ✅ import path
 
 type Driver = {
   id: number;
   name: string;
-  mob: number;
+  mob: string;
   address: string;
   warehouse_id: number;
 };
 
-const initialDrivers: Driver[] = [
-  { id: 1, name: "John Doe", mob: 9876543210, address: "New York", warehouse_id: 101 },
-  { id: 2, name: "Alice Smith", mob: 9123456780, address: "Chicago", warehouse_id: 102 },
-  { id: 3, name: "Bob Johnson", mob: 9988776655, address: "Los Angeles", warehouse_id: 103 },
-];
+const initialFormState: Partial<Driver> = {};
 
-const ManageDrivers = () => {
-  const [drivers, setDrivers] = useState<Driver[]>(initialDrivers);
+const ManageDrivers: React.FC = () => {
+  const [drivers, setDrivers] = useState<Driver[]>([]);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [formData, setFormData] = useState<Partial<Driver>>(initialFormState);
   const [openDialog, setOpenDialog] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [formData, setFormData] = useState<Partial<Driver>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success" as "success" | "error"
+  });
 
-  const handleOpenDialog = (driver?: Driver) => {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmTitle, setConfirmTitle] = useState("");
+  const [confirmContent, setConfirmContent] = useState("");
+  const [onConfirmAction, setOnConfirmAction] = useState<() => void>(() => () => {});
+
+  const showSnackbar = (message: string, severity: "success" | "error") =>
+    setSnackbar({ open: true, message, severity });
+
+  const showConfirmDialog = (title: string, content: string, action: () => void) => {
+    setConfirmTitle(title);
+    setConfirmContent(content);
+    setOnConfirmAction(() => action);
+    setConfirmOpen(true);
+  };
+
+  const resetForm = () => {
+    setFormData(initialFormState);
+    setErrors({});
+    setEditMode(false);
+  };
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.name?.trim()) newErrors.name = "Name is required";
+    else if (/\d/.test(formData.name)) newErrors.name = "Name should not contain numbers";
+
+    if (!/^\+\d{7,15}$/.test(formData.mob || "")) newErrors.mob = "Mobile must start with '+' and be 7–15 digits";
+
+    if (!formData.address?.trim()) newErrors.address = "Address is required";
+
+    if (!formData.warehouse_id || isNaN(+formData.warehouse_id) || +formData.warehouse_id <= 0)
+      newErrors.warehouse_id = "Warehouse ID must be a positive number";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const loadDrivers = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await getAllDrivers();
+      setDrivers(data);
+    } catch (err) {
+      console.error(err);
+      showSnackbar("Failed to load drivers", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadDrivers();
+  }, [loadDrivers]);
+
+  const handleDialogOpen = (driver?: Driver) => {
     setEditMode(!!driver);
-    setFormData(driver || {});
+    setFormData(driver || initialFormState);
+    setErrors({});
     setOpenDialog(true);
   };
 
-  const handleCloseDialog = () => {
+  const handleDialogClose = () => {
     setOpenDialog(false);
-    setFormData({});
+    resetForm();
   };
 
-  const handleSaveDriver = () => {
-    if (editMode && formData.id != null) {
-      setDrivers((prev) =>
-        prev.map((d) => (d.id === formData.id ? (formData as Driver) : d))
-      );
-    } else {
-      const newDriver: Driver = {
-        ...(formData as Driver),
-        id: drivers.length ? drivers[drivers.length - 1].id + 1 : 1,
-      };
-      setDrivers((prev) => [...prev, newDriver]);
+  const handleSave = async () => {
+    if (!validateForm()) return;
+
+    setLoading(true);
+    try {
+      if (editMode && formData.id != null) {
+        await updateDriver(formData.id, formData);
+        showSnackbar("Driver updated successfully", "success");
+      } else {
+        await createDriver(formData);
+        showSnackbar("Driver created successfully", "success");
+      }
+      handleDialogClose();
+      await loadDrivers();
+    } catch (err) {
+      console.error(err);
+      showSnackbar("Failed to save driver", "error");
+    } finally {
+      setLoading(false);
     }
-    handleCloseDialog();
   };
 
-  const handleDeleteDriver = (id: number) => {
-    setDrivers((prev) => prev.filter((d) => d.id !== id));
+  const confirmDeleteDriver = (id: number) => {
+    showConfirmDialog(
+      "Delete Driver?",
+      "This action cannot be undone and may affect related logistic records.",
+      () => handleDelete(id)
+    );
   };
 
-  const handleGroupDelete = () => {
-    setDrivers((prev) => prev.filter((d) => !selectedIds.includes(d.id)));
-    setSelectedIds([]);
+  const confirmBulkDelete = () => {
+    showConfirmDialog(
+      "Delete Selected Drivers?",
+      "Are you sure you want to delete all selected drivers? This cannot be undone.",
+      () => handleBulkDelete()
+    );
+  };
+
+  const handleDelete = async (id: number) => {
+    setConfirmOpen(false);
+    setLoading(true);
+    try {
+      await deleteDriver(id);
+      showSnackbar("Driver deleted successfully", "success");
+      await loadDrivers();
+    } catch (err) {
+      console.error(err);
+      showSnackbar("Failed to delete driver", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    setConfirmOpen(false);
+    setLoading(true);
+    try {
+      await deleteDriversBulk(selectedIds);
+      showSnackbar("Selected drivers deleted", "success");
+      setSelectedIds([]);
+      await loadDrivers();
+    } catch (err) {
+      console.error(err);
+      showSnackbar("Failed to delete selected drivers", "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleExport = () => {
@@ -90,13 +192,17 @@ const ManageDrivers = () => {
       width: 160,
       sortable: false,
       filterable: false,
-      renderCell: (params) => (
-        <Stack direction="row" spacing={1}>
+      renderCell: ({ row }) => (
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{ height: '100%', width: '100%', alignItems: 'center', justifyContent: 'center', display: 'flex' }}
+        >
           <Button
             size="small"
             variant="contained"
             color="primary"
-            onClick={() => handleOpenDialog(params.row)}
+            onClick={() => handleDialogOpen(row)}
           >
             <Edit fontSize="small" />
           </Button>
@@ -104,162 +210,99 @@ const ManageDrivers = () => {
             size="small"
             variant="contained"
             color="error"
-            onClick={() => handleDeleteDriver(params.row.id)}
+            onClick={() => confirmDeleteDriver(row.id)}
           >
             <Delete fontSize="small" />
           </Button>
         </Stack>
       ),
-    },
+    }
   ];
 
   return (
-    <Box  sx={{p:3, minHeight: 'calc(100vh - 50px)' , backgroundColor: "#59555626", borderRadius: 2 }}>
-    <Box  sx={{p:3, backgroundColor: "#fff", borderRadius: 2 }}>
-      <Typography variant="h5" mb={2}>
-        Manage Drivers
-      </Typography>
+    <Box sx={{ p: 3, minHeight: "100vh", backgroundColor: "#f4f4f4", borderRadius: 2 }}>
+      <Box sx={{ p: 3, backgroundColor: "#fff", borderRadius: 2 }}>
+        <Typography variant="h5" mb={2}>Manage Drivers</Typography>
 
-      <Stack direction="row" spacing={2} mb={2}>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => handleOpenDialog()}
-        >
-          Add Driver
-        </Button>
-        <Button
-          variant="outlined"
-          color="error"
-          disabled={!selectedIds.length}
-          onClick={handleGroupDelete}
-          startIcon={<Delete />}
-          sx={{ color:"red" }}
-        >
-          Delete Selected
-        </Button>
-        <Button
-          variant="outlined"
-          onClick={handleExport}
-          startIcon={<SaveAlt />}
-        >
-          Export
-        </Button>
-      </Stack>
-
-      <Paper elevation={3} sx={{ borderRadius: 2, overflow: "hidden" }}>
-        <DataGrid
-          rows={drivers}
-          columns={columns}
-          checkboxSelection
-          autoHeight
-          disableRowSelectionOnClick
-          onRowSelectionModelChange={(ids) => setSelectedIds(ids as number[])}
-          slots={{ toolbar: GridToolbar }}
-          sx={{
-          
-            "& .MuiDataGrid-columnHeaderRow": {
-              backgroundColor: "#1976d2",
-              borderRadius: 0,
-              "& .MuiDataGrid-columnHeaderTitle": {
-                fontWeight: "bold",
-                color: "white"
-              }
-            },
-            "& .MuiDataGrid-columnSeparator": {
-              visibility: "hidden"
-            },
-            "& .MuiDataGrid-toolbarContainer": {
-              padding: 2,
-              "& button": {
-                marginRight: 2,
-                border: "1px solid #1976d2",
-                color: "#1976d2",
-                "&:hover": {
-                  backgroundColor: "#1976d210"
-                }
-              }
-            },
-            "& .MuiDataGrid-row": {
-              "&:nth-of-type(even)": {
-                backgroundColor: "#f5f5f5",
-              },
-              "&:hover": {
-                backgroundColor: "#e3f2fd !important"
-              }
-            },
-            "& .MuiDataGrid-cell": {
-              borderBottom: "none",
-              "&:focus": {
-                outline: "none"
-              }
-            },
-            "& .MuiDataGrid-footerContainer": {
-              borderTop: "none"
-            },
-            "& .MuiCheckbox-root": {
-              color: "#1976d2 !important"
-            },
-            "& .MuiDataGrid-virtualScroller": {
-              backgroundColor: "#ffffff"
-            }
-          }}
-        />
-      </Paper>
-
-      {/* Add/Edit Dialog */}
-      <Dialog open={openDialog} onClose={handleCloseDialog}>
-        <DialogTitle>
-          {editMode ? "Edit Driver" : "Add Driver"}
-        </DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} mt={1} minWidth={350}>
-            <TextField
-              label="Name"
-              fullWidth
-              value={formData.name || ""}
-              onChange={(e) =>
-                setFormData({ ...formData, name: e.target.value })
-              }
-            />
-            <TextField
-              label="Mobile"
-              type="number"
-              fullWidth
-              value={formData.mob || ""}
-              onChange={(e) =>
-                setFormData({ ...formData, mob: +e.target.value })
-              }
-            />
-            <TextField
-              label="Address"
-              fullWidth
-              value={formData.address || ""}
-              onChange={(e) =>
-                setFormData({ ...formData, address: e.target.value })
-              }
-            />
-            <TextField
-              label="Warehouse ID"
-              type="number"
-              fullWidth
-              value={formData.warehouse_id || ""}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  warehouse_id: +e.target.value,
-                })
-              }
-            />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancel</Button>
-          <Button onClick={handleSaveDriver} variant="contained">
-            Save
+        <Stack direction="row" spacing={2} mb={2}>
+          <Button variant="contained" startIcon={<Add />} onClick={() => handleDialogOpen()}>
+            Add Driver
           </Button>
-        </DialogActions>
-      </Dialog>
+          <Button
+            variant="outlined"
+            color="error"
+            disabled={!selectedIds.length}
+            onClick={confirmBulkDelete}
+            startIcon={<Delete />}
+            sx={{
+              color: "red",
+              borderColor: "red",
+              "&.Mui-disabled": {
+                color: "rgba(255, 0, 0, 0.5)",
+                borderColor: "rgba(255, 0, 0, 0.5)",
+              },
+            }}
+          >
+            Delete Selected
+          </Button>
+          <Button variant="outlined" onClick={handleExport} startIcon={<SaveAlt />}>
+            Export
+          </Button>
+          {loading && <CircularProgress size={24} sx={{ ml: 2 }} />}
+        </Stack>
+
+        <Paper elevation={3} sx={{ borderRadius: 2 }}>
+          <DataGrid
+            rows={drivers}
+            columns={columns}
+            checkboxSelection
+            autoHeight
+            disableRowSelectionOnClick
+            onRowSelectionModelChange={(ids) => setSelectedIds(ids as number[])}
+            slots={{ toolbar: GridToolbar }}
+            sx={{
+              "& .MuiDataGrid-columnHeaderRow": {
+                backgroundColor: "#1976d2",
+                "& .MuiDataGrid-columnHeaderTitle": { fontWeight: "bold", color: "white" },
+              },
+              "& .MuiDataGrid-row:nth-of-type(even)": { backgroundColor: "#f9f9f9" },
+              "& .MuiDataGrid-row:hover": { backgroundColor: "#e3f2fd !important" },
+            }}
+          />
+        </Paper>
+
+        <DriverDialog
+          open={openDialog}
+          editMode={editMode}
+          formData={formData}
+          errors={errors}
+          onClose={handleDialogClose}
+          onSave={handleSave}
+          onChange={(field, value) => setFormData(prev => ({ ...prev, [field]: value }))}
+        />
+
+        <ConfirmDialog
+          open={confirmOpen}
+          title={confirmTitle}
+          content={confirmContent}
+          onConfirm={onConfirmAction}
+          onCancel={() => setConfirmOpen(false)}
+        />
+
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={3000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        >
+          <Alert
+            severity={snackbar.severity}
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            variant="filled"
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </Box>
     </Box>
   );
