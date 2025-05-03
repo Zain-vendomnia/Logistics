@@ -1,12 +1,11 @@
-import React, { useEffect, useState, useMemo, MouseEvent, ChangeEvent } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
-  Box, Typography, Table, TableHead, TableRow, TableCell, TableBody,
-  Checkbox, Button, IconButton, Menu, MenuItem, TextField, Card, CardContent,
-  CardHeader, Divider, Tooltip, Snackbar, Alert
+  Box, Typography, Table, TableHead, TableRow, TableCell, TableBody, Checkbox,
+  Button, IconButton, Menu, MenuItem, TextField, Card, CardContent, CardHeader,
+  Divider, Tooltip, Snackbar, Alert
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { MoreVert as MoreVertIcon, Delete as DeleteIcon, FileDownload as FileDownloadIcon, Merge as MergeIcon } from '@mui/icons-material';
-
+import { MoreVert, Delete, FileDownload, Merge } from '@mui/icons-material';
 import latestOrderServices, { TourInfo } from './AdminServices/latestOrderServices';
 import { deleteTours } from './AdminServices/tourDeletionServices';
 import { exportTours } from './AdminServices/tourExportServices';
@@ -26,16 +25,7 @@ interface Tour {
   warehouseId: number;
 }
 
-interface SnackbarState {
-  open: boolean;
-  message: string;
-  severity: 'success' | 'error' | 'info' | 'warning';
-}
-
-const ActionButton = ({ title, icon, color, onClick, disabled }: {
-  title: string, icon: JSX.Element, color: 'error' | 'secondary' | 'primary',
-  onClick: () => void, disabled: boolean
-}) => (
+const ActionButton = ({ title, icon, color, onClick, disabled }: any) => (
   <Tooltip title={title}>
     <span>
       <Button variant="contained" color={color} startIcon={icon} size="small" onClick={onClick} disabled={disabled}>
@@ -45,116 +35,99 @@ const ActionButton = ({ title, icon, color, onClick, disabled }: {
   </Tooltip>
 );
 
-export const Admin_TourTemplates = () => {
+const Admin_TourTemplates = () => {
   const [tours, setTours] = useState<Tour[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [currentTour, setCurrentTour] = useState<Tour | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
-  const [snackbar, setSnackbar] = useState<SnackbarState>({ open: false, message: '', severity: 'info' });
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' as any });
+
   const navigate = useNavigate();
 
-  const loadTours = async () => {
+  const showSnackbar = (message: string, severity: any) =>
+    setSnackbar({ open: true, message, severity });
+
+  // useCallback ensures loadTours is stable, and prevents infinite rerendering.
+  const loadTours = useCallback(async () => {
     try {
       const instance = latestOrderServices.getInstance();
       const tourData = await instance.RealTimeToursData();
-      console.log('Fetched tour data:', tourData);
-      const mapped = tourData.map(({ id, tour_name, tour_comments, tour_date, tour_route_color, orders, tour_startTime, tour_endTime, driver,warehouseId }: TourInfo): Tour => ({
-        id: id.toString(),
-        tour_name,
-        tour_comments,
-        date: new Date(tour_date).toLocaleDateString(),
-        color: tour_route_color,
-        amount: orders.length,
-        timeRange: `${tour_startTime.slice(0, 5)} - ${tour_endTime.slice(0, 5)}`,
-        driver: driver?.driver_name || 'N/A',
-        warehouseId: warehouseId,
-        driver_id: driver?.driver_id || 0
-      }));
-      setTours(mapped);
-    } catch (error) {
-      console.error('Error fetching tours:', error);
+      setTours(tourData.map((t: TourInfo): Tour => ({
+        id: t.id.toString(),
+        tour_name: t.tour_name,
+        tour_comments: t.tour_comments,
+        date: new Date(t.tour_date).toLocaleDateString(),
+        color: t.tour_route_color,
+        amount: t.orders.length,
+        timeRange: `${t.tour_startTime.slice(0, 5)} - ${t.tour_endTime.slice(0, 5)}`,
+        driver: t.driver?.driver_name || 'N/A',
+        warehouseId: t.warehouseId,
+        driver_id: t.driver?.driver_id || 0
+      })));
+    } catch (e) {
+      console.error(e);
       showSnackbar('Failed to load tours', 'error');
     }
-  };
+  }, []); // Empty dependency array means this function is stable
 
-  useEffect(() => { loadTours(); }, []);
+  useEffect(() => {
+    loadTours();
+  }, [loadTours]); // loadTours is stable now
 
   const filteredTours = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
-    return term ? tours.filter(tour => [tour.tour_name, tour.driver, tour.date, tour.timeRange, tour.id]
-      .some(field => field?.toLowerCase().includes(term))) : tours;
+    const term = searchTerm.toLowerCase();
+    return tours.filter(t => [t.tour_name, t.driver, t.date, t.timeRange, t.id].some(f => f.toLowerCase().includes(term)));
   }, [tours, searchTerm]);
 
-  const isSelected = (id: string) => selected.includes(id);
-
-  const handleSelectAllClick = (e: ChangeEvent<HTMLInputElement>) =>
-    setSelected(e.target.checked ? filteredTours.map(t => t.id) : []);
-
-  const handleCheckboxClick = (e: MouseEvent, id: string) => {
-    e.stopPropagation();
-    setSelected(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
-  };
-
-  const showSnackbar = (message: string, severity: SnackbarState['severity']) =>
-    setSnackbar({ open: true, message, severity });
-
-  const handleAction = async (action: 'delete' | 'merge' | 'export') => {
-    if (!selected.length) return showSnackbar('No tours selected', 'warning');
-
-    try {
-      if (action === 'delete') await handleDelete(selected);
-      if (action === 'merge') {
-        if (selected.length === 2) {
-          console.log('Merging tours:', selected);
-          showSnackbar('Merge functionality not yet implemented', 'info');
-        } else {
-          showSnackbar('Select exactly two tours to merge', 'warning');
-        }
-      }
-      if (action === 'export') {
-        await exportTours(selected);
-        showSnackbar(`Successfully exported ${selected.length} tour(s)`, 'success');
-      }
-    } catch (error) {
-      console.error(`${action} failed:`, error);
-      showSnackbar(`${action.charAt(0).toUpperCase() + action.slice(1)} failed`, 'error');
-    }
-  };
+  const handleSelect = (id: string) =>
+    setSelected(s => s.includes(id) ? s.filter(i => i !== id) : [...s, id]);
 
   const handleDelete = async (ids: string[]) => {
     try {
       await deleteTours(ids);
       await loadTours();
-      setSelected(prev => prev.filter(id => !ids.includes(id)));
+      setSelected(s => s.filter(id => !ids.includes(id)));
       showSnackbar(`Deleted ${ids.length} tour(s)`, 'success');
-    } catch (error) {
-      console.error('Delete failed:', error);
-      showSnackbar('Failed to delete tour(s)', 'error');
+    } catch {
+      showSnackbar('Failed to delete tours', 'error');
     }
   };
 
-  // const handleMenuClose = (): void => setAnchorEl(null);
+  const handleAction = async (action: 'delete' | 'merge' | 'export') => {
+    if (!selected.length) return showSnackbar('No tours selected', 'warning');
+    try {
+      if (action === 'delete') return handleDelete(selected);
+      if (action === 'merge')
+        return selected.length === 2
+          ? showSnackbar('Merge not implemented', 'info')
+          : showSnackbar('Select 2 tours to merge', 'warning');
+      if (action === 'export') {
+        await exportTours(selected);
+        showSnackbar(`Exported ${selected.length} tour(s)`, 'success');
+      }
+    } catch {
+      showSnackbar(`${action} failed`, 'error');
+    }
+  };
 
   return (
-    <Box p={3} sx={{ minHeight: 'calc(100vh - 50px)'  }}>
+    <Box p={3}>
       <Card sx={{ borderRadius: 4, boxShadow: 3 }}>
-        <CardHeader title="Tour Overview" sx={{
-          bgcolor: '#1976d2', color: 'white',
-          borderTopLeftRadius: 16, borderTopRightRadius: 16,
-          '& .MuiCardHeader-action': { alignSelf: 'center' }
-        }} />
+        <CardHeader title="Tour Overview" sx={{ bgcolor: '#1976d2', color: 'white' }} />
         <CardContent>
           <Box display="flex" justifyContent="space-between" flexWrap="wrap" mb={2} gap={2}>
-            <TextField placeholder="Search tours..." size="small" sx={{ flexGrow: 1, maxWidth: 300 }} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-            <Box display="flex" gap={1} flexWrap="wrap">
-              <ActionButton title="Delete" icon={<DeleteIcon />} color="error" onClick={() => handleAction('delete')} disabled={!selected.length} />
-              <ActionButton title="Merge" icon={<MergeIcon />} color="secondary" onClick={() => handleAction('merge')} disabled={selected.length !== 2} />
-              <ActionButton title="Export" icon={<FileDownloadIcon />} color="primary" onClick={() => handleAction('export')} disabled={!selected.length} />
+            <TextField placeholder="Search tours..." size="small" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} sx={{ maxWidth: 300 }} />
+            <Box display="flex" gap={1}>
+              <ActionButton title="Delete" icon={<Delete />} color="error" onClick={() => handleAction('delete')} disabled={!selected.length} />
+              <ActionButton title="Merge" icon={<Merge />} color="secondary" onClick={() => handleAction('merge')} disabled={selected.length !== 2} />
+              <ActionButton title="Export" icon={<FileDownload />} color="primary" onClick={() => handleAction('export')} disabled={!selected.length} />
             </Box>
           </Box>
+
           <Divider sx={{ mb: 2 }} />
+
           <Table>
             <TableHead>
               <TableRow sx={{ bgcolor: '#f0f0f0' }}>
@@ -162,26 +135,23 @@ export const Admin_TourTemplates = () => {
                   <Checkbox
                     indeterminate={selected.length > 0 && selected.length < filteredTours.length}
                     checked={filteredTours.length > 0 && selected.length === filteredTours.length}
-                    onChange={handleSelectAllClick}
+                    onChange={e => setSelected(e.target.checked ? filteredTours.map(t => t.id) : [])}
                   />
                 </TableCell>
-                {['Name', 'Driver', 'Period', 'Actions'].map(title => (
-                  <TableCell key={title}><strong>{title}</strong></TableCell>
-                ))}
+                {['Name', 'Driver', 'Period', 'Actions'].map(h => <TableCell key={h}><strong>{h}</strong></TableCell>)}
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredTours.map(tour => {
-                const selectedRow = isSelected(tour.id);
+              {filteredTours.length ? filteredTours.map(tour => {
+                const isChecked = selected.includes(tour.id);
                 return (
-                  <TableRow key={tour.id} hover selected={selectedRow}
-                    sx={{ '&:hover td': { bgcolor: selectedRow ? 'action.selected' : '' } }}>
+                  <TableRow key={tour.id} hover selected={isChecked}>
                     <TableCell padding="checkbox">
-                      <Checkbox checked={selectedRow} onClick={e => handleCheckboxClick(e, tour.id)} />
+                      <Checkbox checked={isChecked} onClick={e => { e.stopPropagation(); handleSelect(tour.id); }} />
                     </TableCell>
                     <TableCell>
-                      <Box display="flex" alignItems="center" gap={1}>
-                        <Box sx={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: tour.color }} />
+                      <Box display="flex" gap={1} alignItems="center">
+                        <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: tour.color }} />
                         <Box>
                           <Typography fontWeight="bold">{tour.tour_name} - {tour.date}</Typography>
                           <Typography variant="body2" color="text.secondary">{tour.amount} orders · {tour.timeRange}</Typography>
@@ -191,41 +161,41 @@ export const Admin_TourTemplates = () => {
                     <TableCell>{tour.driver}</TableCell>
                     <TableCell>{tour.timeRange}</TableCell>
                     <TableCell>
-                      <Box display="flex" alignItems="center" gap={1}>
+                      <Box display="flex" gap={1}>
                         <Button variant="outlined" color="warning" size="small" onClick={() => navigate(`/Admin_TourMapView/${tour.id}`)}>View Map</Button>
-                        <IconButton onClick={e => { setAnchorEl(e.currentTarget); setCurrentTour(tour); }}><MoreVertIcon /></IconButton>
+                        <IconButton onClick={e => { setAnchorEl(e.currentTarget); setCurrentTour(tour); }}><MoreVert /></IconButton>
                       </Box>
                     </TableCell>
                   </TableRow>
                 );
-              })}
+              }) : (
+                <TableRow><TableCell colSpan={5} align="center"><Typography color="text.secondary">No tours found.</Typography></TableCell></TableRow>
+              )}
             </TableBody>
           </Table>
 
-          <Menu anchorEl={anchorEl} open={!!anchorEl} onClose={() => setAnchorEl(null)} anchorOrigin={{ vertical: 'top', horizontal: 'right' }} transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
+          <Menu anchorEl={anchorEl} open={!!anchorEl} onClose={() => setAnchorEl(null)}>
             <MenuItem onClick={() => { setModalOpen(true); setAnchorEl(null); }}>Edit Tour</MenuItem>
-
-       
             <Divider />
-            <MenuItem onClick={() => currentTour && handleDelete([currentTour.id])} sx={{ color: 'error.main' }}>Delete</MenuItem>
+            <MenuItem sx={{ color: 'error.main' }} onClick={() => currentTour && handleDelete([currentTour.id])}>Delete</MenuItem>
           </Menu>
 
           <EditTourModal
             open={modalOpen}
             handleClose={() => setModalOpen(false)}
             tourData={currentTour}
-            onTourUpdated={() => {
-              loadTours();
-              showSnackbar('Tour updated successfully', 'success');
-            }}
+            onTourUpdated={() => { loadTours(); showSnackbar('Tour updated', 'success'); }}
           />
-
-
         </CardContent>
       </Card>
 
-      <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={() => setSnackbar(prev => ({ ...prev, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
-        <Alert onClose={() => setSnackbar(prev => ({ ...prev, open: false }))} severity={snackbar.severity} sx={{ width: '100%' }}>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: '100%' }}>
           {snackbar.message}
         </Alert>
       </Snackbar>

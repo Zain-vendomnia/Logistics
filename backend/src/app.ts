@@ -28,6 +28,12 @@ import { HandleOrderDelivery } from "./controller/AdminDriverApi/HandleOrderDeli
 // total orders count controller 
 import { getOrderCount } from "./controller/Admin_Api/orderCount.controller";
 
+//  driver routes
+import driverRoutes from "./router/driverRoutes";
+
+//  warehouse routes
+import warehouseRoutes from "./router/warehouseRoutes";
+
 // import { getImageById } from "./controller/Admin_Api/route_segments.controller";
 
 const app = express();
@@ -82,6 +88,12 @@ app.get("/api/admin/scheduleOrderInfo", scheduleOrderInfoController);
 app.get("/api/admin/scheduleWmsOrderInfo", scheduleWmsOrderController);
 
 app.post("/upload_image", uploadImageController);
+
+// ------------------ drivers routes ------------------
+app.use("/api/admin/", driverRoutes);
+
+// ------------------ warehouse routes ------------------
+app.use("/api/admin/", warehouseRoutes);
 
 // app.post("/route_segments/addData",addData);
 

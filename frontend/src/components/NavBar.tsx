@@ -83,7 +83,7 @@ const NavBar: React.FC = () => {
             )}
             {showAdminBoard && (
               <>
-                <Button color="inherit" component={Link} to="/profile">
+                <Button color="inherit" component={Link} to="/admin-drivers">
                   Drivers
                 </Button>
                 <Button color="inherit" component={Link} to="/profile">

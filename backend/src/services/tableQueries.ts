@@ -2,7 +2,7 @@ export const CREATE_DRIVER_DETAILS_TABLE = `
   CREATE TABLE driver_details (
     id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(45) NOT NULL,
-    mob INT NOT NULL,
+    mob VARCHAR(20) NOT NULL,
     address VARCHAR(45) NOT NULL,
     warehouse_id INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -112,7 +112,7 @@ export const CREATE_WAREHOUSE_DETAILS_TABLE = `
     warehouse_id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     warehouse_name VARCHAR(45) NOT NULL,
     clerk_name VARCHAR(45) NOT NULL,
-    clerk_mob INT NOT NULL,
+    clerk_mob VARCHAR(20) NOT NULL,
     address VARCHAR(45) NOT NULL,
     email VARCHAR(45) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -200,13 +200,17 @@ export const USERS_TABLE = `
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
       );
 `;
-export const TOUR_DRIVER= `
-    CREATE TABLE IF NOT EXISTS tour_driver (
+
+export const TOUR_DRIVER = `
+  CREATE TABLE IF NOT EXISTS tour_driver (
     id INT AUTO_INCREMENT PRIMARY KEY,
     tour_id INT NOT NULL,
     driver_id INT NOT NULL,
     tour_date DATE NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (tour_id) REFERENCES tourInfo_master(id) ON DELETE CASCADE,
+    FOREIGN KEY (driver_id) REFERENCES driver_details(id) ON DELETE CASCADE
   );
 `;
+
