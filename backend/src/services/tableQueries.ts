@@ -87,30 +87,26 @@ export const CREATE_API_RESPONSE_LOG_TABLE = `
     FOREIGN KEY (route_segment_id) REFERENCES route_segments(id) ON DELETE CASCADE
   );
 `;
-
 export const CREATE_ROUTE_SEGMENTS_TABLE = `
   CREATE TABLE route_segments (
     id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     tour_id INT NOT NULL,
-    start_latitude FLOAT,
-    start_longitude FLOAT,
-    end_latitude FLOAT,
-    end_longitude FLOAT,
     route_response JSON,
-    status VARCHAR(45),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
-    start_customer_id VARCHAR(45),
-    end_customer_id VARCHAR(45),
-    delivered_item_pic VARCHAR(1000),
-    customer_signature VARCHAR(45),
-    order_id INT NOT NULL,
+    status ENUM('pending', 'in-progress', 'delivered', 'tour-completed') DEFAULT 'pending',
+    doorstep_pic BLOB,
+    delivered_item_pic BLOB,
+    customer_signature BLOB,
+    neighbour_signature BLOB,
+    delivered_pic_neighbour BLOB,
+    order_id VARCHAR(45),
     comments VARCHAR(45),
+    delivery_time TIMESTAMP,
     FOREIGN KEY (tour_id) REFERENCES tourInfo_master(id) ON DELETE CASCADE,
-    FOREIGN KEY (order_id) REFERENCES logistic_order(order_id) ON DELETE CASCADE
+    FOREIGN KEY (order_id) REFERENCES logistic_order(order_id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
   );
 `;
-
 export const CREATE_WAREHOUSE_DETAILS_TABLE = `
   CREATE TABLE warehouse_details (
     warehouse_id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,

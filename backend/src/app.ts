@@ -4,7 +4,7 @@ import morgan from "morgan";
 import authRouter from "./router/auth.routes";
 // import userRouter from "./router/auth.routes";
 import config from "./config";
-
+import { setupSwagger } from './swagger';
 // Import the controller fucntion for the order info
 import { orderInfoController } from "./controller/Admin_Api/orderInfo.controller";
 import { scheduleOrderInfoController } from "./controller/Admin_Api/scheduleOrderInfo.controller";
@@ -18,9 +18,12 @@ import { GeocodingController } from "./controller/Admin_RouteOptimzation/geocodi
 import { optimizeRouteController } from "./controller/Admin_RouteOptimzation/optimizeRouteController";
 import { updatelatlngController } from "./controller/Admin_RouteOptimzation/updatelatlngController";
 import {  getAllLogisticOrders, getcountcheck } from './controller/Admin_RouteOptimzation/order.controller';
-import { createTourController, getTourcountcheck,updateTourController, deleteTourController, getgraphhopperRoute } from './controller/Admin_RouteOptimzation/tourController';
+
+import { createTourController, getTourcountcheck, updateTourController, deleteTourController, getgraphhopperRoute,getSegmentRoutes } from './controller/Admin_RouteOptimzation/tourController';
 import { ExportTourController } from './controller/Admin_RouteOptimzation/exportTourController';
 import { getAllTourController } from "./controller/Admin_RouteOptimzation/getAllTourController";
+import { HandleOrderDelivery } from "./controller/AdminDriverApi/HandleOrderDelivery";
+
 
 // total orders count controller 
 import { getOrderCount } from "./controller/Admin_Api/orderCount.controller";
@@ -43,6 +46,9 @@ app.use(morgan("dev"));
 
 app.use(express.json({ limit: '50mb' })); // Increase limit if sending large images
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Swagger setup
+setupSwagger(app);
 
 // Define the root route to prevent "Cannot GET /"
 app.get('/', (_req, res) => {
@@ -68,6 +74,11 @@ app.use('/api/admin/routeoptimize/updateTour', updateTourController);
 app.use('/api/admin/routeoptimize/deleteTours', deleteTourController);
 app.use('/api/admin/routeoptimize/exportTours', ExportTourController);
 app.use('/api/admin/routeoptimize/getGraphhopperRoute', getgraphhopperRoute);
+app.use('/api/admin/routeoptimize/getSegmentRoute', getSegmentRoutes);
+
+app.use('/api/admin/routeoptimize/updateLatlng', GeocodingController.getLatLngtest);
+app.use('/api/admindriver/tour/:tourId/order', HandleOrderDelivery);
+
 // --------------------------------------------------------------------
 // total order count
 app.get("/api/admin/orderCount", getOrderCount);

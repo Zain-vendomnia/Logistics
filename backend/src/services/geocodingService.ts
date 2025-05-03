@@ -3,6 +3,7 @@ import { OrderDetails } from '../model/OrderDetails';
 import { LogisticOrder } from '../model/LogisticOrders';
 import pool from '../database';
 
+
 interface GeocodingResponse {
   hits: Array<{
     point: {
@@ -14,7 +15,9 @@ interface GeocodingResponse {
 
 export class GeocodingService {
   //private static GRAPH_HOPPER_API_KEY = process.env.GRAPH_HOPPER_API_KEY;
-  private static GRAPH_HOPPER_API_KEY='10fd4ad9-4793-402d-acdc-a22bc9693b85'; 
+  //private static GRAPH_HOPPER_API_KEY='10fd4ad9-4793-402d-acdc-a22bc9693b85'; 
+  private static GRAPH_HOPPER_API_KEY = '74c4b264-313f-4d3a-80a4-035ca7b6ba7a';
+
 
   private static BASE_URL = 'https://graphhopper.com/api/1/geocode';
   static async getLatLngFromAddress(address: string): Promise<{ lat: number; lng: number } | null> {
@@ -128,7 +131,7 @@ export class GeocodingService {
     // Iterate over the orders and geocode them
     for (let index = 0; index < orders.length; index++) {
       const order = orders[index];
-      const address =order.street +','+ order.city +',' + order.zipcode;
+      const address = order.street +','+ order.city +',' + order.zipcode;
       const latLng = await this.getLatLngFromAddress(address);  
 
       if (latLng) {
@@ -157,4 +160,7 @@ export class GeocodingService {
     return results;
   }
   
+   
 }
+
+

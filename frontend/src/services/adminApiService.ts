@@ -49,6 +49,9 @@ const exportTours = (tourIds: number[] | string[]) => {
     headers: authHeader(),
   });
 };
+const fetchRouteSegmentData  = (tour_id: number) => {
+  return axios.post(API_BaseUrl + "getSegmentRoute", { tour_id }, { headers: authHeader() });
+};
 
 const updateTour = (tourData: any) => {
   return axios.put(API_BaseUrl + "updateTour", tourData, {
@@ -80,6 +83,7 @@ const adminApiService = {
   getRouteResponse,
   deleteTours,
   exportTours,
+  fetchRouteSegmentData,
   updateTour,
   getOrderCount, 
 };

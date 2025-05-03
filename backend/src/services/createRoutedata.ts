@@ -54,7 +54,7 @@ export async function getlatlngAllorders(orderIds: number[]): Promise<{ id: stri
       const serviceId = `s${index + 1}`;
 
       results.push({
-        id: serviceId,
+        id: `${order.order_id}`,
         type: "service",
         address: {
           location_id: serviceId,
