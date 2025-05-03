@@ -15,7 +15,7 @@ import AdminMultiselectCard from './Admin_MultiselectCard';
 import AdminOrderTable from './Admin_OrderTable';
 import CreateTourModal from './Admin_CreateTourModal';
 import { LogisticOrder } from './AdminServices/latestOrderServices';
-
+import "./css/Admin_common.css";
 const Admin_AddTour = () => {
   const [selectedZipcodes, setSelectedZipcodes] = useState<string[]>([]);
   const [selectedOrders, setSelectedOrders] = useState<number[]>([]); 

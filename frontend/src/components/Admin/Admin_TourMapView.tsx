@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import {
   MapContainer,
   TileLayer,
@@ -30,8 +30,8 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet-polylinedecorator';
 import { useParams } from 'react-router-dom';
 import latestOrderServices from './AdminServices/latestOrderServices';
-import { Tour } from '@mui/icons-material';
-
+import "./css/Admin_TourMapView.css";
+import 'leaflet-polylinedecorator';
 type Stop = {
   id: string;
   location_id: string;
@@ -53,12 +53,10 @@ const TourMapPage: React.FC = () => {
   const mapRef = useRef<L.Map>(null);
   const [routeDistance, setRouteDistance] = useState<number>(0);
   const [routeTime, setRouteTime] = useState<number>(0);
-
   useEffect(() => {
     const fetchData = async () => {
       const instance = latestOrderServices.getInstance();
       const toursdata = await instance.getTours();
-
       const tour = toursdata.find((tour: any) => tour.id === Number(tour_id));
       setSelectedTour(tour);
     };
@@ -67,7 +65,7 @@ const TourMapPage: React.FC = () => {
   }, [tour_id]);
 
   console.log(selectedTour);
-  //console.log("stops" + JSON.stringify(stops));
+  console.log("stops" + JSON.stringify(stops));
   const fetchRouteData = async () => {
     try {
       if (parsedTourId !== null) {
@@ -102,6 +100,7 @@ const TourMapPage: React.FC = () => {
 
         }
         setLoading(false);
+
       }
     } catch (error) {
       console.error("Error fetching route data:", error);
@@ -113,56 +112,25 @@ const TourMapPage: React.FC = () => {
     fetchRouteData();
   }, [parsedTourId]);
 
-  const createIcon = (label: string, bgColor: string) =>
-    L.divIcon({
-      html: `<div style="
-        background-color: ${bgColor};
-        color: white;
-        border-radius: 50%;
-        width: 28px;
-        height: 28px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 13px;
-      ">${label}</div>`,
-      className: 'custom-icon',
-      iconSize: [28, 28],
-      iconAnchor: [14, 14],
-    });
-
-  const PolylineDecoratorComponent: React.FC<{ positions: [number, number][] }> = ({ positions }) => {
-    const map = useMap();
-
-    useEffect(() => {
-      const polyline = L.polyline(positions, {
-        color: selectedTour.tour_route_color,
-        weight: 5,
-        opacity: 0.7,
-      }).addTo(map);
-
-      const decorator = (L as any).polylineDecorator(polyline, {
-        patterns: [
-          {
-            offset: '5%',
-            repeat: '30px',
-            symbol: (L as any).Symbol.arrowHead({
-              pixelSize: 12,
-              polygon: false,
-              pathOptions: { stroke: true, color: selectedTour.tour_route_color },
-            }),
-          },
-        ],
-      }).addTo(map);
-
-      return () => {
-        map.removeLayer(polyline);
-        map.removeLayer(decorator);
-      };
-    }, [map, positions]);
-
-    return null;
-  };
+  const createIcon = useMemo(() => {
+    return (label: string, bgColor: string) =>
+      L.divIcon({
+        html: `<div style="
+          background-color: ${bgColor};
+          color: white;
+          border-radius: 50%;
+          width: 28px;
+          height: 28px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 13px;
+        ">${label}</div>`,
+        className: 'custom-icon',
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+      });
+  }, []);
 
   const zoomToStop = (lat: number, lon: number) => {
     const map = mapRef.current;
@@ -171,9 +139,42 @@ const TourMapPage: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return <div>Loading route data...</div>;
-  }
+  const PolylineDecoratorComponent = React.memo(({ positions }: { positions: [number, number][] }) => {
+    const map = useMap();
+
+    useEffect(() => {
+      if (!selectedTour) return;
+
+      const polyline = L.polyline(positions, {
+        color: selectedTour.tour_route_color,
+        weight: 5,
+        opacity: 0.7,
+      }).addTo(map);
+
+      const arrowHead = L.Symbol.arrowHead({
+        pixelSize: 10,
+        pathOptions: { stroke: true, color: selectedTour.tour_route_color }
+      });
+
+      const decorator = (L as any).polylineDecorator(polyline, {
+        patterns: [{
+          offset: '20%',
+          repeat: '100px',
+          symbol: arrowHead,
+        }],
+      }).addTo(map);
+
+      return () => {
+        map.removeLayer(polyline);
+        map.removeLayer(decorator);
+      };
+    }, [map, positions, selectedTour]);
+
+    return null;
+  });
+
+  if (loading || !selectedTour) return <div>Loading route data...</div>;
+
   const formattedDate = new Date(selectedTour.tour_date);
   const cleanDate = formattedDate.toISOString().split('T')[0]; // Extract YYYY-MM-DD
   const formatTime = (seconds: number) => {
@@ -181,8 +182,6 @@ const TourMapPage: React.FC = () => {
     const minutes = Math.floor((seconds % 3600) / 60);
     return `${hours}h ${minutes}m`;
   };
-
-
 
   // Format the tour start time (remove trailing :00)
   const cleanStartTime = selectedTour.tour_startTime.replace(/:00$/, '');
@@ -236,9 +235,16 @@ const TourMapPage: React.FC = () => {
                 </Avatar>
 
                 <Box sx={{ ml: 2, flexGrow: 1 }}>
-                  <Typography fontWeight="bold" variant="body2">
-                    Order ID: {stop.location_id}
-                  </Typography>
+                  {stop.location_id === "v1" ? (
+                    <Typography variant="body2" fontWeight="bold">
+                      {selectedTour.warehouseaddress}
+                    </Typography>
+                  ) : (
+                    <Typography fontWeight="bold" variant="body2">
+                      Order ID: {stop.location_id}
+                    </Typography>
+                  )}
+
 
                   {/* ✅ Find the matching order */}
                   {selectedTour?.orders && (() => {
@@ -260,13 +266,13 @@ const TourMapPage: React.FC = () => {
                       </>
                     ) : (
                       <Typography variant="caption" color="error">
-                        Order not found.
+                        {stop.location_id === "v1" ? "" : "Order not found for this stop."}
                       </Typography>
                     );
                   })()}
 
                   <Typography variant="caption" display="block" mt={0.5}>
-                   Arrival: {new Date(stop.arrival).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    Arrival: {new Date(stop.arrival).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </Typography>
                 </Box>
               </ListItemButton>
@@ -274,24 +280,29 @@ const TourMapPage: React.FC = () => {
             </ListItem>
           ))}
         </List>
-
-
         <Divider sx={{ my: 2 }} />
       </Paper>
 
       <Box sx={{ flex: 1 }}>
         <MapContainer
           center={[stops[0]?.lat || 51.191566, stops[0]?.lon || 10.00519]}
-          zoom={10}
+          zoom={13} maxZoom={19}
           ref={mapRef}
           style={{ height: "100vh", width: "100%" }}
         >
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap contributors' />
-
+          {/* <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap contributors' detectRetina={true} /> */}
+          <TileLayer
+  url={`https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoiemFpbi12ZW5kb21uaWEiLCJhIjoiY204ZmlramFxMGNzazJscHRjNGs5em80NyJ9.1nIfy1EdSPl2cYvwvxOEmA`}
+  attribution='&copy; <a href="https://www.mapbox.com/">Mapbox</a> &copy; OpenStreetMap contributors'
+  detectRetina={true}
+  tileSize={512}
+  zoomOffset={-1}
+/>
           {routePoints.length > 0 &&
             routePoints.map((route, index) => (
               <PolylineDecoratorComponent key={index} positions={route} />
             ))}
+
 
           {stops.map((stop, index) => (
             <Marker
@@ -305,40 +316,85 @@ const TourMapPage: React.FC = () => {
                     : createIcon(String(index), selectedTour.tour_route_color)
               }
             >
-              <Popup>
-                <strong>{stop.location_id}</strong><br />
-                Type: {stop.type}<br />
-                Arrival: {new Date(stop.arrival).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}<br />
+              <Popup className="custom-popup">
+                <div className="popup-content">
+                  <div className="popup-title" style={{ color: selectedTour.tour_route_color }}>
+                    {stop.location_id}
+                  </div>
 
-                {/* ✅ Display matching order details */}
-                {selectedTour?.orders && (() => {
-                  const matchedOrder = selectedTour.orders.find(
-                    (order: any) => order.order_id === Number(stop.location_id)
-                  );
+                  <div>
+                    <span className="popup-label">Type : </span>
+                    <span className="popup-value">{stop.type}</span>
+                  </div>
 
-                  if (matchedOrder) {
-                    return (
-                      <>
-                        <strong>Customer:</strong> {matchedOrder.firstname} {matchedOrder.lastname}<br />
-                        <strong>Address:</strong> {matchedOrder.street}, {matchedOrder.city}, {matchedOrder.zipcode}<br />
-                        <strong>Invoice Amount:</strong> €{matchedOrder.invoice_amount}<br />
+                  <div>
+                    <span className="popup-label">Arrival : </span>
+                    <span className="popup-value">
+                      {new Date(stop.arrival).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
 
-                        {/* ✅ Display the items */}
-                        <strong>Items:</strong>
-                        <ul>
-                          {matchedOrder.items.map((item: any, index: number) => (
-                            <li key={index}>
-                              <strong>Article Number:</strong> {item.slmdl_articleordernumber},
-                              <strong>Quantity:</strong> {item.quantity}
-                            </li>
-                          ))}
-                        </ul>
-                      </>
-                    );
-                  } else {
-                    return <span>Order not found for this stop.</span>;
-                  }
-                })()}
+                  {/* 👇 Only for warehouse stop (v1) */}
+                  {stop.location_id === "v1" ? (
+                    <div>
+                      <span className="popup-label">Address : </span>
+                      <span className="popup-value">{selectedTour.warehouseaddress}</span>
+                    </div>
+                  ) : (
+                    // 👇 For customer stop: matchedOrder content
+                    selectedTour?.orders && (() => {
+                      const matchedOrder = selectedTour.orders.find(
+                        (order: any) => order.order_id === Number(stop.location_id)
+                      );
+
+                      return matchedOrder ? (
+                        <>
+                          <div className="popup-section">
+                            <span className="popup-label" style={{ fontWeight: 'bold' }}>OrderNumber : </span>
+                            <span className="popup-value" style={{ fontWeight: 'bold', color: selectedTour.tour_route_color }}>
+                              {matchedOrder.order_number}
+                            </span>
+                          </div>
+                          <div className="popup-section">
+                            <span className="popup-label">Customer : </span>
+                            <span className="popup-value" style={{ fontWeight: 'bold', color: selectedTour.tour_route_color }}>
+                              {matchedOrder.firstname} {matchedOrder.lastname}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="popup-label">Address : </span>
+                            <span className="popup-value">
+                              {matchedOrder.street}, {matchedOrder.city}, {matchedOrder.zipcode}
+                            </span>
+                          </div>
+                          <div style={{ marginTop: '5px' }}>
+                            <span className="popup-label">Invoice Amount : </span>
+                            <span className="popup-invoice" style={{ color: selectedTour.tour_route_color }}>€{matchedOrder.invoice_amount}</span>
+                          </div>
+                          <div className="popup-section">
+                            <span className="popup-label">Items : </span>
+                            <ul className="popup-items">
+                              {matchedOrder.items.map((item: any, index: number) => (
+                                <li key={index}>
+                                  <span className="popup-article">Article : </span>
+                                  <span className="popup-article-value" style={{ color: selectedTour.tour_route_color, fontWeight: 'bold' }}>
+                                    {item.slmdl_articleordernumber}
+                                  </span>,&nbsp;
+                                  <span className="popup-quantity">Qty : </span>
+                                  <span className="popup-quantity-value" style={{ color: selectedTour.tour_route_color, fontWeight: 'bold' }}>
+                                    {item.quantity}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="popup-error">Order not found for this stop.</div>
+                      );
+                    })()
+                  )}
+                </div>
               </Popup>
 
             </Marker>

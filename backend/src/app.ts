@@ -81,7 +81,6 @@ app.get("/api/admin/orderinfo", orderInfoController);
 app.get("/api/admin/scheduleOrderInfo", scheduleOrderInfoController);
 app.get("/api/admin/scheduleWmsOrderInfo", scheduleWmsOrderController);
 
-
 app.post("/upload_image", uploadImageController);
 
 // app.post("/route_segments/addData",addData);

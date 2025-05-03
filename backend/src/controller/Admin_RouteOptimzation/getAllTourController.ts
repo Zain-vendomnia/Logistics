@@ -10,7 +10,8 @@ export const getAllTourController = async (_req: any, res: any) => {
     d.id AS driver_id,
     d.mob AS driver_mobile, 
     d.address AS driver_address,
-    w.warehouse_name AS warehouse_name
+    w.warehouse_name AS warehouse_name,
+    w.address AS warehouse_address
     FROM tourinfo_master t
     JOIN driver_details d ON t.driver_id = d.id
     JOIN warehouse_details w ON t.warehouse_id = w.warehouse_id;
@@ -81,6 +82,7 @@ export const getAllTourController = async (_req: any, res: any) => {
         tour_date: tour.tour_date,
         warehouseId: tour.warehouse_id,
         warehouseName: tour.warehouse_name,
+        warehouseaddress:tour.warehouse_address,
         tour_route_color: tour.route_color,
         tour_startTime: tour.start_time,
         tour_endTime: tour.end_time,
