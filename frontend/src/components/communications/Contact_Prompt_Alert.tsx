@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
+  Box,
   Button,
   Dialog,
   DialogActions,
@@ -10,29 +11,45 @@ import {
 import { useDeliveryStore } from "../../store/useDeliveryStore";
 
 interface Props {
-  //   show?: boolean;
+  label: string;
   onClose: () => void;
 }
 
-const ContactPromptAlert = ({ onClose }: Props) => {
+const ContactPromptAlert = ({ label, onClose }: Props) => {
   const store = useDeliveryStore();
+
+  const title = label.split(",")[0];
+  label = label.split(",")[1];
 
   const [open, setOpen] = useState(true);
 
   const handleClose = () => {
+    // if (title.includes("Customer")) {
+    // }
+    store.setContactIconsBlinking(true);
     setOpen(false);
     onClose();
   };
 
   return (
-    <div>
+    <Box>
       <Dialog
         open={open}
         aria-labelledby="alert-dialog-title"
         aria-describedby="alert-dialog-description"
+        slotProps={{
+          paper: {
+            sx: {
+              width: 600,
+              maxWidth: "none",
+              p: 1,
+              pr: 2,
+            },
+          },
+        }}
       >
         <DialogTitle variant={"h4"} fontWeight={"bold"} id="alert-dialog-title">
-          {"Contact Customer"}
+          {title}
         </DialogTitle>
         <DialogContent>
           <DialogContentText
@@ -41,7 +58,7 @@ const ContactPromptAlert = ({ onClose }: Props) => {
             fontWeight={"bold"}
             id="alert-dialog-description"
           >
-            Reach out to the customer via SMS or Call for further communication.
+            {label}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -53,7 +70,7 @@ const ContactPromptAlert = ({ onClose }: Props) => {
           </Button>
         </DialogActions>
       </Dialog>
-    </div>
+    </Box>
   );
 };
 

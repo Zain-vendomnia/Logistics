@@ -1,18 +1,25 @@
 import { useEffect, useState } from "react";
 
 import {
+  Alert,
+  AlertTitle,
   Box,
   Button,
   Card,
   Fab,
   Grid2,
+  IconButton,
   keyframes,
   Paper,
+  Slide,
+  Snackbar,
   Stack,
   Tooltip,
   Typography,
 } from "@mui/material";
 import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
+import ClearAllIcon from "@mui/icons-material/ClearAll";
+import CloseIcon from "@mui/icons-material/Close";
 
 import { useSnackbar } from "../../providers/SnackbarProvider";
 import ShippingDetails from "./Shipping_Details";
@@ -20,10 +27,13 @@ import Delivery from "../delivery/Delivery";
 
 import useStyles from "./Dashboard_style";
 import LeafletMaps from "../common/leaflet_Map/Leaflet_Maps";
-import { useDeliveryStore } from "../../store/useDeliveryStore";
-import { DeliveryScenario } from "../delivery/delieryScenarios";
+import {
+  defaultDeliveryStoreState,
+  useDeliveryStore,
+} from "../../store/useDeliveryStore";
 import CameraCapture from "../common/Camera_Capture";
 import DeliveryDrawer from "../delivery/Delivery_Drawer";
+import { DeliveryScenario } from "../delivery/delieryScenarios";
 // import GoogleMaps from "../common/GoogleMaps";
 
 const blinkOverlay = keyframes`
@@ -57,10 +67,10 @@ const Dashboard = () => {
   const deliveryCompleted = useDeliveryStore((s) => s.deliveryCompleted);
   const deliveryId = useDeliveryStore((s) => s.deliveryId);
   const {
-    setScenario,
     fetchTripData,
     ordersReturnToWareHouse,
     addOrdersDeliveredSuccessfully,
+    setScenario,
   } = useDeliveryStore();
   const ordersDeliveredSuccessfully = useDeliveryStore(
     (s) => s.ordersDeliveredSuccessfully
@@ -68,6 +78,10 @@ const Dashboard = () => {
 
   const [isFabClicked, setIsFabClicked] = useState(false);
   const [showDeliveryDrawer, setShowDeliveryDrawer] = useState(false);
+
+  const [showActiveDeliveryScenario, setShowActiveDeliveryScenario] =
+    useState(true);
+
   const [isReachedToDestination, setIsReachedToDestination] = useState(true);
   const [isTripStarted, setIsTripStarted] = useState(false);
 
@@ -76,29 +90,13 @@ const Dashboard = () => {
   const startNewTrip = () => {
     const currentOrderId = tripData?.orderId;
 
-    // Store previous trip info BEFORE attemping to fetch new trip
-    const prevTripCompleted = deliveryCompleted;
-    const prevTripId = deliveryId;
-
-    const isPrevTripUnrecordedSuccess =
-      prevTripCompleted &&
-      prevTripId &&
-      !ordersDeliveredSuccessfully.includes(prevTripId);
-
-    if (isPrevTripUnrecordedSuccess) {
-      addOrdersDeliveredSuccessfully(prevTripId);
-      // Set deliveryCompelted after fetchTripData,
-      // to avoid getting same data from cache.
-      console.log("Added to ordersDeliveredSuccessfully:", prevTripId);
-    }
-
     // Check if order exists and is not setteled
     const isTripHandled =
       currentOrderId &&
       (ordersDeliveredSuccessfully.includes(currentOrderId) ||
         ordersReturnToWareHouse.includes(currentOrderId));
 
-    console.log("isTripHandled: ", isTripHandled);
+    // console.log("isTripHandled: ", isTripHandled);
 
     const shouldLoadNewTrip =
       deliveryCompleted === true || !tripData || isTripHandled;
@@ -106,13 +104,17 @@ const Dashboard = () => {
     if (shouldLoadNewTrip) {
       fetchTripData()
         .then((data) => {
-          // setScenario(data.orderId, DeliveryScenario.hasPermit);
           // setIsReachedToDestination(false);
           setIsDeliveryStarted(false);
           // Avoid adding newTrip data to OrdersDelivered Array
           store.setDeliveryCompleted(false);
+          store.resetDeliveryState();
           store.resetActionsCompleted();
           console.log("🚚 New Order Id:: ", data.orderId);
+
+          data.hasPermit === true
+            ? setScenario(data.orderId, DeliveryScenario.hasPermit)
+            : setScenario(data.orderId, DeliveryScenario.foundCustomer);
         })
         .catch((err) => {
           showSnackbar(err.message ?? err, "error");
@@ -121,10 +123,15 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
+    if (tripData && deliveryCompleted === false) {
+      tripData.hasPermit === true
+        ? setScenario(deliveryId, DeliveryScenario.hasPermit)
+        : setScenario(deliveryId, DeliveryScenario.foundCustomer);
+    }
+
     startNewTrip();
     console.log("🚚 Delivery#: ", store.deliveryInstanceKey);
     console.log("🚚 Order Id: ", deliveryId);
-    console.log("🚚 Is Order Delivery Completed: ", deliveryCompleted);
     console.log(
       "🚚 Orders Delivered Successfully:",
       ordersDeliveredSuccessfully
@@ -135,6 +142,10 @@ const Dashboard = () => {
     const isAllComplied = componentStatus.every((status) => status === true);
     setIsComplied(isAllComplied);
   }, [componentStatus]);
+
+  useEffect(() => {
+    setShowActiveDeliveryScenario(true);
+  }, [store.scenarioKey, showActiveDeliveryScenario]);
 
   const handleImageUpload = (index: number, isImageUplaoded: boolean) => {
     setComponentStatus((prevState) => {
@@ -147,7 +158,7 @@ const Dashboard = () => {
   const handleReachedToDestination = () => {
     setIsReachedToDestination(true);
     setIsDeliveryStarted(true);
-    showSnackbar("Reached to delivery location", "info");
+    // showSnackbar("Reached to delivery location", "info");
   };
 
   const preTripChecks = (
@@ -200,39 +211,91 @@ const Dashboard = () => {
     </Stack>
   );
 
-  const getFab = (
-    <>
-      <Tooltip title="Delivey Options">
-        <Fab
-          onClick={() => {
-            setIsFabClicked(true);
-            setShowDeliveryDrawer(!showDeliveryDrawer);
-          }}
-          color="primary"
-          aria-label="open delivery drawer"
-          sx={{
-            position: "absolute",
-            top: 70,
-            right: showDeliveryDrawer ? 255 : 8,
-            zIndex: 1500,
-            transition: "right 0.3s ease-in-out",
-            animation: !isFabClicked ? `${blinkOverlay} 1.5s infinite` : "none",
-          }}
-        >
-          <KeyboardDoubleArrowLeftIcon
-            sx={{
-              transform: showDeliveryDrawer ? "rotate(180deg)" : "rotate(0deg)",
-              transition: "transform 0.7s",
-            }}
-          />
-        </Fab>
-      </Tooltip>
-      <DeliveryDrawer
-        open={showDeliveryDrawer}
-        onClose={() => setShowDeliveryDrawer(!showDeliveryDrawer)}
-        onScenarioSelected={handleReachedToDestination}
-      />
-    </>
+  const resetPersistence = () => {
+    useDeliveryStore.persist?.clearStorage();
+    useDeliveryStore.setState(defaultDeliveryStoreState);
+    useDeliveryStore.persist?.rehydrate();
+    console.log("Delivery storage reset");
+  };
+
+  // const getFab = (
+  //   <>
+  //     <Tooltip title="Delivey Options">
+  //       <>
+  //         <Fab
+  //           onClick={() => {
+  //             setIsFabClicked(true);
+  //             setShowDeliveryDrawer(!showDeliveryDrawer);
+  //           }}
+  //           color="primary"
+  //           aria-label="open delivery drawer"
+  //           sx={{
+  //             position: "absolute",
+  //             top: 70,
+  //             right: showDeliveryDrawer ? 255 : 8,
+  //             zIndex: 1500,
+  //             transition: "right 0.3s ease-in-out",
+  //             animation: !isFabClicked
+  //               ? `${blinkOverlay} 1.5s infinite`
+  //               : "none",
+  //           }}
+  //         >
+  //           <KeyboardDoubleArrowLeftIcon
+  //             sx={{
+  //               transform: showDeliveryDrawer
+  //                 ? "rotate(180deg)"
+  //                 : "rotate(0deg)",
+  //               transition: "transform 0.7s",
+  //             }}
+  //           />
+  //         </Fab>
+  //         {/* ..... */}
+  //         <Fab
+  //           onClick={() => {
+  //             resetPersistence();
+  //           }}
+  //           color="primary"
+  //           aria-label="open delivery drawer"
+  //           sx={{
+  //             position: "absolute",
+  //             bottom: 10,
+  //             right: 8,
+  //             zIndex: 1500,
+  //           }}
+  //         >
+  //           <ClearAllIcon
+  //             sx={{
+  //               transform: showDeliveryDrawer
+  //                 ? "rotate(180deg)"
+  //                 : "rotate(0deg)",
+  //               transition: "transform 0.7s",
+  //             }}
+  //           />
+  //         </Fab>
+  //       </>
+  //     </Tooltip>
+
+  //     <DeliveryDrawer
+  //       key={deliveryId}
+  //       open={showDeliveryDrawer}
+  //       onClose={() => setShowDeliveryDrawer(!showDeliveryDrawer)}
+  //       onScenarioSelected={handleReachedToDestination}
+  //     />
+  //   </>
+  // );
+
+  // const activeScenario = () => {
+  //   enqueueSnackbar('This is a success message!', { VariantType });
+
+  // };
+
+  const SlideTransition = (props: any) => {
+    return <Slide {...props} direction="left" />;
+  };
+  const snackbarAction = (
+    <IconButton onClick={() => setShowActiveDeliveryScenario(false)}>
+      <CloseIcon style={{ color: "#fff" }} />
+    </IconButton>
   );
 
   return (
@@ -303,7 +366,28 @@ const Dashboard = () => {
       </Grid2>
 
       {/* {getFab} */}
-      {isReachedToDestination && getFab}
+      {/* {isReachedToDestination && getFab} */}
+
+      {showActiveDeliveryScenario && (
+        <Stack spacing={8}>
+          <Snackbar
+            anchorOrigin={{ vertical: "top", horizontal: "right" }}
+            open={true}
+            message={store.scenarioKey}
+            slots={{ transition: SlideTransition }}
+            action={snackbarAction}
+            // onClose={() => setShowActiveDeliveryScenario(false)}
+            slotProps={{
+              content: {
+                sx: {
+                  bgcolor: "info.dark",
+                  color: "white",
+                },
+              },
+            }}
+          />
+        </Stack>
+      )}
     </Grid2>
   );
 };

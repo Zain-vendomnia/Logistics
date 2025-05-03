@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import { useEffect, useState } from "react";
 
-import { Box, IconButton, keyframes } from "@mui/material";
+import { alpha, Box, IconButton, keyframes } from "@mui/material";
 import CallIcon from "@mui/icons-material/Call";
 import CommentIcon from "@mui/icons-material/Comment";
-import useStyles from "./Contact_Icons_style";
+import { useDeliveryStore } from "../../store/useDeliveryStore";
+import theme from "../../theme";
 
 const blinkOverlay = keyframes`
   0% { opacity: 0.5; transform: scale(1); }
@@ -11,17 +12,35 @@ const blinkOverlay = keyframes`
   100% { opacity: 0.5; transform: scale(1); }
 `;
 
+const getBlinkSx = (isBlinking: boolean | null) =>
+  isBlinking
+    ? {
+        position: "relative",
+        overflow: "hidden",
+        animation: `${blinkOverlay} 1.5s infinite`,
+        "&:before": {
+          content: '""',
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          background: alpha(theme.palette.primary.dark, 0.5),
+          borderRadius: "50%",
+        },
+      }
+    : {};
+
 interface Props {
   onMessageClicked: () => void;
 }
 
 const ContactIcons = ({ onMessageClicked }: Props) => {
-  const styles = useStyles();
-
-  const [isBlinking, setIsBlinking] = useState(true);
+  const { isContactIconsBlinking, setContactIconsBlinking } =
+    useDeliveryStore();
 
   const handleIconClick = (action: () => void) => {
-    setIsBlinking(false);
+    setContactIconsBlinking(false);
     action();
   };
 
@@ -30,10 +49,7 @@ const ContactIcons = ({ onMessageClicked }: Props) => {
       <IconButton
         onClick={() => handleIconClick(() => onMessageClicked())}
         color="primary"
-        className={isBlinking ? styles.iconBlinks : undefined}
-        sx={{
-          animation: isBlinking ? `${blinkOverlay} 1.5s infinite` : "none",
-        }}
+        sx={getBlinkSx(isContactIconsBlinking)}
       >
         <CommentIcon fontSize="large" />
       </IconButton>
@@ -41,10 +57,7 @@ const ContactIcons = ({ onMessageClicked }: Props) => {
       <IconButton
         onClick={() => handleIconClick(() => {})}
         color="primary"
-        className={isBlinking ? styles.iconBlinks : undefined}
-        sx={{
-          animation: isBlinking ? `${blinkOverlay} 1.5s infinite` : "none",
-        }}
+        sx={getBlinkSx(isContactIconsBlinking)}
       >
         <CallIcon fontSize="large" />
       </IconButton>

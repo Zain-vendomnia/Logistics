@@ -2,7 +2,6 @@ export enum DeliveryScenario {
   hasPermit = "hasPermit",
   foundCustomer = "foundCustomer",
   customerNotFound = "customerNotFound",
-  // customerUnavailableWithNoPermit = "customerUnavailableWithNoPermit",
   customerResponded = "customerResponded",
   findNeighborNearby = "findNeighborNearby",
   neighborAccepts = "neighborAccepts",
@@ -12,14 +11,15 @@ export type DeliveryStep =
   | "captureDoorstepImage"
   | "captureParcelImage"
   | "captureCustomerSignature"
+  | "findCustomer"
   | "findNeighbor"
   | "captureNeighborDoorstepImage"
   | "captureNeighborSignature"
   | "showContactPromptAlert"
+  | "showFindNeighborPromptAlert"
   | "sendSms"
   | "makeCall"
   | "waitForResponse"
-  | "markAsNotDelivered"
   | "returnToWarehouse";
 
 type ConditionalStep = {
@@ -36,41 +36,16 @@ export const deliveryScenarios: Record<DeliveryScenario, DeliveryStep[]> = {
     "captureCustomerSignature",
   ],
   [DeliveryScenario.customerNotFound]: [
-    "findNeighbor",
+    // "captureDoorstepImage",
     "showContactPromptAlert",
-    "sendSms",
-    "makeCall",
-    "showContactPromptAlert", // to choose NeighborAccepts option from Delivery Panel
+    // wait untill cnustomer been communicated
+    "showFindNeighborPromptAlert",
+    "findNeighbor",
+    // "sendSms",
+    // "makeCall",
   ],
   [DeliveryScenario.hasPermit]: ["captureDoorstepImage", "captureParcelImage"],
-  // [DeliveryScenario.customerUnavailableWithNoPermit]: [
-  //   "captureDoorstepImage",
-  //   "showContactPromptAlert",
-  //   // "sendSms",
-  //   // "makeCall",
-  //   // "waitForResponse",
-  //   {
-  //     condition: "customerResponded",
-  //     actions: ["captureParcelImage", "captureCustomerSignature"],
-  //   },
-  //   {
-  //     condition: "neighborAccepts",
-  //     actions: [
-  //       "captureNeighborDoorstepImage",
-  //       "captureParcelImage",
-  //       "captureNeighborSignature",
-  //     ],
-  //   },
-  //   {
-  //     condition: "noAcceptance",
-  //     actions: [
-  //       "captureDoorstepImage",
-  //       "captureParcelImage", // proof image
-  //       "markAsNotDelivered",
-  //       "returnToWarehouse",
-  //     ],
-  //   },
-  // ],
+
   [DeliveryScenario.customerResponded]: [
     "captureParcelImage",
     "captureCustomerSignature",
@@ -90,7 +65,6 @@ export const deliveryScenarios: Record<DeliveryScenario, DeliveryStep[]> = {
   [DeliveryScenario.noAcceptance]: [
     "captureDoorstepImage",
     "captureParcelImage", // proof image
-    "markAsNotDelivered",
     "returnToWarehouse",
   ],
 };

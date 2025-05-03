@@ -1,35 +1,19 @@
 import { useState, useEffect } from "react";
 import {
   Box,
-  Chip,
   Divider,
   Button,
-  IconButton,
-  ImageListItem,
   Stack,
   Typography,
   CircularProgress,
   Container,
-  keyframes,
 } from "@mui/material";
 import { grey } from "@mui/material/colors";
-import CallIcon from "@mui/icons-material/Call";
-import CommentIcon from "@mui/icons-material/Comment";
 
 import { TripData } from "../../services/trip_Service";
 import useStyles from "./Shipping_Details_styles";
 import { useSnackbar } from "../../providers/SnackbarProvider";
-import { useDeliveryStore } from "../../store/useDeliveryStore";
-import { DeliveryScenario } from "../delivery/delieryScenarios";
-import MessageBox from "../communications/Message_Box";
-import ContactIcons from "../communications/Contact_Icons";
 import ClientDetails from "../communications/Client_Details";
-
-const blinkOverlay = keyframes`
-  0% { opacity: 0.5; transform: scale(1); }
-  50% { opacity: 0.7; transform: scale(1.06); }
-  100% { opacity: 0.5; transform: scale(1); }
-`;
 
 interface Props {
   tripData: TripData | null;
@@ -56,13 +40,6 @@ const ShippingDetails = ({
   const [hideNotify, setHideNotify] = useState(false);
   // const [showOrderReached, setShowOrderReached] = useState(false);
 
-  const [isBlinking, setIsBlinking] = useState(true);
-
-  const handleIconClick = (action: () => void) => {
-    setIsBlinking(false);
-    action();
-  };
-
   useEffect(() => {
     if (hideNotify === true) {
       setTimeout(() => {
@@ -80,6 +57,10 @@ const ShippingDetails = ({
       showSnackbar("Notification sent to customer", "info");
       onNotified(true);
     }, 1500);
+  };
+
+  const handleButtonReached = () => {
+    onReachedToDestination(true);
   };
 
   if (!tripData) return null;
@@ -139,8 +120,8 @@ const ShippingDetails = ({
               </Container>
             </Box>
           </Box>
-          {/* <Divider color={grey[100]} />
-            <Box
+          {/* <Divider color={grey[100]} /> */}
+          {/* <Box
               display={"flex"}
               alignItems={"flex-start"}
               justifyContent={"space-between"}
@@ -211,7 +192,7 @@ const ShippingDetails = ({
         {isOrderReached && (
           <Button
             variant="contained"
-            onClick={() => onReachedToDestination(true)} //setShowOrderReached(true)}
+            onClick={handleButtonReached} //setShowOrderReached(true)}
             sx={{ mt: "auto", bgcolor: "primary.dark" }}
           >
             Reached

@@ -6,8 +6,9 @@ interface Props {
 }
 
 const MarkAsNotDelivered = ({ onMarked }: Props) => {
+
   const handleMark = () => {
-    console.log("Marked as not delivered");
+    console.log("Order marked as not delivered");
     onMarked?.();
   };
 

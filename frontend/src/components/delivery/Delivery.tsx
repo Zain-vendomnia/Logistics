@@ -4,20 +4,15 @@ import { Box } from "@mui/material";
 import ClientDetails from "../communications/Client_Details";
 import { useDeliveryStore } from "../../store/useDeliveryStore";
 import { DeliveryFlowExecutor } from "./DeliveryFlowExecutor";
-// import { DeliveryScenario } from "../common/delieryScenarios";
+import { DeliveryScenario } from "./delieryScenarios";
+import FoundCustomer from "./Found_Customer";
 
 const Delivery = () => {
-  const store = useDeliveryStore();
+  const { scenarioKey, actionsCompleted } = useDeliveryStore();
 
-  const {
-    deliveryId,
-    deliveryState,
-    actionsCompleted,
-    scenarioKey,
-    setScenario,
-  } = useDeliveryStore();
-
-  const [currentScenarioKey, setCurrentScenarioKey] = useState(scenarioKey);
+  const [customerFound, setCustomerFound] = useState<boolean | null>(null);
+  const [currentScenarioKey, setCurrentScenarioKey] =
+    useState<DeliveryScenario | null>(scenarioKey ?? null);
 
   useEffect(() => {
     console.log("Current Delivery Scenario : ", scenarioKey);
@@ -27,87 +22,35 @@ const Delivery = () => {
     }
   }, [scenarioKey]);
 
-  // const evaluateScenarioFromStateAndActions = (
-  //   deliveryState: DeliveryState,
-  //   actions: DeliveryActionsCompleted,
-  //   hasPermit: boolean
-  // ): DeliveryScenario => {
-  //   const {
-  //     customerResponded,
-  //     customerFoundAtLocation,
-  //     driverReachedToLocation,
-  //     neighborFound,
-  //     neighborAccepts,
-  //     noAcceptance,
-  //   } = deliveryState;
+  const handleFoundCustomer = (result: any) => {
+    setCustomerFound(result);
+  };
 
-  //   const hasCustomerSignature = actions.captureCustomerSignature === true;
-  //   const hasCapturedDoorstep = actions.captureDoorstepImage === true;
-
-  //   if (hasPermit) return DeliveryScenario.hasPermit;
-
-  //   if (driverReachedToLocation) {
-  //     if (customerFoundAtLocation && !hasCustomerSignature) {
-  //       return DeliveryScenario.foundCustomer;
-  //     }
-
-  //     if (customerResponded && !hasCustomerSignature) {
-  //       return DeliveryScenario.customerResponded;
-  //     }
-
-  //     if (
-  //       !customerFoundAtLocation &&
-  //       !customerResponded &&
-  //       !hasCustomerSignature
-  //     ) {
-  //       if (!neighborFound && hasCapturedDoorstep) {
-  //         return DeliveryScenario.findNeighborNearby;
-  //       }
-  //     }
-
-  //     if (neighborFound && neighborAccepts) {
-  //       return DeliveryScenario.neighborAccepts;
-  //     }
-
-  //     return DeliveryScenario.foundCustomer;
-  //   }
-
-  //   return DeliveryScenario.noAcceptance;
-  // };
-
-  // useEffect(() => {
-  //   const { driverReachedToLocation } = deliveryState;
-
-  //   if (driverReachedToLocation) {
-  //     const evaluated = evaluateScenarioFromStateAndActions(
-  //       deliveryState,
-  //       actionsCompleted,
-  //       store.tripData?.hasPermit ?? false
-  //     );
-
-  //     if (scenarioKey !== evaluated) {
-  //       setScenario(deliveryId, evaluated);
-  //     }
-  //   }
-  // }, [deliveryState, actionsCompleted, store.tripData]);
-
-  console.log("Actions Completed ⌛: >Delivery< ", store.actionsCompleted);
+  console.log("Actions Completed ⌛: >Delivery< ", actionsCompleted);
 
   return (
-    <Box
-      display={"flex"}
-      flexDirection={"column"}
-      alignItems={"flex-start"}
-      justifyContent={"flex-start"}
-      gap={5}
-      height={"100%"}
-      width={"100%"}
-      pt={1}
-    >
-      <ClientDetails />
+    <>
+      {customerFound === null && (
+        <FoundCustomer onComplete={handleFoundCustomer} />
+      )}
 
-      <DeliveryFlowExecutor scenarioKey={currentScenarioKey} />
-    </Box>
+      <Box
+        display={"flex"}
+        flexDirection={"column"}
+        alignItems={"flex-start"}
+        justifyContent={"flex-start"}
+        gap={5}
+        height={"100%"}
+        width={"100%"}
+        pt={1}
+      >
+        <ClientDetails />
+
+        {currentScenarioKey && (
+          <DeliveryFlowExecutor scenarioKey={currentScenarioKey} />
+        )}
+      </Box>
+    </>
   );
 };
 

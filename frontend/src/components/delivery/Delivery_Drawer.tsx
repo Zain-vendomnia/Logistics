@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import clsx from "clsx";
 
 import { Box, SwipeableDrawer, Typography, useTheme } from "@mui/material";
@@ -41,13 +41,18 @@ const DeliveryDrawer = ({
   onOpen,
   onScenarioSelected,
 }: Props) => {
-  const { deliveryId, setScenario } = useDeliveryStore();
+  const { deliveryId, setScenario, deliveryState } = useDeliveryStore();
 
   const theme = useTheme();
   const classes = useStyles();
 
   const iconSize: number = 64;
   const [activeScenario, setActiveScenario] = useState<string | null>(null);
+  // const [neighborFound, setNeighborFound] = useState(
+  //   deliveryState.neighborFound
+  // );
+
+  const neighborFound = deliveryState.neighborFound;
 
   const scenarios = [
     {
@@ -75,6 +80,18 @@ const DeliveryDrawer = ({
       value: DeliveryScenario.noAcceptance,
     },
   ];
+
+  // useEffect(() => {
+  //   setNeighborFound(deliveryState.neighborFound);
+  // }, [deliveryState.neighborFound]);
+
+  const restrictedScenarions = [
+    DeliveryScenario.neighborAccepts,
+    DeliveryScenario.noAcceptance,
+  ];
+  const isDisabled = (value: DeliveryScenario) => {
+    return restrictedScenarions.includes(value) && !neighborFound;
+  };
 
   const handleClick = (scenario: any) => {
     console.log("Delivery Scenario: ", scenario.value);
@@ -120,11 +137,17 @@ const DeliveryDrawer = ({
               className={clsx(classes.scenarioBox, {
                 [classes.active]: activeScenario === s.value,
               })}
-              style={
-                activeScenario === s.value
-                  ? { backgroundColor: s.color, color: "#fff" }
-                  : undefined
-              }
+              style={{
+                ...(activeScenario === s.value && {
+                  backgroundColor: s.color,
+                  color: "#fff",
+                }),
+                ...(isDisabled(s.value) && {
+                  opacity: 0.5,
+                  pointerEvents: "none",
+                }),
+                // neighborFoundCheck && ("set the Box greyed-out and not selectable")
+              }}
               onClick={() => handleClick(s)}
             >
               {React.cloneElement(s.icon, {

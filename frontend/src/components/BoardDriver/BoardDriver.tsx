@@ -63,7 +63,9 @@ const BoardDriver = () => {
   return (
     <Box display="flex" height="100%" width="100%">
       <Box flexGrow={1} overflow={"hidden"} height="100%">
-        <Box height="100%">{renderContent()}</Box>
+        <Box height="100%">
+          <Dashboard />
+        </Box>
       </Box>
     </Box>
   );

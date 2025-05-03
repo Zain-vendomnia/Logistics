@@ -1,4 +1,5 @@
 import { create, StateCreator } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 import {
   DeliveryScenario,
   DeliveryStep,
@@ -15,13 +16,21 @@ const allDeliverySteps: DeliveryStep[] = [
   "sendSms",
   "makeCall",
   "waitForResponse",
-  "markAsNotDelivered",
   "returnToWarehouse",
 ];
 const defaultActionsCompleted: DeliveryActionsCompleted = {
   numberOfMessagesSent: 0,
   numberOfCallsMade: 0,
   ...Object.fromEntries(allDeliverySteps.map((step) => [step, false])),
+};
+
+const defaultDeliveryState = {
+  customerResponded: false,
+  customerFoundAtLocation: false,
+  driverReachedToLocation: false,
+  neighborFound: false,
+  neighborAccepts: false,
+  noAcceptance: false,
 };
 
 export type DeliveryActionsCompleted = {
@@ -34,24 +43,21 @@ export type DeliveryActionsCompleted = {
 export type DeliveryState = {
   customerResponded: boolean;
   customerFoundAtLocation: boolean;
-
   driverReachedToLocation: boolean;
-
   neighborFound: boolean;
   neighborAccepts: boolean;
-
   noAcceptance: boolean;
 };
 
 type DeliveryStore = {
   deliveryInstanceKey: number;
   deliveryId: string;
-
-  scenarioKey: DeliveryScenario;
+  scenarioKey: DeliveryScenario | null;
   setScenario: (deliveryId: string, scenarioKey: DeliveryScenario) => void;
 
   deliveryState: DeliveryState;
   updateDeliveryState: (updates: Partial<DeliveryState>) => void;
+  resetDeliveryState: () => void;
 
   deliveryCompleted: boolean;
   ordersDeliveredSuccessfully: string[];
@@ -59,11 +65,10 @@ type DeliveryStore = {
 
   setDeliveryCompleted: (value: boolean) => void;
   addOrdersDeliveredSuccessfully: (id: string) => void;
-  addOrdersReturnToWareHouse: () => void;
+  addOrdersReturnToWareHouse: (id: string) => void;
 
   tripData: TripData | null;
   fetchTripData: () => Promise<TripData>;
-  // setTripData: (data: TripData) => void;
 
   actionsCompleted: DeliveryActionsCompleted;
   resetActionsCompleted: () => void;
@@ -71,10 +76,32 @@ type DeliveryStore = {
   incrementMessageSent: () => void;
   incrementCallsMade: () => void;
 
-  resetDriverDashboard: () => Promise<void>;
-
   success: boolean | null;
   setSuccess: (success: boolean | null) => void;
+
+  isContactIconsBlinking: boolean | null;
+  setContactIconsBlinking: (value: boolean) => void;
+};
+
+export const defaultDeliveryStoreState = {
+  deliveryInstanceKey: 0,
+  deliveryId: "",
+  scenarioKey: null,
+  deliveryState: {
+    customerResponded: false,
+    customerFoundAtLocation: false,
+    driverReachedToLocation: false,
+    neighborFound: false,
+    neighborAccepts: false,
+    noAcceptance: false,
+  },
+  deliveryCompleted: false,
+  ordersDeliveredSuccessfully: [],
+  ordersReturnToWareHouse: [],
+  tripData: null,
+  actionsCompleted: defaultActionsCompleted,
+  success: null,
+  isContactIconsBlinking: null,
 };
 
 const createDeliveryStore: StateCreator<DeliveryStore> = (set, get) => ({
@@ -84,7 +111,7 @@ const createDeliveryStore: StateCreator<DeliveryStore> = (set, get) => ({
       actionsCompleted: defaultActionsCompleted,
     }));
   },
-  markStepCompleted: (step) =>
+  markStepCompleted: (step: DeliveryStep) =>
     set((state) => ({
       actionsCompleted: {
         ...state.actionsCompleted,
@@ -113,30 +140,18 @@ const createDeliveryStore: StateCreator<DeliveryStore> = (set, get) => ({
   deliveryInstanceKey: 0,
   deliveryId: "",
 
-  scenarioKey: DeliveryScenario.hasPermit,
+  scenarioKey: null,
   setScenario: (deliveryId, scenarioKey) =>
-    set(() => ({
+    set((state) => ({
       deliveryId,
       scenarioKey,
       deliveryCompleted: false,
       deliveryState: {
-        customerResponded: false,
-        customerFoundAtLocation: false,
-        driverReachedToLocation: false,
-        neighborFound: false,
-        neighborAccepts: false,
-        noAcceptance: false,
+        ...state.deliveryState,
       },
     })),
 
-  deliveryState: {
-    customerResponded: false,
-    customerFoundAtLocation: false,
-    driverReachedToLocation: false,
-    neighborFound: false,
-    neighborAccepts: false,
-    noAcceptance: false,
-  },
+  deliveryState: defaultDeliveryState,
   updateDeliveryState: (updates) =>
     set((state: DeliveryStore) => ({
       deliveryState: {
@@ -145,17 +160,21 @@ const createDeliveryStore: StateCreator<DeliveryStore> = (set, get) => ({
       },
     })),
 
+  resetDeliveryState: () =>
+    set(() => ({
+      deliveryState: defaultDeliveryState,
+    })),
+
   deliveryCompleted: false,
   ordersReturnToWareHouse: [],
   ordersDeliveredSuccessfully: [],
 
   setDeliveryCompleted: (value: boolean) => set({ deliveryCompleted: value }),
-  addOrdersReturnToWareHouse: () =>
+  addOrdersReturnToWareHouse: (id: string) =>
     set((state) => ({
-      ordersReturnToWareHouse: [
-        ...state.ordersReturnToWareHouse,
-        state.deliveryId,
-      ],
+      ordersReturnToWareHouse: state.ordersReturnToWareHouse.includes(id)
+        ? state.ordersReturnToWareHouse
+        : [...state.ordersReturnToWareHouse, id],
     })),
   addOrdersDeliveredSuccessfully: (id: string) =>
     set((state) => ({
@@ -188,32 +207,37 @@ const createDeliveryStore: StateCreator<DeliveryStore> = (set, get) => ({
     console.log("Store: ", newData);
     return newData;
   },
-  resetDriverDashboard: async () => {
-    const newTrip = await getTripData();
-
-    if (newTrip) {
-      set({
-        deliveryId: `${newTrip.orderId}_Moc2`,
-        deliveryCompleted: false,
-        scenarioKey: DeliveryScenario.hasPermit,
-        deliveryState: {
-          customerResponded: false,
-          customerFoundAtLocation: false,
-          driverReachedToLocation: false,
-          neighborFound: false,
-          neighborAccepts: false,
-          noAcceptance: false,
-        },
-        tripData: newTrip,
-      });
-    }
-  },
 
   success: null,
   setSuccess: (success) =>
     set(() => ({
       success,
     })),
+
+  isContactIconsBlinking: null,
+  setContactIconsBlinking: (value) =>
+    set(() => ({
+      isContactIconsBlinking: value,
+    })),
 });
 
-export const useDeliveryStore = create<DeliveryStore>(createDeliveryStore);
+// export const useDeliveryStore = create<DeliveryStore>(createDeliveryStore);
+export const useDeliveryStore = create<DeliveryStore>()(
+  persist(createDeliveryStore, {
+    name: "delivery-store",
+    storage: createJSONStorage(() => localStorage),
+    version: 1,
+    partialize: (state) => ({
+      deliveryInstanceKey: state.deliveryInstanceKey,
+      deliveryId: state.deliveryId,
+      scenarioKey: state.scenarioKey,
+      deliveryState: state.deliveryState,
+      deliveryCompleted: state.deliveryCompleted,
+      ordersDeliveredSuccessfully: state.ordersDeliveredSuccessfully,
+      ordersReturnToWareHouse: state.ordersReturnToWareHouse,
+      tripData: state.tripData,
+      // actionsCompleted: state.actionsCompleted,
+      // success: state.success,
+    }),
+  })
+);

@@ -3,7 +3,8 @@ import ReturnToWarehouse from "./Return_To_Warehouse";
 import MarkAsNotDelivered from "./Mark_As_Not_Delivered";
 import CameraCapture from "../common/Camera_Capture";
 import ContactPromptAlert from "../communications/Contact_Prompt_Alert";
-import FindNeighbor from "./Find_Neighbor";
+import FoundNeighbor from "./Found_Neighbor";
+import FoundCustomer from "./Found_Customer";
 
 const getLabel = (step: string) => {
   switch (step) {
@@ -17,6 +18,10 @@ const getLabel = (step: string) => {
       return "Customer's Signature";
     case "captureNeighborSignature":
       return "Neighbor's Signature";
+    case "showContactPromptAlert":
+      return "Contact Customer, Please contact the customer via SMS or Call and check with nearby Neighbors to complete the delivery.";
+    case "showFindNeighborPromptAlert":
+      return "Contact Neighbor,Reach out to the Neighbors.";
     case "markAsNotDelivered":
       return "Mark As Not Delivered";
     case "returnToWarehouse":
@@ -58,9 +63,12 @@ export const DeliveryStepRenderer = ({ step, onComplete }: Props) => {
     // should be message (popup), to show customer's number.
     // return <CallCustomer onComplete={onComplete} />;
     case "showContactPromptAlert":
-      return <ContactPromptAlert onClose={onComplete} />;
+    case "showFindNeighborPromptAlert":
+      return <ContactPromptAlert label={label} onClose={onComplete} />;
     case "findNeighbor":
-      return <FindNeighbor onComplete={onComplete} />;
+      return <FoundNeighbor onComplete={onComplete} />;
+    // case "findCustomer":
+    //   return <FoundCustomer onComplete={onComplete} />;
     case "markAsNotDelivered":
       return <MarkAsNotDelivered onMarked={onComplete} />;
     case "returnToWarehouse":

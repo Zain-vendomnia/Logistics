@@ -8,12 +8,11 @@ interface Props {
 
 const ReturnToWarehouse = ({ onComplete }: Props) => {
   const store = useDeliveryStore();
-  //   const returnOrder = useDeliveryStore((s) => s.returnOrder);
-  const returnOrder = store.addOrdersReturnToWareHouse;
+  const { addOrdersReturnToWareHouse, deliveryId } = useDeliveryStore();
 
   const handleReturn = () => {
     console.log("Returning to warehouse");
-    returnOrder();
+    addOrdersReturnToWareHouse(deliveryId);
     onComplete?.();
   };
 

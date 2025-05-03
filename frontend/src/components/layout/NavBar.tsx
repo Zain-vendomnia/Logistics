@@ -1,16 +1,39 @@
 import React from "react";
 import { AppBar, Box, Button, Stack, Toolbar, Typography } from "@mui/material";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../providers/AuthProvider";
 import EventBus from "../../common/EventBus";
 import PersonIcon from "@mui/icons-material/Person";
 
-const NavBar: React.FC = () => {
+const style = {
+  navButton: {
+    color: "#fff",
+    fontSize: "1rem",
+    fontWeight: 500,
+    textTransform: "none",
+    backgroundColor: "transparent",
+    border: "none",
+    boxShadow: "none",
+    padding: "6px 12px",
+    letterSpacing: 0.25,
+    minWidth: 0,
+    lineHeight: 1.75,
+    "&:hover, &:focus, &:active": {
+      textDecoration: "underline",
+      textUnderlineOffset: "6px",
+      backgroundColor: "transparent",
+    },
+  },
+};
+const NavBar = () => {
+  const location = useLocation();
   const navigate = useNavigate();
   const logo = "/sunniva_white.svg";
 
   const { user, showDriverBoard, showAdminBoard, showSuperAdminBoard } =
     useAuth();
+
+  const isLoginPage = location.pathname === "/login";
 
   return (
     <AppBar
@@ -61,49 +84,48 @@ const NavBar: React.FC = () => {
         </Box>
 
         {user ? (
-          <Stack direction="row" spacing={2} alignItems="center">
+          <Stack direction="row" spacing={0} alignItems="center">
             {showSuperAdminBoard && (
               <>
-                <Button color="inherit" component={Link} to="/register">
+                <Button sx={style.navButton} component={Link} to="/register">
                   Employees
                 </Button>
-                <Button color="inherit" component={Link} to="/register">
+                <Button sx={style.navButton} component={Link} to="/register">
                   Drivers
                 </Button>
               </>
             )}
             {showAdminBoard && (
               <>
-                <Button color="inherit" component={Link} to="/profile">
+                <Button sx={style.navButton} component={Link} to="/profile">
                   Drivers
                 </Button>
-                <Button color="inherit" component={Link} to="/profile">
+                <Button sx={style.navButton} component={Link} to="/profile">
                   Profile
                 </Button>
               </>
             )}
             {showDriverBoard && (
-              <Button color="inherit" component={Link} to="/profile">
+              <Button sx={style.navButton} component={Link} to="/profile">
                 <PersonIcon sx={{ mr: 0.5 }} />
                 Profile
               </Button>
             )}
-
             <Button
-              color="inherit"
+              sx={style.navButton}
               onClick={() => {
                 console.log("Logout Clicked");
                 EventBus.dispatch("logout");
               }}
             >
-              LogOut
+              Log Out
             </Button>
           </Stack>
-        ) : (
-          <Button color="inherit" component={Link} to="/login">
+        ) : isLoginPage ? (
+          <Button sx={style.navButton} component={Link} to="/login">
             Login
           </Button>
-        )}
+        ) : null}
       </Toolbar>
     </AppBar>
   );
