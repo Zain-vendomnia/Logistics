@@ -45,6 +45,7 @@ const SignatureUpload = ({ label, onComplete }: Props) => {
       justifyContent={"space-between"}
       height={"100%"}
       width={"100%"}
+      gap={3}
     >
       <SignatureBox
         label={label}

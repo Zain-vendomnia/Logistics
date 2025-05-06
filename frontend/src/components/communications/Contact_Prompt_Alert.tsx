@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Box,
   Button,
@@ -7,8 +7,10 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
+  Typography,
 } from "@mui/material";
 import { useDeliveryStore } from "../../store/useDeliveryStore";
+import { set } from "lodash";
 
 interface Props {
   label: string;
@@ -18,10 +20,22 @@ interface Props {
 const ContactPromptAlert = ({ label, onClose }: Props) => {
   const store = useDeliveryStore();
 
-  const title = label.split(",")[0];
-  label = label.split(",")[1];
-
   const [open, setOpen] = useState(true);
+  const [desc, setDesc] = useState("");
+  const [desc1, setDesc1] = useState("");
+
+  const [title, rawLabel] = label.split(",");
+
+  useEffect(() => {
+    if (rawLabel.includes(".")) {
+      const parts = rawLabel.split(".");
+      setDesc(parts[0] + ".");
+      setDesc1(parts[1] + ".");
+    } else {
+      setDesc(rawLabel);
+      setDesc1("");
+    }
+  }, []);
 
   const handleClose = () => {
     // if (title.includes("Customer")) {
@@ -52,14 +66,18 @@ const ContactPromptAlert = ({ label, onClose }: Props) => {
           {title}
         </DialogTitle>
         <DialogContent>
-          <DialogContentText
+          <Typography
             variant="body1"
             fontSize={"large"}
-            fontWeight={"bold"}
             id="alert-dialog-description"
           >
-            {label}
-          </DialogContentText>
+            {desc}
+          </Typography>
+          {desc1 && (
+            <Typography variant="body1" fontSize={"large"}>
+              {desc1}
+            </Typography>
+          )}
         </DialogContent>
         <DialogActions>
           {/* <Button onClick={handleClose} color="primary">

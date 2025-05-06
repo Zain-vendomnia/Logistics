@@ -6,11 +6,14 @@ import { useDeliveryStore } from "../../store/useDeliveryStore";
 import { DeliveryFlowExecutor } from "./DeliveryFlowExecutor";
 import { DeliveryScenario } from "./delieryScenarios";
 import FoundCustomer from "./Found_Customer";
+import CustomerResponded from "./Customer_Responded";
 
 const Delivery = () => {
   const { scenarioKey, actionsCompleted } = useDeliveryStore();
 
-  const [customerFound, setCustomerFound] = useState<boolean | null>(null);
+  const [isCustomerResponded, setIsCustomerResponded] = useState<
+    boolean | null
+  >(null);
   const [currentScenarioKey, setCurrentScenarioKey] =
     useState<DeliveryScenario | null>(scenarioKey ?? null);
 
@@ -23,32 +26,37 @@ const Delivery = () => {
   }, [scenarioKey]);
 
   const handleFoundCustomer = (result: any) => {
-    setCustomerFound(result);
+    setIsCustomerResponded(result);
   };
 
   console.log("Actions Completed ⌛: >Delivery< ", actionsCompleted);
 
   return (
     <>
-      {customerFound === null && (
+      {isCustomerResponded === null && (
         <FoundCustomer onComplete={handleFoundCustomer} />
+      )}
+      {isCustomerResponded === false && (
+        <CustomerResponded onComplete={handleFoundCustomer} />
       )}
 
       <Box
         display={"flex"}
         flexDirection={"column"}
-        alignItems={"flex-start"}
-        justifyContent={"flex-start"}
-        gap={5}
+        alignItems={"center"}
+        justifyContent={"center"}
+        gap={3}
         height={"100%"}
         width={"100%"}
         pt={1}
       >
         <ClientDetails />
 
-        {currentScenarioKey && (
-          <DeliveryFlowExecutor scenarioKey={currentScenarioKey} />
-        )}
+        <Box height={"100%"}>
+          {currentScenarioKey && (
+            <DeliveryFlowExecutor scenarioKey={currentScenarioKey} />
+          )}
+        </Box>
       </Box>
     </>
   );

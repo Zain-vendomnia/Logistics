@@ -22,7 +22,7 @@ const FoundNeighbor = ({ onComplete }: Props) => {
 
   const handleFoundSuccess = () => {
     setIsFound(true);
-    updateDeliveryState({ neighborFound: true });
+    updateDeliveryState({ neighborFound: true, neighborAccepts: true });
     console.log("Neighbor Found Clicked");
     showSnackbar(
       "Check if neighbor accepts to make the delivery possible",
@@ -35,7 +35,11 @@ const FoundNeighbor = ({ onComplete }: Props) => {
 
   const handleFoundFail = () => {
     setIsFound(false);
-    updateDeliveryState({ neighborFound: false });
+    updateDeliveryState({
+      neighborFound: true,
+      neighborAccepts: false,
+      noAcceptance: true,
+    });
     console.log("Neighbor Found Clicked");
     showSnackbar("Mark order return", "info");
 
@@ -45,7 +49,7 @@ const FoundNeighbor = ({ onComplete }: Props) => {
   };
   return (
     <Portal>
-      <Box position="fixed" top={124} right={24} zIndex={1000}>
+      <Box position="fixed" top={124} right={24} zIndex={1000} mt={8}>
         <Paper elevation={6} sx={{ p: 3, borderRadius: 2, minWidth: 300 }}>
           <Typography variant="h6" fontWeight="bold" mb={2}>
             Found a Neighbor?

@@ -13,8 +13,6 @@ const allDeliverySteps: DeliveryStep[] = [
   "captureNeighborDoorstepImage",
   "captureNeighborSignature",
   "showContactPromptAlert",
-  "sendSms",
-  "makeCall",
   "waitForResponse",
   "returnToWarehouse",
 ];
@@ -105,10 +103,10 @@ export const defaultDeliveryStoreState = {
 };
 
 const createDeliveryStore: StateCreator<DeliveryStore> = (set, get) => ({
-  actionsCompleted: defaultActionsCompleted,
+  actionsCompleted: { ...defaultActionsCompleted },
   resetActionsCompleted() {
     set(() => ({
-      actionsCompleted: defaultActionsCompleted,
+      actionsCompleted: { ...defaultActionsCompleted },
     }));
   },
   markStepCompleted: (step: DeliveryStep) =>
@@ -151,7 +149,7 @@ const createDeliveryStore: StateCreator<DeliveryStore> = (set, get) => ({
       },
     })),
 
-  deliveryState: defaultDeliveryState,
+  deliveryState: { ...defaultDeliveryState },
   updateDeliveryState: (updates) =>
     set((state: DeliveryStore) => ({
       deliveryState: {
@@ -162,7 +160,7 @@ const createDeliveryStore: StateCreator<DeliveryStore> = (set, get) => ({
 
   resetDeliveryState: () =>
     set(() => ({
-      deliveryState: defaultDeliveryState,
+      deliveryState: { ...defaultDeliveryState },
     })),
 
   deliveryCompleted: false,
@@ -236,7 +234,7 @@ export const useDeliveryStore = create<DeliveryStore>()(
       ordersDeliveredSuccessfully: state.ordersDeliveredSuccessfully,
       ordersReturnToWareHouse: state.ordersReturnToWareHouse,
       tripData: state.tripData,
-      // actionsCompleted: state.actionsCompleted,
+      actionsCompleted: state.actionsCompleted,
       // success: state.success,
     }),
   })

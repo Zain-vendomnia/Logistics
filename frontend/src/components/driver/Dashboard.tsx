@@ -69,7 +69,7 @@ const Dashboard = () => {
   const {
     fetchTripData,
     ordersReturnToWareHouse,
-    addOrdersDeliveredSuccessfully,
+    updateDeliveryState,
     setScenario,
   } = useDeliveryStore();
   const ordersDeliveredSuccessfully = useDeliveryStore(
@@ -128,7 +128,7 @@ const Dashboard = () => {
         ? setScenario(deliveryId, DeliveryScenario.hasPermit)
         : setScenario(deliveryId, DeliveryScenario.foundCustomer);
     }
-
+    console.log("trip data", tripData);
     startNewTrip();
     console.log("🚚 Delivery#: ", store.deliveryInstanceKey);
     console.log("🚚 Order Id: ", deliveryId);
@@ -158,6 +158,7 @@ const Dashboard = () => {
   const handleReachedToDestination = () => {
     setIsReachedToDestination(true);
     setIsDeliveryStarted(true);
+    updateDeliveryState({ driverReachedToLocation: true });
     // showSnackbar("Reached to delivery location", "info");
   };
 
@@ -376,6 +377,7 @@ const Dashboard = () => {
             message={store.scenarioKey}
             slots={{ transition: SlideTransition }}
             action={snackbarAction}
+            sx={{ marginTop: 4 }}
             // onClose={() => setShowActiveDeliveryScenario(false)}
             slotProps={{
               content: {

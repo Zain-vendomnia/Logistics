@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Box } from "@mui/material";
+import { Box, Button, Stack } from "@mui/material";
 import {
   deliveryScenarios,
   DeliveryStep,
@@ -8,17 +8,24 @@ import {
 } from "./delieryScenarios";
 import { DeliveryStepRenderer } from "./DeliveryStepRenderer";
 import { DeliveryState, useDeliveryStore } from "../../store/useDeliveryStore";
+import { grey } from "@mui/material/colors";
 
 const Style = {
-  success: {
-    // bgcolor: "success.light",
-    borderColor: "success.dark",
-    border: "6px solid",
+  container: {
+    minHeight: "320px",
+    minWidth: "100%",
+    border: "2px solid",
+    borderColor: "primary.dark",
+    borderRadius: 2,
   },
-  error: {
-    // bgcolor: "error.light",
-    borderColor: "error.dark",
-    border: "6px solid",
+  completeButton: {
+    position: "relative",
+    padding: "6px 12px",
+    borderRadius: 2,
+    width: "20vw",
+    minWidth: 180,
+    maxWidth: 240,
+    height: "9vh",
   },
 };
 
@@ -43,11 +50,8 @@ export const DeliveryFlowExecutor = ({ scenarioKey }: Props) => {
   const [stepsToRender, setStepsToRender] = useState<DeliveryStep[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // useEffect(() => {
-  //   setTimeout(() => {
-  //     setSuccess(null);
-  //   }, 2500);
-  // }, [success]);
+  const [orderCompleteButton, setOrderCompleteButton] = useState(false);
+  const [orderReturnButton, setOrderReturnButton] = useState(false);
 
   useEffect(() => {
     const scenarioSteps = deliveryScenarios[scenarioKey] || [];
@@ -59,8 +63,11 @@ export const DeliveryFlowExecutor = ({ scenarioKey }: Props) => {
 
   useEffect(() => {
     if (!stepsToRender.length) return;
+
     console.log("Steps to Follow: ", stepsToRender);
+
     const currentStep = stepsToRender[currentIndex];
+
     if (actionsCompleted[currentStep] === true) {
       advanceToNextStep();
     }
@@ -98,12 +105,10 @@ export const DeliveryFlowExecutor = ({ scenarioKey }: Props) => {
         stepsToRender[currentIndex] === "returnToWarehouse" ||
         actionsCompleted.returnToWarehouse === true
       ) {
-        addOrdersReturnToWareHouse(deliveryId);
-        console.log("Orders not delivered", ordersReturnToWareHouse);
+        setOrderReturnButton(true);
       } else {
-        addOrdersDeliveredSuccessfully(deliveryId);
+        setOrderCompleteButton(true);
       }
-      setDeliveryCompleted(true);
     }
   };
 
@@ -112,29 +117,74 @@ export const DeliveryFlowExecutor = ({ scenarioKey }: Props) => {
     advanceToNextStep();
   };
 
-  if (!stepsToRender.length) return null;
+  const externalSteps: DeliveryStep[] = [
+    "findCustomer",
+    "findNeighbor",
+    "showContactPromptAlert",
+    "showFindNeighborPromptAlert",
+    "waitForResponse",
+  ];
 
+  const handleOrderDelivered = () => {
+    addOrdersDeliveredSuccessfully(deliveryId);
+    setDeliveryCompleted(true);
+  };
+  const handleOrderReturn = () => {
+    addOrdersReturnToWareHouse(deliveryId);
+    setDeliveryCompleted(true);
+  };
+
+  if (!stepsToRender.length) return null;
   return (
-    <Box
-      display="flex"
-      justifyContent="center"
-      p={2}
-      borderRadius={2}
-      border="2px solid"
-      borderColor="primary.dark"
-      height="50%"
-      width="100%"
-      // sx={
-      //   success === null ? null : success === true ? Style.success : Style.error
-      // }
-    >
-      {!actionsCompleted[stepsToRender[currentIndex]] && (
-        <DeliveryStepRenderer
-          key={`${stepsToRender[currentIndex]}-${currentIndex}`}
-          step={stepsToRender[currentIndex]}
-          onComplete={handleStepComplete}
-        />
-      )}
+    <Box height="100%" display="flex" flexDirection={"column"}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          p: 2,
+          ...(externalSteps.includes(stepsToRender[currentIndex])
+            ? {}
+            : Style.container),
+        }}
+      >
+        {(currentIndex === stepsToRender.length - 1 ||
+          !actionsCompleted[stepsToRender[currentIndex]]) && (
+          <Box
+            sx={
+              actionsCompleted[stepsToRender[currentIndex]] === true
+                ? { pointerEvents: "none", opacity: 0.6 }
+                : { pointerEvents: "auto" }
+            }
+          >
+            <DeliveryStepRenderer
+              key={`${stepsToRender[currentIndex]}-${currentIndex}`}
+              step={stepsToRender[currentIndex]}
+              onComplete={handleStepComplete}
+            />
+          </Box>
+        )}
+      </Box>
+
+      <Box mt={"auto"} display={"flex"} justifyContent={"center"}>
+        {orderCompleteButton && (
+          <Button
+            variant="contained"
+            sx={Style.completeButton}
+            onClick={handleOrderDelivered}
+          >
+            Delivered
+          </Button>
+        )}
+        {orderReturnButton && (
+          <Button
+            variant="contained"
+            sx={Style.completeButton}
+            onClick={handleOrderReturn}
+          >
+            Order Return
+          </Button>
+        )}
+      </Box>
     </Box>
   );
 };

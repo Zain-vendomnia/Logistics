@@ -4,7 +4,6 @@ import MarkAsNotDelivered from "./Mark_As_Not_Delivered";
 import CameraCapture from "../common/Camera_Capture";
 import ContactPromptAlert from "../communications/Contact_Prompt_Alert";
 import FoundNeighbor from "./Found_Neighbor";
-import FoundCustomer from "./Found_Customer";
 
 const getLabel = (step: string) => {
   switch (step) {
@@ -19,7 +18,7 @@ const getLabel = (step: string) => {
     case "captureNeighborSignature":
       return "Neighbor's Signature";
     case "showContactPromptAlert":
-      return "Contact Customer, Please contact the customer via SMS or Call and check with nearby Neighbors to complete the delivery.";
+      return "Contact Customer, Try contact to customer via SMS and Call. Find Neighbors nearby who can accept on customer's behalf.";
     case "showFindNeighborPromptAlert":
       return "Contact Neighbor,Reach out to the Neighbors.";
     case "markAsNotDelivered":
