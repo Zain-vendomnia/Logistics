@@ -16,20 +16,6 @@ const allDeliverySteps: DeliveryStep[] = [
   "waitForResponse",
   "returnToWarehouse",
 ];
-const defaultActionsCompleted: DeliveryActionsCompleted = {
-  numberOfMessagesSent: 0,
-  numberOfCallsMade: 0,
-  ...Object.fromEntries(allDeliverySteps.map((step) => [step, false])),
-};
-
-const defaultDeliveryState = {
-  customerResponded: false,
-  customerFoundAtLocation: false,
-  driverReachedToLocation: false,
-  neighborFound: false,
-  neighborAccepts: false,
-  noAcceptance: false,
-};
 
 export type DeliveryActionsCompleted = {
   [key in DeliveryStep]?: boolean;
@@ -37,14 +23,31 @@ export type DeliveryActionsCompleted = {
   numberOfMessagesSent: number;
   numberOfCallsMade: number;
 };
+const defaultActionsCompleted: DeliveryActionsCompleted = {
+  numberOfMessagesSent: 0,
+  numberOfCallsMade: 0,
+  ...Object.fromEntries(allDeliverySteps.map((step) => [step, false])),
+};
 
 export type DeliveryState = {
   customerResponded: boolean;
+  customerRespondedStatement: string;
   customerFoundAtLocation: boolean;
   driverReachedToLocation: boolean;
   neighborFound: boolean;
   neighborAccepts: boolean;
   noAcceptance: boolean;
+  deliveryReturnReason: string;
+};
+const defaultDeliveryState = {
+  customerResponded: false,
+  customerRespondedStatement: "",
+  customerFoundAtLocation: false,
+  driverReachedToLocation: false,
+  neighborFound: false,
+  neighborAccepts: false,
+  noAcceptance: false,
+  deliveryReturnReason: "",
 };
 
 type DeliveryStore = {
@@ -85,14 +88,7 @@ export const defaultDeliveryStoreState = {
   deliveryInstanceKey: 0,
   deliveryId: "",
   scenarioKey: null,
-  deliveryState: {
-    customerResponded: false,
-    customerFoundAtLocation: false,
-    driverReachedToLocation: false,
-    neighborFound: false,
-    neighborAccepts: false,
-    noAcceptance: false,
-  },
+  deliveryState: { ...defaultDeliveryState },
   deliveryCompleted: false,
   ordersDeliveredSuccessfully: [],
   ordersReturnToWareHouse: [],

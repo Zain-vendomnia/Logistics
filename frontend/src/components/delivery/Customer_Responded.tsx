@@ -30,7 +30,8 @@ interface Props {
   onComplete: (found: boolean) => void;
 }
 const CustomerResponded = ({ onComplete }: Props) => {
-  const { deliveryId, setScenario, updateDeliveryState } = useDeliveryStore();
+  const { deliveryId, setScenario, updateDeliveryState, deliveryState } =
+    useDeliveryStore();
 
   const [showAlert, setShowAlert] = useState(true);
   const [showDialogue, setShowDialogue] = useState(false);
@@ -59,9 +60,13 @@ const CustomerResponded = ({ onComplete }: Props) => {
     setShowDialogue(false);
     if (selectedResponse) {
       const resScenario = evaluateResponseScenario(selectedResponse);
-
       setScenario(deliveryId, resScenario);
-      updateDeliveryState({ customerResponded: true });
+
+      updateDeliveryState({
+        customerResponded: true,
+        customerRespondedStatement: selectedResponse,
+      });
+
       onComplete(true);
     } else {
       setShowAlert(true);
@@ -127,7 +132,7 @@ const CustomerResponded = ({ onComplete }: Props) => {
             <FormControl>
               <RadioGroup
                 aria-labelledby="customer-response-radio"
-                defaultValue={selectedResponse ?? ""}
+                defaultValue={deliveryState.customerRespondedStatement ?? ""}
                 name="radio-buttons-group"
                 value={selectedResponse}
                 onChange={handleResponseSelection}
@@ -138,6 +143,10 @@ const CustomerResponded = ({ onComplete }: Props) => {
                     value={response}
                     control={<Radio />}
                     label={response}
+                    // sx={{ fontSize: "2rem" }}
+                    sx={{
+                      "& .MuiFormControlLabel-label": { fontSize: "1.25rem" },
+                    }}
                   />
                 ))}
               </RadioGroup>
