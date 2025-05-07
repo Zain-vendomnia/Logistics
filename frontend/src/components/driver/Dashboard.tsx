@@ -34,6 +34,7 @@ import {
 import CameraCapture from "../common/Camera_Capture";
 import DeliveryDrawer from "../delivery/Delivery_Drawer";
 import { DeliveryScenario } from "../delivery/delieryScenarios";
+import { resetDeliveryStore } from "../../utils/resetDeliveryStore";
 // import GoogleMaps from "../common/GoogleMaps";
 
 const blinkOverlay = keyframes`
@@ -219,77 +220,6 @@ const Dashboard = () => {
     console.log("Delivery storage reset");
   };
 
-  // const getFab = (
-  //   <>
-  //     <Tooltip title="Delivey Options">
-  //       <>
-  //         <Fab
-  //           onClick={() => {
-  //             setIsFabClicked(true);
-  //             setShowDeliveryDrawer(!showDeliveryDrawer);
-  //           }}
-  //           color="primary"
-  //           aria-label="open delivery drawer"
-  //           sx={{
-  //             position: "absolute",
-  //             top: 70,
-  //             right: showDeliveryDrawer ? 255 : 8,
-  //             zIndex: 1500,
-  //             transition: "right 0.3s ease-in-out",
-  //             animation: !isFabClicked
-  //               ? `${blinkOverlay} 1.5s infinite`
-  //               : "none",
-  //           }}
-  //         >
-  //           <KeyboardDoubleArrowLeftIcon
-  //             sx={{
-  //               transform: showDeliveryDrawer
-  //                 ? "rotate(180deg)"
-  //                 : "rotate(0deg)",
-  //               transition: "transform 0.7s",
-  //             }}
-  //           />
-  //         </Fab>
-  //         {/* ..... */}
-  //         <Fab
-  //           onClick={() => {
-  //             resetPersistence();
-  //           }}
-  //           color="primary"
-  //           aria-label="open delivery drawer"
-  //           sx={{
-  //             position: "absolute",
-  //             bottom: 10,
-  //             right: 8,
-  //             zIndex: 1500,
-  //           }}
-  //         >
-  //           <ClearAllIcon
-  //             sx={{
-  //               transform: showDeliveryDrawer
-  //                 ? "rotate(180deg)"
-  //                 : "rotate(0deg)",
-  //               transition: "transform 0.7s",
-  //             }}
-  //           />
-  //         </Fab>
-  //       </>
-  //     </Tooltip>
-
-  //     <DeliveryDrawer
-  //       key={deliveryId}
-  //       open={showDeliveryDrawer}
-  //       onClose={() => setShowDeliveryDrawer(!showDeliveryDrawer)}
-  //       onScenarioSelected={handleReachedToDestination}
-  //     />
-  //   </>
-  // );
-
-  // const activeScenario = () => {
-  //   enqueueSnackbar('This is a success message!', { VariantType });
-
-  // };
-
   const SlideTransition = (props: any) => {
     return <Slide {...props} direction="left" />;
   };
@@ -366,9 +296,24 @@ const Dashboard = () => {
         </Box>
       </Grid2>
 
-      {/* {getFab} */}
-      {/* {isReachedToDestination && getFab} */}
-
+      <Fab
+        onClick={resetDeliveryStore}
+        color="primary"
+        aria-label="open delivery drawer"
+        sx={{
+          position: "absolute",
+          bottom: 10,
+          right: 8,
+          zIndex: 1500,
+        }}
+      >
+        <ClearAllIcon
+          sx={{
+            transform: isDeliveryStarted ? "rotate(180deg)" : "rotate(0deg)",
+            transition: "transform 0.7s",
+          }}
+        />
+      </Fab>
       {showActiveDeliveryScenario && (
         <Stack spacing={8}>
           <Snackbar
@@ -384,6 +329,7 @@ const Dashboard = () => {
                 sx: {
                   bgcolor: "info.dark",
                   color: "white",
+                  mt: 3,
                 },
               },
             }}
