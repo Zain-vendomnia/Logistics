@@ -51,7 +51,7 @@ const NavBar = () => {
             src={logo}
             alt="Logo"
             onClick={() => navigate("/")}
-            sx={{ height: 32, width: "auto", cursor: "pointer" }}
+            sx={{ height: 36, width: "auto", cursor: "pointer" }}
           />
           <Typography
             variant="h5"
@@ -72,14 +72,8 @@ const NavBar = () => {
               },
             }}
           >
-            {showDriverBoard
-              ? "Driver"
-              : showAdminBoard
-                ? "Admin"
-                : showSuperAdminBoard
-                  ? "Super Admin"
-                  : ""}{" "}
-            Board
+            {showAdminBoard && "Admin Board"}
+            {showSuperAdminBoard && "Super Admin Board"}
           </Typography>
         </Box>
 
