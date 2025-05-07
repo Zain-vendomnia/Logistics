@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { Box, Divider, ImageListItem, Stack, Typography } from "@mui/material";
+import { Avatar, Box, Divider, Stack, Typography } from "@mui/material";
 import { grey } from "@mui/material/colors";
 
 import ContactIcons from "./Contact_Icons";
@@ -14,24 +14,21 @@ const ClientDetails = () => {
   const [showMessageBox, setShowMessageBox] = useState(false);
 
   return (
-    <Stack spacing={4} mt={1} width="100%">
+    <Stack spacing={2} width="100%">
       <Box
         display={"flex"}
         alignItems={"center"}
         justifyContent={"space-between"}
       >
         <Box display={"flex"} gap={1}>
-          {/* <ImageListItem> */}
-          <img
-            src="https://cdn.vectorstock.com/i/1000v/00/74/young-man-profile-vector-14770074.avif"
+          <Avatar
             alt="client_image"
+            src="https://cdn.vectorstock.com/i/1000v/00/74/young-man-profile-vector-14770074.avif"
             style={{
-              width: "50px",
-              height: "50px",
-              borderRadius: "50%",
+              width: "48px",
+              height: "48px",
             }}
           />
-          {/* </ImageListItem> */}
           <Stack spacing={0}>
             <Typography variant="body1" fontWeight={"bold"} color={grey[800]}>
               Customer
