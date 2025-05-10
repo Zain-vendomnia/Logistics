@@ -3,9 +3,7 @@ import { useState } from "react";
 import { Box, Button, Typography } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 
-import UploadImage from "../../common/Upload_Image";
 import SignatureBox from "./Signature_Box";
-import { flatten } from "lodash";
 import { grey } from "@mui/material/colors";
 
 interface Props {
