@@ -8,9 +8,9 @@ import Login from "./components/pages/Login";
 import Register from "./components/pages/Register";
 import Home from "./components/pages/Home";
 import Profile from "./components/pages/Profile";
+import BoardDriver from "./components/driver/BoardDriver";
 import BoardAdmin from "./components/BoardAdmin";
 import SuperAdmin from "./components/SuperAdmin";
-import BoardDriver from "./components/BoardDriver/BoardDriver";
 import RouteEstimateComponent from "./components/RouteEstimateComponent";
 // import NotFound from "../pages/NotFound";
 

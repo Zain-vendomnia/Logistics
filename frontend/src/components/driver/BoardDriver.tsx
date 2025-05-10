@@ -1,14 +1,9 @@
 import { useState, useEffect } from "react";
-import EventBus from "../../common/EventBus";
-import Sidebar from "../layout/Sidebar";
-import Dashboard from "../driver/Dashboard";
-import { getDriverBoard } from "../../services/user.service";
-
-import WarehouseIcon from "@mui/icons-material/Warehouse";
-import DashboardIcon from "@mui/icons-material/Dashboard";
-import LocalShippingIcon from "@mui/icons-material/LocalShipping";
-import LocalGasStationIcon from "@mui/icons-material/LocalGasStation";
 import { Box } from "@mui/material";
+import EventBus from "../../common/EventBus";
+import { getDriverBoard } from "../../services/user.service";
+import Dashboard from "./Dashboard";
+import TripComplete from "./TripComplete";
 
 const WarehouseCheckIn = () => <div>Warehouse Check-in Content</div>;
 const GasManagement = () => <div>Gas Management Console..</div>;
@@ -17,6 +12,8 @@ const OrderShipping = () => <div>Order Shipping Module.</div>;
 const BoardDriver = () => {
   const [content, setContent] = useState<string>("");
   const [selectedPath, setSelectedPath] = useState<string>("/dashboard");
+
+  const [isTripCompleted, setIsTripCompleted] = useState(true);
 
   useEffect(() => {
     getDriverBoard().then(
@@ -39,7 +36,6 @@ const BoardDriver = () => {
       }
     );
   }, []);
-
   const renderContent = () => {
     switch (selectedPath) {
       case "/dashboard":
@@ -54,7 +50,6 @@ const BoardDriver = () => {
         return <Dashboard />;
     }
   };
-
   const piechartData = [
     { id: 1, value: 60, label: "progress" },
     { id: 2, value: 40, label: "goal" },
@@ -64,7 +59,9 @@ const BoardDriver = () => {
     <Box display="flex" height="100%" width="100%">
       <Box flexGrow={1} overflow={"hidden"} height="100%">
         <Box height="100%">
-          <Dashboard />
+          {isTripCompleted ? <TripComplete /> : <Dashboard />}
+
+          {/* <Dashboard /> */}
         </Box>
       </Box>
     </Box>
