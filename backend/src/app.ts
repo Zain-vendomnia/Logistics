@@ -24,6 +24,8 @@ import { ExportTourController } from './controller/Admin_RouteOptimzation/export
 import { getAllTourController } from "./controller/Admin_RouteOptimzation/getAllTourController";
 import { HandleOrderDelivery } from "./controller/AdminDriverApi/HandleOrderDelivery";
 
+// Picklist Email
+import { picklistEmail } from './controller/Admin_Api/picklistEmail.controller'; // Import the controller
 
 // total orders count controller 
 import { getOrderCount } from "./controller/Admin_Api/orderCount.controller";
@@ -82,6 +84,10 @@ app.get("/api/admin/scheduleOrderInfo", scheduleOrderInfoController);
 app.get("/api/admin/scheduleWmsOrderInfo", scheduleWmsOrderController);
 
 app.post("/upload_image", uploadImageController);
+
+// Picklist Email Route
+app.post("/api/admin/picklistEmail", picklistEmail); // This will handle POST requests to send the email
+
 
 // app.post("/route_segments/addData",addData);
 

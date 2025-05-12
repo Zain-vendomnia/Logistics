@@ -11,6 +11,7 @@ import latestOrderServices, { TourInfo } from './AdminServices/latestOrderServic
 import { deleteTours } from './AdminServices/tourDeletionServices';
 import { exportTours } from './AdminServices/tourExportServices';
 import EditTourModal from './Admin_EditTourModal';
+import ViewPicklistModal from './Admin_ViewPicklistModal';
 import '../Admin/css/Admin_TourTemplate.css';
 
 interface Tour {
@@ -53,6 +54,8 @@ export const Admin_TourTemplates = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [snackbar, setSnackbar] = useState<SnackbarState>({ open: false, message: '', severity: 'info' });
+  const [viewPicklistModalOpen, setViewPicklistModalOpen] = useState(false);
+
   const navigate = useNavigate();
 
   const loadTours = async () => {
@@ -207,6 +210,9 @@ export const Admin_TourTemplates = () => {
 
        
             <Divider />
+           <MenuItem onClick={() => { setViewPicklistModalOpen(true); setAnchorEl(null); }}>View Picklist</MenuItem>
+       
+            <Divider />
             <MenuItem onClick={() => currentTour && handleDelete([currentTour.id])} sx={{ color: 'error.main' }}>Delete</MenuItem>
           </Menu>
 
@@ -217,6 +223,23 @@ export const Admin_TourTemplates = () => {
             onTourUpdated={() => {
               loadTours();
               showSnackbar('Tour updated successfully', 'success');
+            }}
+          />
+
+          <ViewPicklistModal
+            open={viewPicklistModalOpen}
+            handleClose={() => setViewPicklistModalOpen(false)}
+            tourData={currentTour}
+            onSendEmail={(success) => {
+              if (success) {
+
+                showSnackbar('Email Sent Successfully!', 'success');
+                setViewPicklistModalOpen(false);
+
+              }else{
+                showSnackbar('Error sending email!', 'error');
+
+              }
             }}
           />
 

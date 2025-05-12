@@ -3,6 +3,7 @@ import axios from 'axios';
 import authHeader from './auth-header';
 
 const API_BaseUrl = "http://localhost:8080/api/admin/routeoptimize/";
+const API_BaseUrl_Admin = "http://localhost:8080/api/admin/";
 
 // Regular API calls using routeoptimize base
 const fetchRouteData = () => {
@@ -59,6 +60,14 @@ const updateTour = (tourData: any) => {
   });
 };
 
+const picklistEmail = (emailData: any) => {
+
+  return axios.post(API_BaseUrl_Admin + "picklistEmail", emailData, {
+    headers: authHeader(),
+  });
+};
+
+
 // ⬇️ This is outside the routeoptimize scope — it has its own endpoint
 const getOrderCount = async (): Promise<number> => {
   try {
@@ -86,6 +95,7 @@ const adminApiService = {
   fetchRouteSegmentData,
   updateTour,
   getOrderCount, 
+  picklistEmail,
 };
 
 export default adminApiService;
