@@ -29,6 +29,20 @@ const defaultActionsCompleted: DeliveryActionsCompleted = {
   ...Object.fromEntries(allDeliverySteps.map((step) => [step, false])),
 };
 
+export type TripDetails = {
+  isTripStarted: boolean;
+  tripStartedAt: Date | null;
+  isTripCompleted: boolean;
+  tripCompletedAt: Date | null;
+};
+
+const defaultTripDetails: TripDetails = {
+  isTripStarted: false,
+  tripStartedAt: null,
+  isTripCompleted: false,
+  tripCompletedAt: null,
+};
+
 export type DeliveryState = {
   customerResponded: boolean;
   customerRespondedStatement: string;
@@ -51,6 +65,9 @@ const defaultDeliveryState = {
 };
 
 type DeliveryStore = {
+  tripDetails: TripDetails;
+  updateTripDetails: (updates: Partial<TripDetails>) => void;
+
   deliveryInstanceKey: number;
   deliveryId: string;
   scenarioKey: DeliveryScenario | null;
@@ -99,6 +116,13 @@ export const defaultDeliveryStoreState = {
 };
 
 const createDeliveryStore: StateCreator<DeliveryStore> = (set, get) => ({
+  tripDetails: defaultTripDetails,
+  updateTripDetails: (updates: Partial<TripDetails>) => {
+    set((state) => ({
+      tripDetails: { ...state.tripDetails, ...updates },
+    }));
+  },
+
   actionsCompleted: { ...defaultActionsCompleted },
   resetActionsCompleted() {
     set(() => ({
