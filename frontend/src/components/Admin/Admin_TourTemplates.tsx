@@ -63,7 +63,7 @@ const Admin_TourTemplates = () => {
         date: new Date(t.tour_date).toLocaleDateString(),
         color: t.tour_route_color,
         amount: t.orders.length,
-        timeRange: `${t.tour_startTime.slice(0, 5)} - ${t.tour_endTime.slice(0, 5)}`,
+        timeRange: `${t.tour_startTime.slice(0, 5)}`,
         driver: t.driver?.driver_name || 'N/A',
         warehouseId: t.warehouseId,
         driver_id: t.driver?.driver_id || 0
@@ -140,7 +140,7 @@ const Admin_TourTemplates = () => {
                     onChange={e => setSelected(e.target.checked ? filteredTours.map(t => t.id) : [])}
                   />
                 </TableCell>
-                {['Name', 'Driver', 'Period', 'Actions'].map(h => <TableCell key={h}><strong>{h}</strong></TableCell>)}
+                {['Name', 'Driver', 'Start Time', 'Actions'].map(h => <TableCell key={h}><strong>{h}</strong></TableCell>)}
               </TableRow>
             </TableHead>
             <TableBody>

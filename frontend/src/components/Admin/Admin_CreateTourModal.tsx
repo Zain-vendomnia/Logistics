@@ -69,7 +69,7 @@ const CreateTourModal: React.FC<CreateTourModalProps> = ({ open, handleClose, wa
   };
 
   const handleSave = async () => {
-    if (!tourName || !startTime || !endTime || !selectedDriver || !tourDate) {
+    if (!tourName || !startTime  || !selectedDriver || !tourDate) {
       alert('Please fill all required fields!');
       return;
     }
@@ -190,8 +190,8 @@ const CreateTourModal: React.FC<CreateTourModalProps> = ({ open, handleClose, wa
             </FormControl>
           </Grid>
 
-          {/* End Time */}
-          <Grid item xs={12} sm={6}>
+         
+      {/*  <Grid item xs={12} sm={6}>
             <FormControl fullWidth size="medium">
               <InputLabel>End Time *</InputLabel>
               <Select
@@ -207,7 +207,7 @@ const CreateTourModal: React.FC<CreateTourModalProps> = ({ open, handleClose, wa
                 ))}
               </Select>
             </FormControl>
-          </Grid>
+          </Grid> */}
 
           {/* Tour Date */}
           <Grid item xs={12}>
