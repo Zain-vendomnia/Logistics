@@ -35,9 +35,10 @@ const SnackbarProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
         onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
       >
         <Alert
+        variant="filled"
           severity={snackbar.severity}
           onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-          sx={{ minWidth: "250px", mt: 4 }}
+          sx={{ minWidth: "290px", mt: 4 }}
         >
           {snackbar.message}
         </Alert>

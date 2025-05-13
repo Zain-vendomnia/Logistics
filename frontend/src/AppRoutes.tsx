@@ -3,20 +3,20 @@ import { useAuth } from "./providers/AuthProvider";
 import { isSuperAdmin, isAdmin, isDriver } from "./types/user.type";
 
 // Pages
-import Login from "./components/Login";
-import Register from "./components/Register";
-import Home from "./components/Home";
-import Profile from "./components/Profile";
+import Login from "./components/pages/Login";
+import Register from "./components/pages/Register";
+import Home from "./components/pages/Home";
+import Profile from "./components/pages/Profile";
+import BoardDriver from "./components/driver/BoardDriver";
 import BoardAdmin from "./components/BoardAdmin/BoardAdmin";
 import SuperAdmin from "./components/SuperAdmin";
-import BoardDriver from "./components/BoardDriver/BoardDriver";
 import AdminDashboard from "./components/Admin/Admin_dashboard";
-import AdminAddTour from "./components/Admin/Admin_AddTour";
+import ManageDrivers from "./components/Admin/ManageDrivers";
+import ManageWarehouse from "./components/Admin/ManageWarehouse";
 import Admin_TourTemplates from "./components/Admin/Admin_TourTemplates";
 import Admin_MapComponent from "./components/Admin/Admin_MapComponent";
 import Admin_TourMapView from "./components/Admin/Admin_TourMapView";
-import ManageDrivers from "./components/Admin/ManageDrivers";
-import ManageWarehouse from "./components/Admin/ManageWarehouse";
+import AdminAddTour from "./components/Admin/Admin_AddTour";
 
 const ProtectedRoute = ({ element }: { element: JSX.Element }) => {
   const { user } = useAuth();
@@ -76,7 +76,6 @@ const AppRoutes = () => {
       <Route path = "/Admin_TourMapView/:tour_id" element = {<Admin_TourMapView/>}/>
       {/* <Route path="/Admin_PickList" element={<Admin_PickListPage />} />  */}
    </Routes>
-
 
   );
 };

@@ -1,4 +1,4 @@
-import { createTheme, ThemeOptions } from "@mui/material/styles";
+import { createTheme, PaletteColor, ThemeOptions } from "@mui/material/styles";
 // import { PaletteOptions } from "@mui/material/styles/createPalette";
 
 declare module "@mui/material/styles/createPalette" {
@@ -18,9 +18,9 @@ const themeOptions: ThemeOptions = {
       contrastText: "#FFFFFF",
     },
     secondary: {
-      light: "#1e91d0", // 1a76bc",
-      main: "#00509d", // Yellow from logo: f1cb3a",
-      dark: "#003f88", // even darker: "#00296b"
+      light: "#1e91d0", // #1a76bc",
+      main: "#00509d", // Yellow from logo: #f1cb3a",
+      dark: "#003f88", // even darker: #00296b
       contrastText: "#FFFFFF",
     },
     background: {
@@ -55,27 +55,68 @@ const themeOptions: ThemeOptions = {
         },
       },
     },
+
     MuiButton: {
-      defaultProps: {
-        color: "primary",
-      },
       styleOverrides: {
-        root: ({ ownerState, theme }) => ({
-          transition: "all 0.2s ease",
-          "&:hover": {
-            backgroundColor:
-              ownerState.color === "primary"
-                ? "#fff"
-                : theme.palette.primary.dark,
-            color:
-              ownerState.color === "primary"
-                ? theme.palette.primary.dark
-                : "#fff",
-          },
-        }),
+        root: ({ ownerState, theme }) => {
+          const isContained = ownerState.variant === "contained";
+          const isOutlined = ownerState.variant === "outlined";
+
+          const getPaletteColor = (colorKey: string): PaletteColor => {
+            const palette =
+              theme.palette[colorKey as keyof typeof theme.palette];
+            if (typeof palette === "object" && palette && "main" in palette) {
+              return palette as PaletteColor;
+            }
+            return theme.palette.primary as PaletteColor; // fallback
+          };
+
+          const palette = getPaletteColor(ownerState.color || "primary");
+
+          return {
+            textTransform: "none",
+            fontWeight: 500,
+            fontSize: "1rem",
+            padding: "6px 16px",
+            letterSpacing: 0.25,
+            borderRadius: theme.shape.borderRadius * 2,
+            transition: "all 0.2s ease-in-out",
+
+            [theme.breakpoints.down("lg")]: {
+              fontSize: "1.05rem",
+              letterSpacing: 0.5,
+              padding: "8px 18px",
+            },
+
+            color: isContained ? palette.contrastText : palette.main, // contained = white text, outlined = colored text
+            backgroundColor: isContained ? palette.main : "transparent", // outlined = no background initially
+            border: isOutlined ? `1px solid ${palette.main}` : undefined, // outlined = colored border
+
+            "&:hover": {
+              backgroundColor: palette.dark, // both contained/outlined get dark background on hover
+              color: palette.contrastText,
+              border: isOutlined ? `1px solid ${palette.dark}` : undefined, // outlined button border also darkens
+            },
+            "&:focus, &:active": {
+              backgroundColor: palette.dark,
+              color: palette.contrastText,
+              border: isOutlined ? `1px solid ${palette.dark}` : undefined,
+            },
+
+            // 🛠 Very important: AFTER hover/focus/active, outlined must reset back to transparent
+            "&:not(:hover):not(:focus):not(:active)": isOutlined
+              ? {
+                  backgroundColor: "transparent",
+                  color: palette.main,
+                  border: `1px solid ${palette.main}`,
+                }
+              : {},
+          };
+        },
       },
     },
   },
+
   breakpoints: {
     values: {
       xs: 0,

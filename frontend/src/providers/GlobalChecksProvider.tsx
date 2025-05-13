@@ -36,11 +36,6 @@ const GlobalChecksProvider: React.FC<{ children: ReactNode }> = ({
   const [openLocationDialog, setOpenLocationDialog] = useState(false);
   const [openCameraDialog, setOpenCameraDialog] = useState(false);
 
-  useEffect(() => {
-    // checkLocationPermission();
-    //checkCameraPermission();
-  }, []);
-
   const checkLocationPermission = async () => {
     try {
       const permissionStatus = await navigator.permissions.query({
@@ -164,6 +159,11 @@ const GlobalChecksProvider: React.FC<{ children: ReactNode }> = ({
       }
     }
   };
+
+  useEffect(() => {
+    // checkLocationPermission();
+    // checkCameraPermission();
+  }, [checkLocationPermission, checkCameraPermission]);
 
   return (
     <GlobalChecksContext.Provider value={{ locationEnabled, cameraEnabled }}>

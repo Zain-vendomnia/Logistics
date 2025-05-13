@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useRoutes, useNavigate } from "react-router-dom";
-import Sidebar from "./driver/driver_Dashboard";
+
 import WarehouseIcon from "@mui/icons-material/Warehouse";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import { getDriverBoard } from "../services/user.service";
 import EventBus from "../common/EventBus";
-
-import Dashboard from "./driver/driver_Dashboard";
+import Dashboard from "./driver/Dashboard";
 import {
   Button,
   Card,
