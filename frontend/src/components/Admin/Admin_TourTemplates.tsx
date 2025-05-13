@@ -35,7 +35,7 @@ const ActionButton = ({ title, icon, color, onClick, disabled }: any) => (
   </Tooltip>
 );
 
-const Admin_TourTemplates = () => {
+const AdminTourTemplates = () => {
   const [tours, setTours] = useState<Tour[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -162,7 +162,22 @@ const Admin_TourTemplates = () => {
                     <TableCell>{tour.timeRange}</TableCell>
                     <TableCell>
                       <Box display="flex" gap={1}>
-                        <Button variant="outlined" color="warning" size="small" onClick={() => navigate(`/Admin_TourMapView/${tour.id}`)}>View Map</Button>
+                        <Button variant="outlined"  onClick={() => navigate(`/Admin_TourMapView/${tour.id}`)}
+                        size='small'
+                          sx={(theme) => ({
+                            padding: '8px 24px',
+                            borderRadius: '4px',
+                            textTransform: 'none',
+                            fontWeight: '500',
+                            background: theme.palette.primary.gradient,
+                            color: "#fff",
+                            transition: "all 0.3s ease",
+                            "&:hover": {
+                              background: "#fff",
+                              color: theme.palette.primary.dark,
+                            }                
+                          })}
+                          >View Map</Button>
                         <IconButton onClick={e => { setAnchorEl(e.currentTarget); setCurrentTour(tour); }}><MoreVert /></IconButton>
                       </Box>
                     </TableCell>
@@ -203,4 +218,4 @@ const Admin_TourTemplates = () => {
   );
 };
 
-export default Admin_TourTemplates;
+export default AdminTourTemplates;

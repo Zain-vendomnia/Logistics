@@ -4,15 +4,22 @@ import { LogisticOrder } from '../../model/LogisticOrders';
 
 
 export const getAllLogisticOrders = async (_req: Request, res: Response) => {
-    try {
-      const orders = await LogisticOrder.getAll();
+  try {
+    const orders = await LogisticOrder.getAll(); // Shopware orders
+    const wmsOrderNumbers = await LogisticOrder.getWmsOrderNumbers(); // WMS order numbers
 
-      res.status(200).json(orders);
-    } catch (error) {
-      console.error('Error fetching orders:', error);
-      res.status(500).json({ message: 'Internal server error' });
-    }
+    // Filter Shopware orders where order_number exists in WMS
+    const matchedOrders = orders.filter(order =>
+      wmsOrderNumbers.includes(order.order_number)
+    );
+
+    res.status(200).json(matchedOrders);
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
 };
+
 
 export const getcountcheck = async(_req: Request, res: Response) => {
   try {

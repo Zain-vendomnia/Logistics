@@ -15,6 +15,7 @@ import PersonIcon from "@mui/icons-material/Person";
 const NavBar: React.FC = () => {
   const { user, showDriverBoard, showAdminBoard, showSuperAdminBoard, logout } = useAuth();
   const navigate = useNavigate();
+  // console.log(user);
 
   React.useEffect(() => {
     // Subscribe to logout event
@@ -31,11 +32,11 @@ const NavBar: React.FC = () => {
   return (
     <AppBar
       position="sticky"
-      sx={{
-        bgcolor: "primary",
+      sx={(theme)=>({
+        background: theme.palette.primary.headerGradient,
         height: 50,
         boxShadow: "0px 2px 4px rgba(0,0,0,0.1)",
-      }}
+      })}
     >
       <Toolbar sx={{ minHeight: "50px !important", px: 2 }}>
         <Box display="flex" flexGrow={1} alignItems="center">

@@ -46,7 +46,7 @@ const Dashboard = () => {
 
   const fetchRouteData = async () => {
     try {
-      const response = await adminApiService.fetchRouteSegmentData(19);  // Call the service method
+      const response = await adminApiService.fetchRouteSegmentData(2);  // Call the service method
       const data = response.data;
       const coords = data.geometry.coordinates;  // Axios response has data in the 'data' property
       console.log("coords", data);

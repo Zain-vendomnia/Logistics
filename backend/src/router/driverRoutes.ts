@@ -1,4 +1,6 @@
 import express from "express";
+import validateToken from "./validateToken";
+import roleCheck from "../middlewares/roleCheck";
 import {
   getAllDrivers,
   getDriverById,
@@ -10,11 +12,14 @@ import {
 
 const router = express.Router();
 
-router.get("/drivers", getAllDrivers);
-router.get("/drivers/:id", getDriverById);
-router.post("/drivers", createDriver);
-router.put("/drivers/:id", updateDriver);
-router.delete("/drivers/:id", deleteDriver);
-router.post("/drivers/delete-multiple", deleteMultipleDrivers); // Bulk delete
+// Apply middleware to all driver routes
+router.use(validateToken, roleCheck(["admin"]));
+
+router.get("/", getAllDrivers);
+router.get("/:id", getDriverById);
+router.post("/", createDriver);
+router.put("/:id", updateDriver);
+router.delete("/:id", deleteDriver);
+router.post("/delete-multiple", deleteMultipleDrivers);
 
 export default router;

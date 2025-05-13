@@ -127,15 +127,38 @@ const WarehouseFormModal: React.FC<Props> = ({
           </Grid>
         </Grid>
       </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2, justifyContent: "space-between" }}>
-        <Button onClick={onClose} color="inherit" sx={{ borderRadius: 2 }}>
+      <DialogActions sx={{ px: 3, pb: 2}}>
+        <Button onClick={onClose} variant="outlined" size="small" sx={(theme) => ({
+                padding: '8px 24px',
+                borderRadius: '4px',
+                textTransform: 'none',
+                fontWeight: '500',
+                background: theme.palette.primary.gradient,
+                color: "#fff",
+                transition: "all 0.3s ease",
+                "&:hover": {
+                  background: "#fff",
+                  color: theme.palette.primary.dark,
+                }                
+              })}>
           Cancel
         </Button>
         <Button
           onClick={handleSubmit}
           variant="contained"
-          sx={{ borderRadius: 2 }}
-          disabled={!isFormFilled || submitting}
+          sx={(theme) => ({
+            padding: '8px 24px',
+            borderRadius: '4px',
+            textTransform: 'none',
+            fontWeight: '500',
+            background: theme.palette.primary.gradient,
+            color: "#fff",
+            transition: "all 0.3s ease",
+            "&:hover": {
+              background: "#fff",
+              color: theme.palette.primary.dark,
+            }                
+          })}
         >
           {editMode ? "Update" : "Create"}
         </Button>

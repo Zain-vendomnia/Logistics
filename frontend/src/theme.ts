@@ -1,8 +1,25 @@
+// theme.ts
 import { createTheme, ThemeOptions } from "@mui/material/styles";
-// import { PaletteOptions } from "@mui/material/styles/createPalette";
 
+// Extend PaletteColor to support 'gradient'
 declare module "@mui/material/styles/createPalette" {
+  interface PaletteColor {
+    gradient?: string;
+    headerGradient?: string;
+  }
+
+  interface SimplePaletteColorOptions {
+    gradient?: string;
+    headerGradient?: string;
+  }
+
   interface PaletteOptions {
+    greyedOut?: {
+      default: string;
+    };
+  }
+
+  interface Palette {
     greyedOut?: {
       default: string;
     };
@@ -12,15 +29,17 @@ declare module "@mui/material/styles/createPalette" {
 const themeOptions: ThemeOptions = {
   palette: {
     primary: {
-      light: "#faa819", // #ffb51d",
+      light: "#faa819",
       main: "#f7941d",
       dark: "#f37021",
+      gradient: "linear-gradient(45deg, #f7941d 30%, #f37021 90%)",
+      headerGradient:"linear-gradient(45deg, #f37620 30%, #ed6508 90%)",
       contrastText: "#FFFFFF",
     },
     secondary: {
-      light: "#1e91d0", // 1a76bc",
-      main: "#00509d", // Yellow from logo: f1cb3a",
-      dark: "#003f88", // even darker: "#00296b"
+      light: "#1e91d0",
+      main: "#00509d",
+      dark: "#003f88",
       contrastText: "#FFFFFF",
     },
     background: {
@@ -30,8 +49,8 @@ const themeOptions: ThemeOptions = {
       default: "#00296b",
     },
     action: {
-      disabled: "#FFFFFF", // Set disabled text/icons color
-      disabledBackground: "#A9A9A9", // Set disabled background color
+      disabled: "#FFFFFF",
+      disabledBackground: "#A9A9A9",
     },
   },
   typography: {

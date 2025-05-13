@@ -17,6 +17,8 @@ import {
 import AdminShipmenttable from '../Admin/Admin_Shipmenttable';
 import { useNavigate } from 'react-router-dom';
 import adminApiService from '../../services/adminApiService';
+import "./css/Admin_common.css";
+
 // Custom Theme
 const theme = createTheme({
   palette: {
@@ -119,10 +121,8 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <ThemeProvider theme={theme}>
-      <Box sx={{ p: 3, bgcolor: '#59555626', minHeight: 'calc(100vh - 50px)' }}>
-        <Typography variant="h4" gutterBottom sx={{ fontWeight: 700, color: 'primary.main' }}>
-          Dashboard Overview
-        </Typography>
+      <Box sx={{ p: 3, bgcolor: '#fff', minHeight: 'calc(100vh - 50px)' }}>
+        
 
         <Grid container spacing={3} sx={{ mb: 4 }}>
           {stats.map((stat, idx) => (

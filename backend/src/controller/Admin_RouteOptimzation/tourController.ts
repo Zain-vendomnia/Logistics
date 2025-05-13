@@ -79,7 +79,6 @@ export const createTourController = async (req: Request, res: Response) => {
     }
   }
 
-
   async function UpdateRouteData(_orderIds: number[], _insertedTourId: number, tourDate: string, driverId: number) {
     try {
       const serviceResponse = await createRoutedata(_orderIds);
@@ -95,6 +94,10 @@ export const createTourController = async (req: Request, res: Response) => {
       await tourInfo_master.updateGraphhopperResponse(_insertedTourId, responseJson);
 
       console.log('GraphHopper response saved to tourInfo_master.');
+        // Save mapping to tour_driver table
+        const datas={"tour_id": _insertedTourId, "driver_id": driverId, "tour_date": tourDate};
+        await insertTourDriverData(datas);
+        console.log('Tour-driver mapping inserted successfully.');
 
       const route = serviceResponse.solution.routes[0]; // assuming one route
       const segments = splitRouteSegments(route);
@@ -107,19 +110,10 @@ export const createTourController = async (req: Request, res: Response) => {
           throw new Error(`Segment has invalid order_id: ${JSON.stringify(segment)}`);
         }
        
-
         await route_segments.insertSegment(_insertedTourId, segmentJson, ordrid);
       }
   
       console.log(`Saved ${segments.length} segments to segmentTable.`);
-
-
-  
-      // Save mapping to tour_driver table
-      const datas={"tour_id": _insertedTourId, "driver_id": driverId, "tour_date": tourDate};
-      await insertTourDriverData(datas);
-      console.log('Tour-driver mapping inserted successfully.');
-      // console.log('Tour ID:', _insertedTourId, 'Driver ID:', driverId, 'Tour Date:', tourDate);
   
     } catch (error) {
       console.error('Error updating GraphHopper response or inserting tour-driver data:', error);
@@ -213,6 +207,9 @@ function splitRouteSegments(route: { activities: any[]; points: any[] }) {
 
   return segments;
 }
+
+
+
 
 export const updateTourController = async (req: Request, res: Response) => {
   const { id, tourName, comments, startTime, endTime, driverid, routeColor, tourDate } = req.body;

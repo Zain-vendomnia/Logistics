@@ -11,13 +11,14 @@ import {
   deleteDriver, deleteDriversBulk
 } from "../../services/driverService";
 import DriverDialog from "./DriverDialog";
-import ConfirmDialog from "./ConfirmDialog"; // ✅ import path
+import ConfirmDialog from "./ConfirmDialog"; 
 
 type Driver = {
   id: number;
   name: string;
   mob: string;
   address: string;
+  email: string;
   warehouse_id: number;
 };
 
@@ -68,6 +69,9 @@ const ManageDrivers: React.FC = () => {
 
     if (!formData.address?.trim()) newErrors.address = "Address is required";
 
+    if (!formData.email?.trim()) newErrors.email = "Email is required";
+    else if (!/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(formData.email)) newErrors.email = "Invalid email address";
+
     if (!formData.warehouse_id || isNaN(+formData.warehouse_id) || +formData.warehouse_id <= 0)
       newErrors.warehouse_id = "Warehouse ID must be a positive number";
 
@@ -106,16 +110,29 @@ const ManageDrivers: React.FC = () => {
 
   const handleSave = async () => {
     if (!validateForm()) return;
-
+  
     setLoading(true);
     try {
       if (editMode && formData.id != null) {
-        await updateDriver(formData.id, formData);
+        const response = await updateDriver(formData.id, formData);
+  
+        if (response?.error) {
+          showSnackbar(response.message || "An error occurred", "error");
+          return;
+        }
+  
         showSnackbar("Driver updated successfully", "success");
       } else {
-        await createDriver(formData);
+        const response = await createDriver(formData);
+  
+        if (response?.error) {
+          showSnackbar(response.message || "An error occurred", "error");
+          return;
+        }
+  
         showSnackbar("Driver created successfully", "success");
       }
+  
       handleDialogClose();
       await loadDrivers();
     } catch (err) {
@@ -125,6 +142,8 @@ const ManageDrivers: React.FC = () => {
       setLoading(false);
     }
   };
+  
+  
 
   const confirmDeleteDriver = (id: number) => {
     showConfirmDialog(
@@ -184,6 +203,7 @@ const ManageDrivers: React.FC = () => {
     { field: "id", headerName: "ID", width: 80 },
     { field: "name", headerName: "Name", flex: 1 },
     { field: "mob", headerName: "Mobile", flex: 1 },
+    { field: "email", headerName: "Email", flex: 1 },
     { field: "address", headerName: "Address", flex: 1 },
     { field: "warehouse_id", headerName: "Warehouse ID", flex: 1 },
     {
@@ -193,24 +213,45 @@ const ManageDrivers: React.FC = () => {
       sortable: false,
       filterable: false,
       renderCell: ({ row }) => (
-        <Stack
-          direction="row"
-          spacing={1}
-          sx={{ height: '100%', width: '100%', alignItems: 'center', justifyContent: 'center', display: 'flex' }}
-        >
+        <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
           <Button
             size="small"
-            variant="contained"
+            variant="outlined"
             color="primary"
             onClick={() => handleDialogOpen(row)}
+            disabled={loading}
+            sx={(theme) => ({
+              mt: 2,
+              width: "36px",
+              minWidth: "36px",
+              height: "36px",
+              background: theme.palette.primary.gradient,
+              color: "#fff",
+              "&:hover": {
+                background: "#fff",
+                color: theme.palette.primary.dark,
+              }
+            })}
           >
             <Edit fontSize="small" />
           </Button>
           <Button
-            size="small"
-            variant="contained"
+            variant="outlined"
             color="error"
             onClick={() => confirmDeleteDriver(row.id)}
+            disabled={loading}
+            sx={{
+              mt: 2,
+              width: "36px",
+              minWidth: "36px",
+              height: "36px",
+              background: "red",
+              color: "white",
+              "&:hover": {
+                background: "#fff",
+                color: "red",
+              },
+            }}
           >
             <Delete fontSize="small" />
           </Button>
@@ -225,7 +266,14 @@ const ManageDrivers: React.FC = () => {
         <Typography variant="h5" mb={2}>Manage Drivers</Typography>
 
         <Stack direction="row" spacing={2} mb={2}>
-          <Button variant="contained" startIcon={<Add />} onClick={() => handleDialogOpen()}>
+          <Button variant="outlined" sx={(theme)=>({
+            background: theme.palette.primary.gradient,
+            color: "#fff",
+            "&:hover": {
+              background: "#fff",
+              color: theme.palette.primary.dark,
+            },
+          })} startIcon={<Add />} onClick={() => handleDialogOpen()}>
             Add Driver
           </Button>
           <Button

@@ -1,14 +1,16 @@
 export const CREATE_DRIVER_DETAILS_TABLE = `
-  CREATE TABLE driver_details (
+ CREATE TABLE driver_details (
     id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(45) NOT NULL,
     mob VARCHAR(20) NOT NULL,
     address VARCHAR(45) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    user_id INT DEFAULT NULL,
     warehouse_id INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (warehouse_id) REFERENCES warehouse_details(warehouse_id) ON DELETE CASCADE
-  );
+);
 `;
 
 export const CREATE_DRIVER_LOCATIONS_TABLE = `
@@ -98,7 +100,7 @@ export const CREATE_ROUTE_SEGMENTS_TABLE = `
     customer_signature BLOB,
     neighbour_signature BLOB,
     delivered_pic_neighbour BLOB,
-    order_id VARCHAR(45),
+    order_id INT NOT NULL,
     comments VARCHAR(45),
     delivery_time TIMESTAMP,
     FOREIGN KEY (tour_id) REFERENCES tourInfo_master(id) ON DELETE CASCADE,

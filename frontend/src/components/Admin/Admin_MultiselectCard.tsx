@@ -155,15 +155,23 @@ const AdminMultiselectCard: React.FC<AdminMultiselectCardProps> = ({
           </Box>
         )}
 
-        <Button
-          fullWidth
-          variant="contained"
-          onClick={handleReset}
-          sx={{ mt: 2 }}
-          disabled={selectedZipcodes.length === 0}
-        >
-          Reset Selection
-        </Button>
+<Button
+  fullWidth
+  variant="outlined"
+  onClick={handleReset}
+  sx={(theme) => ({
+    mt: 2,
+    background: theme.palette.primary.gradient,
+    color: "#fff",
+    "&:hover": {
+      background: "#fff", // or any solid background you prefer
+      color: theme.palette.primary.dark,
+    }
+  })}
+  disabled={selectedZipcodes.length === 0}
+>
+  Reset Selection
+</Button>
       </CardContent>
     </Card>
   );

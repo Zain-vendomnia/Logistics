@@ -22,9 +22,14 @@ router.get("/admin", validateToken, roleCheck(["admin"]), (_req, res) => {
     // If authenticated and authorized, render the admin page
     res.render("admin"); 
 });
+
 // Route to get driver board, only accessible to drivers
 router.get("/test/driver", validateToken, roleCheck(["driver"]), driverCtrl.getDriverBoard);
 
+// Validate token (used to check if user is still logged in)
+router.get("/auth/validate-token", validateToken, (_req, res) => {
+  res.status(200).json({ message: "Token is valid" });
+});
 
 
 export default router;

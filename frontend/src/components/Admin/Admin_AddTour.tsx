@@ -15,7 +15,7 @@ import AdminMultiselectCard from './Admin_MultiselectCard';
 import AdminOrderTable from './Admin_OrderTable';
 import CreateTourModal from './Admin_CreateTourModal';
 import { LogisticOrder } from './AdminServices/latestOrderServices';
-
+import "./css/Admin_common.css";
 const Admin_AddTour = () => {
   const [selectedZipcodes, setSelectedZipcodes] = useState<string[]>([]);
   const [selectedOrders, setSelectedOrders] = useState<number[]>([]); 
@@ -45,7 +45,7 @@ const Admin_AddTour = () => {
         setAlertMessage('Please select orders before creating a tour.');
         setAlertSeverity('warning');
         setAlertOpen(true);
-        setModalConfig({ open: true, warehouseId: firstWarehouseId });
+        // setModalConfig({ open: true, warehouseId: firstWarehouseId });
         return;
     }
     if (!allSameWarehouse) {
@@ -98,19 +98,25 @@ const Admin_AddTour = () => {
               </Stack>
               
               <Button 
-                variant="contained" 
-                startIcon={<AddRoad />}
-                onClick={handleCreateTourClick}
-                disabled={selectedOrders.length === 0}
-                sx={{
-                  padding: '8px 24px',
-                  borderRadius: '4px',
-                  textTransform: 'none',
-                  fontWeight: 'medium'
-                }}
-              >
-                Create Tour
-              </Button>
+              variant="outlined" 
+              startIcon={<AddRoad />}
+              onClick={handleCreateTourClick}
+              sx={(theme) => ({
+                padding: '8px 24px',
+                borderRadius: '4px',
+                textTransform: 'none',
+                fontWeight: '500',
+                background: theme.palette.primary.gradient,
+                color: "#fff",
+                transition: "all 0.3s ease",
+                "&:hover": {
+                  background: "#fff",
+                  color: theme.palette.primary.dark,
+                }                
+              })}
+            >
+              Create Tour
+            </Button>
             </Stack>
 
             <Divider sx={{ marginBottom: '24px' }} />

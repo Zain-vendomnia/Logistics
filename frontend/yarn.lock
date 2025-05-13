@@ -2447,6 +2447,13 @@
   resolved "https://registry.npmjs.org/@types/json5/-/json5-0.0.29.tgz"
   integrity sha512-dRLjCWHYg4oaA77cxO64oO+7JwCwnIzkZPdrrC71jQmQtlhM556pwKo5bUzqvZndkVbeFLIIi+9TC40JNF5hNQ==
 
+"@types/leaflet-polylinedecorator@^1.6.4":
+  version "1.6.4"
+  resolved "https://registry.npmjs.org/@types/leaflet-polylinedecorator/-/leaflet-polylinedecorator-1.6.4.tgz"
+  integrity sha512-meH/jC58Drt/9aqLhuzMCUQjHgMTud+UuQBK5gT6E8M6OfM/rftz/VgvdxOCCAQC9isrp4pqahDgEswesb5X3A==
+  dependencies:
+    "@types/leaflet" "*"
+
 "@types/leaflet-routing-machine@^3.2.8":
   version "3.2.8"
   resolved "https://registry.npmjs.org/@types/leaflet-routing-machine/-/leaflet-routing-machine-3.2.8.tgz"
