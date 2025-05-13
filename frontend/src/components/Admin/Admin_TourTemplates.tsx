@@ -10,6 +10,7 @@ import latestOrderServices, { TourInfo } from './AdminServices/latestOrderServic
 import { deleteTours } from './AdminServices/tourDeletionServices';
 import { exportTours } from './AdminServices/tourExportServices';
 import EditTourModal from './Admin_EditTourModal';
+import ViewPicklistModal from './Admin_ViewPicklistModal';
 import '../Admin/css/Admin_TourTemplate.css';
 
 interface Tour {
@@ -43,6 +44,7 @@ const Admin_TourTemplates = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' as any });
+  const [viewPicklistModalOpen, setViewPicklistModalOpen] = useState(false);
 
   const navigate = useNavigate();
 
@@ -175,7 +177,10 @@ const Admin_TourTemplates = () => {
           </Table>
 
           <Menu anchorEl={anchorEl} open={!!anchorEl} onClose={() => setAnchorEl(null)}>
-            <MenuItem onClick={() => { setModalOpen(true); setAnchorEl(null); }}>Edit Tour</MenuItem>
+            <MenuItem onClick={() => { setModalOpen(true); setAnchorEl(null); }}>Edit Tour</MenuItem>       
+            <Divider />
+            <MenuItem onClick={() => { setViewPicklistModalOpen(true); setAnchorEl(null); }}>View Picklist</MenuItem>
+       
             <Divider />
             <MenuItem sx={{ color: 'error.main' }} onClick={() => currentTour && handleDelete([currentTour.id])}>Delete</MenuItem>
           </Menu>
@@ -186,9 +191,22 @@ const Admin_TourTemplates = () => {
             tourData={currentTour}
             onTourUpdated={() => { loadTours(); showSnackbar('Tour updated', 'success'); }}
           />
+
+          <ViewPicklistModal
+            open={viewPicklistModalOpen}
+            handleClose={() => setViewPicklistModalOpen(false)}
+            tourData={currentTour}
+            onSendEmail={(success) => {
+              if (success) {
+                showSnackbar('Email Sent Successfully!', 'success');
+                setViewPicklistModalOpen(false);
+              }else{
+                showSnackbar('Error sending email!', 'error');
+              }
+            }}
+          />
         </CardContent>
       </Card>
-
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}

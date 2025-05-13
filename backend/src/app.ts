@@ -13,7 +13,6 @@ import { scheduleWmsOrderController } from "./controller/Admin_Api/scheduleWmsOr
 // import { addData,getImageById } from "./controller/Admin_Api/route_segments.controller";
 import { uploadImageController } from "./controller/Admin_Api/uploadImage.controller";
 
-
 import { GeocodingController } from "./controller/Admin_RouteOptimzation/geocodingController";
 import { optimizeRouteController } from "./controller/Admin_RouteOptimzation/optimizeRouteController";
 import { updatelatlngController } from "./controller/Admin_RouteOptimzation/updatelatlngController";
@@ -24,6 +23,8 @@ import { ExportTourController } from './controller/Admin_RouteOptimzation/export
 import { getAllTourController } from "./controller/Admin_RouteOptimzation/getAllTourController";
 import { HandleOrderDelivery } from "./controller/AdminDriverApi/HandleOrderDelivery";
 
+// Picklist Email
+import { picklistEmail } from './controller/Admin_Api/picklistEmail.controller'; // Import the controller
 
 // total orders count controller 
 import { getOrderCount } from "./controller/Admin_Api/orderCount.controller";
@@ -88,12 +89,12 @@ app.get("/api/admin/scheduleOrderInfo", scheduleOrderInfoController);
 app.get("/api/admin/scheduleWmsOrderInfo", scheduleWmsOrderController);
 
 app.post("/upload_image", uploadImageController);
-
 // ------------------ drivers routes ------------------
 app.use("/api/admin/", driverRoutes);
-
 // ------------------ warehouse routes ------------------
 app.use("/api/admin/", warehouseRoutes);
+// Picklist Email Route
+app.post("/api/admin/picklistEmail", picklistEmail); // This will handle POST requests to send the email
 
 // app.post("/route_segments/addData",addData);
 

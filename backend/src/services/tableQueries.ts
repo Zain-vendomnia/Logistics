@@ -1,9 +1,11 @@
 export const CREATE_DRIVER_DETAILS_TABLE = `
-  CREATE TABLE driver_details (
+    CREATE TABLE driver_details (
     id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(45) NOT NULL,
     mob VARCHAR(20) NOT NULL,
     address VARCHAR(45) NOT NULL,
+    email VARCHAR(45) NOT NULL,
+    licenceplate VARCHAR(45) NOT NULL,
     warehouse_id INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
