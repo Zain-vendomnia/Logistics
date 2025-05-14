@@ -1,6 +1,5 @@
 import pool from "../database";
 import { TOUR_DRIVER } from "../services/tableQueries";
-
 const tourDriverSetup = async () => {
   try {
     await pool.query(TOUR_DRIVER);
@@ -11,5 +10,6 @@ const tourDriverSetup = async () => {
     // process.exit(1);
   }
 };
+
 
 export default tourDriverSetup;

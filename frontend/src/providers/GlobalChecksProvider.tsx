@@ -1,6 +1,7 @@
 import {
   createContext,
   ReactNode,
+  useCallback,
   useContext,
   useEffect,
   useState,
@@ -14,6 +15,7 @@ import {
   DialogTitle,
 } from "@mui/material";
 import { useSnackbar } from "./SnackbarProvider";
+import IUser, { isDriver } from "../types/user.type";
 
 interface GlobalChecksContextType {
   locationEnabled: boolean;
@@ -36,7 +38,7 @@ const GlobalChecksProvider: React.FC<{ children: ReactNode }> = ({
   const [openLocationDialog, setOpenLocationDialog] = useState(false);
   const [openCameraDialog, setOpenCameraDialog] = useState(false);
 
-  const checkLocationPermission = async () => {
+  const checkLocationPermission = useCallback(async () => {
     try {
       const permissionStatus = await navigator.permissions.query({
         name: "geolocation",
@@ -50,7 +52,7 @@ const GlobalChecksProvider: React.FC<{ children: ReactNode }> = ({
     } catch (error) {
       checkLocation();
     }
-  };
+  }, []);
 
   const checkLocation = () => {
     if (!navigator.geolocation) {
@@ -111,7 +113,7 @@ const GlobalChecksProvider: React.FC<{ children: ReactNode }> = ({
     checkPermissionAndLocation();
   };
 
-  const checkCameraPermission = async () => {
+  const checkCameraPermission = useCallback(async () => {
     try {
       const permissionStatus = await navigator.permissions.query({
         name: "camera" as PermissionName,
@@ -125,7 +127,7 @@ const GlobalChecksProvider: React.FC<{ children: ReactNode }> = ({
     } catch (error) {
       checkCamera();
     }
-  };
+  }, []);
 
   const checkCamera = async () => {
     try {
@@ -161,8 +163,14 @@ const GlobalChecksProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   useEffect(() => {
-    // checkLocationPermission();
-    // checkCameraPermission();
+    const userData = localStorage.getItem("user");
+    if (userData) {
+      const user: IUser = JSON.parse(userData);
+      if (isDriver(user)) {
+        checkLocationPermission();
+        checkCameraPermission();
+      }
+    }
   }, [checkLocationPermission, checkCameraPermission]);
 
   return (

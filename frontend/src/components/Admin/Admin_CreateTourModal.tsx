@@ -17,6 +17,7 @@ import {
 } from '@mui/material';
 import { Palette, Schedule, Person } from '@mui/icons-material';
 import adminApiService from '../../services/adminApiService';
+
 import { useNavigate } from 'react-router-dom';
 import latestOrderServices from './AdminServices/latestOrderServices';
 
@@ -265,10 +266,34 @@ const CreateTourModal: React.FC<CreateTourModalProps> = ({ open, handleClose, wa
         </Grid>
 
         <Stack direction="row" spacing={2} justifyContent="flex-end" mt={4}>
-          <Button variant="outlined" onClick={handleClose} sx={{ px: 3 }}>
+          <Button variant="outlined" size='small' onClick={handleClose} sx={(theme) => ({
+                padding: '8px 24px',
+                borderRadius: '4px',
+                textTransform: 'none',
+                fontWeight: '500',
+                background: theme.palette.primary.gradient,
+                color: "#fff",
+                transition: "all 0.3s ease",
+                "&:hover": {
+                  background: "#fff",
+                  color: theme.palette.primary.dark,
+                }                
+              })}>
             Cancel
           </Button>
-          <Button variant="contained" onClick={handleSave} sx={{ px: 3 }}>
+          <Button variant="outlined" onClick={handleSave} size='small' sx={(theme) => ({
+                padding: '8px 24px',
+                borderRadius: '4px',
+                textTransform: 'none',
+                fontWeight: '500',
+                background: theme.palette.primary.gradient,
+                color: "#fff",
+                transition: "all 0.3s ease",
+                "&:hover": {
+                  background: "#fff",
+                  color: theme.palette.primary.dark,
+                }                
+              })}>
             Create Tour
           </Button>
         </Stack>

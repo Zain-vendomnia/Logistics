@@ -56,6 +56,14 @@ export class LogisticOrder  {
     return rows as any[];
   }
  
+  static async getWmsOrderNumbers(): Promise<string[]> {
+    const [rows] = await pool.execute(`
+      SELECT order_number FROM wms_orders
+    `);
+
+    return (rows as any[]).map(row => row.order_number);
+  }
+  
   static async getAllCount(): Promise<LogisticOrder[]> {
     const [rows] = await pool.execute('SELECT COUNT(*) AS count FROM logistic_order');
     return rows as LogisticOrder[];

@@ -127,7 +127,7 @@ export class GeocodingService {
     const orders = await LogisticOrder.getAllcustomerAddress(); 
     
     const results: { id: string; type: string; address: { location_id: string; lat: number; lon: number } }[] = [];
-
+console.log("results ", results)
     // Iterate over the orders and geocode them
     for (let index = 0; index < orders.length; index++) {
       const order = orders[index];

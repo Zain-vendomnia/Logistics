@@ -73,12 +73,17 @@ const Register: React.FC = () => {
           validationSchema={validationSchema}
           onSubmit={handleRegister}
         >
-          <Form>
+          <Form autoComplete="off">
             {!successful && (
               <div>
                 <div className="form-group">
-                  <label htmlFor="username"> Username </label>
-                  <Field name="username" type="text" className="form-control" />
+                  <label htmlFor="username">Username</label>
+                  <Field
+                    name="username"
+                    type="text"
+                    autoComplete="off"
+                    className="form-control"
+                  />
                   <ErrorMessage
                     name="username"
                     component="div"
@@ -87,8 +92,13 @@ const Register: React.FC = () => {
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="email"> Email </label>
-                  <Field name="email" type="email" className="form-control" />
+                  <label htmlFor="email">Email</label>
+                  <Field
+                    name="email"
+                    type="email"
+                    autoComplete="off"
+                    className="form-control"
+                  />
                   <ErrorMessage
                     name="email"
                     component="div"
@@ -97,10 +107,11 @@ const Register: React.FC = () => {
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="password"> Password </label>
+                  <label htmlFor="password">Password</label>
                   <Field
                     name="password"
                     type="password"
+                    autoComplete="new-password"
                     className="form-control"
                   />
                   <ErrorMessage
@@ -118,18 +129,21 @@ const Register: React.FC = () => {
               </div>
             )}
 
-            {message && (
-              <div className="form-group">
+            {/* Always visible message area */}
+            <div className="form-group mt-3">
+              {message ? (
                 <div
-                  className={
-                    successful ? "alert alert-success" : "alert alert-danger"
-                  }
+                  className={`alert ${
+                    successful ? "alert-success" : "alert-danger"
+                  }`}
                   role="alert"
                 >
                   {message}
                 </div>
-              </div>
-            )}
+              ) : (
+                <div className="alert" style={{ height: "20px" }}></div>
+              )}
+            </div>
           </Form>
         </Formik>
       </div>

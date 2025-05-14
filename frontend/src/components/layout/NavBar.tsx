@@ -54,11 +54,11 @@ const NavBar: React.FC = () => {
   return (
     <AppBar
       position="sticky"
-      sx={{
-        bgcolor: "primary",
+      sx={(theme)=>({
+        background: theme.palette.primary.headerGradient,
         height: 50,
         boxShadow: "0px 2px 4px rgba(0,0,0,0.1)",
-      }}
+      })}
     >
       <Toolbar sx={{ minHeight: "50px !important", px: 2 }}>
         <Box display="flex" flexGrow={1} alignItems="center" gap={2}>
@@ -66,7 +66,6 @@ const NavBar: React.FC = () => {
             component="img"
             src={logo}
             alt="Logo"
-            onClick={() => navigate("/")}
             sx={{ height: 36, width: "auto", cursor: "pointer" }}
           />
           <Typography
@@ -88,8 +87,8 @@ const NavBar: React.FC = () => {
               },
             }}
           >
-            {showAdminBoard && "Admin Board"}
-            {showSuperAdminBoard && "Super Admin Board"}
+            {showAdminBoard }
+            {showSuperAdminBoard }
           </Typography>
         </Box>
 

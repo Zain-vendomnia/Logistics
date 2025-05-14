@@ -12,7 +12,6 @@ import {
   Avatar,
   Paper,
 } from "@mui/material";
-
 import {
   Menu as MenuIcon,
   NavigateBefore as NavigateBeforeIcon,
@@ -22,8 +21,9 @@ import {
   DirectionsBusFilled,
   Warehouse,
 } from "@mui/icons-material";
-import { useAuth } from "../../providers/AuthProvider";
+import { useAuth } from "../providers/AuthProvider";
 import { useLocation, Link } from "react-router-dom";
+
 type sidebarMenuOption = { text: string; icon?: ReactNode; path: string };
 
 interface Props {
@@ -39,17 +39,17 @@ const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
   const [isOpen, setIsOpen] = useState(true);
   const [menuItems, setMenuItems] = useState<sidebarMenuOption[]>(menuOptions || []);
   const displayName = user?.username.split("@")[0] || user?.username;
+
   const toggleSidebar = () => setIsOpen(!isOpen);
 
   useEffect(() => {
     if (showAdminBoard) {
       setMenuItems([
-        { text: "Dashboard", icon: <DashboardIcon />, path: "/admin_dashboard" },
+        { text: "Dashboard", icon: <DashboardIcon />, path: "/Admin_dashboard" },
         { text: "Add Tour", icon: <TourIcon />, path: "/Admin_AddTour" },
         { text: "Tour Templates", icon: <TourOutlinedIcon />, path: "/Admin_TourTemplates" },
         { text: "Manage Drivers", icon: <DirectionsBusFilled />, path: "/manage_drivers" },
         { text: "Manage Warehouse", icon: <Warehouse />, path: "/manage_warehouse" },
-        // { text: "Driver Register", icon: <Warehouse />, path: "/register" },
       ]);
     } else if (showSuperAdminBoard) {
       setMenuItems([{ text: "Dashboard", icon: <DashboardIcon />, path: "/Admin_dashboard" }]);
