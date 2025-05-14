@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Box, Button, Stack } from "@mui/material";
+import { useState, useEffect } from "react";
+import { Box, Button } from "@mui/material";
 import {
   deliveryScenarios,
   DeliveryStep,
@@ -8,7 +8,7 @@ import {
 } from "./delieryScenarios";
 import { DeliveryStepRenderer } from "./DeliveryStepRenderer";
 import { DeliveryState, useDeliveryStore } from "../../store/useDeliveryStore";
-import { grey } from "@mui/material/colors";
+import { useTripLifecycle } from "../../hooks/useTripLifecycle";
 
 const Style = {
   container: {
@@ -34,24 +34,15 @@ interface Props {
 }
 
 export const DeliveryFlowExecutor = ({ scenarioKey }: Props) => {
-  const {
-    success,
-    setSuccess,
-    deliveryState,
-    actionsCompleted,
-    markStepCompleted,
-    setDeliveryCompleted,
-    addOrdersDeliveredSuccessfully,
-    addOrdersReturnToWareHouse,
-    ordersReturnToWareHouse,
-    deliveryId,
-  } = useDeliveryStore();
+  const store = useDeliveryStore();
+  const { deliveryState, actionsCompleted, markStepCompleted } = store;
+
+  const { handleOrderComplete, handleOrderReturn } = useTripLifecycle();
 
   const [stepsToRender, setStepsToRender] = useState<DeliveryStep[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const [orderCompleteButton, setOrderCompleteButton] = useState(false);
-  const [orderReturnButton, setOrderReturnButton] = useState(false);
 
   useEffect(() => {
     const scenarioSteps = deliveryScenarios[scenarioKey] || [];
@@ -101,14 +92,7 @@ export const DeliveryFlowExecutor = ({ scenarioKey }: Props) => {
     if (nextIndex < stepsToRender.length) {
       setCurrentIndex(nextIndex);
     } else {
-      if (
-        stepsToRender[currentIndex] === "returnToWarehouse" ||
-        actionsCompleted.returnToWarehouse === true
-      ) {
-        setOrderReturnButton(true);
-      } else {
-        setOrderCompleteButton(true);
-      }
+      setOrderCompleteButton(true);
     }
   };
 
@@ -124,15 +108,6 @@ export const DeliveryFlowExecutor = ({ scenarioKey }: Props) => {
     "showFindNeighborPromptAlert",
     "waitForResponse",
   ];
-
-  const handleOrderDelivered = () => {
-    addOrdersDeliveredSuccessfully(deliveryId);
-    setDeliveryCompleted(true);
-  };
-  const handleOrderReturn = () => {
-    addOrdersReturnToWareHouse(deliveryId);
-    setDeliveryCompleted(true);
-  };
 
   if (!stepsToRender.length) return null;
   return (
@@ -169,19 +144,24 @@ export const DeliveryFlowExecutor = ({ scenarioKey }: Props) => {
         {orderCompleteButton && (
           <Button
             variant="contained"
-            sx={Style.completeButton}
-            onClick={handleOrderDelivered}
+            sx={{
+              ...Style.completeButton,
+              ...(orderCompleteButton &&
+              currentIndex !== stepsToRender.length - 1
+                ? { pointerEvents: "none", opacity: "50%" }
+                : { pointerEvents: "auto" }),
+            }}
+            onClick={
+              stepsToRender[currentIndex] === "returnToWarehouse" &&
+              store.actionsCompleted.returnToWarehouse === true
+                ? handleOrderReturn
+                : handleOrderComplete
+            }
           >
-            Delivered
-          </Button>
-        )}
-        {orderReturnButton && (
-          <Button
-            variant="contained"
-            sx={Style.completeButton}
-            onClick={handleOrderReturn}
-          >
-            Order Return
+            Order{" "}
+            {stepsToRender[currentIndex] === "returnToWarehouse"
+              ? "Return"
+              : "Delivered"}
           </Button>
         )}
       </Box>
