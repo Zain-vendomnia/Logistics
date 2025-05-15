@@ -16,6 +16,8 @@ import Admin_TourTemplates from "./components/Admin/Admin_TourTemplates";
 import Admin_MapComponent from "./components/Admin/Admin_MapComponent";
 import Admin_TourMapView from "./components/Admin/Admin_TourMapView";
 import ManageDrivers from "./components/Admin/ManageDrivers";
+import ParkingPermitForm from './components/Frontend/ParkingPermitForm';
+
 
 const ProtectedRoute = ({ element }: { element: JSX.Element }) => {
   const { user } = useAuth();
@@ -72,6 +74,7 @@ const AppRoutes = () => {
       <Route path = "/admin_tourtemplates" element={<Admin_TourTemplates/>}/>
       <Route path = "/admin_mapComponent/:id"  element = {<Admin_MapComponent/>}/>
       <Route path = "/Admin_TourMapView/:tour_id" element = {<Admin_TourMapView/>}/>
+      <Route path = "/ParkingPermitForm" element = {<ParkingPermitForm/>}/>
       {/* <Route path="/Admin_PickList" element={<Admin_PickListPage />} />  */}
    </Routes>
 
