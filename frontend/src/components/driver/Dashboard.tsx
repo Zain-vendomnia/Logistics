@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import {
   Box,
+  Button,
   Fab,
   Grid2,
   IconButton,
@@ -11,7 +12,6 @@ import {
   Snackbar,
   Stack,
 } from "@mui/material";
-import ClearAllIcon from "@mui/icons-material/ClearAll";
 import CloseIcon from "@mui/icons-material/Close";
 
 import { useSnackbar } from "../../providers/SnackbarProvider";
@@ -26,6 +26,8 @@ import { resetDeliveryStore } from "../../utils/resetDeliveryStore";
 import PreTripChecks from "./PreTripChecks";
 import { useTripLifecycle } from "../../hooks/useTripLifecycle";
 // import GoogleMaps from "../common/GoogleMaps";
+import Notification from "../Notification";
+import { NotificationSeverity } from "../../store/useNotificationStore";
 
 const Dashboard = () => {
   const { showSnackbar } = useSnackbar();
@@ -38,6 +40,7 @@ const Dashboard = () => {
     deliveryCompleted,
     deliveryId,
     tripDetails,
+    scenarioKey,
     setScenario,
     ordersReturnToWareHouse,
     ordersDeliveredSuccessfully,
@@ -46,48 +49,21 @@ const Dashboard = () => {
   const { isDeliveryStarted, startNewTrip, handleDriverReachedToDestination } =
     useTripLifecycle();
 
+  // Dev Helpers
+  // const [showActiveDeliveryScenario, setShowActiveDeliveryScenario] =
+  //   useState(true);
   // useEffect(() => {
-  //   console.log("TripData Changed");
-  //   if (tripData && !deliveryCompleted) {
-  //     console.log("TripData Changed 0000");
-  //     tripData.hasPermit === true
-  //       ? setScenario(deliveryId, DeliveryScenario.hasPermit)
-  //       : setScenario(deliveryId, DeliveryScenario.foundCustomer);
-  //   }
-  // }, [
-  //   tripData,
-  //   deliveryId,
-  //   deliveryCompleted,
-  //   ordersDeliveredSuccessfully,
-  //   ordersReturnToWareHouse,
-  //   setScenario,
-  // ]);
+  //   setShowActiveDeliveryScenario(true);
+  // }, [store.scenarioKey, showActiveDeliveryScenario]);
 
-  // useEffect(() => {
-  //   console.log("trip data", tripData);
-  //   startNewTrip();
-  //   console.log("🚚 Delivery#: ", store.deliveryInstanceKey);
-  //   console.log("🚚 Order Id: ", deliveryId);
-  //   console.log(
-  //     "🚚 Orders Delivered Successfully:",
-  //     ordersDeliveredSuccessfully
-  //   );
-  // }, [deliveryCompleted, deliveryId]);
-
-  const [showActiveDeliveryScenario, setShowActiveDeliveryScenario] =
-    useState(true);
-  useEffect(() => {
-    setShowActiveDeliveryScenario(true);
-  }, [store.scenarioKey, showActiveDeliveryScenario]);
-
-  const SlideTransition = (props: any) => {
-    return <Slide {...props} direction="left" />;
-  };
-  const snackbarAction = (
-    <IconButton onClick={() => setShowActiveDeliveryScenario(false)}>
-      <CloseIcon style={{ color: "#fff" }} />
-    </IconButton>
-  );
+  // const SlideTransition = (props: any) => {
+  //   return <Slide {...props} direction="left" />;
+  // };
+  // const snackbarAction = (
+  //   <IconButton onClick={() => setShowActiveDeliveryScenario(false)}>
+  //     <CloseIcon style={{ color: "#fff" }} />
+  //   </IconButton>
+  // );
 
   return (
     <Grid2 container spacing={0} height={"100%"} p={0}>
@@ -158,7 +134,8 @@ const Dashboard = () => {
       </Grid2>
 
       {/* Dev helpers */}
-      <Fab
+
+      {/* <Fab
         onClick={resetDeliveryStore}
         color="primary"
         aria-label="open delivery drawer"
@@ -175,9 +152,8 @@ const Dashboard = () => {
             transition: "transform 0.7s",
           }}
         />
-      </Fab>
-      {showActiveDeliveryScenario && (
-        <Stack spacing={8}>
+      </Fab> */}
+      {/* {showActiveDeliveryScenario && (
           <Snackbar
             anchorOrigin={{ vertical: "top", horizontal: "right" }}
             open={true}
@@ -196,8 +172,7 @@ const Dashboard = () => {
               },
             }}
           />
-        </Stack>
-      )}
+      )} */}
     </Grid2>
   );
 };

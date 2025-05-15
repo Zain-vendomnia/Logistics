@@ -8,10 +8,13 @@ export const useTripLifecycle = () => {
   const {
     tripData,
     deliveryCompleted,
-    deliveryId,
-    setScenario,
     ordersDeliveredSuccessfully,
     ordersReturnToWareHouse,
+    deliveryId,
+    scenarioKey,
+    setScenario,
+    addOrdersDeliveredSuccessfully,
+    setDeliveryCompleted,
   } = store;
 
   const [isDeliveryStarted, setIsDeliveryStarted] = useState(false);
@@ -56,15 +59,13 @@ export const useTripLifecycle = () => {
   };
 
   const handleOrderComplete = () => {
-    if (store.scenarioKey === DeliveryScenario.hasPermit) {
-      store.addOrdersDeliveredSuccessfully(store.deliveryId);
-      store.setDeliveryCompleted(true);
-    } else if (
+    const signatureCaptured =
       store.actionsCompleted.captureCustomerSignature ||
-      store.actionsCompleted.captureNeighborSignature
-    ) {
-      store.addOrdersDeliveredSuccessfully(store.deliveryId);
-      store.setDeliveryCompleted(true);
+      store.actionsCompleted.captureNeighborSignature;
+
+    if (scenarioKey === DeliveryScenario.hasPermit || signatureCaptured) {
+      addOrdersDeliveredSuccessfully(store.deliveryId);
+      setDeliveryCompleted(true);
     }
   };
 
@@ -74,12 +75,12 @@ export const useTripLifecycle = () => {
       store.deliveryState.deliveryReturnReason &&
       store.actionsCompleted.returnToWarehouse === true
     ) {
-      store.addOrdersDeliveredSuccessfully(store.deliveryId);
+      console.log("handleOrderReturn Conditions fulfilled");
+      store.addOrdersReturnToWareHouse(store.deliveryId);
       store.setDeliveryCompleted(true);
     }
   };
 
-  ////
   useEffect(() => {
     if (tripData && !deliveryCompleted) {
       tripData.hasPermit === true
@@ -103,7 +104,6 @@ export const useTripLifecycle = () => {
       ordersDeliveredSuccessfully
     );
   }, [deliveryCompleted, deliveryId]);
-  ////
 
   return {
     isDeliveryStarted,
