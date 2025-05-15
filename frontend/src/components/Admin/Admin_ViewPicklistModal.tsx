@@ -107,14 +107,14 @@ const emailSignatureHtml = `
   </div>
 `;
 
-export interface Item {
+interface OrderItem {
   slmdl_articleordernumber: string;
   quantity: number;
 }
 
-export interface Order {
+interface Order {
   order_number: string;
-  items: Item[];
+  items: OrderItem[];
 }
 
 export interface Driver {
@@ -179,7 +179,7 @@ const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({ open, handleClose
     
     try {
       await adminApiService.picklistEmail({
-        to: 'jishi.puthanpurayil@vendomnia.com', // Update with actual email
+        to: 'muhammad.jahanzaibbaloch@vendomnia.com', // Update with actual email
         subject: 'Picklist',
         html: fullEmailHtml,
       });
@@ -196,6 +196,28 @@ const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({ open, handleClose
      } finally {
       setBtnloading(false);
     }
+  };
+
+  // Helper: Merge logic
+  const getMergedOrderItems = (orders: Order[]) => {
+    const mergedMap = new Map<string, { order_number: string; slmdl_articleordernumber: string; quantity: number }>();
+
+    orders.forEach((order) => {
+      order.items.forEach((item) => {
+        const key = `${order.order_number}-${item.slmdl_articleordernumber}`;
+        if (mergedMap.has(key)) {
+          mergedMap.get(key)!.quantity += item.quantity;
+        } else {
+          mergedMap.set(key, {
+            order_number: order.order_number,
+            slmdl_articleordernumber: item.slmdl_articleordernumber,
+            quantity: item.quantity,
+          });
+        }
+      });
+    });
+
+    return Array.from(mergedMap.values());
   };
   // Aggregate items by article number
   const aggregatedItems: { [key: string]: number } = {};
@@ -243,30 +265,40 @@ const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({ open, handleClose
               <Grid container spacing={2}>
                 <Grid item xs={6}>
                   <Typography>
-                    <strong>Location:</strong> ESCHWEGE
+                    <strong>Location:</strong> {picklistData?.warehouseName}
                     <br />
                     <strong>Driver:</strong> {picklistData?.driver?.driver_name}
                     <br />
-                    <strong>Licence Plate:</strong> ESW-SN600
+                    <strong>Licence Plate:</strong> {picklistData?.driver?.licenceplate}
                   </Typography>
                 </Grid>
                 <Grid item xs={6}>
-                  <Typography>
-                    <strong>Email:</strong> yousef.alomar@vendomnia.com
-                    <br />
-                    <strong>Phone:</strong> {picklistData?.driver?.mobile}
-                    <br />
-                    <strong>ZIP Code:</strong> 30-31
-                  </Typography>
+                 <Typography>
+                 <strong>Email:</strong> {picklistData?.driver?.email}
+                 <br />
+                 <strong>Phone:</strong> {picklistData?.driver?.mobile}
+                 <br />
+                 <strong>ZIP Code:</strong>{' '}
+                 {(() => {
+                   const uniqueZips = picklistData?.orders
+                     ?.map((order: { zipcode: string }) => order.zipcode)
+                     .filter((zip: string, index: number, self: string[]) => zip && self.indexOf(zip) === index);
+
+                   if (!uniqueZips || uniqueZips.length === 0) return 'N/A';
+
+                   return uniqueZips.length === 1
+                     ? uniqueZips[0]
+                     : uniqueZips.map((zip: string) => zip.slice(-2)).join(', ');
+                 })()}
+                 </Typography>
                 </Grid>
                 <Grid item xs={12}>
-                  <Typography>
-                    <strong>Date:</strong>
-                    <br />
-                    Montag - 05.05.2025 - Tag 1
-                    <br />
-                    Dienstag - 06.05.2025 - Tag 2
-                  </Typography>
+                 <Typography>
+                   <strong>Date:</strong>{' '}
+                   {picklistData?.tour_date
+                     ? new Date(picklistData.tour_date).toLocaleDateString('en-GB')
+                     : 'N/A'}
+                 </Typography>
                 </Grid>
               </Grid>
             </Paper>
@@ -285,15 +317,13 @@ const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({ open, handleClose
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {picklistData.orders.map((order: { items: any[]; order_number: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | React.ReactFragment | React.ReactPortal | null | undefined; }, orderIndex: any) =>
-                    order.items.map((item, itemIndex) => (
-                      <TableRow key={`${orderIndex}-${itemIndex}`}>
-                        <TableCell align="center">{item.slmdl_articleordernumber}</TableCell>
-                        <TableCell align="center">{item.quantity}</TableCell>
-                        <TableCell align="center">{order.order_number}</TableCell>
-                      </TableRow>
-                    ))
-                  )}
+                  {getMergedOrderItems(picklistData.orders).map((item, index) => (
+                    <TableRow key={index}>
+                      <TableCell align="center">{item.slmdl_articleordernumber}</TableCell>
+                      <TableCell align="center">{item.quantity}</TableCell>
+                      <TableCell align="center">{item.order_number}</TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </TableContainer>
