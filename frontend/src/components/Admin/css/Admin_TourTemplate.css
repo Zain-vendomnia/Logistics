@@ -4,3 +4,6 @@
 .css-y9tz2m-MuiCardHeader-root{
     background: linear-gradient(45deg, #f7941d, #88bcbd) !important;
 }
+.css-17hstos-MuiButtonBase-root-MuiButton-root:not(:hover):not(:focus):not(:active){
+  color:white !important;
+}

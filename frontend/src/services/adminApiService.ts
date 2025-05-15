@@ -5,83 +5,52 @@ import authHeader from './auth-header';
 const API_BaseUrl = "http://localhost:8080/api/admin/routeoptimize/";
 const API_BaseUrl_Admin = "http://localhost:8080/api/admin/";
 
-// Regular API calls using routeoptimize base
-const fetchRouteData = () => {
-  return axios.get(API_BaseUrl + "optimize", { headers: authHeader() });
-};
+const fetchRouteData = () => axios.get(`${API_BaseUrl}optimize`, { headers: authHeader() });
+const fetchOrderTourCount = () => axios.get(`${API_BaseUrl}tourcount`, { headers: authHeader() });
+const fetchAllTours = () => axios.get(`${API_BaseUrl}getAlltours`, { headers: authHeader() });
+const fetchOrderCount = () => axios.get(`${API_BaseUrl}ordercount`, { headers: authHeader() });
+const fetchAllOrders = () => axios.get(`${API_BaseUrl}orders`, { headers: authHeader() });
 
-const fetchOrderTourCount = () => {
-  return axios.get(API_BaseUrl + "tourcount", { headers: authHeader() });
-};
+const createTour = (tourData: Record<string, any>) => 
+  axios.post(`${API_BaseUrl}createtour`, tourData, { headers: authHeader() });
 
-const fetchAllTours = () => {
-  return axios.get(API_BaseUrl + "getAlltours", { headers: authHeader() });
-};
+const getRouteResponse = (tour_id: number) => 
+  axios.post(`${API_BaseUrl}getGraphhopperRoute`, { tour_id }, { headers: authHeader() });
 
-const fetchOrderCount = () => {
-  return axios.get(API_BaseUrl + "ordercount", { headers: authHeader() });
-};
-
-const fetchAllOrders = () => {
-  return axios.get(API_BaseUrl + "orders", { headers: authHeader() });
-};
-
-const createTour = (tourData: any) => {
-  return axios.post(API_BaseUrl + "createtour", tourData, {
-    headers: authHeader(),
-  });
-};
-
-const getRouteResponse = (tour_id: number) => {
-  return axios.post(API_BaseUrl + "getGraphhopperRoute", { tour_id }, {
-    headers: authHeader(),
-  });
-};
-
-const deleteTours = (tourIds: number[]) => {
-  return axios.delete(API_BaseUrl + "deleteTours", {
+const deleteTours = (tourIds: number[]) =>
+  axios.delete(`${API_BaseUrl}deleteTours`, {
     headers: authHeader(),
     data: { tourIds },
   });
-};
 
-const exportTours = (tourIds: number[] | string[]) => {
-  return axios.post(API_BaseUrl + "exportTours", { tourIds }, {
-    headers: authHeader(),
-  });
-};
-const fetchRouteSegmentData  = (tour_id: number) => {
-  return axios.post(API_BaseUrl + "getSegmentRoute", { tour_id }, { headers: authHeader() });
-};
+const exportTours = (tourIds: number[] | string[]) => 
+  axios.post(`${API_BaseUrl}exportTours`, { tourIds }, { headers: authHeader() });
 
-const updateTour = (tourData: any) => {
-  return axios.put(API_BaseUrl + "updateTour", tourData, {
-    headers: authHeader(),
-  });
-};
+const fetchRouteSegmentData = (tour_id: number) => 
+  axios.post(`${API_BaseUrl}getSegmentRoute`, { tour_id }, { headers: authHeader() });
 
-const picklistEmail = (emailData: any) => {
+const updateTour = (tourData: Record<string, any>) => 
+  axios.put(`${API_BaseUrl}updateTour`, tourData, { headers: authHeader() });
 
-  return axios.post(API_BaseUrl_Admin + "picklistEmail", emailData, {
-    headers: authHeader(),
-  });
-};
-
-
-// ⬇️ This is outside the routeoptimize scope — it has its own endpoint
 const getOrderCount = async (): Promise<number> => {
   try {
-    const response = await axios.get<{ ordersCount: number }>(
-      'http://localhost:8080/api/admin/orderCount'
+    const response = await axios.get<{ count: number }[]>(
+      `${API_BaseUrl}orderCount`,
+      { headers: authHeader() }
     );
-    return response.data.ordersCount;
+    const count = response.data[0]?.count ?? 0;
+    return count;
   } catch (error) {
     console.error('Error fetching order count:', error);
     throw new Error('Failed to fetch order count');
   }
 };
+const picklistEmail = (emailData: any) => {
 
-// Export all as named members under default
+    return axios.post(API_BaseUrl_Admin + "picklistEmail", emailData, {
+      headers: authHeader(),
+    });
+  };
 const adminApiService = {
   fetchRouteData,
   fetchOrderTourCount,
@@ -94,7 +63,7 @@ const adminApiService = {
   exportTours,
   fetchRouteSegmentData,
   updateTour,
-  getOrderCount, 
+  getOrderCount,
   picklistEmail,
 };
 

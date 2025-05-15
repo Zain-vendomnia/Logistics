@@ -1,15 +1,19 @@
 export const CREATE_DRIVER_DETAILS_TABLE = `
-  CREATE TABLE driver_details (
+ CREATE TABLE driver_details (
     id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(45) NOT NULL,
-    mob INT NOT NULL,
+    mob VARCHAR(20) NOT NULL,
     address VARCHAR(45) NOT NULL,
+    licenceplate VARCHAR(45) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    user_id INT DEFAULT NULL,
     warehouse_id INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (warehouse_id) REFERENCES warehouse_details(warehouse_id) ON DELETE CASCADE
-  );
+);
 `;
+
 
 export const CREATE_DRIVER_LOCATIONS_TABLE = `
   CREATE TABLE driver_locations (
@@ -107,12 +111,13 @@ export const CREATE_ROUTE_SEGMENTS_TABLE = `
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
   );
 `;
+
 export const CREATE_WAREHOUSE_DETAILS_TABLE = `
   CREATE TABLE warehouse_details (
     warehouse_id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     warehouse_name VARCHAR(45) NOT NULL,
     clerk_name VARCHAR(45) NOT NULL,
-    clerk_mob INT NOT NULL,
+    clerk_mob VARCHAR(20) NOT NULL,
     address VARCHAR(45) NOT NULL,
     email VARCHAR(45) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -200,13 +205,17 @@ export const USERS_TABLE = `
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
       );
 `;
-export const TOUR_DRIVER= `
-    CREATE TABLE IF NOT EXISTS tour_driver (
+
+export const TOUR_DRIVER = `
+  CREATE TABLE IF NOT EXISTS tour_driver (
     id INT AUTO_INCREMENT PRIMARY KEY,
     tour_id INT NOT NULL,
     driver_id INT NOT NULL,
     tour_date DATE NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (tour_id) REFERENCES tourInfo_master(id) ON DELETE CASCADE,
+    FOREIGN KEY (driver_id) REFERENCES driver_details(id) ON DELETE CASCADE
   );
 `;
+

@@ -4,7 +4,7 @@ import { GeocodingService } from '../../services/geocodingService';
 export const updatelatlngController = async (_req: Request, res: Response) => {
     try {
       const serviceData = await GeocodingService.geocodeAllcustomer();
-         
+       console.log(serviceData)  
       res.status(200).json({
         message: 'Customer data updated succesfully',
         data: serviceData

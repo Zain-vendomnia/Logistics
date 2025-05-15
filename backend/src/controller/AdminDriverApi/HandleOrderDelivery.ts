@@ -87,7 +87,7 @@ export async function HandleOrderDelivery(req: Request, res: Response) {
     );
 
     if (rows.length === 0) {
-      return res.status(200).json({ message: 'No more pending orders for this tour' });
+      return res.status(200).json({ message: 'No more pending orders for this tour. Tour is completed' });
     }
 
     const nextOrder = rows[0];

@@ -3,8 +3,6 @@ import nodemailer from 'nodemailer';
 
 // Dummy function to simulate sending an email
 export const picklistEmail = async (req: Request, res: Response) => {
-
-
   try {
     const { to, subject, html } = req.body;
     // Configure nodemailer
@@ -20,7 +18,7 @@ export const picklistEmail = async (req: Request, res: Response) => {
 
     // Send email
     const info = await transporter.sendMail({
-      from: '"Vendomnia" <service@vendomnia.com>',
+      from: '"SUNNIVA" <service@vendomnia.com>',
       to,
       subject,
       html
@@ -30,6 +28,6 @@ export const picklistEmail = async (req: Request, res: Response) => {
     return res.status(200).json({ message: 'Email sent successfully' });
   } catch (error) {
     console.error('Error sending email: ', error);
-    return res.status(500).json({ message: 'Failed to send email 12123' });
+    return res.status(500).json({ message: 'Failed to send email' });
   }
 };

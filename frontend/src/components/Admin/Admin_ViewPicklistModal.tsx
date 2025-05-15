@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Box, Typography, Grid, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Checkbox, Button, CircularProgress } from '@mui/material';
 import adminApiService from '../../services/adminApiService';
+
 import { generatePicklistEmailHtml} from '../../assets/templates/generatePicklistEmailHtml'; // Default Import
 import { renderToStaticMarkup } from 'react-dom/server';
-
-
+import latestOrderServices from './AdminServices/latestOrderServices';
 
 const modalStyle = {
   overflow: 'auto',
@@ -139,10 +139,10 @@ interface ViewPicklistModalProps {
 }
 
 const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({ open, handleClose, tourData, onSendEmail }) => {
-  const [picklistData, setPicklistData] = useState<PicklistData | null>(null);
+  const [picklistData, setPicklistData] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [Btnloading, setBtnloading] = useState(false);
-
+  const [selectedTour, setSelectedTour] = useState<any | null>(null);
 
   useEffect(() => {
     if (open && tourData?.id) {
@@ -154,10 +154,9 @@ const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({ open, handleClose
     setLoading(true);
 
     try {
-      const response = await adminApiService.fetchAllTours(); // Assuming this fetches all the tours
-
-      // Filter the tour by matching `id` with `tourData.id`
-      const matchedTour = response.data.find((tour: any) => tour.id === parseInt(tourId)); // If `tourId` is a string, you might need to parse it
+      const instance = latestOrderServices.getInstance();
+      const toursdata = await instance.getTours();
+      const matchedTour = toursdata.find((tour: any) => tour.id === Number(tourId));
       if (matchedTour) {
         setPicklistData(matchedTour);
       } else {
@@ -180,7 +179,7 @@ const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({ open, handleClose
     
     try {
       await adminApiService.picklistEmail({
-        to: 'muhammad.jahanzaibbaloch@vendomnia.com', // Update with actual email
+        to: 'jishi.puthanpurayil@vendomnia.com', // Update with actual email
         subject: 'Picklist',
         html: fullEmailHtml,
       });
@@ -203,7 +202,7 @@ const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({ open, handleClose
   let totalQuantity = 0;
 
   if (picklistData) {
-    picklistData.orders.forEach(order => {
+    picklistData.orders.forEach((order: { items: any[]; }) => {
       order.items.forEach(item => {
         const key = item.slmdl_articleordernumber;
         aggregatedItems[key] = (aggregatedItems[key] || 0) + item.quantity;
@@ -286,7 +285,7 @@ const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({ open, handleClose
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {picklistData.orders.map((order, orderIndex) =>
+                  {picklistData.orders.map((order: { items: any[]; order_number: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | React.ReactFragment | React.ReactPortal | null | undefined; }, orderIndex: any) =>
                     order.items.map((item, itemIndex) => (
                       <TableRow key={`${orderIndex}-${itemIndex}`}>
                         <TableCell align="center">{item.slmdl_articleordernumber}</TableCell>

@@ -3,34 +3,57 @@ import { useAuth } from "./providers/AuthProvider";
 import { isSuperAdmin, isAdmin, isDriver } from "./types/user.type";
 
 // Pages
-import Login from "./components/Login";
-import Register from "./components/Register";
-import Home from "./components/Home";
-import Profile from "./components/Profile";
+import Login from "./components/pages/Login";
+import Register from "./components/pages/Register";
+import Home from "./components/pages/Home";
+import Profile from "./components/pages/Profile";
+import BoardDriver from "./components/driver/BoardDriver";
 import BoardAdmin from "./components/BoardAdmin/BoardAdmin";
 import SuperAdmin from "./components/SuperAdmin";
-import BoardDriver from "./components/BoardDriver/BoardDriver";
 import AdminDashboard from "./components/Admin/Admin_dashboard";
-import AdminAddTour from "./components/Admin/Admin_AddTour";
+import ManageDrivers from "./components/Admin/ManageDrivers";
+import ManageWarehouse from "./components/Admin/ManageWarehouse";
 import Admin_TourTemplates from "./components/Admin/Admin_TourTemplates";
 import Admin_MapComponent from "./components/Admin/Admin_MapComponent";
 import Admin_TourMapView from "./components/Admin/Admin_TourMapView";
-import ManageDrivers from "./components/Admin/ManageDrivers";
 import ParkingPermitForm from './components/Frontend/ParkingPermitForm';
+import AdminAddTour from "./components/Admin/Admin_AddTour";
 
 
-const ProtectedRoute = ({ element }: { element: JSX.Element }) => {
+// Role-based route guard
+const ProtectedRoute = ({
+  element,
+  allowedRoles,
+}: {
+  element: JSX.Element;
+  allowedRoles?: ("admin" | "superadmin" | "driver")[];
+}) => {
   const { user } = useAuth();
-  return user ? element : <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/login" replace />;
+  // Role checks
+  const userRole = isSuperAdmin(user)
+    ? "superadmin"
+    : isAdmin(user)
+    ? "admin"
+    : isDriver(user)
+    ? "driver"
+    : null;
+
+  if (allowedRoles && (!userRole || !allowedRoles.includes(userRole))) {
+    return <Navigate to="/" replace />;
+  }
+
+  return element;
 };
 
+// Main routes
 const AppRoutes = () => {
   const { user } = useAuth();
 
   const getUserBoard = () => {
     if (user) {
       if (isSuperAdmin(user)) return <Navigate to="/superadmin" replace />;
-      if (isAdmin(user)) return <Navigate to="/Admin_dashboard" replace />;
+      if (isAdmin(user)) return <Navigate to="/admin_dashboard" replace />;
       if (isDriver(user)) return <Navigate to="/driver" replace />;
     }
     return <Navigate to="/login" replace />;
@@ -38,47 +61,84 @@ const AppRoutes = () => {
 
   return (
     <Routes>
-      <Route
-        path="/"
-        element={!user ? <Navigate to="/login" replace /> : getUserBoard()}
-      />
-      <Route
-        path="/login"
-        element={!user ? <Login /> : <Navigate to="/" replace />}
-      />
-      <Route
-        path="/dashboard"
-        element={user ? getUserBoard() : <Navigate to="/login" replace />}
-      />
+      <Route path="/" element={user ? getUserBoard() : <Navigate to="/login" replace />} />
+      <Route path="/login" element={!user ? <Login /> : <Navigate to="/" replace />} />
+      <Route path="/dashboard" element={<ProtectedRoute element={getUserBoard()} />} />
+
+      {/* SuperAdmin Route */}
       <Route
         path="/superadmin"
-        element={<ProtectedRoute element={<SuperAdmin />} />}
+        element={<ProtectedRoute element={<SuperAdmin />} allowedRoles={["superadmin"]} />}
       />
+
+      {/* Driver Route */}
       <Route
         path="/driver"
-        element={<ProtectedRoute element={<BoardDriver />} />}
+        element={<ProtectedRoute element={<BoardDriver />} allowedRoles={["driver"]} />}
       />
+
+      {/* Admin Board */}
       <Route
         path="/admin"
-        element={<ProtectedRoute element={<BoardAdmin />} />}
+        element={<ProtectedRoute element={<BoardAdmin />} allowedRoles={["admin"]} />}
       />
+
+      {/* General Protected Routes */}
       <Route path="/home" element={<ProtectedRoute element={<Home />} />} />
+      <Route path="/profile" element={<ProtectedRoute element={<Profile />} />} />
+
+      {/* ✅ Only Admin can register (registering drivers) */}
       <Route
-        path="/profile"
-        element={<ProtectedRoute element={<Profile />} />}
+        path="/register"
+        element={<ProtectedRoute element={<Register />} allowedRoles={["admin"]} />}
+      />
+
+      <Route
+        path="/register"
+        element={<ProtectedRoute element={<Register />} allowedRoles={["admin"]} />}
+      />
+
+      {/* ✅ Admin-only Routes */}
+      <Route
+        path="/admin_dashboard"
+        element={<ProtectedRoute element={<AdminDashboard />} allowedRoles={["admin"]} />}
+      />
+      <Route
+        path="/admin_addtour"
+        element={<ProtectedRoute element={<AdminAddTour />} allowedRoles={["admin"]} />}
+      />
+      <Route
+        path="/manage_drivers"
+        element={<ProtectedRoute element={<ManageDrivers />} allowedRoles={["admin"]} />}
+      />
+      <Route
+        path="/manage_warehouse"
+        element={<ProtectedRoute element={<ManageWarehouse />} allowedRoles={["admin"]} />}
+      />
+      <Route
+        path="/admin_tourtemplates"
+        element={<ProtectedRoute element={<Admin_TourTemplates />} allowedRoles={["admin"]} />}
+      />
+      <Route
+        path="/admin_mapComponent/:id"
+        element={<ProtectedRoute element={<Admin_MapComponent />} allowedRoles={["admin"]} />}
+      />
+      <Route
+        path="/profile"  element={<ProtectedRoute element={<Profile />} />}
       />
       <Route path = "/register" element={<Register />} />
       <Route path = "/admin_dashboard" element={<AdminDashboard />} />
       <Route path = "/admin_addtour" element={<AdminAddTour/>}/>
       <Route path = "/manage_drivers" element={<ManageDrivers/>}/>
+      <Route path = "/manage_warehouse" element={<ManageWarehouse/>}/>
       <Route path = "/admin_tourtemplates" element={<Admin_TourTemplates/>}/>
       <Route path = "/admin_mapComponent/:id"  element = {<Admin_MapComponent/>}/>
-      <Route path = "/Admin_TourMapView/:tour_id" element = {<Admin_TourMapView/>}/>
       <Route path = "/ParkingPermitForm" element = {<ParkingPermitForm/>}/>
+      <Route path = "/Admin_TourMapView/:tour_id"  element={<ProtectedRoute element={<Admin_TourMapView />} allowedRoles={["admin"]} />}
+      />
+
       {/* <Route path="/Admin_PickList" element={<Admin_PickListPage />} />  */}
    </Routes>
-
-
   );
 };
 

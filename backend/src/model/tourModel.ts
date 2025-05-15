@@ -63,22 +63,46 @@ export const insertTourDriverData = async (tour: any) => {
     throw err;
   }
 };
-
-// Function to delete multiple tours
 export const deleteTours = async (tourIds: number[]) => {
-  const sql = `
-    DELETE FROM tourinfo_master 
-    WHERE id IN (?)
-  `;
+  const conn = await pool.getConnection();
 
   try {
     console.log('[tourModel] Deleting tours with IDs:', tourIds);
-    const [result] = await pool.query(sql, [tourIds]);
-    console.log('[tourModel] Tours deleted successfully');
+
+    await conn.beginTransaction();
+
+    // Step 1: Delete from route_segments explicitly (optional if ON DELETE CASCADE works)
+    const deleteSegmentsSql = `
+      DELETE FROM route_segments
+      WHERE tour_id IN (?)
+    `;
+    await conn.query(deleteSegmentsSql, [tourIds]);
+
+    // Step 2: Delete from tourinfo_master
+    const deleteToursSql = `
+      DELETE FROM tourinfo_master 
+      WHERE id IN (?)
+    `;
+    const [result] = await conn.query(deleteToursSql, [tourIds]);
+
+    // Step 3: Delete from tour_driver table
+
+    const deletetour_driver_Sql = `
+    DELETE FROM tour_driver 
+    WHERE tour_id IN (?)
+  `;
+    await conn.query(deletetour_driver_Sql, [tourIds]);
+
+    await conn.commit();
+
+    console.log('[tourModel] Tours,route and tour_driver segments deleted successfully');
     return result;
   } catch (err) {
+    await conn.rollback();
     console.error('[tourModel] Error deleting tours:', err);
     throw err;
+  } finally {
+    conn.release();
   }
 };
 
