@@ -8,11 +8,13 @@ import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import PhoneAndroidIcon from "@mui/icons-material/PhoneAndroid";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import WarehouseOutlinedIcon from "@mui/icons-material/WarehouseOutlined";
+import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
 import { getAllWarehouses } from "../../services/warehouseService";
 
 type Driver = {
   id: number;
   name: string;
+  email: string;
   mob: string;
   address: string;
   warehouse_id: number;
@@ -98,6 +100,7 @@ const DriverDialog: React.FC<Props> = ({
         ) : (
           <Stack spacing={2} mt={1} minWidth={350}>
             {renderTextField("Driver Name", "name", <PersonOutlineIcon sx={{ color: "black" }} />, false, true)}
+            {renderTextField("Email", "email", <EmailOutlinedIcon sx={{ color: "black" }} />)}
             {renderTextField("Mobile", "mob", <PhoneAndroidIcon sx={{ color: "black" }} />)}
             {renderTextField("Address", "address", <HomeOutlinedIcon sx={{ color: "black" }} />, true)}
 
@@ -138,10 +141,34 @@ const DriverDialog: React.FC<Props> = ({
       </DialogContent>
 
       <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={onClose} variant="outlined" sx={{ borderRadius: 2 }}>
+        <Button onClick={onClose} variant="outlined" size="small" sx={(theme) => ({
+          padding: '8px 24px',
+          borderRadius: '4px',
+          textTransform: 'none',
+          fontWeight: '500',
+          background: theme.palette.primary.gradient,
+          color: "#fff",
+          transition: "all 0.3s ease",
+          "&:hover": {
+            background: "#fff",
+            color: theme.palette.primary.dark,
+          }
+        })}>
           Cancel
         </Button>
-        <Button onClick={onSave} variant="contained" sx={{ borderRadius: 2 }} disabled={loading}>
+        <Button onClick={onSave} size="small" variant="outlined" disabled={loading} sx={(theme) => ({
+          padding: '8px 24px',
+          borderRadius: '4px',
+          textTransform: 'none',
+          fontWeight: '500',
+          background: theme.palette.primary.gradient,
+          color: "#fff",
+          transition: "all 0.3s ease",
+          "&:hover": {
+            background: "#fff",
+            color: theme.palette.primary.dark,
+          }
+        })}>
           {editMode ? "Update" : "Create"}
         </Button>
       </DialogActions>

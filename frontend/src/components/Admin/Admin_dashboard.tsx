@@ -83,7 +83,7 @@ const AdminDashboard: React.FC = () => {
   const stats = [
     { 
       icon: <DirectionsCar fontSize="large" />, 
-      value: '24', 
+      value: '1', 
       label: 'Vehicles On Road', 
       subLabel: 'Active vehicles currently tracking',
       route: '/vehicles-on-road'

@@ -33,7 +33,7 @@ export const updateDriver = async (req: Request, res: Response) => {
   try {
     const updated = await driverService.updateDriver(Number(req.params.id), req.body);
     if (!updated) return res.status(404).json({ message: "Driver not found" });
-    res.json({ message: "Driver updated" });
+    res.json(updated);
   } catch (err) {
     res.status(500).json({ message: "Error updating driver" });
   }

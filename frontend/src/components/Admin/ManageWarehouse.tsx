@@ -149,19 +149,44 @@ const ManageWarehouses = () => {
         >
           <Button
             size="small"
-            variant="contained"
+            variant="outlined"
             color="primary"
             onClick={() => handleOpenDialog(params.row)}
             disabled={actionLoading}
+            sx={(theme) => ({
+              mt: 2,
+              width: "36px", // adjust to your desired size
+              minWidth: "36px",
+              height: "36px",
+              background: theme.palette.primary.gradient,
+              color: "#fff",
+              "&:hover": {
+                background: "#fff", // or any solid background you prefer
+                color: theme.palette.primary.dark,
+              }
+            })}
           >
             <Edit fontSize="small" />
           </Button>
           <Button
             size="small"
-            variant="contained"
+            variant="outlined"
             color="error"
             onClick={() => requestDeleteWarehouse(params.row.warehouse_id)}
             disabled={actionLoading}
+            sx={(theme) => ({
+              mt: 2,
+              width: "36px", // adjust to your desired size
+              minWidth: "36px",
+              height: "36px",
+              background: "red",
+              color: "white",
+              padding: 0,
+              "&:hover": {
+                background: "#fff",
+                color: "red",
+              },
+            })}
           >
             <Delete fontSize="small" />
           </Button>
@@ -177,10 +202,19 @@ const ManageWarehouses = () => {
 
         <Stack direction="row" spacing={2} mb={2}>
           <Button
-            variant="contained"
+            variant="outlined"
+            sx={(theme)=>({
+              background: theme.palette.primary.gradient,
+              color: "#fff",
+              "&:hover": {
+                background: "#fff", // or any solid background you prefer
+                color: theme.palette.primary.dark,
+              },
+            })}
             startIcon={<Add />}
             onClick={() => handleOpenDialog()}
             disabled={actionLoading}
+
           >
             Add Warehouse
           </Button>
@@ -193,6 +227,7 @@ const ManageWarehouses = () => {
             startIcon={<Delete />}
             sx={{
               color: 'red',
+              backgroundColor:'rgba(255, 0, 0, 0.5)',
               borderColor: 'red',
               '&.Mui-disabled': {
                 color: 'rgba(255, 0, 0, 0.5)',
@@ -203,14 +238,18 @@ const ManageWarehouses = () => {
             Delete Selected
           </Button>
 
-          <Button
-            variant="outlined"
-            onClick={handleExport}
-            startIcon={<SaveAlt />}
-          >
-            Export
-          </Button>
-        </Stack>
+             
+        <Button variant="outlined" sx={(theme)=>({
+           background: theme.palette.primary.gradient,
+            color:  theme.palette.primary.contrastText,
+            "&:hover": {
+              background: theme.palette.primary.dark,
+            color: theme.palette.primary.contrastText,
+            },
+            })} startIcon={<SaveAlt />} onClick={handleExport} >
+           Export
+        </Button>
+      </Stack>
 
         <Paper elevation={3} sx={{ borderRadius: 2 }}>
           <DataGrid

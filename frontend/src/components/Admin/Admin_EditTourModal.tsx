@@ -255,8 +255,32 @@ const EditTourModal: React.FC<EditTourModalProps> = ({
         </Grid>
 
         <Box mt={3} display="flex" justifyContent="flex-end" gap={2}>
-          <Button variant="outlined" color="secondary" onClick={handleClose} disabled={loading}>Cancel</Button>
-          <Button variant="contained" color="primary" onClick={handleSave} disabled={loading}>
+          <Button variant="outlined" size='small' sx={(theme) => ({
+                padding: '8px 24px',
+                borderRadius: '4px',
+                textTransform: 'none',
+                fontWeight: '500',
+                background: theme.palette.primary.gradient,
+                color: "#fff",
+                transition: "all 0.3s ease",
+                "&:hover": {
+                  background: "#fff",
+                  color: theme.palette.primary.dark,
+                }                
+              })} onClick={handleClose}>Cancel</Button>
+          <Button variant="outlined" size='small' color="primary" sx={(theme) => ({
+                padding: '8px 24px',
+                borderRadius: '4px',
+                textTransform: 'none',
+                fontWeight: '500',
+                background: theme.palette.primary.gradient,
+                color: "#fff",
+                transition: "all 0.3s ease",
+                "&:hover": {
+                  background: "#fff",
+                  color: theme.palette.primary.dark,
+                }                
+              })} onClick={handleSave} disabled={loading}>
             {loading ? 'Saving...' : 'Save Changes'}
           </Button>
         </Box>

@@ -1,4 +1,6 @@
 import express from "express";
+import validateToken from "./validateToken";
+import roleCheck from "../middlewares/roleCheck";
 import {
   getAllWarehouses,
   getWarehouseById,
@@ -10,11 +12,14 @@ import {
 
 const router = express.Router();
 
-router.get("/warehouses", getAllWarehouses);
-router.get("/warehouses/:id", getWarehouseById);
-router.post("/warehouses", createWarehouse);
-router.put("/warehouses/:id", updateWarehouse);
-router.delete("/warehouses/:id", deleteWarehouse);
-router.post("/warehouses/delete-multiple", deleteMultipleWarehouses); // Bulk delete
+// Apply middleware to all warehouse routes
+router.use(validateToken, roleCheck(["admin"]));
+
+router.get("/", getAllWarehouses);
+router.get("/:id", getWarehouseById);
+router.post("/", createWarehouse);
+router.put("/:id", updateWarehouse);
+router.delete("/:id", deleteWarehouse);
+router.post("/delete-multiple", deleteMultipleWarehouses);
 
 export default router;

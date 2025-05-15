@@ -10,6 +10,7 @@ import latestOrderServices, { TourInfo } from './AdminServices/latestOrderServic
 import { deleteTours } from './AdminServices/tourDeletionServices';
 import { exportTours } from './AdminServices/tourExportServices';
 import EditTourModal from './Admin_EditTourModal';
+import ViewPicklistModal from './Admin_ViewPicklistModal';
 import '../Admin/css/Admin_TourTemplate.css';
 
 interface Tour {
@@ -35,7 +36,7 @@ const ActionButton = ({ title, icon, color, onClick, disabled }: any) => (
   </Tooltip>
 );
 
-const Admin_TourTemplates = () => {
+const AdminTourTemplates = () => {
   const [tours, setTours] = useState<Tour[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -43,6 +44,7 @@ const Admin_TourTemplates = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' as any });
+  const [viewPicklistModalOpen, setViewPicklistModalOpen] = useState(false);
 
   const navigate = useNavigate();
 
@@ -61,7 +63,7 @@ const Admin_TourTemplates = () => {
         date: new Date(t.tour_date).toLocaleDateString(),
         color: t.tour_route_color,
         amount: t.orders.length,
-        timeRange: `${t.tour_startTime.slice(0, 5)} - ${t.tour_endTime.slice(0, 5)}`,
+        timeRange: `${t.tour_startTime.slice(0, 5)}`,
         driver: t.driver?.driver_name || 'N/A',
         warehouseId: t.warehouseId,
         driver_id: t.driver?.driver_id || 0
@@ -138,7 +140,7 @@ const Admin_TourTemplates = () => {
                     onChange={e => setSelected(e.target.checked ? filteredTours.map(t => t.id) : [])}
                   />
                 </TableCell>
-                {['Name', 'Driver', 'Period', 'Actions'].map(h => <TableCell key={h}><strong>{h}</strong></TableCell>)}
+                {['Name', 'Driver', 'Start Time', 'Actions'].map(h => <TableCell key={h}><strong>{h}</strong></TableCell>)}
               </TableRow>
             </TableHead>
             <TableBody>
@@ -162,7 +164,22 @@ const Admin_TourTemplates = () => {
                     <TableCell>{tour.timeRange}</TableCell>
                     <TableCell>
                       <Box display="flex" gap={1}>
-                        <Button variant="outlined" color="warning" size="small" onClick={() => navigate(`/Admin_TourMapView/${tour.id}`)}>View Map</Button>
+                        <Button variant="outlined"  onClick={() => navigate(`/Admin_TourMapView/${tour.id}`)}
+                        size='small'
+                          sx={(theme) => ({
+                            padding: '8px 24px',
+                            borderRadius: '4px',
+                            textTransform: 'none',
+                            fontWeight: '500',
+                            background: theme.palette.primary.gradient,
+                            color: theme.palette.primary.contrastText,
+                            transition: "all 0.3s ease",
+                            "&:hover": {
+                              background: theme.palette.primary.dark,
+                              color: theme.palette.primary.contrastText,
+                            }                
+                          })}
+                          >View Map</Button>
                         <IconButton onClick={e => { setAnchorEl(e.currentTarget); setCurrentTour(tour); }}><MoreVert /></IconButton>
                       </Box>
                     </TableCell>
@@ -175,7 +192,10 @@ const Admin_TourTemplates = () => {
           </Table>
 
           <Menu anchorEl={anchorEl} open={!!anchorEl} onClose={() => setAnchorEl(null)}>
-            <MenuItem onClick={() => { setModalOpen(true); setAnchorEl(null); }}>Edit Tour</MenuItem>
+            <MenuItem onClick={() => { setModalOpen(true); setAnchorEl(null); }}>Edit Tour</MenuItem>       
+            <Divider />
+            <MenuItem onClick={() => { setViewPicklistModalOpen(true); setAnchorEl(null); }}>View Picklist</MenuItem>
+       
             <Divider />
             <MenuItem sx={{ color: 'error.main' }} onClick={() => currentTour && handleDelete([currentTour.id])}>Delete</MenuItem>
           </Menu>
@@ -186,9 +206,22 @@ const Admin_TourTemplates = () => {
             tourData={currentTour}
             onTourUpdated={() => { loadTours(); showSnackbar('Tour updated', 'success'); }}
           />
+
+          <ViewPicklistModal
+            open={viewPicklistModalOpen}
+            handleClose={() => setViewPicklistModalOpen(false)}
+            tourData={currentTour}
+            onSendEmail={(success) => {
+              if (success) {
+                showSnackbar('Email Sent Successfully!', 'success');
+                setViewPicklistModalOpen(false);
+              }else{
+                showSnackbar('Error sending email!', 'error');
+              }
+            }}
+          />
         </CardContent>
       </Card>
-
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
@@ -203,4 +236,4 @@ const Admin_TourTemplates = () => {
   );
 };
 
-export default Admin_TourTemplates;
+export default AdminTourTemplates;

@@ -203,7 +203,7 @@ const TourMapPage: React.FC = () => {
             {formatTime(routeTime)}
           </Typography>
           <Typography variant="caption" sx={{ bgcolor: '#dec1ff', px: 1, py: 0.5, borderRadius: 1 }}>
-            {selectedTour.tour_startTime} - {selectedTour.tour_endTime}
+            {selectedTour.tour_startTime}
           </Typography>
         </Box>
 

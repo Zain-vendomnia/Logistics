@@ -75,9 +75,9 @@
 .css-dusrmk-MuiSvgIcon-root{
     color:#000 !important;
 }
-.css-yr4jgg-MuiButtonBase-root-MuiButton-root.Mui-disabled{
+/* .css-yr4jgg-MuiButtonBase-root-MuiButton-root.Mui-disabled{
     background: linear-gradient(135deg, #f37021, #f7941d) !important;
-}
+} */
  .css-wex09r-MuiTypography-root{
      background: linear-gradient(90deg, #f37021, #f7941d);
     -webkit-background-clip: text;
@@ -88,9 +88,9 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
-.css-t816rk-MuiButtonBase-root-MuiButton-root.Mui-disabled{
+/* .css-t816rk-MuiButtonBase-root-MuiButton-root.Mui-disabled{
     background: linear-gradient(135deg, #f37021, #f7941d) !important;
-}
+} */
  .css-18zd9zr-MuiTablePagination-selectLabel{
     margin-top: 15px;
 }
@@ -115,4 +115,13 @@
 
 .css-okq8pk-MuiCardHeader-root{
     background: linear-gradient(135deg, #959595, #abb7c5) !important;
+}
+.css-fbooup-MuiButtonBase-root-MuiButton-root:not(:hover):not(:focus):not(:active){
+    color: #FFFFFF !important;
+}
+.css-179xv0m-MuiButtonBase-root-MuiButton-root:not(:hover):not(:focus):not(:active){
+    color: #FFFFFF !important;
+}
+.css-oc1jq3-MuiButtonBase-root-MuiButton-root:not(:hover):not(:focus):not(:active){
+    color: #FFFFFF !important;
 }

@@ -4,12 +4,14 @@ import { RowDataPacket } from 'mysql2';
 export const getAllTourController = async (_req: any, res: any) => {
   try {
     const [tourRows] = await pool.query<RowDataPacket[]>(`
-     SELECT 
+    SELECT 
     t.*, 
     d.name AS driver_name, 
     d.id AS driver_id,
     d.mob AS driver_mobile, 
     d.address AS driver_address,
+    d.email AS email,
+    d.licenceplate as licenceplate,
     w.warehouse_name AS warehouse_name,
     w.address AS warehouse_address
     FROM tourinfo_master t
@@ -91,6 +93,8 @@ export const getAllTourController = async (_req: any, res: any) => {
           driver_name: tour.driver_name,
           driver_id: tour.driver_id,
           mobile: tour.driver_mobile,
+          email:tour.email,
+          licenceplate:tour.licenceplate,
           address: tour.driver_address
         },
         order_ids: tour.order_ids, 

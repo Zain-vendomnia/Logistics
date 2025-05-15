@@ -26,10 +26,21 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         <Typography>{content}</Typography>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button variant="outlined" onClick={onCancel}>
-          No, Cancel
-        </Button>
-        <Button variant="contained" color="error" onClick={onConfirm}>
+      <Button
+        variant="outlined"
+        onClick={onCancel}
+        sx={{
+          background: 'linear-gradient(45deg, #f7941d 30%, #f37021 90%)',
+          color: 'white', // Ensure text is visible
+          border: '1px solid #f7941d', // Optional, matches the gradient colors
+          '&:hover': {
+            background: 'linear-gradient(45deg, #f37021 30%, #f7941d 90%)', // Hover gradient
+          },
+        }}
+      >
+        No, Cancel
+      </Button>
+       <Button variant="contained" color="error" onClick={onConfirm}>
           Yes, Delete
         </Button>
       </DialogActions>

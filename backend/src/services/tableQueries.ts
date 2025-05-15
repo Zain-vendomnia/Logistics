@@ -1,15 +1,19 @@
 export const CREATE_DRIVER_DETAILS_TABLE = `
-  CREATE TABLE driver_details (
+ CREATE TABLE driver_details (
     id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(45) NOT NULL,
     mob VARCHAR(20) NOT NULL,
     address VARCHAR(45) NOT NULL,
+    licenceplate VARCHAR(45) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    user_id INT DEFAULT NULL,
     warehouse_id INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (warehouse_id) REFERENCES warehouse_details(warehouse_id) ON DELETE CASCADE
-  );
+);
 `;
+
 
 export const CREATE_DRIVER_LOCATIONS_TABLE = `
   CREATE TABLE driver_locations (
@@ -107,6 +111,7 @@ export const CREATE_ROUTE_SEGMENTS_TABLE = `
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
   );
 `;
+
 export const CREATE_WAREHOUSE_DETAILS_TABLE = `
   CREATE TABLE warehouse_details (
     warehouse_id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
