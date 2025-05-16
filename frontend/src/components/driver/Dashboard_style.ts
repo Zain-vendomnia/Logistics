@@ -88,14 +88,7 @@ const useStyles = {
     p: "20px",
     borderRadius: "10px",
   },
-  cardHighlight: {
-    height: { xs: "auto", md: "auto", lg: "22vh" },
-    p: "20px",
-    borderWidth: "2px",
-    borderStyle: "solid",
-    borderColor: "primary.main",
-    borderRadius: "10px",
-  },
+
   cardLarge: {
     height: "auto",
     p: 2,
@@ -104,19 +97,7 @@ const useStyles = {
     borderColor: "primary.main",
     borderRadius: "10px",
   },
-  st_Button: {
-    width: "90%",
-    mt: 2,
-    position: "absolute",
-    bottom: "20px",
-    left: "50%",
-    mx: "auto",
-    transform: "translateX(-50%)",
-    "&.Mui-disabled": {
-      backgroundColor: "greyedOut",
-      color: "#FFFFFF",
-    },
-  },
+
   mapContainerStyle: {
     width: "100%",
     height: "100%",

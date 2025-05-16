@@ -25,12 +25,7 @@ interface Props {
 }
 
 const ReturnToWarehouse = ({ onComplete }: Props) => {
-  const {
-    addOrdersReturnToWareHouse,
-    deliveryId,
-    updateDeliveryState,
-    deliveryState,
-  } = useDeliveryStore();
+  const { updateDeliveryState, deliveryState } = useDeliveryStore();
 
   const [returnReason, setReturnReason] = useState<string>("");
 
@@ -64,7 +59,6 @@ const ReturnToWarehouse = ({ onComplete }: Props) => {
 
   const handleReturn = () => {
     updateDeliveryState({ deliveryReturnReason: returnReason });
-    addOrdersReturnToWareHouse(deliveryId);
     onComplete?.();
   };
 

@@ -29,8 +29,6 @@ const Delivery = () => {
     setIsCustomerResponded(result);
   };
 
-  console.log("Actions Completed ⌛: >Delivery< ", actionsCompleted);
-
   return (
     <>
       {isCustomerResponded === null && (

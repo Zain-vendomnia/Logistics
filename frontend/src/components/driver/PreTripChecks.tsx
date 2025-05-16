@@ -2,7 +2,7 @@ import { Button, Card, Stack, Typography } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import CameraCapture from "../common/Camera_Capture";
 import { useDeliveryStore } from "../../store/useDeliveryStore";
-
+import { useTripLifecycle } from "../../hooks/useTripLifecycle";
 
 const useStyle = {
   cardHighlight: {
