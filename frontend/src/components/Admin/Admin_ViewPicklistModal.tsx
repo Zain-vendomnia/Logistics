@@ -239,7 +239,7 @@ const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({ open, handleClose
             <Typography variant="h6" mb={2} sx={{ color: '#ef972e' }}>PICKLIST</Typography>
 
             {/* Static Info */}
-            <Paper sx={{ p: 2, mb: 3, backgroundColor: '#f5f5f5' }}>
+            <Paper sx={{ p: 2, mb: 3,   background: 'linear-gradient(135deg, #fff, #abb7c5)' }}>
               <Grid container spacing={2}>
                 <Grid item xs={6}>
                   <Typography>
@@ -277,7 +277,7 @@ const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({ open, handleClose
             {/* Orders Table */}
             <TableContainer component={Paper}>
               <Table>
-                <TableHead sx={{ backgroundColor: '#f3ab2d' }}>
+                <TableHead  sx={{ background: 'linear-gradient(45deg, #f7941d 30%, #f37021 90%)'}}>
                   <TableRow>
                     <TableCell align="center" sx={{ color: 'white' }}><strong>ITEM</strong></TableCell>
                     <TableCell align="center" sx={{ color: 'white' }}><strong>QUANTITY</strong></TableCell>
@@ -302,7 +302,7 @@ const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({ open, handleClose
             <Typography variant="h6" mb={2} mt={3} sx={{ color: '#ef972e' }}>Total pickup items</Typography>
             <TableContainer component={Paper}>
               <Table>
-                <TableHead sx={{ backgroundColor: '#f3ab2d' }}>
+                <TableHead sx={{ background: 'linear-gradient(45deg, #f7941d 30%, #f37021 90%)'}}>
                   <TableRow>
                     <TableCell align="center" sx={{ color: 'white' }}><strong>TOTAL ITEM</strong></TableCell>
                     <TableCell align="center" sx={{ color: 'white' }}><strong>TOTAL QUANTITY</strong></TableCell>
@@ -316,8 +316,8 @@ const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({ open, handleClose
                     </TableRow>
                   ))}
                   <TableRow>
-                    <TableCell colSpan={2} align="right">
-                      <strong>Total Solar Panels: {totalQuantity}</strong>
+                    <TableCell colSpan={2} align="center">
+                      <strong>Total Solar Panels:  {totalQuantity}</strong>
                     </TableCell>
                   </TableRow>
                 </TableBody>

@@ -14,21 +14,15 @@ import { scheduleWmsOrderController } from "./controller/Admin_Api/scheduleWmsOr
 
 // import { addData,getImageById } from "./controller/Admin_Api/route_segments.controller";
 import { uploadImageController } from "./controller/Admin_Api/uploadImage.controller";
-
-
 // Picklist Email
 import { picklistEmail } from './controller/Admin_Api/picklistEmail.controller'; // Import the controller
-
 // total orders count controller 
 import { getOrderCount } from "./controller/Admin_Api/orderCount.controller";
-
 //  driver routes
 import driverRoutes from "./router/driverRoutes";
-
 //  warehouse routes
 import warehouseRoutes from "./router/warehouseRoutes";
 import { HandleOrderDelivery } from "./controller/AdminDriverApi/HandleOrderDelivery";
-
 // import { getImageById } from "./controller/Admin_Api/route_segments.controller";
 
 const app = express();
@@ -54,9 +48,7 @@ app.get('/', (_req, res) => {
 app.use("/api/auth", authRouter);
 app.use("/api", authRouter);  
 app.use("/api/test", authRouter);
-  
 app.use("/api/admin", adminRouter);
-
 // --------------------------------------------------------------------
 // total order count
 app.get("/api/admin/orderCount", getOrderCount);
@@ -72,13 +64,10 @@ app.use("/api/admin/", driverRoutes);
 app.use("/api/admin/", warehouseRoutes);
 // Picklist Email Route
 app.post("/api/admin/picklistEmail", picklistEmail); // This will handle POST requests to send the email
-
 app.use('/api/admindriver/tour/:tourId/order', HandleOrderDelivery);
 
 // app.post("/route_segments/addData",addData);
-
 // app.get("/route_segments/:id/image", getImageById);
-
 // Catch-all 404 Handler (keep this LAST)
 app.use((req, res) => {
   res.status(404).json({
@@ -86,8 +75,5 @@ app.use((req, res) => {
     suggestion: "Check your URL or method type (GET, POST, etc.)"
   });
 });
-
-
-
 
 export default app;

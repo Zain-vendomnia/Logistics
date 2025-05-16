@@ -21,16 +21,16 @@ export const generatePicklistEmailHtml = (
   aggregatedItems: AggregatedItems,
   totalQuantity: number
 ) => {
-  const headerColor = "#ef972e";
-
+  const headerColor =  '#f37021';
+ 
   const emailContent = `
 
     <div style="font-family: Arial, sans-serif; color: #333; padding: 20px; max-width: 800px; margin: auto; background-color: #ffffff; border: 1px solid #ddd;">
 
       <h2 style="text-align: center; color: ${headerColor};">PICKLIST</h2>
 
-      <div style="background-color: #f5f5f5; padding: 15px; margin-bottom: 20px;">
-        <table style="width: 100%; font-size: 14px; background: linear-gradient(135deg, #fff, #abb7c5);">
+      <div style="padding: 15px; margin-bottom: 20px;">
+        <table style="width: 100%; font-size: 14px; background: linear-gradient(135deg, #e8eaed,rgb(125, 134, 145));">
           <tr>
             <td><strong>Location:</strong> ESCHWEGE</td>
             <td><strong>Driver:</strong> ${picklistData?.driver?.driver_name}</td>
@@ -58,7 +58,7 @@ export const generatePicklistEmailHtml = (
       <h3 style="margin-top: 30px; color: ${headerColor};">Order Item Details</h3>
       <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
         <thead>
-          <tr style="background-color: ${headerColor};">
+          <tr style="background: linear-gradient(45deg, #f7941d 30%, #f37021 90%);" >
             <th style="border: 1px solid #ccc; padding: 8px; color: white;">ITEM</th>
             <th style="border: 1px solid #ccc; padding: 8px; color: white;">QUANTITY</th>
             <th style="border: 1px solid #ccc; padding: 8px; color: white;">ORDER NO</th>
@@ -82,7 +82,7 @@ export const generatePicklistEmailHtml = (
       <h3 style="margin-top: 30px; color: ${headerColor};">Total Pickup Items</h3>
       <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
         <thead>
-          <tr style="background-color: ${headerColor};">
+          <tr style="background: linear-gradient(45deg, #f7941d 30%, #f37021 90%);">
             <th style="border: 1px solid #ccc; padding: 8px; color: white;">TOTAL ITEM</th>
             <th style="border: 1px solid #ccc; padding: 8px; color: white;">TOTAL QUANTITY</th>
             <th style="border: 1px solid #ccc; padding: 8px; color: white;">✔️</th>
