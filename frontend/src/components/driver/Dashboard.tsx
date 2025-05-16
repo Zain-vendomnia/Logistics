@@ -26,8 +26,7 @@ import { resetDeliveryStore } from "../../utils/resetDeliveryStore";
 import PreTripChecks from "./PreTripChecks";
 import { useTripLifecycle } from "../../hooks/useTripLifecycle";
 // import GoogleMaps from "../common/GoogleMaps";
-import Notification from "../Notification";
-import { NotificationSeverity } from "../../store/useNotificationStore";
+
 
 const Dashboard = () => {
   const { showSnackbar } = useSnackbar();

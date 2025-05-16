@@ -41,6 +41,7 @@ const PreTripChecks = () => {
     },
   ];
 
+  const {startNewTrip} = useTripLifecycle();
   const { tripDetails, updateTripDetails } = useDeliveryStore();
 
 
@@ -103,7 +104,7 @@ const PreTripChecks = () => {
 
       <Button
         variant="contained"
-        disabled={isComplied}
+        disabled={!isComplied}
         onClick={handleStartTripButton}
         sx={{
           ...styles.st_Button,
@@ -117,7 +118,3 @@ const PreTripChecks = () => {
 };
 
 export default PreTripChecks;
-function startNewTrip() {
-  throw new Error("Function not implemented.");
-}
-
