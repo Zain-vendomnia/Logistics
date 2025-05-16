@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 
 import { useDeliveryStore } from "../store/useDeliveryStore";
 import { DeliveryScenario } from "../components/delivery/delieryScenarios";
+import {
+  NotificationSeverity,
+  useNotificationStore,
+} from "../store/useNotificationStore";
 
 export const useTripLifecycle = () => {
   const store = useDeliveryStore();
@@ -16,6 +20,8 @@ export const useTripLifecycle = () => {
     addOrdersDeliveredSuccessfully,
     setDeliveryCompleted,
   } = store;
+
+  const { showNotification } = useNotificationStore();
 
   const [isDeliveryStarted, setIsDeliveryStarted] = useState(false);
   const [isReachedToDestination, setIsReachedToDestination] = useState(true);
@@ -45,12 +51,45 @@ export const useTripLifecycle = () => {
           data.hasPermit === true
             ? store.setScenario(data.orderId, DeliveryScenario.hasPermit)
             : store.setScenario(data.orderId, DeliveryScenario.foundCustomer);
+
+          // showNotification({
+          //   message: "New Delivery has started.",
+          //   severity: NotificationSeverity.Success,
+          // });
         })
         .catch((err) => {
+          showNotification({
+            message: "Error fetching new Delivery data.",
+            severity: NotificationSeverity.Error,
+          });
           return Promise.reject(err);
         });
     }
   };
+
+  useEffect(() => {
+    startNewTrip();
+    console.log("🚚 Delivery#: ", store.deliveryInstanceKey);
+    console.log("🚚 Order Id: ", deliveryId);
+    console.log(
+      "🚚 Orders Delivered Successfully:",
+      ordersDeliveredSuccessfully
+    );
+  }, [deliveryCompleted, deliveryId]);
+
+  useEffect(() => {
+    if (tripData && !deliveryCompleted) {
+      tripData.hasPermit === true
+        ? setScenario(deliveryId, DeliveryScenario.hasPermit)
+        : setScenario(deliveryId, DeliveryScenario.foundCustomer);
+    }
+  }, [
+    tripData,
+    deliveryId,
+    deliveryCompleted,
+    ordersDeliveredSuccessfully,
+    ordersReturnToWareHouse,
+  ]);
 
   const handleDriverReachedToDestination = () => {
     setIsReachedToDestination(true);
@@ -80,30 +119,6 @@ export const useTripLifecycle = () => {
       store.setDeliveryCompleted(true);
     }
   };
-
-  useEffect(() => {
-    if (tripData && !deliveryCompleted) {
-      tripData.hasPermit === true
-        ? setScenario(deliveryId, DeliveryScenario.hasPermit)
-        : setScenario(deliveryId, DeliveryScenario.foundCustomer);
-    }
-  }, [
-    tripData,
-    deliveryId,
-    deliveryCompleted,
-    ordersDeliveredSuccessfully,
-    ordersReturnToWareHouse,
-  ]);
-
-  useEffect(() => {
-    startNewTrip();
-    console.log("🚚 Delivery#: ", store.deliveryInstanceKey);
-    console.log("🚚 Order Id: ", deliveryId);
-    console.log(
-      "🚚 Orders Delivered Successfully:",
-      ordersDeliveredSuccessfully
-    );
-  }, [deliveryCompleted, deliveryId]);
 
   return {
     isDeliveryStarted,

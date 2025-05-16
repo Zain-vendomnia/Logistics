@@ -15,7 +15,6 @@ import AddAPhotoIcon from "@mui/icons-material/AddAPhoto";
 import CircularProgress from "@mui/material/CircularProgress";
 
 // import { uploadImage } from "../../services/trip_Service";
-import { useSnackbar } from "../../providers/SnackbarProvider";
 import { uploadImage } from "../../utils/upload_Image";
 import { useCameraCapture } from "../../hooks/useCameraCapture";
 
@@ -40,7 +39,6 @@ const CameraCapture = ({
   onComplete,
   isMarkDone,
 }: Props) => {
-  const { showSnackbar } = useSnackbar();
 
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));

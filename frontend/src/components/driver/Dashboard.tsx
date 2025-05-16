@@ -14,7 +14,6 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 
-import { useSnackbar } from "../../providers/SnackbarProvider";
 import ShippingDetails from "./Shipping_Details";
 import Delivery from "../delivery/Delivery";
 
@@ -26,27 +25,14 @@ import { resetDeliveryStore } from "../../utils/resetDeliveryStore";
 import PreTripChecks from "./PreTripChecks";
 import { useTripLifecycle } from "../../hooks/useTripLifecycle";
 // import GoogleMaps from "../common/GoogleMaps";
-import Notification from "../Notification";
-import { NotificationSeverity } from "../../store/useNotificationStore";
 
 const Dashboard = () => {
-  const { showSnackbar } = useSnackbar();
-
   const styles = useStyles;
 
   const store = useDeliveryStore();
-  const {
-    tripData,
-    deliveryCompleted,
-    deliveryId,
-    tripDetails,
-    scenarioKey,
-    setScenario,
-    ordersReturnToWareHouse,
-    ordersDeliveredSuccessfully,
-  } = store;
+  const { tripData, deliveryCompleted, deliveryId, tripDetails } = store;
 
-  const { isDeliveryStarted, startNewTrip, handleDriverReachedToDestination } =
+  const { isDeliveryStarted, handleDriverReachedToDestination } =
     useTripLifecycle();
 
   // Dev Helpers
@@ -55,8 +41,7 @@ const Dashboard = () => {
   // useEffect(() => {
   //   setShowActiveDeliveryScenario(true);
   // }, [store.scenarioKey, showActiveDeliveryScenario]);
-
-  // const SlideTransition = (props: any) => {
+  // const slideTransition = (props: any) => {
   //   return <Slide {...props} direction="left" />;
   // };
   // const snackbarAction = (
@@ -154,24 +139,23 @@ const Dashboard = () => {
         />
       </Fab> */}
       {/* {showActiveDeliveryScenario && (
-          <Snackbar
-            anchorOrigin={{ vertical: "top", horizontal: "right" }}
-            open={true}
-            message={store.scenarioKey}
-            slots={{ transition: SlideTransition }}
-            action={snackbarAction}
-            sx={{ marginTop: 4 }}
-            // onClose={() => setShowActiveDeliveryScenario(false)}
-            slotProps={{
-              content: {
-                sx: {
-                  bgcolor: "info.dark",
-                  color: "white",
-                  mt: 3,
-                },
+        <Snackbar
+          anchorOrigin={{ vertical: "top", horizontal: "right" }}
+          open={true}
+          message={store.scenarioKey}
+          slots={{ transition: slideTransition }}
+          action={snackbarAction}
+          sx={{ marginTop: 4 }}
+          slotProps={{
+            content: {
+              sx: {
+                bgcolor: "info.dark",
+                color: "white",
+                mt: 3,
               },
-            }}
-          />
+            },
+          }}
+        />
       )} */}
     </Grid2>
   );

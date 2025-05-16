@@ -12,15 +12,15 @@ declare module "@mui/material/styles/createPalette" {
 const themeOptions: ThemeOptions = {
   palette: {
     primary: {
-      light: "#faa819", // #ffb51d",
-      main: "#f7941d",
-      dark: "#f37021",
+      light: "#faa819", // " #faa819",
+      main: "#f7941d", // " #f7941d"
+      dark: "#f37021", // " #f37021"
       contrastText: "#FFFFFF",
     },
     secondary: {
-      light: "#1e91d0", // #1a76bc",
-      main: "#00509d", // Yellow from logo: #f1cb3a",
-      dark: "#003f88", // even darker: #00296b
+      light: "#33ab9f", // " #33ab9f", // #1a76bc",
+      main: "#009688", // " #009688", // Yellow from logo: #f1cb3a",
+      dark: "#00695f", // " #00695f", // even darker: #00296b
       contrastText: "#FFFFFF",
     },
     background: {

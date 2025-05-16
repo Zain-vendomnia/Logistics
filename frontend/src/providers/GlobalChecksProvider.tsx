@@ -14,8 +14,11 @@ import {
   DialogContentText,
   DialogTitle,
 } from "@mui/material";
-import { useSnackbar } from "./SnackbarProvider";
 import IUser, { isDriver } from "../types/user.type";
+import {
+  NotificationSeverity,
+  useNotificationStore,
+} from "../store/useNotificationStore";
 
 interface GlobalChecksContextType {
   locationEnabled: boolean;
@@ -32,7 +35,7 @@ export const useGlobalChecks = () => useContext(GlobalChecksContext);
 const GlobalChecksProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const { showSnackbar } = useSnackbar();
+  const { showNotification } = useNotificationStore();
   const [locationEnabled, setLocationEnabled] = useState(false);
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [openLocationDialog, setOpenLocationDialog] = useState(false);
@@ -56,7 +59,10 @@ const GlobalChecksProvider: React.FC<{ children: ReactNode }> = ({
 
   const checkLocation = () => {
     if (!navigator.geolocation) {
-      showSnackbar("Geolocation is not supported by your browser");
+      showNotification({
+        message: "Geolocation is not supported by your browser",
+        severity: NotificationSeverity.Error,
+      });
       return;
     }
 
@@ -65,7 +71,10 @@ const GlobalChecksProvider: React.FC<{ children: ReactNode }> = ({
         () => {
           setLocationEnabled(true);
           localStorage.setItem("locationEnabled", "true");
-          showSnackbar("GPS is enabled");
+          showNotification({
+            message: "GPS is enabled",
+            severity: NotificationSeverity.Info,
+          });
         },
         (error) => {
           if (error.code === error.PERMISSION_DENIED) {
@@ -79,7 +88,10 @@ const GlobalChecksProvider: React.FC<{ children: ReactNode }> = ({
 
   const enableLocation = () => {
     if (!navigator.geolocation) {
-      showSnackbar("Geolocation is not supported by your browser");
+      showNotification({
+        message: "Geolocation is not supported by your browser",
+        severity: NotificationSeverity.Error,
+      });
       return;
     }
     const checkPermissionAndLocation = () => {
@@ -95,17 +107,22 @@ const GlobalChecksProvider: React.FC<{ children: ReactNode }> = ({
                 setLocationEnabled(true);
                 setOpenLocationDialog(false);
                 localStorage.setItem("locationEnabled", "true");
-                showSnackbar("GPS is enabled");
+                showNotification({
+                  message: "GPS is enabled",
+                  severity: NotificationSeverity.Info,
+                });
               },
               () => {
                 setOpenLocationDialog(true);
               }
             );
           } else {
-            showSnackbar(
-              "Location access is blocked. Enable it in browser settings.",
-              "error"
-            );
+            showNotification({
+              message:
+                "Location access is blocked. Enable it in browser settings",
+              severity: NotificationSeverity.Error,
+            });
+
             setOpenLocationDialog(true);
           }
         });
@@ -134,7 +151,11 @@ const GlobalChecksProvider: React.FC<{ children: ReactNode }> = ({
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       setCameraEnabled(true);
       setOpenCameraDialog(false);
-      showSnackbar("Camera is functional");
+
+      showNotification({
+        message: "Camera is functional",
+        severity: NotificationSeverity.Success,
+      });
       stream.getTracks().forEach((track) => track.stop());
       localStorage.setItem("cameraEnabled", "true");
     } catch (error) {
@@ -142,22 +163,31 @@ const GlobalChecksProvider: React.FC<{ children: ReactNode }> = ({
 
       if (error instanceof Error) {
         if (error.name === "NotAllowedError") {
-          showSnackbar(
-            "Camera access denied. Please enable permissions.",
-            "error"
-          );
+          showNotification({
+            message: "Camera access denied. Please enable permissions.",
+            severity: NotificationSeverity.Error,
+          });
         } else if (error.name === "NotFoundError") {
-          showSnackbar(
-            "No camera detected. Please check your device.",
-            "error"
-          );
+          showNotification({
+            message: "No camera detected. Please check your device.",
+            severity: NotificationSeverity.Error,
+          });
         } else if (error.name === "NotReadableError") {
-          showSnackbar("Camera is in use or unavailable.", "error");
+          showNotification({
+            message: "Camera is in use or unavailable.",
+            severity: NotificationSeverity.Error,
+          });
         } else {
-          showSnackbar(`Camera error: ${error.message}`, "error");
+          showNotification({
+            message: `Camera error: ${error.message}`,
+            severity: NotificationSeverity.Error,
+          });
         }
       } else {
-        showSnackbar("Camera is Not functional", "error");
+        showNotification({
+          message: "Camera is Not functional.",
+          severity: NotificationSeverity.Error,
+        });
       }
     }
   };

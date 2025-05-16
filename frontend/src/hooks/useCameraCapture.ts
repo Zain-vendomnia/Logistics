@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { debounce } from "lodash";
 import { uploadImage } from "../utils/upload_Image";
-import { useSnackbar } from "../providers/SnackbarProvider";
 // import { uploadImage } from "../../services/trip_Service";
 
 export type CameraState = {
@@ -14,7 +13,6 @@ export type CameraState = {
 export const useCameraCapture = (
   onComplete?: (imageUploaded: boolean) => void
 ) => {
-  const { showSnackbar } = useSnackbar();
 
   const webcamRef = useRef<any>(null);
   const lastUploadedImageRef = useRef<string | null>(null);

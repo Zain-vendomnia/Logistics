@@ -6,14 +6,18 @@ import SentimentVeryDissatisfiedIcon from "@mui/icons-material/SentimentVeryDiss
 import SentimentVerySatisfiedIcon from "@mui/icons-material/SentimentVerySatisfied";
 import ThumbUpAltIcon from "@mui/icons-material/ThumbUpAlt";
 
-import { useSnackbar } from "../../providers/SnackbarProvider";
+// import { useSnackbar } from "../../providers/SnackbarProvider";
 import { DeliveryScenario } from "./delieryScenarios";
+import {
+  NotificationSeverity,
+  useNotificationStore,
+} from "../../store/useNotificationStore";
 
 interface Props {
   onComplete: () => void;
 }
 const FoundNeighbor = ({ onComplete }: Props) => {
-  const { showSnackbar } = useSnackbar();
+  const { showNotification } = useNotificationStore();
   const iconSize: number = 156;
 
   const { updateDeliveryState, setScenario, deliveryId } = useDeliveryStore();
@@ -24,10 +28,10 @@ const FoundNeighbor = ({ onComplete }: Props) => {
     setIsFound(true);
     updateDeliveryState({ neighborFound: true, neighborAccepts: true });
     console.log("Neighbor Found Clicked");
-    showSnackbar(
-      "Check if neighbor accepts to make the delivery possible",
-      "success"
-    );
+    showNotification({
+      message: "Check if neighbor accepts the delivery",
+      severity: NotificationSeverity.Success,
+    });
     setTimeout(() => {
       setScenario(deliveryId, DeliveryScenario.neighborAccepts);
     }, 2000);
@@ -41,7 +45,10 @@ const FoundNeighbor = ({ onComplete }: Props) => {
       noAcceptance: true,
     });
     console.log("Neighbor Found Clicked");
-    showSnackbar("Mark order return", "info");
+    showNotification({
+      message: "Mark order return",
+      severity: NotificationSeverity.Info,
+    });
 
     setTimeout(() => {
       setScenario(deliveryId, DeliveryScenario.noAcceptance);

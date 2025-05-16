@@ -12,8 +12,12 @@ import { grey } from "@mui/material/colors";
 
 import { TripData } from "../../services/trip_Service";
 import useStyles from "./Shipping_Details_styles";
-import { useSnackbar } from "../../providers/SnackbarProvider";
 import ClientDetails from "../communications/Client_Details";
+import {
+  NotificationSeverity,
+  useNotificationStore,
+} from "../../store/useNotificationStore";
+import { useDeliveryStore } from "../../store/useDeliveryStore";
 
 interface Props {
   tripData: TripData | null;
@@ -33,12 +37,14 @@ const ShippingDetails = ({
   onReachedToDestination,
 }: Props) => {
   const styles = useStyles();
-
-  const { showSnackbar } = useSnackbar();
+  const { showNotification } = useNotificationStore();
+  const store = useDeliveryStore();
 
   const [isLoading, setIsLoading] = useState(false);
   const [hideNotify, setHideNotify] = useState(false);
   // const [showOrderReached, setShowOrderReached] = useState(false);
+
+  
 
   useEffect(() => {
     if (hideNotify === true) {
@@ -54,7 +60,11 @@ const ShippingDetails = ({
     setTimeout(() => {
       setIsLoading(false);
       setHideNotify((prev) => !prev);
-      showSnackbar("Notification sent to customer", "info");
+      showNotification({
+        message: "Notification sent to customer",
+        severity: NotificationSeverity.Info,
+      });
+
       onNotified(true);
     }, 1500);
   };
@@ -171,7 +181,13 @@ const ShippingDetails = ({
           {isArrived && <ClientDetails />}
 
           {notifyCustomer && (
-            <Box display={"flex"} justifyContent={"center"}>
+            <Box
+              display={"flex"}
+              flexDirection={"column"}
+              gap={2}
+              alignItems={"center"}
+              justifyContent={"center"}
+            >
               <Button
                 variant="contained"
                 hidden={hideNotify}
@@ -179,7 +195,22 @@ const ShippingDetails = ({
                 className={styles.notifyButton}
               >
                 {isLoading ? (
-                  <CircularProgress size={36} color="inherit" />
+                  <>
+                    <CircularProgress size={36} color="inherit" />
+                    <Typography
+                      sx={
+                        isLoading
+                          ? {
+                              position: "absolute",
+                              pointerEvents: "none",
+                              opacity: 0.5,
+                            }
+                          : {}
+                      }
+                    >
+                      {"Notify Customer"}
+                    </Typography>
+                  </>
                 ) : (
                   "Notify Customer"
                 )}
