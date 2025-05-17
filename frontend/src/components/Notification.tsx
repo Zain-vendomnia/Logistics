@@ -61,6 +61,20 @@ const slideTransition = (props: any) => {
   return <Slide {...props} direction="left" />;
 };
 
+const getDefaultBgColor = (severity: NotificationSeverity) => {
+  switch (severity) {
+    case NotificationSeverity.Success:
+      return "secondary.dark";
+    case NotificationSeverity.Warning:
+      return "primary.dark";
+    case NotificationSeverity.Error:
+      return "error";
+    case NotificationSeverity.Info:
+    default:
+      return "secondary.light";
+  }
+};
+
 export const NotificationManager = () => {
   const notifications = useNotificationStore((s) => s.notifications);
   const removeNotification = useNotificationStore((s) => s.removeNotification);
@@ -110,6 +124,7 @@ export const NotificationManager = () => {
               minWidth: "290px",
               borderRadius: "8px",
               alignItems: "center",
+              bgcolor: notify.severity && getDefaultBgColor(notify.severity),
             }}
           >
             <Typography fontWeight={600} variant="body1" fontSize={"large"}>
