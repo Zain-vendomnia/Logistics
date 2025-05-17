@@ -96,7 +96,7 @@ export const CREATE_ROUTE_SEGMENTS_TABLE = `
     id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     tour_id INT NOT NULL,
     route_response JSON,
-    status ENUM('pending', 'in-progress', 'delivered', 'tour-completed') DEFAULT 'pending',
+    status ENUM('pending', 'in-progress', 'delivered', 'tour-completed', 'return') DEFAULT 'pending',
     doorstep_pic BLOB,
     delivered_item_pic BLOB,
     customer_signature BLOB,

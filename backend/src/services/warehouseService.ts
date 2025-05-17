@@ -17,10 +17,10 @@ export const createWarehouse = async (warehouse: {
   address: string;
   email: string;
 }) => {
-  const conn = await pool.getConnection();
+  
   try {
-    await conn.beginTransaction();
-    const [result]: any = await conn.query(
+    await pool.query('START TRANSACTION');
+    const [result]: any = await pool.query(
       "INSERT INTO warehouse_details (warehouse_name, clerk_name, clerk_mob, address, email) VALUES (?, ?, ?, ?, ?)",
       [
         warehouse.warehouse_name,
@@ -30,14 +30,12 @@ export const createWarehouse = async (warehouse: {
         warehouse.email,
       ]
     );
-    await conn.commit();
+    await pool.query('COMMIT');
     return { warehouse_id: result.insertId, ...warehouse };
   } catch (err) {
-    await conn.rollback();
+    await pool.query('ROLLBACK');
     throw err;
-  } finally {
-    conn.release();
-  }
+  } 
 };
 
 export const updateWarehouse = async (
@@ -50,10 +48,10 @@ export const updateWarehouse = async (
     email: string;
   }
 ) => {
-  const conn = await pool.getConnection();
+  
   try {
-    await conn.beginTransaction();
-    const [result]: any = await conn.query(
+    await pool.query('START TRANSACTION');
+    const [result]: any = await pool.query(
       "UPDATE warehouse_details SET warehouse_name = ?, clerk_name = ?, clerk_mob = ?, address = ?, email = ? WHERE warehouse_id = ?",
       [
         warehouse.warehouse_name,
@@ -64,46 +62,39 @@ export const updateWarehouse = async (
         id,
       ]
     );
-    await conn.commit();
+    await pool.query('COMMIT');
     return result.affectedRows > 0;
   } catch (err) {
-    await conn.rollback();
+    await pool.query('ROLLBACK');
     throw err;
-  } finally {
-    conn.release();
   }
 };
 
 export const deleteWarehouse = async (id: number) => {
-  const conn = await pool.getConnection();
+ 
   try {
-    await conn.beginTransaction();
-    const [result]: any = await conn.query("DELETE FROM warehouse_details WHERE warehouse_id = ?", [id]);
-    await conn.commit();
+    await pool.query('START TRANSACTION');
+    const [result]: any = await pool.query("DELETE FROM warehouse_details WHERE warehouse_id = ?", [id]);
+    await pool.query('COMMIT');
     return result.affectedRows > 0;
   } catch (err) {
-    await conn.rollback();
+    await pool.query('ROLLBACK');
     throw err;
-  } finally {
-    conn.release();
-  }
+  } 
 };
 
 export const deleteMultipleWarehouses = async (ids: number[]) => {
-  const conn = await pool.getConnection();
+ 
   try {
-    await conn.beginTransaction();
     const placeholders = ids.map(() => "?").join(",");
-    const [result]: any = await conn.query(
+    const [result]: any = await pool.query(
       `DELETE FROM warehouse_details WHERE warehouse_id IN (${placeholders})`,
       ids
     );
-    await conn.commit();
+    await pool.query('COMMIT');
     return result.affectedRows;
   } catch (err) {
-    await conn.rollback();
+    await pool.query('ROLLBACK');
     throw err;
-  } finally {
-    conn.release();
-  }
+  } 
 };
