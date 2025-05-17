@@ -18,6 +18,9 @@ import {
   useNotificationStore,
 } from "../../store/useNotificationStore";
 import { useDeliveryStore } from "../../store/useDeliveryStore";
+import ButtonAnimated from "../common/ButtonAnimated";
+import ButtonStyled from "../common/ButtonStyled";
+import { FormatUnderlined } from "@mui/icons-material";
 
 interface Props {
   tripData: TripData | null;
@@ -43,8 +46,6 @@ const ShippingDetails = ({
   const [isLoading, setIsLoading] = useState(false);
   const [hideNotify, setHideNotify] = useState(false);
   // const [showOrderReached, setShowOrderReached] = useState(false);
-
-  
 
   useEffect(() => {
     if (hideNotify === true) {

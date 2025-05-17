@@ -5,11 +5,19 @@ import TripComplete from "./TripComplete";
 import { useDeliveryStore } from "../../store/useDeliveryStore";
 
 const BoardDriver = () => {
-  const { tripDetails, updateTripDetails } = useDeliveryStore();
+  const { tripDetails, deliveryInstanceKey, deliveryId, updateTripDetails } =
+    useDeliveryStore();
 
   useEffect(() => {
-    updateTripDetails({ isTripCompleted: false });
-  }, []);
+    // if (deliveryId === "M1") {
+    if (deliveryInstanceKey >= 3) {
+      updateTripDetails({
+        isTripCompleted: true,
+        tripCompletedAt: new Date().toUTCString(),
+      });
+    }
+    // updateTripDetails({ isTripCompleted: false });
+  }, [deliveryInstanceKey]);
 
   return (
     <Box display="flex" height="100%" width="100%">

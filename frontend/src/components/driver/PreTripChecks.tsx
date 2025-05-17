@@ -3,6 +3,10 @@ import React, { useEffect, useState } from "react";
 import CameraCapture from "../common/Camera_Capture";
 import { useDeliveryStore } from "../../store/useDeliveryStore";
 import { useTripLifecycle } from "../../hooks/useTripLifecycle";
+import {
+  NotificationSeverity,
+  useNotificationStore,
+} from "../../store/useNotificationStore";
 
 const useStyle = {
   cardHighlight: {
@@ -60,8 +64,23 @@ const PreTripChecks = () => {
 
   const handleStartTripButton = () => {
     startNewTrip();
-    updateTripDetails({ isTripStarted: true });
+    updateTripDetails({
+      isTripStarted: true,
+      tripStartedAt: new Date().toUTCString(),
+    });
+    console.log("Compliances completed, Trip hass starts now.");
   };
+
+  const { showNotification } = useNotificationStore();
+
+  useEffect(() => {
+    if (componentStatus.every((state) => state === false)) {
+      showNotification({
+        message: "New Trip Started!",
+        severity: NotificationSeverity.Info,
+      });
+    }
+  }, []);
 
   useEffect(() => {
     const isAllComplied = componentStatus.every((status) => status === true);

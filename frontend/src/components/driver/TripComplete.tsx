@@ -13,6 +13,12 @@ import PublishIcon from "@mui/icons-material/Publish";
 
 import Camera from "../common/Camera";
 
+import { resetDeliveryStore } from "../../utils/resetDeliveryStore";
+import {
+  NotificationSeverity,
+  useNotificationStore,
+} from "../../store/useNotificationStore";
+
 const imageChecklist = ["Truck Image", "Odometer Image"];
 
 const TripComplete = () => {
@@ -41,6 +47,19 @@ const TripComplete = () => {
         setCurrentIndex((v) => v + 1);
       }
     }
+  };
+
+  const { showNotification } = useNotificationStore();
+
+  const handleTripComplete = () => {
+    setTimeout(() => {
+      resetDeliveryStore();
+    }, 2000);
+
+    showNotification({
+      message: "Trip completed!",
+      severity: NotificationSeverity.Success,
+    });
   };
 
   return (
@@ -137,8 +156,8 @@ const TripComplete = () => {
           <Button
             disabled={!isAllComplied}
             variant="contained"
+            onClick={handleTripComplete}
             sx={{
-              //   position: "relative",
               padding: "6px 12px",
               borderRadius: 2,
               width: "12rem",
@@ -149,20 +168,6 @@ const TripComplete = () => {
           >
             Complete
           </Button>
-          {/* <Button
-            variant="contained"
-            sx={{
-              position: "relative",
-              padding: "6px 12px",
-              borderRadius: 2,
-              width: "20vw",
-              minWidth: 180,
-              maxWidth: 240,
-              height: "9vh",
-            }}
-          >
-            Complete
-          </Button> */}
         </Stack>
       </Grid2>
     </Grid2>
