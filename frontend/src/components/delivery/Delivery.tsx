@@ -52,7 +52,10 @@ const Delivery = () => {
 
         <Box height={"100%"}>
           {currentScenarioKey && (
-            <DeliveryFlowExecutor scenarioKey={currentScenarioKey} />
+            <DeliveryFlowExecutor
+              scenarioKey={currentScenarioKey}
+              completeButtonActivated={() => setIsCustomerResponded(true)}
+            />
           )}
         </Box>
       </Box>

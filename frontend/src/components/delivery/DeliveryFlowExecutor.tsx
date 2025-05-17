@@ -4,6 +4,7 @@ import { DeliveryStepRenderer } from "./DeliveryStepRenderer";
 import { useDeliveryStore } from "../../store/useDeliveryStore";
 import { useTripLifecycle } from "../../hooks/useTripLifecycle";
 import { useScenarioExecutor } from "../../hooks/useScenarioExecutor";
+import { useEffect } from "react";
 
 const Style = {
   container: {
@@ -24,11 +25,23 @@ const Style = {
   },
 };
 
+const externalSteps: DeliveryStep[] = [
+  "findCustomer",
+  "findNeighbor",
+  "showContactPromptAlert",
+  "showFindNeighborPromptAlert",
+  "waitForResponse",
+];
+
 interface Props {
   scenarioKey: DeliveryScenario;
+  completeButtonActivated: (active: boolean) => void;
 }
 
-export const DeliveryFlowExecutor = ({ scenarioKey }: Props) => {
+export const DeliveryFlowExecutor = ({
+  scenarioKey,
+  completeButtonActivated,
+}: Props) => {
   const store = useDeliveryStore();
   const { actionsCompleted } = store;
 
@@ -42,13 +55,11 @@ export const DeliveryFlowExecutor = ({ scenarioKey }: Props) => {
     handleStepComplete,
   } = useScenarioExecutor({ scenarioKey });
 
-  const externalSteps: DeliveryStep[] = [
-    "findCustomer",
-    "findNeighbor",
-    "showContactPromptAlert",
-    "showFindNeighborPromptAlert",
-    "waitForResponse",
-  ];
+  useEffect(() => {
+    if (orderCompleteButton === true) {
+      completeButtonActivated(true);
+    }
+  }, [orderCompleteButton]);
 
   if (!stepsToRender.length) return null;
   return (
@@ -86,7 +97,7 @@ export const DeliveryFlowExecutor = ({ scenarioKey }: Props) => {
             sx={{
               ...Style.completeButton,
               ...(orderCompleteButton &&
-              currentIndex !== stepsToRender.length -1
+              currentIndex !== stepsToRender.length - 1
               // currentIndex < stepsToRender.length - 1
                 ? { pointerEvents: "none", opacity: "50%" }
                 : { pointerEvents: "auto" }),
