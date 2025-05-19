@@ -23,8 +23,7 @@ export const AttentionBox = ({
       animate={
         active
           ? {
-              borderColor: ["primary.main", "primary.dark", "primary.main"],
-              // borderColor: ["#ff9800", "#ff5722", "#ff9800"],
+              borderColor: ["#ff9800", "#ff5722", "#ff9800"],
               boxShadow: [
                 "0 0 0px #ff9800",
                 "0 0 12px #ff5722",
