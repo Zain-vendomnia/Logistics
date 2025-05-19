@@ -11,6 +11,8 @@ import CustomerResponded from "./Customer_Responded";
 const Delivery = () => {
   const { scenarioKey, actionsCompleted } = useDeliveryStore();
 
+  const [response, setResponse] = useState(false);
+
   const [isCustomerResponded, setIsCustomerResponded] = useState<
     boolean | null
   >(null);
@@ -25,6 +27,16 @@ const Delivery = () => {
     }
   }, [scenarioKey]);
 
+  useEffect(() => {
+    if (isCustomerResponded === false) {
+      const timer = setTimeout(() => {
+        setResponse(true);
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isCustomerResponded]);
+
   const handleFoundCustomer = (result: any) => {
     setIsCustomerResponded(result);
   };
@@ -34,7 +46,7 @@ const Delivery = () => {
       {isCustomerResponded === null && (
         <FoundCustomer onComplete={handleFoundCustomer} />
       )}
-      {isCustomerResponded === false && (
+      {response && isCustomerResponded === false && (
         <CustomerResponded onComplete={handleFoundCustomer} />
       )}
 

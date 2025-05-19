@@ -13,6 +13,7 @@ import {
   IconButton,
   Radio,
   RadioGroup,
+  Slide,
   Snackbar,
   Typography,
 } from "@mui/material";
@@ -80,17 +81,23 @@ const CustomerResponded = ({ onComplete }: Props) => {
     console.log("Customer Responded Scenario: ", event.target.value);
   };
 
+  const slideTransition = (props: any) => {
+    return <Slide {...props} direction="left" />;
+  };
+
   return (
     <>
       <Snackbar
         open={showAlert}
         anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        slots={{ transition: slideTransition }}
+        sx={{ mt: 4 }}
       >
         <Alert
           icon={false}
           variant="filled"
           severity={"info"}
-          sx={{ minWidth: "290px", mt: 8 }}
+          sx={{ minWidth: "290px", mt: 8, borderRadius: 2 }}
           // onClose={handleClose}
           // action={actionButton}
         >
