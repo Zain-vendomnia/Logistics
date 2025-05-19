@@ -72,9 +72,10 @@ const ReturnToWarehouse = ({ onComplete }: Props) => {
           <Divider color={grey[100]} />
 
           <List>
-            {DeliveryReturnReasons.map((value) => {
+            {DeliveryReturnReasons.map((value, index) => {
               return (
                 <Box
+                  key={index}
                   display={"flex"}
                   alignItems={"center"}
                   justifyContent={"flex-start"}

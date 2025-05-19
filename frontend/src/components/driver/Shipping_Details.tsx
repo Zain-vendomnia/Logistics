@@ -17,10 +17,6 @@ import {
   NotificationSeverity,
   useNotificationStore,
 } from "../../store/useNotificationStore";
-import { useDeliveryStore } from "../../store/useDeliveryStore";
-import ButtonAnimated from "../common/ButtonAnimated";
-import ButtonStyled from "../common/ButtonStyled";
-import { FormatUnderlined } from "@mui/icons-material";
 
 interface Props {
   tripData: TripData | null;
@@ -41,7 +37,6 @@ const ShippingDetails = ({
 }: Props) => {
   const styles = useStyles();
   const { showNotification } = useNotificationStore();
-  const store = useDeliveryStore();
 
   const [isLoading, setIsLoading] = useState(false);
   const [hideNotify, setHideNotify] = useState(false);

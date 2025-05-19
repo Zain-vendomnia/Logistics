@@ -86,7 +86,7 @@ export const NotificationManager = () => {
       sx={{
         position: "fixed",
         top: 26,
-        right: 16,
+        right: 1,
         zIndex: 1500,
       }}
     >
