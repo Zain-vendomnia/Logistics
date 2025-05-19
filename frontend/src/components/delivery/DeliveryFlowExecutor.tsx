@@ -5,6 +5,11 @@ import { useDeliveryStore } from "../../store/useDeliveryStore";
 import { useTripLifecycle } from "../../hooks/useTripLifecycle";
 import { useScenarioExecutor } from "../../hooks/useScenarioExecutor";
 import { useEffect } from "react";
+import {
+  NotificationSeverity,
+  useNotificationStore,
+} from "../../store/useNotificationStore";
+import { useDelayStep } from "../../hooks/useDelayStep";
 
 const Style = {
   container: {
@@ -30,6 +35,7 @@ const externalSteps: DeliveryStep[] = [
   "findNeighbor",
   "showContactPromptAlert",
   "showFindNeighborPromptAlert",
+  "showFindNeighborNotification",
   "waitForResponse",
 ];
 
@@ -54,6 +60,24 @@ export const DeliveryFlowExecutor = ({
     currentStep,
     handleStepComplete,
   } = useScenarioExecutor({ scenarioKey });
+
+  const { showNotification } = useNotificationStore();
+
+  useEffect(() => {
+    if (currentStep === "showFindNeighborNotification") {
+      const timer = setTimeout(() => {
+        showNotification({
+          message: "Find Neighbors around who can accept deliery for customer.",
+          severity: NotificationSeverity.Success,
+        });
+        setTimeout(() => {
+          handleStepComplete();
+        }, 9000);
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [currentStep]);
 
   useEffect(() => {
     if (orderCompleteButton === true) {
@@ -98,8 +122,8 @@ export const DeliveryFlowExecutor = ({
               ...Style.completeButton,
               ...(orderCompleteButton &&
               currentIndex !== stepsToRender.length - 1
-              // currentIndex < stepsToRender.length - 1
-                ? { pointerEvents: "none", opacity: "50%" }
+                ? // currentIndex < stepsToRender.length - 1
+                  { pointerEvents: "none", opacity: "50%" }
                 : { pointerEvents: "auto" }),
             }}
             onClick={

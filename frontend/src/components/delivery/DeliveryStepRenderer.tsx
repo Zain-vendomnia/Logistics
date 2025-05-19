@@ -25,7 +25,6 @@ const getLabel = (step: string) => {
       return "Mark As Not Delivered";
     case "returnToWarehouse":
       return "Return To Warehouse";
-
     default:
       return "";
   }
