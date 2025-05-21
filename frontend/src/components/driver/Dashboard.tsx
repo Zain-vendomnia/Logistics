@@ -13,6 +13,7 @@ import {
   Stack,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import ClearAllIcon from "@mui/icons-material/ClearAll";
 
 import ShippingDetails from "./Shipping_Details";
 import Delivery from "../delivery/Delivery";
@@ -36,19 +37,19 @@ const Dashboard = () => {
     useTripLifecycle();
 
   // Dev Helpers
-  // const [showActiveDeliveryScenario, setShowActiveDeliveryScenario] =
-  //   useState(true);
-  // useEffect(() => {
-  //   setShowActiveDeliveryScenario(true);
-  // }, [store.scenarioKey, showActiveDeliveryScenario]);
-  // const slideTransition = (props: any) => {
-  //   return <Slide {...props} direction="left" />;
-  // };
-  // const snackbarAction = (
-  //   <IconButton onClick={() => setShowActiveDeliveryScenario(false)}>
-  //     <CloseIcon style={{ color: "#fff" }} />
-  //   </IconButton>
-  // );
+  const [showActiveDeliveryScenario, setShowActiveDeliveryScenario] =
+    useState(true);
+  useEffect(() => {
+    setShowActiveDeliveryScenario(true);
+  }, [store.scenarioKey, showActiveDeliveryScenario]);
+  const slideTransition = (props: any) => {
+    return <Slide {...props} direction="left" />;
+  };
+  const snackbarAction = (
+    <IconButton onClick={() => setShowActiveDeliveryScenario(false)}>
+      <CloseIcon style={{ color: "#fff" }} />
+    </IconButton>
+  );
 
   return (
     <Grid2 container spacing={0} height={"100%"} p={0}>
@@ -60,7 +61,7 @@ const Dashboard = () => {
         <Box
           position={"relative"}
           height={"100%"}
-          p={2}
+          // p={2}
           sx={{
             border: "1px solid #e0e0e0",
             borderRadius: 2,
@@ -120,7 +121,7 @@ const Dashboard = () => {
 
       {/* Dev helpers */}
 
-      {/* <Fab
+      <Fab
         onClick={resetDeliveryStore}
         color="primary"
         aria-label="open delivery drawer"
@@ -137,8 +138,8 @@ const Dashboard = () => {
             transition: "transform 0.7s",
           }}
         />
-      </Fab> */}
-      {/* {showActiveDeliveryScenario && (
+      </Fab>
+      {showActiveDeliveryScenario && (
         <Snackbar
           anchorOrigin={{ vertical: "top", horizontal: "right" }}
           open={true}
@@ -149,14 +150,15 @@ const Dashboard = () => {
           slotProps={{
             content: {
               sx: {
-                bgcolor: "info.dark",
+                bgcolor: "secondary.main",
+                // bgcolor: "info.dark",
                 color: "white",
-                mt: 3,
+                mt: 0,
               },
             },
           }}
         />
-      )} */}
+      )}
     </Grid2>
   );
 };

@@ -257,7 +257,7 @@ export const useDeliveryStore = create<DeliveryStore>()(
       ordersDeliveredSuccessfully: state.ordersDeliveredSuccessfully,
       ordersReturnToWareHouse: state.ordersReturnToWareHouse,
       tripData: state.tripData,
-      actionsCompleted: state.actionsCompleted,
+      // actionsCompleted: state.actionsCompleted,
       // success: state.success,
     }),
   })

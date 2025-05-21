@@ -31,7 +31,8 @@ export const AttentionBox = ({
               ],
             }
           : {
-              borderColor: "#ccc",
+              // borderColor: "#ccc",
+              border: '0px ',
               boxShadow: "none",
             }
       }

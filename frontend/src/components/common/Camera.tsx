@@ -25,6 +25,11 @@ const Camera = ({ buttonText, isComplied, onImageUploaded }: Props) => {
   } = useCameraCapture();
 
   useEffect(() => {
+    console.log("isComplied: ", isComplied);
+  }, []);
+
+  useEffect(() => {
+    console.log("isComplied: ", isComplied);
     if (cameraState.uploaded) {
       onImageUploaded(true);
 
@@ -48,7 +53,7 @@ const Camera = ({ buttonText, isComplied, onImageUploaded }: Props) => {
         flexDirection={"column"}
         alignItems={"center"}
         justifyContent={"center"}
-        gap={5}
+        gap={4}
       >
         {/* Camera */}
         <Box
@@ -69,14 +74,15 @@ const Camera = ({ buttonText, isComplied, onImageUploaded }: Props) => {
           }}
         >
           {!cameraState.active && !cameraState.captured && (
-            <CameraIcon
-              onClick={handleButtonClick}
-              sx={{
-                fontSize: "12rem",
-                opacity: "0.5",
-                "&:hover": { cursor: "pointer" },
-              }}
-            />
+            <IconButton onClick={handleButtonClick} disabled={isComplied}>
+              <CameraIcon
+                sx={{
+                  fontSize: "12rem",
+                  opacity: "0.5",
+                  "&:hover": { cursor: "pointer" },
+                }}
+              />
+            </IconButton>
           )}
 
           {cameraState.active && (
