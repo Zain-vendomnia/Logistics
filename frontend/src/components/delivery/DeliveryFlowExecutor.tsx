@@ -36,6 +36,7 @@ const externalSteps: DeliveryStep[] = [
   "showContactPromptAlert",
   "showFindNeighborPromptAlert",
   "showFindNeighborNotification",
+  "getNeighborDetails",
   "waitForResponse",
 ];
 

@@ -4,6 +4,7 @@ import MarkAsNotDelivered from "./Mark_As_Not_Delivered";
 import CameraCapture from "../common/Camera_Capture";
 import ContactPromptAlert from "../communications/Contact_Prompt_Alert";
 import FoundNeighbor from "./Found_Neighbor";
+import NeighborDetailsForm from "./NeighborDetailsForm";
 
 const getLabel = (step: string) => {
   switch (step) {
@@ -51,6 +52,8 @@ export const DeliveryStepRenderer = ({ step, onComplete }: Props) => {
           onComplete={onComplete}
         />
       );
+    case "getNeighborDetails":
+      return <NeighborDetailsForm onComplete={onComplete} />;
     case "captureCustomerSignature":
     case "captureNeighborSignature":
       return <SignatureUpload label={label} onComplete={onComplete} />;
