@@ -19,6 +19,8 @@ import {
   Avatar,
   Stack,
   ListItemButton,
+  Button,
+  Chip,
 } from '@mui/material';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
@@ -32,6 +34,7 @@ import { useParams } from 'react-router-dom';
 import latestOrderServices from './AdminServices/latestOrderServices';
 import "./css/Admin_TourMapView.css";
 import 'leaflet-polylinedecorator';
+import { Tour } from '@mui/icons-material';
 type Stop = {
   id: string;
   location_id: string;
@@ -112,6 +115,39 @@ const TourMapPage: React.FC = () => {
     fetchRouteData();
   }, [parsedTourId]);
 
+  const blink = {
+    animation: 'blinker 1.5s linear infinite',
+    '@keyframes blinker': {
+      '50%': { opacity: 0.5 }
+    }
+  };
+  const livePulse = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    '&::before': {
+      content: '""',
+      width: '8px',
+      height: '8px',
+      borderRadius: '50%',
+      backgroundColor: '#00e676',
+      marginRight: '8px',
+      animation: 'pulse 1.2s infinite ease-in-out',
+    },
+    '@keyframes pulse': {
+      '0%': {
+        transform: 'scale(0.8)',
+        opacity: 0.7,
+      },
+      '50%': {
+        transform: 'scale(1.2)',
+        opacity: 1,
+      },
+      '100%': {
+        transform: 'scale(0.8)',
+        opacity: 0.7,
+      },
+    },
+  };
   const createIcon = useMemo(() => {
     return (label: string, bgColor: string) =>
       L.divIcon({
@@ -185,6 +221,32 @@ const TourMapPage: React.FC = () => {
 
   // Format the tour start time (remove trailing :00)
   const cleanStartTime = selectedTour.tour_startTime.replace(/:00$/, '');
+ 
+  const handleConfirm = async () => {
+    setLoading(true);
+  
+    try {
+     
+      const response = await adminApiService.update_tourstatus(selectedTour.id) ;
+        
+      if (response.status === 200) {
+        setSelectedTour((prev: any) => ({ ...prev, tour_status: 'confirmed' }));
+      } else {
+        console.error('Update failed:', response);
+        alert('Failed to update tour status.');
+      }
+    } catch (error) {
+      console.error('Error confirming tour:', error);
+      alert('An error occurred while confirming the tour.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+
+
+
   return (
     <Box sx={{ display: 'flex', height: '100vh' }}>
       <Paper sx={{ width: 340, p: 2, overflowY: 'auto', borderRight: '1px solid #ddd', backgroundColor: '#f9f9f9' }} elevation={3}>
@@ -208,7 +270,6 @@ const TourMapPage: React.FC = () => {
         </Box>
 
         <Divider sx={{ my: 2 }} />
-
         <List disablePadding>
           {stops.map((stop, index) => (
             <ListItem
@@ -244,14 +305,11 @@ const TourMapPage: React.FC = () => {
                       Order ID: {stop.location_id}
                     </Typography>
                   )}
-
-
                   {/* ✅ Find the matching order */}
                   {selectedTour?.orders && (() => {
                     const matchedOrder = selectedTour.orders.find(
                       (order: any) => order.order_id === Number(stop.location_id)
                     );
-
                     return matchedOrder ? (
                       <>
                         <Typography variant="caption" color="text.secondary">
@@ -270,19 +328,93 @@ const TourMapPage: React.FC = () => {
                       </Typography>
                     );
                   })()}
-
                   <Typography variant="caption" display="block" mt={0.5}>
                     Arrival: {new Date(stop.arrival).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </Typography>
                 </Box>
               </ListItemButton>
-
             </ListItem>
           ))}
         </List>
-        <Divider sx={{ my: 2 }} />
-      </Paper>
+     
+        <Box display="flex" justifyContent="center" mt={2}>
+        {selectedTour.tour_status === 'pending' ? (
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={handleConfirm}
+            disabled={loading}
+            sx={(theme) => ({
+              padding: '8px 24px',
+              borderRadius: '4px',
+              textTransform: 'none',
+              fontWeight: '500',
+              background: theme.palette.warning.dark,
+              color: theme.palette.warning.contrastText,
+              borderColor: theme.palette.warning.main,
+              transition: 'all 0.3s ease',
+              ...blink,
+              '&:hover': {
+                background: theme.palette.warning.main,
+                color: theme.palette.warning.contrastText,
+                opacity: 1,
+              },
+            })}
+          >
+            {loading ? 'Confirming...' : 'Confirm'}
+          </Button>
+        ) : selectedTour.tour_status === 'live' ? (
+          <Button
+            variant="contained"
+            size="small"
+            disabled
+            sx={(theme) => ({
+              padding: '8px 24px',
+              borderRadius: '4px',
+              textTransform: 'none',
+              fontWeight: '500',
+              backgroundColor: theme.palette.info.main,
+              color: theme.palette.info.contrastText,
+              ...livePulse,
+            })}
+          >
+            Live
+          </Button>
+        ) : selectedTour.tour_status === 'completed' ? (
+          <Button
+            variant="contained"
+            size="small"
+            disabled
+            sx={(theme) => ({
+              padding: '8px 24px',
+              borderRadius: '4px',
+              textTransform: 'none',
+              fontWeight: '500',
+              backgroundColor: theme.palette.grey[700],
+              color: theme.palette.common.white,
+            })}
+          >
+            Completed
+          </Button>
+        ) : (
+          <Chip
+            label="✔ Confirmed"
+            color="success"
+            sx={{
+              fontWeight: 500,
+              fontSize: '0.875rem',
+              px: 2,
+              py: 1,
+              borderRadius: '4px',
+              backgroundColor: (theme) => theme.palette.success.main,
+              color: (theme) => theme.palette.success.contrastText,
+            }}
+          />
+        )}
+      </Box>
 
+      </Paper>
+         
       <Box sx={{ flex: 1 }}>
         <MapContainer
           center={[stops[0]?.lat || 51.191566, stops[0]?.lon || 10.00519]}

@@ -25,8 +25,6 @@ import { DeliveryScenario } from "../delivery/delieryScenarios";
 import { resetDeliveryStore } from "../../utils/resetDeliveryStore";
 import PreTripChecks from "./PreTripChecks";
 import { useTripLifecycle } from "../../hooks/useTripLifecycle";
-// import GoogleMaps from "../common/GoogleMaps";
-
 
 const Dashboard = () => {
   const { showSnackbar } = useSnackbar();
@@ -47,22 +45,6 @@ const Dashboard = () => {
 
   const { isDeliveryStarted, startNewTrip, handleDriverReachedToDestination } =
     useTripLifecycle();
-
-  // Dev Helpers
-  // const [showActiveDeliveryScenario, setShowActiveDeliveryScenario] =
-  //   useState(true);
-  // useEffect(() => {
-  //   setShowActiveDeliveryScenario(true);
-  // }, [store.scenarioKey, showActiveDeliveryScenario]);
-
-  // const SlideTransition = (props: any) => {
-  //   return <Slide {...props} direction="left" />;
-  // };
-  // const snackbarAction = (
-  //   <IconButton onClick={() => setShowActiveDeliveryScenario(false)}>
-  //     <CloseIcon style={{ color: "#fff" }} />
-  //   </IconButton>
-  // );
 
   return (
     <Grid2 container spacing={0} height={"100%"} p={0}>
@@ -124,11 +106,11 @@ const Dashboard = () => {
         height={"100%"}
         size={{ xs: 8, md: 9, lg: 9 }}
       >
-        <Box width={"100%"} height={"100%"}>
-          <LeafletMaps
-            destination={tripData ? tripData.destinationCoordinates : null} routePath={[]}          />
-          {/* burj Khalifa: [25.1972, 55.2744] */}
-        </Box>
+      <Box width={"100%"} height={"100%"}>
+        <LeafletMaps
+        destination={tripData ? tripData.destinationCoordinates : null} routePath={[]} />
+       
+      </Box>
       </Grid2>
 
       {/* Dev helpers */}

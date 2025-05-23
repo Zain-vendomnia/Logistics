@@ -46,11 +46,15 @@ const getOrderCount = async (): Promise<number> => {
   }
 };
 const picklistEmail = (emailData: any) => {
-
     return axios.post(API_BaseUrl_Admin + "picklistEmail", emailData, {
       headers: authHeader(),
     });
   };
+  const fetchAlltourstatushistory = () => axios.get(`${API_BaseUrl}gettourStatushistory`, { headers: authHeader() });
+  const update_tourstatus = (tour_id: number) => axios.post(`${API_BaseUrl}updatetourstatus/${tour_id}`, {}, {
+      headers: authHeader()
+    });
+
 const adminApiService = {
   fetchRouteData,
   fetchOrderTourCount,
@@ -65,6 +69,8 @@ const adminApiService = {
   updateTour,
   getOrderCount,
   picklistEmail,
+  fetchAlltourstatushistory,
+  update_tourstatus,
 };
 
 export default adminApiService;

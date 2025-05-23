@@ -17,10 +17,11 @@ import {
   Menu as MenuIcon,
   NavigateBefore as NavigateBeforeIcon,
   Dashboard as DashboardIcon,
-  AcUnitRounded as TourIcon,
-  Tour as TourOutlinedIcon,
+  AddRoad as TourIcon,
+  Route as TourOutlinedIcon,
   DirectionsBusFilled,
   Warehouse,
+  AltRoute,Moving
 } from "@mui/icons-material";
 import { useAuth } from "../../providers/AuthProvider";
 import { useLocation, Link } from "react-router-dom";
@@ -46,11 +47,12 @@ const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
       setMenuItems([
         { text: "Dashboard", icon: <DashboardIcon />, path: "/admin_dashboard" },
         { text: "Add Tour", icon: <TourIcon />, path: "/Admin_AddTour" },
-        { text: "Tour Templates", icon: <TourOutlinedIcon />, path: "/Admin_TourTemplates" },
+        { text: "Tours", icon: <TourOutlinedIcon />, path: "/Admin_TourTemplates" },
+        { text: "Completed Tour", icon: <AltRoute />, path: "/completed_tour" },
+        { text: "Live Tour", icon: <Moving />, path: "/live_tours" },
         { text: "Manage Drivers", icon: <DirectionsBusFilled />, path: "/manage_drivers" },
         { text: "Manage Warehouse", icon: <Warehouse />, path: "/manage_warehouse" },
-        // { text: "Driver Register", icon: <Warehouse />, path: "/register" },
-      ]);
+        ]);
     } else if (showSuperAdminBoard) {
       setMenuItems([{ text: "Dashboard", icon: <DashboardIcon />, path: "/Admin_dashboard" }]);
     }

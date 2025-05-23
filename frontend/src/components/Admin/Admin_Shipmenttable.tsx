@@ -25,7 +25,6 @@ import dayjs, { Dayjs } from 'dayjs';
 
 type Shipment = {
   id: string;
-  company: string;
   arrivalDate: string;
   route: string;
   weight: string;
@@ -42,7 +41,6 @@ const AdminShipmenttable: React.FC = () => {
   const shipmentData: Shipment[] = [
     {
       id: 'ISJ957204',
-      company: 'Nebula Nexus',
       arrivalDate: '11-22-2024',
       route: 'Boise, ID – Duluth, MN',
       weight: '12.5 kg',
@@ -50,7 +48,6 @@ const AdminShipmenttable: React.FC = () => {
     },
     {
       id: 'ISJ957203',
-      company: 'Arizona Shipping',
       arrivalDate: '10-22-2024',
       route: 'Dallas, TX – Miami, FL',
       weight: '10.5 kg',
@@ -68,8 +65,8 @@ const AdminShipmenttable: React.FC = () => {
   const filteredData = shipmentData.filter((row) => {
     const matchesTab = tab === 0 || row.status === tabs[tab];
     const matchesSearch =
-      row.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      row.company.toLowerCase().includes(searchTerm.toLowerCase());
+      row.id.toLowerCase().includes(searchTerm.toLowerCase()) 
+     
     const matchesDate = selectedDate
       ? dayjs(row.arrivalDate, 'MM-DD-YYYY').isSame(selectedDate, 'day')
       : true;
@@ -205,7 +202,6 @@ const AdminShipmenttable: React.FC = () => {
                 }}
               >
                 <TableCell sx={{ fontWeight: 'bold' }}>Order ID</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Company</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Arrival Date</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Route</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Weight</TableCell>
@@ -217,7 +213,6 @@ const AdminShipmenttable: React.FC = () => {
                 filteredData.map((row, index) => (
                   <TableRow hover key={index}>
                     <TableCell>{row.id}</TableCell>
-                    <TableCell>{row.company}</TableCell>
                     <TableCell>{row.arrivalDate}</TableCell>
                     <TableCell>{row.route}</TableCell>
                     <TableCell>{row.weight}</TableCell>

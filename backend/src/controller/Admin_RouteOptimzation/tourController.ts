@@ -4,6 +4,7 @@ import { OkPacket } from 'mysql2';
 import { tourInfo_master } from '../../model/TourinfoMaster';
 import { createRoutedata } from '../../services/createRoutedata';
 import { route_segments } from '../../model/routeSegments';
+import pool from '../../database';
 
 
 // Controller to create a new tour
@@ -248,3 +249,27 @@ export const updateTourController = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const getTourstatus = async(_req: Request, res: Response) => {
+  try {
+    const tourCompletedIds = await tourInfo_master.getAllTourstatus();
+    console.log("tourCompletedIds"+ JSON.stringify(tourCompletedIds));
+    res.status(200).json(tourCompletedIds);
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const updatetourstatus = async (_req: Request, res: Response) =>{
+  const { tourId } = _req.params;
+  console.log("tour_id" + tourId);
+  try{
+    await pool.query('UPDATE tourinfo_master SET tour_status = ? WHERE id = ?', ['confirmed', tourId])
+    console.log(`Updating tour ${tourId} to 'confirmed'`);
+    res.status(200).json({ message: 'Tour status updated to confirmed.' });
+  }catch(error){
+    console.error('Error updating tour status:',error);
+    res.status(500).json({message:'Internal server error'});
+  }
+}

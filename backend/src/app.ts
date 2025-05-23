@@ -66,6 +66,7 @@ app.use("/api/admin/", warehouseRoutes);
 app.post("/api/admin/picklistEmail", picklistEmail); // This will handle POST requests to send the email
 app.use('/api/admindriver/tour/:tourId/order', HandleOrderDelivery);
 
+
 // app.post("/route_segments/addData",addData);
 // app.get("/route_segments/:id/image", getImageById);
 // Catch-all 404 Handler (keep this LAST)
