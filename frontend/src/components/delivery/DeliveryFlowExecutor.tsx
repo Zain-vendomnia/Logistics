@@ -1,14 +1,9 @@
-import React, { useState, useEffect } from "react";
-import { Box, Button, Stack } from "@mui/material";
-import {
-  deliveryScenarios,
-  DeliveryStep,
-  DeliveryScenario,
-  Step,
-} from "./delieryScenarios";
+import { Box, Button } from "@mui/material";
+import { DeliveryStep, DeliveryScenario } from "./delieryScenarios";
 import { DeliveryStepRenderer } from "./DeliveryStepRenderer";
-import { DeliveryState, useDeliveryStore } from "../../store/useDeliveryStore";
-import { grey } from "@mui/material/colors";
+import { useDeliveryStore } from "../../store/useDeliveryStore";
+import { useTripLifecycle } from "../../hooks/useTripLifecycle";
+import { useScenarioExecutor } from "../../hooks/useScenarioExecutor";
 
 const Style = {
   container: {
@@ -34,88 +29,18 @@ interface Props {
 }
 
 export const DeliveryFlowExecutor = ({ scenarioKey }: Props) => {
+  const store = useDeliveryStore();
+  const { actionsCompleted } = store;
+
+  const { handleOrderComplete, handleOrderReturn } = useTripLifecycle();
+
   const {
-    success,
-    setSuccess,
-    deliveryState,
-    actionsCompleted,
-    markStepCompleted,
-    setDeliveryCompleted,
-    addOrdersDeliveredSuccessfully,
-    addOrdersReturnToWareHouse,
-    ordersReturnToWareHouse,
-    deliveryId,
-  } = useDeliveryStore();
-
-  const [stepsToRender, setStepsToRender] = useState<DeliveryStep[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-
-  const [orderCompleteButton, setOrderCompleteButton] = useState(false);
-  const [orderReturnButton, setOrderReturnButton] = useState(false);
-
-  useEffect(() => {
-    const scenarioSteps = deliveryScenarios[scenarioKey] || [];
-    const resolvedSteps = resolveSteps(scenarioSteps, deliveryState, 0);
-
-    setStepsToRender(resolvedSteps);
-    setCurrentIndex(0);
-  }, [scenarioKey, deliveryState]);
-
-  useEffect(() => {
-    if (!stepsToRender.length) return;
-
-    console.log("Steps to Follow: ", stepsToRender);
-
-    const currentStep = stepsToRender[currentIndex];
-
-    if (actionsCompleted[currentStep] === true) {
-      advanceToNextStep();
-    }
-  }, [actionsCompleted, stepsToRender, currentIndex]);
-
-  const resolveSteps = (
-    steps: Step[],
-    deliveryState: Partial<DeliveryState>,
-    startIndex: number
-  ): DeliveryStep[] => {
-    const actionSteps: DeliveryStep[] = [];
-
-    for (let i = startIndex; i < steps.length; i++) {
-      const step = steps[i];
-
-      if (typeof step === "string") {
-        actionSteps.push(step);
-      } else {
-        const condition = step.condition as keyof DeliveryState;
-        if (deliveryState[condition]) {
-          actionSteps.push(...step.actions);
-          break;
-        }
-      }
-    }
-    return actionSteps;
-  };
-
-  const advanceToNextStep = () => {
-    const nextIndex = currentIndex + 1;
-    if (nextIndex < stepsToRender.length) {
-      setCurrentIndex(nextIndex);
-    } else {
-      if (
-        stepsToRender[currentIndex] === "returnToWarehouse" ||
-        actionsCompleted.returnToWarehouse === true
-      ) {
-        setOrderReturnButton(true);
-      } else {
-        setOrderCompleteButton(true);
-      }
-    }
-  };
-
-  const handleStepComplete = () => {
-    markStepCompleted(stepsToRender[currentIndex]);
-    advanceToNextStep();
-  };
+    orderCompleteButton,
+    stepsToRender,
+    currentIndex,
+    currentStep,
+    handleStepComplete,
+  } = useScenarioExecutor({ scenarioKey });
 
   const externalSteps: DeliveryStep[] = [
     "findCustomer",
@@ -125,15 +50,6 @@ export const DeliveryFlowExecutor = ({ scenarioKey }: Props) => {
     "waitForResponse",
   ];
 
-  const handleOrderDelivered = () => {
-    addOrdersDeliveredSuccessfully(deliveryId);
-    setDeliveryCompleted(true);
-  };
-  const handleOrderReturn = () => {
-    addOrdersReturnToWareHouse(deliveryId);
-    setDeliveryCompleted(true);
-  };
-
   if (!stepsToRender.length) return null;
   return (
     <Box height="100%" display="flex" flexDirection={"column"}>
@@ -142,23 +58,21 @@ export const DeliveryFlowExecutor = ({ scenarioKey }: Props) => {
           display: "flex",
           justifyContent: "center",
           p: 2,
-          ...(externalSteps.includes(stepsToRender[currentIndex])
-            ? {}
-            : Style.container),
+          ...(externalSteps.includes(currentStep) ? {} : Style.container),
         }}
       >
         {(currentIndex === stepsToRender.length - 1 ||
-          !actionsCompleted[stepsToRender[currentIndex]]) && (
+          !actionsCompleted[currentStep]) && (
           <Box
             sx={
-              actionsCompleted[stepsToRender[currentIndex]] === true
+              actionsCompleted[currentStep] === true
                 ? { pointerEvents: "none", opacity: 0.6 }
                 : { pointerEvents: "auto" }
             }
           >
             <DeliveryStepRenderer
-              key={`${stepsToRender[currentIndex]}-${currentIndex}`}
-              step={stepsToRender[currentIndex]}
+              key={`${currentStep}-${currentIndex}`}
+              step={currentStep}
               onComplete={handleStepComplete}
             />
           </Box>
@@ -169,19 +83,22 @@ export const DeliveryFlowExecutor = ({ scenarioKey }: Props) => {
         {orderCompleteButton && (
           <Button
             variant="contained"
-            sx={Style.completeButton}
-            onClick={handleOrderDelivered}
+            sx={{
+              ...Style.completeButton,
+              ...(orderCompleteButton &&
+              currentIndex !== stepsToRender.length -1
+              // currentIndex < stepsToRender.length - 1
+                ? { pointerEvents: "none", opacity: "50%" }
+                : { pointerEvents: "auto" }),
+            }}
+            onClick={
+              currentStep === "returnToWarehouse" &&
+              actionsCompleted.returnToWarehouse === true
+                ? handleOrderReturn
+                : handleOrderComplete
+            }
           >
-            Delivered
-          </Button>
-        )}
-        {orderReturnButton && (
-          <Button
-            variant="contained"
-            sx={Style.completeButton}
-            onClick={handleOrderReturn}
-          >
-            Order Return
+            Order {currentStep === "returnToWarehouse" ? "Return" : "Delivered"}
           </Button>
         )}
       </Box>

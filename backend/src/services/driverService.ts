@@ -17,35 +17,33 @@ export const createDriver = async (driver: {
   email: string;
   warehouse_id: number;
 }) => {
-  const conn = await pool.getConnection();
+ 
   try {
-    await conn.beginTransaction();
+    await pool.query('START TRANSACTION');
 
     // Check if the email already exists
-    const [existingEmail]: any = await conn.query(
+    const [existingEmail]: any = await pool.query(
       `SELECT id FROM driver_details WHERE email = ?`,
       [driver.email]
     );
 
     if (existingEmail.length > 0) {
-      await conn.rollback();
+      await pool.query('ROLLBACK');
       return { error: true, message: "Email already exists" };
     }
 
     // Proceed with insertion
-    const [result]: any = await conn.query(
+    const [result]: any = await pool.query(
       `INSERT INTO driver_details (name, mob, address, email, warehouse_id) VALUES (?, ?, ?, ?, ?)`,
       [driver.name, driver.mob, driver.address, driver.email, driver.warehouse_id]
     );
 
-    await conn.commit();
+    await pool.query('COMMIT');
     return { id: result.insertId, ...driver };
   } catch (err) {
-    await conn.rollback();
+    await pool.query('ROLLBACK');
     throw err;
-  } finally {
-    conn.release();
-  }
+  } 
 };
 
 
@@ -59,12 +57,12 @@ export const updateDriver = async (
     warehouse_id: number;
   }
 ) => {
-  const conn = await pool.getConnection();
+  
   try {
-    await conn.beginTransaction();
+    await pool.query('START TRANSACTION');
 
     // Check if email exists for another driver
-    const [existing]: any = await conn.query(
+    const [existing]: any = await pool.query(
       `SELECT id FROM driver_details WHERE email = ? AND id != ?`,
       [driver.email, id]
     );
@@ -72,11 +70,11 @@ export const updateDriver = async (
     console.log(existing.length, "existing email check length");
     if (existing.length > 0) {
       console.log("Email already exists for another driver");
-      await conn.rollback();
+      await pool.query('ROLLBACK');
       return { error: true, message: "Email already exists" };
     }
 
-    const [result]: any = await conn.query(
+    const [result]: any = await pool.query(
       `UPDATE driver_details SET name = ?, mob = ?, address = ?, email = ?, warehouse_id = ? WHERE id = ?`,
       [
         driver.name,
@@ -88,48 +86,40 @@ export const updateDriver = async (
       ]
     );
 
-    await conn.commit();
+    await pool.query('COMMIT');
     return { success: result.affectedRows > 0 };
   } catch (err) {
-    await conn.rollback();
+    await pool.query('ROLLBACK');
     throw err;
-  } finally {
-    conn.release();
-  }
+  } 
 };
 
 
 
 export const deleteDriver = async (id: number) => {
-  const conn = await pool.getConnection();
-  try {
-    await conn.beginTransaction();
-    const [result]: any = await conn.query("DELETE FROM driver_details WHERE id = ?", [id]);
-    await conn.commit();
+   try {
+    await pool.query('START TRANSACTION');
+    const [result]: any = await pool.query("DELETE FROM driver_details WHERE id = ?", [id]);
+    await pool.query('COMMIT');
     return result.affectedRows > 0;
   } catch (err) {
-    await conn.rollback();
+    await pool.query('ROLLBACK');
     throw err;
-  } finally {
-    conn.release();
-  }
+  } 
 };
 
 export const deleteMultipleDrivers = async (ids: number[]) => {
-  const conn = await pool.getConnection();
-  try {
-    await conn.beginTransaction();
+   try {
+    await pool.query('START TRANSACTION');
     const placeholders = ids.map(() => "?").join(",");
-    const [result]: any = await conn.query(
+    const [result]: any = await pool.query(
       `DELETE FROM driver_details WHERE id IN (${placeholders})`,
       ids
     );
-    await conn.commit();
+    await pool.query('COMMIT');
     return result.affectedRows;
   } catch (err) {
-    await conn.rollback();
+    await pool.query('ROLLBACK');
     throw err;
-  } finally {
-    conn.release();
-  }
+  } 
 };

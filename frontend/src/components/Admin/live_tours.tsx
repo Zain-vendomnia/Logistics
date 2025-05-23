@@ -2,8 +2,7 @@ import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   Box, Typography, Table, TableHead, TableRow, TableCell, TableBody, Checkbox,
   Button, IconButton, Menu, MenuItem, TextField, Card, CardContent, CardHeader,
-  Divider, Tooltip, Snackbar, Alert,Chip,
-  ChipProps
+  Divider, Tooltip, Snackbar, Alert
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { MoreVert, Delete, FileDownload, Merge } from '@mui/icons-material';
@@ -13,7 +12,6 @@ import { exportTours } from './AdminServices/tourExportServices';
 import EditTourModal from './Admin_EditTourModal';
 import ViewPicklistModal from './Admin_ViewPicklistModal';
 import '../Admin/css/Admin_TourTemplate.css';
-import { tourstatus } from './AdminServices/tourstatus';
 
 interface Tour {
   id: string;
@@ -23,7 +21,6 @@ interface Tour {
   amount: number;
   timeRange: string;
   driver: string;
-  tour_status:string,
   tour_comments: string;
   driver_id?: number;
   warehouseId: number;
@@ -39,7 +36,7 @@ const ActionButton = ({ title, icon, color, onClick, disabled }: any) => (
   </Tooltip>
 );
 
-const AdminTourTemplates = () => {
+const LiveTours = () => {
   const [tours, setTours] = useState<Tour[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -59,12 +56,11 @@ const AdminTourTemplates = () => {
     try {
       const instance = latestOrderServices.getInstance();
       const statusData = await instance.getTourStatusHistory();
-      const tourData = [...statusData.confirmed, ...statusData.pending];
-      setTours(tourData.map((t: TourInfo): Tour => ({
+      const liveTours = statusData.live; 
+      setTours(liveTours.map((t: TourInfo): Tour => ({
         id: t.id.toString(),
         tour_name: t.tour_name,
         tour_comments: t.tour_comments,
-        tour_status: t.tour_status,
         date: new Date(t.tour_date).toLocaleDateString(),
         color: t.tour_route_color,
         amount: t.orders.length,
@@ -77,7 +73,7 @@ const AdminTourTemplates = () => {
       console.error(e);
       showSnackbar('Failed to load tours', 'error');
     }
-  }, []); // Empty dependency array means this function is stable
+  }, []); 
 
   useEffect(() => {
     loadTours();
@@ -145,7 +141,7 @@ const AdminTourTemplates = () => {
                     onChange={e => setSelected(e.target.checked ? filteredTours.map(t => t.id) : [])}
                   />
                 </TableCell>
-                {['Name', 'Driver', 'Start Time', 'Status', 'Actions'].map(h => <TableCell key={h}><strong>{h}</strong></TableCell>)}
+                {['Name', 'Driver', 'Start Time', 'Actions'].map(h => <TableCell key={h}><strong>{h}</strong></TableCell>)}
               </TableRow>
             </TableHead>
             <TableBody>
@@ -167,18 +163,6 @@ const AdminTourTemplates = () => {
                     </TableCell>
                     <TableCell>{tour.driver}</TableCell>
                     <TableCell>{tour.timeRange}</TableCell>
-                    <TableCell>
-                    <Chip
-                        label = {tour.tour_status}
-                        color={
-                          tour.tour_status === 'confirmed' ? 'success' :
-                          tour.tour_status === 'pending' ? 'error' : 'primary' 
-                          
-                        }
-                        variant="filled"
-                        sx={{ fontWeight: 500 }}
-                      />
-                    </TableCell>
                     <TableCell>
                       <Box display="flex" gap={1}>
                         <Button variant="outlined"  onClick={() => navigate(`/Admin_TourMapView/${tour.id}`)}
@@ -253,4 +237,4 @@ const AdminTourTemplates = () => {
   );
 };
 
-export default AdminTourTemplates;
+export default LiveTours;

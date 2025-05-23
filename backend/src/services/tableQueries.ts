@@ -53,6 +53,7 @@ export const CREATE_TOUR_INFO_MASTER_TABLE = `
     tour_start_fuel_pic BLOB,
     route_color VARCHAR(7) NOT NULL,
     graphhopper_route JSON,
+    tour_status ENUM('pending', 'live', 'confirmed', 'completed') DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (driver_id) REFERENCES driver_details(id) ON DELETE CASCADE
@@ -96,7 +97,7 @@ export const CREATE_ROUTE_SEGMENTS_TABLE = `
     id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     tour_id INT NOT NULL,
     route_response JSON,
-    status ENUM('pending', 'in-progress', 'delivered', 'tour-completed') DEFAULT 'pending',
+    status ENUM('pending', 'in-progress', 'delivered', 'tour-completed', 'return') DEFAULT 'pending',
     doorstep_pic BLOB,
     delivered_item_pic BLOB,
     customer_signature BLOB,

@@ -25,11 +25,12 @@ export class tourInfo_master {
     public graphhopper_route!:JSON;
     public created_at!:  Date;
     public updated_at!:  Date | null;
+    public tour_status!: string;
 
     static async getAllToursCount(): Promise<tourInfo_master[]>{
-        const [rows] = await pool.execute('SELECT COUNT(*) AS count FROM tourinfo_master');
+        const [rows] = await pool.execute('SELECT COUNT(*) as count, MAX(updated_at) as last_updated FROM tourinfo_master;');
         return rows as tourInfo_master[];
-      }
+    }
       static async updateGraphhopperResponse(tourId: number, jsonData: string): Promise<void> {
         await pool.execute(
           `UPDATE tourinfo_master SET graphhopper_route = ? WHERE id = ?`,
@@ -50,5 +51,18 @@ export class tourInfo_master {
             throw new Error('Tour not found.');
         }
     }
+    static async getAllTourstatus(): Promise<any> {
+      try {
+        const [rows]: any = await pool.execute(
+          `SELECT id FROM tourinfo_master WHERE tour_status = 'completed'`
+        );
+    
+        return rows; // rows will be an array of objects like [{id: 1}, {id: 2}, ...]
+      } catch (error) {
+        console.error('Error fetching completed tour IDs:', error);
+        throw error;
+      }
+    }
+  
 }
 

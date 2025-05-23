@@ -47,7 +47,17 @@ export interface TourInfo {
   tour_date: string;
   tour_comments: string;
   warehouseId: number;
+  tour_status:string;
 }
+
+type TourStatus = 'confirmed' | 'pending' | 'completed' | 'live';
+interface TourStatusGrouped {
+  confirmed: TourInfo[];
+  pending: TourInfo[];
+  completed: TourInfo[];
+  live: TourInfo[];
+}
+
 
 class latestOrderServices {
   private static instance: latestOrderServices;
@@ -59,6 +69,24 @@ class latestOrderServices {
   private cachedTourCount: number = Number(localStorage.getItem('cachedTourCount')) || 0;
 
   private constructor() {}
+  private cachedTourLastUpdated: string | null = localStorage.getItem('cachedTourLastUpdated') || null;
+  private cachedOrderLastUpdated: string | null = localStorage.getItem('cachedOrderLastUpdated') || null;
+   // For tour status history
+   private tourStatusHistory: {
+    confirmed: TourInfo[],
+    pending: TourInfo[],
+    completed: TourInfo[],
+    live: TourInfo[]
+  } = {
+    confirmed: [],
+    pending: [],
+    completed: [],
+    live: []
+  };
+  private cachedTourStatusCount = 0;
+  private cachedTourStatusLastUpdated: string | null = null;
+
+
 
   public static getInstance(): latestOrderServices {
     if (!latestOrderServices.instance) {
@@ -67,33 +95,38 @@ class latestOrderServices {
     return latestOrderServices.instance;
   }
 
-  private async fetchTourCount(): Promise<number> {
+  private async fetchTourCount(): Promise<{ count: number, lastUpdated: string }> {
     try {
       //const response = await fetch('http://localhost:8080/api/admin/routeoptimize/tourcount');
       const response = await adminApiService.fetchOrderTourCount(); 
-      const data =  response.data;
+      const data = response.data[0];
       
 
       console.log("🎯 Tour count response:", data);
 
-      if (data && Array.isArray(data) && data[0] && typeof data[0].count === 'number') {
-        return data[0].count;
+      if (data && typeof data.count === 'number' && typeof data.last_updated === 'string') {
+        return { count: data.count, lastUpdated: data.last_updated };
       }
 
       console.warn("⚠️ Invalid tour count response format:", data);
-      return this.cachedTourCount;
+      return { count: this.cachedTourCount, lastUpdated: this.cachedTourLastUpdated || '' };
 
     } catch (error) {
       console.error('❌ Error fetching tour count:', error);
-      return this.cachedTourCount;
+      return { count: this.cachedTourCount, lastUpdated: this.cachedTourLastUpdated || '' };
+
     }
   }
 
   public async getTours(): Promise<TourInfo[]> {
-    const currentCount = await this.fetchTourCount();
+    const { count: currentCount, lastUpdated: currentLastUpdated } = await this.fetchTourCount();
     console.log("📊 currentCount:", currentCount, "| cachedTourCount:", this.cachedTourCount);
-
-    if (this.tours.length > 0 && currentCount === this.cachedTourCount) {
+   
+    if (
+      this.tours.length > 0 &&
+      currentCount === this.cachedTourCount &&
+      currentLastUpdated === this.cachedTourLastUpdated
+    ) {
       console.log('✅ Using cached tour data');
       return this.tours;
     }
@@ -107,7 +140,9 @@ class latestOrderServices {
 
       this.tours = data;
       this.cachedTourCount = currentCount;
+      this.cachedTourLastUpdated = currentLastUpdated;
       localStorage.setItem('cachedTourCount', String(currentCount));
+      localStorage.setItem('cachedTourLastUpdated', currentLastUpdated);
       return this.tours;
 
     } catch (error) {
@@ -127,33 +162,37 @@ class latestOrderServices {
     }
   }
 
-  private async fetchOrderCount(): Promise<number> {
+  private async fetchOrderCount(): Promise<{ count: number, lastUpdated: string }> {
     try {
       //const response = await fetch('http://localhost:8080/api/admin/routeoptimize/ordercount');
       const response = adminApiService.fetchOrderCount();
 
-      const data = (await response).data;
+      const data = (await response).data[0];
       console.log("📦 Order count response:", data);
 
-      if (data && Array.isArray(data) && data[0] && typeof data[0].count === 'number') {
-        return data[0].count;
+      if (data && typeof data.count === 'number' && typeof data.last_updated === 'string') {
+        return { count: data.count, lastUpdated: data.last_updated };
       }
 
       console.warn("⚠️ Invalid order count response format:", data);
-      return this.cachedCount;
+      return { count: this.cachedCount, lastUpdated: this.cachedOrderLastUpdated || '' };
 
     } catch (error) {
       console.error('❌ Error fetching order count:', error);
-      return this.cachedCount;
+      return { count: this.cachedCount, lastUpdated: this.cachedOrderLastUpdated || '' };
     }
   }
 
   public async getOrders(): Promise<LogisticOrder[]> {
-    const currentCount = await this.fetchOrderCount();
-    console.log("📊 currentOrderCount:", currentCount, "| cachedOrderCount:", this.cachedCount);
+     const { count: currentCount, lastUpdated: currentLastUpdated } = await this.fetchOrderCount();
+     console.log("📊 currentOrderCount:", currentCount, "| cachedOrderCount:", this.cachedCount);
 
-    if (this.orders.length > 0 && currentCount === this.cachedCount) {
-      console.log('✅ Using cached full order data');
+     if (
+      this.orders.length > 0 &&
+      currentCount === this.cachedCount &&
+      currentLastUpdated === this.cachedOrderLastUpdated
+    ) {
+      console.log('✅ Using cached order data');
       return this.orders;
     }
 
@@ -167,6 +206,10 @@ class latestOrderServices {
 
       this.orders = data;
       this.cachedCount = currentCount;
+      this.cachedOrderLastUpdated = currentLastUpdated;
+      
+      localStorage.setItem('cachedOrderCount', String(currentCount));
+      localStorage.setItem('cachedOrderLastUpdated', currentLastUpdated);
 
       const allDrivers = data.flatMap(order => order.drivers || []);
       const uniqueDrivers = Array.from(
@@ -188,18 +231,7 @@ class latestOrderServices {
   }
   public async fetchAllDrivers(): Promise<Driver[]> {
     try {
-      // 1. First try to fetch from dedicated drivers endpoint if available
-      // const response = await adminApiService.fetchAllDrivers();
-      // this.drivers = response.data as Driver[];
-      // return this.drivers;
-
-      // 2. Fallback: Fetch from tours (where driver assignment is more reliable)
-      // const tours = await this.getTours();
-      // const tourDrivers = tours
-      //   .filter(tour => tour.driver)
-      //   .map(tour => tour.driver);
-
-      // 3. Additional fallback: Include drivers from orders
+      //  Additional fallback: Include drivers from orders
       const orders = await this.getOrders();
       const orderDrivers = orders
         .filter(order => order.drivers?.length)
@@ -218,16 +250,75 @@ class latestOrderServices {
     }
   }
 
- 
+  public async getTourStatusHistory(): Promise<{
+    confirmed: TourInfo[],
+    pending: TourInfo[],
+    completed: TourInfo[],
+    live: TourInfo[]
+  }> {
+    const { count, lastUpdated } = await this.fetchTourCount();
+
+    if (
+      this.cachedTourStatusLastUpdated === lastUpdated &&
+      this.cachedTourStatusCount === count &&
+      Object.values(this.tourStatusHistory).some(arr => arr.length > 0)
+    ) {
+      console.log("✅ Using cached tourStatusHistory");
+      return this.tourStatusHistory;
+    }
+
+    try {
+      const response = await adminApiService.fetchAlltourstatushistory();
+      const allTours = response.data as TourStatusGrouped;
+    
+      const grouped: typeof this.tourStatusHistory = {
+        confirmed: [],
+        pending: [],
+        completed: [],
+        live: []
+      };
+      console.log("✅ Fetching fresh tourStatusHistory");
+      for (const status of Object.keys(allTours) as TourStatus[]) {
+        const tours = allTours[status];
+        grouped[status].push(...tours);
+      }
+     
+      this.tourStatusHistory = grouped;
+      this.cachedTourStatusCount = count;
+      this.cachedTourStatusLastUpdated = lastUpdated;
+
+      return grouped;
+    } catch (error) {
+      console.error('❌ Error fetching tour status history:', error);
+      return {
+        confirmed: [],
+        pending: [],
+        completed: [],
+        live: []
+      };
+    }
+  }
 
   public clearCache(): void {
     console.log("♻️ Clearing all cached data...");
     this.orders = [];
     this.drivers = [];
     this.tours = [];
+    this.tourStatusHistory = {
+      confirmed: [],
+      pending: [],
+      completed: [],
+      live: []
+    };
     this.cachedCount = 0;
     this.cachedTourCount = 0;
+    this.cachedTourStatusCount = 0;
+    this.cachedOrderLastUpdated = null;
+    this.cachedTourLastUpdated = null;
+    this.cachedTourStatusLastUpdated = null;
     localStorage.removeItem('cachedTourCount');
+    localStorage.removeItem('cachedOrderLastUpdated');
+    localStorage.removeItem('cachedTourLastUpdated');
     console.log("✅ Cache cleared.");
   }
 }

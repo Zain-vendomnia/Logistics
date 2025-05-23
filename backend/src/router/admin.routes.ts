@@ -9,7 +9,7 @@ import { updatelatlngController } from "../controller/Admin_RouteOptimzation/upd
 import { getAllLogisticOrders, getcountcheck } from '../controller/Admin_RouteOptimzation/order.controller';
 import {
   createTourController, getTourcountcheck, updateTourController,
-  deleteTourController, getgraphhopperRoute, getSegmentRoutes
+  deleteTourController, getgraphhopperRoute, getSegmentRoutes, getTourstatus,updatetourstatus
 } from '../controller/Admin_RouteOptimzation/tourController';
 import { ExportTourController } from '../controller/Admin_RouteOptimzation/exportTourController';
 import { getAllTourController } from "../controller/Admin_RouteOptimzation/getAllTourController";
@@ -25,6 +25,7 @@ import driverRoutes from "./driverRoutes";
 
 //  warehouse routes
 import warehouseRoutes from "./warehouseRoutes";
+import { getAllTourhistory } from "../controller/Admin_RouteOptimzation/getAllTourhistory";
 
 // Create router
 const adminRouter = Router();
@@ -52,7 +53,9 @@ adminRouter.post('/routeoptimize/exportTours', ExportTourController);
 adminRouter.post('/routeoptimize/getGraphhopperRoute', getgraphhopperRoute);
 adminRouter.get('/routeoptimize/getSegmentRoute', getSegmentRoutes);
 adminRouter.get("/orderCount", getOrderCount);
-
+adminRouter.get('/routeoptimize/gettourStatushistory', getAllTourhistory);
+adminRouter.get('/routeoptimize/gettourStatus', getTourstatus);
+adminRouter.post('/routeoptimize/updatetourstatus/:tourId', updatetourstatus);
 
 // Keep the other routes under restriction:
 adminRouter.post("/upload_image", uploadImageController);

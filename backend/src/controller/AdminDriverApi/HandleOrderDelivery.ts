@@ -87,6 +87,10 @@ export async function HandleOrderDelivery(req: Request, res: Response) {
     );
 
     if (rows.length === 0) {
+      await pool.execute(
+        `UPDATE tourinfo_master SET tour_status = ? WHERE id = ?`,
+        ['completed', tourId]
+      );
       return res.status(200).json({ message: 'No more pending orders for this tour. Tour is completed' });
     }
 
