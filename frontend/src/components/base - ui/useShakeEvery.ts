@@ -7,7 +7,7 @@ export const useShakeEvery = (enabled: boolean, interval = 5000) => {
     if (!enabled) return;
 
     const intervalId = setInterval(() => setKey((k) => k + 1), interval);
-    console.log('Key ', key);
+
     return () => clearInterval(intervalId);
   }, [enabled, interval]);
 
