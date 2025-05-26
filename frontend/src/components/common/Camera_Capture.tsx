@@ -16,7 +16,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 
 // import { uploadImage } from "../../services/trip_Service";
 import { uploadImage } from "../../utils/upload_Image";
-import { useCameraCapture } from "../../hooks/useCameraCapture";
+import { ImageType, useCameraCapture } from "../../hooks/useCameraCapture";
 
 interface Props {
   styleCard?: boolean;
@@ -28,6 +28,9 @@ interface Props {
   buttonDisabled?: boolean;
   onComplete?: (imageUploaded: boolean) => void;
   isMarkDone?: boolean;
+
+  imageType: ImageType;
+  millage?: string;
 }
 const CameraCapture = ({
   styleCard = true,
@@ -38,6 +41,8 @@ const CameraCapture = ({
   buttonDisabled,
   onComplete,
   isMarkDone,
+  imageType,
+  millage,
 }: Props) => {
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
@@ -58,7 +63,7 @@ const CameraCapture = ({
     updateCameraState,
     handleButtonClick,
     retakeImage,
-  } = useCameraCapture(onComplete);
+  } = useCameraCapture({ type: imageType, millage, onComplete });
 
   const isInitialState =
     showCameraIcon &&

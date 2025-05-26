@@ -3,30 +3,26 @@ import CloseIcon from "@mui/icons-material/Close";
 import CircularProgress from "@mui/material/CircularProgress";
 import CameraIcon from "@mui/icons-material/Camera";
 import Webcam from "react-webcam";
-import { useCameraCapture } from "../../hooks/useCameraCapture";
+import { ImageType, useCameraCapture } from "../../hooks/useCameraCapture";
 import { useEffect } from "react";
 
 interface Props {
+  type: ImageType;
+  millage?: string;
   buttonText: string;
   isComplied: boolean;
   onImageUploaded: (isDone: boolean) => void;
 }
 
-const Camera = ({ buttonText, isComplied, onImageUploaded }: Props) => {
+const Camera = ({ type, millage, buttonText, isComplied, onImageUploaded }: Props) => {
   const {
     webcamRef,
     cameraState,
     updateCameraState,
     handleButtonClick,
     retakeImage,
-    captureImage,
-    uploadImageAsync,
     clearCamera,
-  } = useCameraCapture();
-
-  useEffect(() => {
-    console.log("isComplied: ", isComplied);
-  }, []);
+  } = useCameraCapture({type, millage});
 
   useEffect(() => {
     console.log("isComplied: ", isComplied);

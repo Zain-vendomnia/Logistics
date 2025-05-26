@@ -8,6 +8,7 @@ import {
   useNotificationStore,
 } from "../../store/useNotificationStore";
 import CustomInputField from "../delivery/CustomInputField";
+import { ImageType } from "../../hooks/useCameraCapture";
 
 const useStyle = {
   cardHighlight: {
@@ -36,16 +37,19 @@ type ComponentCheckListItem = {
   title: string;
   description: string;
   requiredInputValue?: boolean;
+  imageType: ImageType;
 };
 const componentCheckList: ComponentCheckListItem[] = [
   {
     title: "Load Cargo",
     description: "Ensure all items are laoded on the truck and take a photo.",
+    imageType: ImageType.LoadCargo_TripStart,
   },
   {
     title: "Order Shipping",
     description: "Kilometers Driven and Fuel Guage photo from the odometer.",
     requiredInputValue: true,
+    imageType: ImageType.Millage_TripStart,
   },
 ];
 
@@ -61,7 +65,7 @@ const PreTripChecks = () => {
     new Array(componentCheckList.length).fill(false)
   );
 
-  const [inputValue, setInputValue] = useState("");
+  const [millageInputValue, setMillageInputValue] = useState("");
 
   const handleImageUpload = (index: number, isImageUplaoded: boolean) => {
     setComponentStatus((prevState) => {
@@ -129,13 +133,15 @@ const PreTripChecks = () => {
                   label="Km's driven"
                   placeholder="000000000"
                   onChange={(value) => {
-                    setInputValue(value);
+                    setMillageInputValue(value);
                     console.log(value);
                   }}
                 />
               )}
 
               <CameraCapture
+                imageType={item.imageType}
+                millage={millageInputValue ?? null}
                 // title={item.title}
                 // description={item.description}
                 styleCard={false}
@@ -159,6 +165,7 @@ const PreTripChecks = () => {
           <Card key={index} variant="outlined" sx={styles.cardHighlight}>
             <Stack spacing={3}>
               <CameraCapture
+                imageType={item.imageType}
                 styleCard={false}
                 title={
                   <Typography variant="h5" fontWeight="bold">
@@ -172,7 +179,7 @@ const PreTripChecks = () => {
                 <CustomInputField
                   label="Km's driven"
                   placeholder="000000000"
-                  value={inputValue}
+                  value={millageInputValue}
                   isDisabled={true}
                 />
               )}

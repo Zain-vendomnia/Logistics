@@ -5,6 +5,7 @@ import CameraCapture from "../common/Camera_Capture";
 import ContactPromptAlert from "../communications/Contact_Prompt_Alert";
 import FoundNeighbor from "./Found_Neighbor";
 import NeighborDetailsForm from "./NeighborDetailsForm";
+import { ImageType } from "../../hooks/useCameraCapture";
 
 const getLabel = (step: string) => {
   switch (step) {
@@ -30,6 +31,18 @@ const getLabel = (step: string) => {
       return "";
   }
 };
+const getImageType = (step: string) => {
+  switch (step) {
+    case "captureDoorstepImage":
+      return ImageType.Customer_Doorstep;
+    case "captureParcelImage":
+      return ImageType.ParcelImage;
+    case "captureNeighborDoorstepImage":
+      return ImageType.Neighbor_Doorstep;
+    default:
+      return ImageType.Customer_Doorstep;
+  }
+};
 
 type Props = {
   step: string;
@@ -38,6 +51,7 @@ type Props = {
 
 export const DeliveryStepRenderer = ({ step, onComplete }: Props) => {
   const label = getLabel(step);
+  const imageType = getImageType(step);
 
   switch (step) {
     case "captureDoorstepImage":
@@ -45,6 +59,7 @@ export const DeliveryStepRenderer = ({ step, onComplete }: Props) => {
     case "captureNeighborDoorstepImage":
       return (
         <CameraCapture
+          imageType={imageType}
           styleCard={false}
           title={label}
           buttonText={"Upload Image"}

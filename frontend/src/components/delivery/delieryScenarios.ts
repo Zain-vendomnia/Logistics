@@ -31,7 +31,6 @@ export type Step = DeliveryStep | ConditionalStep;
 
 export const deliveryScenarios: Record<DeliveryScenario, DeliveryStep[]> = {
   [DeliveryScenario.foundCustomer]: [
-    // "getNeighborDetails",  // Testing Component
     "captureDoorstepImage",
     "captureParcelImage",
     "captureCustomerSignature",

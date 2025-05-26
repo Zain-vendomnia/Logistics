@@ -19,22 +19,28 @@ import {
   useNotificationStore,
 } from "../../store/useNotificationStore";
 import CustomInputField from "../delivery/CustomInputField";
+import { ImageType } from "../../hooks/useCameraCapture";
 
 type ImageChecklistItem = {
   title: string;
+  imageType: ImageType;
   requiredInputValue?: boolean;
 };
 
 const imageChecklist: ImageChecklistItem[] = [
-  { title: "Truck Image" },
-  { title: "Odometer Image", requiredInputValue: true },
-  { title: "Fuel Receipt" },
+  { title: "Truck Image", imageType: ImageType.TruckImage_TripEnd },
+  {
+    title: "Odometer Image",
+    imageType: ImageType.Millage_TripEnd,
+    requiredInputValue: true,
+  },
+  { title: "Fuel Receipt", imageType: ImageType.GasReceipt },
 ];
 
 const TripComplete = () => {
   const iconSize = "6rem";
 
-  const [inputValue, setInputValue] = useState<string>("");
+  const [millageValue, setMillageValue] = useState<string>("");
   const [shouldShowInputField, setShouldShowInputField] = useState(false);
   const [showInputFieldAlert, setShowInputFieldAlert] = useState(false);
 
@@ -51,7 +57,7 @@ const TripComplete = () => {
     if (requiresInput) {
       setShouldShowInputField(requiresInput);
       setIsCameraDisabled(requiresInput);
-      if (inputValue.length > 1) {
+      if (millageValue.length > 1) {
         setIsCameraDisabled(false);
       } else {
         setIsCameraDisabled(true);
@@ -64,7 +70,7 @@ const TripComplete = () => {
     if (showInputFieldAlert) {
       setShowInputFieldAlert(false);
     }
-  }, [currentIndex, inputValue, showInputFieldAlert]);
+  }, [currentIndex, millageValue, showInputFieldAlert]);
 
   useEffect(() => {
     if (componentStatus.every((s) => s === true)) {
@@ -88,7 +94,7 @@ const TripComplete = () => {
   };
 
   const handleInputValue = (value: string) => {
-    setInputValue(value);
+    setMillageValue(value);
   };
   const { showNotification } = useNotificationStore();
 
@@ -111,7 +117,7 @@ const TripComplete = () => {
 
     if (currentCall - debouncedcallRef.current < 4000) return;
 
-    if (shouldShowInputField && !inputValue) {
+    if (shouldShowInputField && !millageValue) {
       showNotification({
         message:
           "Please enter the odometer reading before uploading the image.",
@@ -150,7 +156,7 @@ const TripComplete = () => {
                   height: "100%",
                   pointerEvents: "auto",
                   ...(shouldShowInputField &&
-                    !inputValue && {
+                    !millageValue && {
                       cursor: "not-allowed",
                       pointerEvents: "none",
                       opacity: 0.5,
@@ -158,6 +164,8 @@ const TripComplete = () => {
                 }}
               >
                 <Camera
+                  type={imageChecklist[currentIndex].imageType}
+                  millage={millageValue ?? null}
                   buttonText={
                     imageChecklist[currentIndex]?.title ?? "Upload Image"
                   }
