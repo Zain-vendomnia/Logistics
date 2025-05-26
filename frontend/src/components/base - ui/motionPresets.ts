@@ -36,11 +36,6 @@ export const tapScale = {
   transition: { type: "spring", stiffness: 500 },
 };
 
-export const pulse = {
-  animate: { scale: [1, 1.1, 1] },
-  transition: { repeat: Infinity, duration: 1.2 },
-};
-
 export const staggerContainer = {
   hidden: {},
   visible: {
@@ -53,4 +48,34 @@ export const staggerContainer = {
 export const staggerItem = {
   hidden: { opacity: 0, y: 10 },
   visible: { opacity: 1, y: 0 },
+};
+
+export const pulse = {
+  animate: {
+    scale: [1, 1.1, 1],
+    transition: { repeat: Infinity, duration: 1.2 },
+  },
+};
+
+export const loadingPulse = {
+  animate: {
+    y: [0, -6, 0],
+    transition: {
+      duration: 1.5,
+      repeat: Infinity,
+      ease: "easeInOut",
+    },
+  },
+};
+
+export const uploading = {
+  animate: {
+    y: [0, -70, 70, 0],
+    opacity: [1, 0, 0, 1],
+    transition: {
+      duration: 0.9,
+      repeat: Infinity,
+      ease: "easeInOut",
+    },
+  },
 };
