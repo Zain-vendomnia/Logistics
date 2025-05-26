@@ -1,4 +1,4 @@
-import React, { ChangeEvent, useEffect, useState } from "react";
+import React, { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { useForm, SubmitHandler, FieldValues } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
@@ -6,17 +6,18 @@ import { TextField, Button, Box, Typography } from "@mui/material";
 import { ModalWrapper } from "../common/ModalWrapper";
 import { motion } from "framer-motion";
 import { useShakeEvery } from "../base - ui/useShakeEvery";
+import {
+  NotificationSeverity,
+  useNotificationStore,
+} from "../../store/useNotificationStore";
+import { useHeadingUnderline } from "../base - ui/useHeadingUnderline";
+import { UnderlineElement } from "../base - ui/UnderlineElement";
 
 const getHelperText = (error?: string | undefined) => (
   <Typography component="span" sx={{ fontSize: "1.2rem", color: "error.main" }}>
     {error || " "}
   </Typography>
 );
-
-const inputTextStyle = {
-  fontFamily: "'Roboto Mono', monospace",
-  fontSize: "1.5rem",
-};
 
 const schema = yup.object({
   name: yup
@@ -48,42 +49,29 @@ interface Props {
 }
 
 const NeighborDetailsForm = ({ onComplete }: Props) => {
+  const { showNotification } = useNotificationStore();
+
+  const [modalKey, setModalKey] = useState(0);
   const [showModal, setShowModal] = useState(true);
 
   const [neighborDetails, setNeighborDetails] = useState<FormData>();
-
-  useEffect(() => {
-    if (neighborDetails) {
-      console.log("neighbor Details: ", neighborDetails);
-      reset();
-      setShowModal(false);
-      onComplete();
-    }
-  }, [neighborDetails]);
-
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<FormData>({
-    resolver: yupResolver(schema) as any,
-    mode: "onChange",
-  });
-
-  const [focusedField, setFocusedField] = React.useState<string | null>(null);
-
-  const onSubmit: SubmitHandler<FormData> = (data) => {
-    setNeighborDetails(data);
-    console.log("Form Data:", data);
-  };
 
   const [isUserActive, setIsUserActive] = useState(false);
   const [hasTyped, setHasTyped] = useState(false);
   const [shouldAnimate, setShouldAnimate] = useState(false);
 
-  const handleFocus = () => setIsUserActive(true);
-  const handleBlur = () => setIsUserActive(false);
+  const { controls, isInputFocused, handleFocusIn, handleFocusOut } =
+    useHeadingUnderline();
+
+  const handleFocus = () => {
+    setIsUserActive(true);
+    handleFocusIn();
+  };
+  const handleBlur = () => {
+    setIsUserActive(false);
+
+    // handleFocusOut();
+  };
   const handleChange =
     (field: keyof FormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
       const val = e.target.value;
@@ -96,8 +84,47 @@ const NeighborDetailsForm = ({ onComplete }: Props) => {
 
   const { key, animation } = useShakeEvery(shouldAnimate);
 
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<FormData>({
+    resolver: yupResolver(schema) as any,
+    mode: "onChange",
+  });
+
+  const onSubmit: SubmitHandler<FormData> = (data) => {
+    setNeighborDetails(data);
+    console.log("Form Data:", data);
+
+    reset();
+    setShowModal(false);
+    onComplete();
+  };
+
+  const handleModalClose = () => {
+    if (!neighborDetails) {
+      setShowModal(false); // force close
+
+      showNotification({
+        message: "Please enter neighbor details before continuing.",
+        severity: NotificationSeverity.Warning,
+      });
+
+      setTimeout(() => {
+        setModalKey((prev) => prev + 1);
+        setShowModal(true);
+      }, 900);
+
+      return;
+    }
+
+    setShowModal(false);
+  };
+
   return (
-    <ModalWrapper open={showModal} onClose={() => console.log("Model Closed")}>
+    <ModalWrapper key={modalKey} open={showModal} onClose={handleModalClose}>
       <Box
         component="form"
         onSubmit={handleSubmit(onSubmit)}
@@ -118,14 +145,17 @@ const NeighborDetailsForm = ({ onComplete }: Props) => {
           },
         }}
       >
-        <motion.div key={key} animate={animation}>
-          <Typography variant="h4" fontWeight={"bold"} textAlign="center">
-            Neighbor Details
-          </Typography>
+        <motion.div animate={controls} initial={{ y: 0 }}>
+          <motion.div key={key} animate={animation}>
+            <Typography variant="h4" fontWeight="bold" textAlign="center">
+              Neighbor Details
+              <UnderlineElement isInputFocused={isInputFocused} />
+            </Typography>
+          </motion.div>
         </motion.div>
 
         <TextField
-          label="Name"
+          label="Name*"
           {...register("name")}
           onFocus={handleFocus}
           onBlur={handleBlur}
@@ -138,7 +168,7 @@ const NeighborDetailsForm = ({ onComplete }: Props) => {
         />
 
         <TextField
-          label="Address"
+          label="Address*"
           {...register("address")}
           onFocus={handleFocus}
           onBlur={handleBlur}
