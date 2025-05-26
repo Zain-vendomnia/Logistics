@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Box } from "@mui/material";
+import { useEffect, useState, useCallback } from "react";
+import { Box, Stack } from "@mui/material";
 
 import ClientDetails from "../communications/Client_Details";
 import { useDeliveryStore } from "../../store/useDeliveryStore";
@@ -16,6 +16,7 @@ const Delivery = () => {
   const [isCustomerResponded, setIsCustomerResponded] = useState<
     boolean | null
   >(null);
+
   const [currentScenarioKey, setCurrentScenarioKey] =
     useState<DeliveryScenario | null>(scenarioKey ?? null);
 
@@ -50,15 +51,11 @@ const Delivery = () => {
         <CustomerResponded onComplete={handleFoundCustomer} />
       )}
 
-      <Box
-        display={"flex"}
-        flexDirection={"column"}
-        alignItems={"center"}
-        justifyContent={"center"}
-        gap={3}
+      <Stack
+        spacing={6}
         height={"100%"}
         width={"100%"}
-        pt={1}
+        p={{ md: 1, lg: 2, xl: 3 }}
       >
         <ClientDetails />
 
@@ -70,7 +67,7 @@ const Delivery = () => {
             />
           )}
         </Box>
-      </Box>
+      </Stack>
     </>
   );
 };
