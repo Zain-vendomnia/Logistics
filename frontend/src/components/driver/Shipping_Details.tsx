@@ -17,6 +17,9 @@ import {
   NotificationSeverity,
   useNotificationStore,
 } from "../../store/useNotificationStore";
+import { motion } from "framer-motion";
+import { useShakeEvery } from "../base - ui/useShakeEvery";
+import ParkingPetmitRequest from "../delivery/ParkingPetmitRequest";
 
 interface Props {
   tripData: TripData | null;
@@ -43,37 +46,46 @@ const ShippingDetails = ({
   // const [showOrderReached, setShowOrderReached] = useState(false);
 
   useEffect(() => {
-    if (hideNotify === true) {
-      setTimeout(() => {
-        setHideNotify(false);
-      }, 3000);
-    }
+    if (!hideNotify) return;
+
+    const timer = setTimeout(() => {
+      setHideNotify(false);
+    }, 3000);
+
+    return () => clearTimeout(timer);
   }, [hideNotify]);
 
-  const notify = () => {
-    setIsLoading(true);
+  useEffect(() => {
+    if (!isLoading) return;
 
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       setIsLoading(false);
       setHideNotify((prev) => !prev);
       showNotification({
         message: "Notification sent to customer",
         severity: NotificationSeverity.Info,
       });
-
       onNotified(true);
     }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [isLoading]);
+
+  const notify = () => {
+    setIsLoading(true);
   };
 
   const handleButtonReached = () => {
     onReachedToDestination(true);
   };
 
+  const { key, animation } = useShakeEvery(true);
+
   if (!tripData) return null;
   return (
-    <Stack width="100%" height="100%">
+    <Stack width="100%" height="100%" p={{ md: 1, lg: 2, xl: 3 }}>
       <Box display={"flex"} flexDirection={"column"} width="100%" height="100%">
-        <Typography variant={"h5"} fontWeight={"bold"}>
+        <Typography variant={"h5"} fontWeight={"bold"} pb={1}>
           Ongoing Delivery
         </Typography>
         <Box
@@ -102,10 +114,10 @@ const ShippingDetails = ({
                 width="100%"
               >
                 <Container disableGutters>
-                  <Typography variant="body1">Order number</Typography>
-                  <Typography variant="h6" fontWeight={"bold"}>
-                    {tripData?.orderId}
+                  <Typography variant="h5" fontWeight={"bold"}>
+                    Order number
                   </Typography>
+                  <Typography variant="body1">{tripData?.orderId}</Typography>
                 </Container>
                 <Box
                   component="img"
@@ -115,68 +127,44 @@ const ShippingDetails = ({
                 />
               </Box>
 
-              <Container disableGutters>
-                <Typography variant="body1">Item name</Typography>
-                <Typography variant="body1" fontWeight={"bold"}>
-                  SUNNIVA® Balkonkraftwerk
-                </Typography>
-                <Typography variant="body1" color={grey[600]}>
-                  Fragile Cargo
-                </Typography>
-              </Container>
-            </Box>
-          </Box>
-          {/* <Divider color={grey[100]} /> */}
-          {/* <Box
-              display={"flex"}
-              alignItems={"flex-start"}
-              justifyContent={"space-between"}
-            >
-              <Stack spacing={2}>
-                <Box display={"flex"} alignItems={"center"} gap={2}>
-                  <MyLocationIcon fontSize="small" sx={{ color: "#16C47F" }} />
-                  <Typography variant="body2">
-                    {tripData?.startPoint}
+              <Box
+                display={"flex"}
+                alignItems={"center"}
+                justifyContent={"space-between"}
+              >
+                <Box>
+                  <Typography variant="h5" fontWeight={"bold"}>
+                    Model
+                  </Typography>
+                  <Typography variant="body1">{tripData.model}</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="h5" fontWeight={"bold"}>
+                    Quantity
+                  </Typography>
+
+                  <Typography variant="body1">
+                    {tripData.quantity} Pcs
                   </Typography>
                 </Box>
-
-                <Box display={"flex"} alignItems={"center"} gap={2}>
-                  <PinDropIcon fontSize="small" color="primary" />
-                  <span>
-                    {tripData?.client.address.includes(",") ? (
-                      (() => {
-                        const address = tripData.client.address.split(",");
-                        return (
-                          <>
-                            <Typography variant="body2">
-                              {address[1]}
-                            </Typography>
-                            <Typography
-                              variant="body2"
-                              fontSize={"small"}
-                              color={grey[700]}
-                            >
-                              {address[0]}
-                            </Typography>
-                          </>
-                        );
-                      })()
-                    ) : (
-                      <Typography>{tripData?.client.address}</Typography>
-                    )}
-                  </span>
-                </Box>
-              </Stack>
-              <Box mx={1}>
-                <Typography variant="body2"> Postal Code </Typography>
-                <Typography variant="body1">00000</Typography>
               </Box>
-            </Box> */}
 
+              <Typography
+                variant="body2"
+                color={grey[600]}
+                sx={{ textDecoration: "underline", textUnderlineOffset: "2px" }}
+              >
+                Fragile Cargo
+              </Typography>
+            </Box>
+          </Box>
           <Divider color={grey[100]} />
+
           {isArrived && <ClientDetails />}
 
-          {notifyCustomer && (
+          {!tripData.hasPermit && <ParkingPetmitRequest />}
+
+          {/* {notifyCustomer && (
             <Box
               display={"flex"}
               flexDirection={"column"}
@@ -208,11 +196,27 @@ const ShippingDetails = ({
                     </Typography>
                   </>
                 ) : (
-                  "Notify Customer"
+                  <motion.h5 key={key} animate={animation}>
+                    Notify Customer
+                  </motion.h5>
                 )}
               </Button>
+
+              <motion.div variants={fade} initial="hidden" animate="visible">
+                <motion.h2 variants={slideUp}>Animated Heading</motion.h2>
+                <motion.p variants={shake} initial='initial' animate='animate'>
+                  This paragraph shakes once on mount
+                </motion.p>
+              </motion.div>
+
+              <motion.div variants={bounce} initial="iniital" animate="animate">
+                🔁 Bounce
+              </motion.div>
+              <motion.div variants={pulse} animate="animate">
+                🔁 I'm pulsing
+              </motion.div>
             </Box>
-          )}
+          )} */}
         </Box>
 
         {/* {isOrderReached && !showOrderReached && ( */}

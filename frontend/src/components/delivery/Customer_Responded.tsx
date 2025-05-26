@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { ChangeEvent, useState } from "react";
 
 import {
   Alert,
@@ -74,11 +74,10 @@ const CustomerResponded = ({ onComplete }: Props) => {
       onComplete(false);
     }
   };
-  const handleResponseSelection = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setSelectedResponse(event.target.value);
-    console.log("Customer Responded Scenario: ", event.target.value);
+
+  const handleResponseSelection = (e: ChangeEvent<HTMLInputElement>) => {
+    setSelectedResponse(e.target.value);
+    console.log("Customer Responded Scenario: ", e.target.value);
   };
 
   const slideTransition = (props: any) => {
@@ -161,7 +160,7 @@ const CustomerResponded = ({ onComplete }: Props) => {
           </DialogContent>
           <DialogActions>
             <Button autoFocus onClick={handleDialogueClose} color="primary">
-              Save
+              Proceed
             </Button>
           </DialogActions>
         </Dialog>
