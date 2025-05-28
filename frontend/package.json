@@ -26,6 +26,8 @@
     "axios": "^0.27.2",
     "bootstrap": "^4.6.2",
     "dayjs": "^1.11.13",
+    "exceljs": "^4.4.0",
+    "file-saver": "^2.0.5",
     "formik": "^2.2.9",
     "graphhopper-js-api-client": "^7.6.1",
     "leaflet": "^1.9.4",
@@ -71,6 +73,7 @@
     ]
   },
   "devDependencies": {
+    "@types/file-saver": "^2.0.7",
     "@types/leaflet": "^1.9.16",
     "@types/leaflet-routing-machine": "^3.2.8",
     "@types/react-signature-canvas": "^1.0.7",

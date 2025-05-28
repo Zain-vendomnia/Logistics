@@ -16,7 +16,7 @@ const useTokenValidation = () => {
     };
 
     const validateToken = async () => {
-      const user = AuthService.getCurrentUser();
+      // const user = AuthService.getCurrentUser();
       // if (!user) {
       //   // User not logged in; stop checking
       //   if (intervalRef.current) clearInterval(intervalRef.current);

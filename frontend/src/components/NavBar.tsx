@@ -7,32 +7,46 @@ import {
   Toolbar,
   Typography,
 } from "@mui/material";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../providers/AuthProvider";
 import EventBus from "../common/EventBus";
 import PersonIcon from "@mui/icons-material/Person";
 
 const NavBar: React.FC = () => {
-  const { user, showDriverBoard, showAdminBoard, showSuperAdminBoard, logout } = useAuth();
+  const {
+    user,
+    showDriverBoard,
+    showAdminBoard,
+    showSuperAdminBoard,
+    logout,
+  } = useAuth();
   const navigate = useNavigate();
-  // console.log(user);
+  const location = useLocation();
+
+  const isActive = (path: string) => location.pathname === path;
+
+  const getNavButtonStyles = (path: string) => ({
+    backgroundColor: isActive(path) ? "white" : "transparent",
+    color: isActive(path) ? "#f7941d" : "inherit",
+    "&:hover": {
+      backgroundColor: isActive(path)
+        ? "secondary.dark"
+        : "rgba(255,255,255,0.1)",
+    },
+  });
 
   React.useEffect(() => {
-    // Subscribe to logout event
     const cleanup = EventBus.on("logout", () => {
       logout();
       navigate("/login");
     });
-
-    return () => {
-      cleanup(); // Cleanup on component unmount
-    };
+    return () => cleanup();
   }, [logout, navigate]);
 
   return (
     <AppBar
       position="sticky"
-      sx={(theme)=>({
+      sx={(theme) => ({
         background: theme.palette.primary.headerGradient,
         height: 50,
         boxShadow: "0px 2px 4px rgba(0,0,0,0.1)",
@@ -62,10 +76,10 @@ const NavBar: React.FC = () => {
             {showDriverBoard
               ? "Driver"
               : showAdminBoard
-                ? "Admin"
-                : showSuperAdminBoard
-                  ? "Super Admin"
-                  : ""}{" "}
+              ? "Admin"
+              : showSuperAdminBoard
+              ? "Super Admin"
+              : ""}{" "}
             Board
           </Typography>
         </Box>
@@ -74,26 +88,53 @@ const NavBar: React.FC = () => {
           <Stack direction="row" spacing={2} alignItems="center">
             {showSuperAdminBoard && (
               <>
-                <Button color="inherit" component={Link} to="/register">
+                <Button
+                  component={Link}
+                  to="/register"
+                  color="inherit"
+                  sx={getNavButtonStyles("/register")}
+                >
                   Employees
                 </Button>
-                <Button color="inherit" component={Link} to="/register">
+                <Button
+                  component={Link}
+                  to="/register"
+                  color="inherit"
+                  sx={getNavButtonStyles("/register")}
+                >
                   Drivers
                 </Button>
               </>
             )}
+
             {showAdminBoard && (
               <>
-                <Button color="inherit" component={Link} to="/admin-drivers">
+                <Button
+                  component={Link}
+                  to="/admin-drivers"
+                  color="inherit"
+                  sx={getNavButtonStyles("/admin-drivers")}
+                >
                   Drivers
                 </Button>
-                <Button color="inherit" component={Link} to="/profile">
+                <Button
+                  component={Link}
+                  to="/profile"
+                  color="inherit"
+                  sx={getNavButtonStyles("/profile")}
+                >
                   Profile
                 </Button>
               </>
             )}
+
             {showDriverBoard && (
-              <Button color="inherit" component={Link} to="/profile">
+              <Button
+                component={Link}
+                to="/profile"
+                color="inherit"
+                sx={getNavButtonStyles("/profile")}
+              >
                 <PersonIcon sx={{ mr: 0.5 }} />
                 Profile
               </Button>
@@ -109,9 +150,14 @@ const NavBar: React.FC = () => {
             </Button>
           </Stack>
         ) : (
-          <Button color="inherit" component={Link} to="/login">
-            Login
-          </Button>
+         <Button
+          component={Link}
+          to="/login"
+          color="inherit"
+          sx={getNavButtonStyles("/login")}
+        >
+          Login
+        </Button>
         )}
       </Toolbar>
     </AppBar>

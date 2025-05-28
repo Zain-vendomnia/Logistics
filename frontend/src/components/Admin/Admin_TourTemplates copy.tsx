@@ -1,336 +1,409 @@
-import React, { useEffect, useState, useMemo, MouseEvent, ChangeEvent } from 'react';
-import { 
-  Box, 
-  Typography, 
-  Table, 
-  TableHead, 
-  TableRow, 
-  TableCell, 
-  TableBody, 
-  Checkbox, 
-  Button, 
-  IconButton, 
-  Menu, 
-  MenuItem, 
-  TextField, 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  Divider, 
-  Tooltip,
-  Snackbar,
-  Alert 
+import React, { useEffect, useRef, useState, useMemo } from 'react';
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  Polyline,
+  useMap,
+} from 'react-leaflet';
+import {
+  Box,
+  Typography,
+  List,
+  ListItem,
+  ListItemText,
+  Paper,
+  Divider,
+  IconButton,
+  Avatar,
+  Stack,
+  ListItemButton,
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import Inventory2Icon from '@mui/icons-material/Inventory2';
+import CameraAltIcon from '@mui/icons-material/CameraAlt';
+import NoteAltIcon from '@mui/icons-material/NoteAlt';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-import DeleteIcon from '@mui/icons-material/Delete';
-import FileDownloadIcon from '@mui/icons-material/FileDownload';
-import MergeIcon from '@mui/icons-material/Merge';
-
-import latestOrderServices, { TourInfo } from './AdminServices/latestOrderServices';
-import { deleteTours } from './AdminServices/tourDeletionServices';
-import { exportTours } from './AdminServices/tourExportServices';
-import EditTourModal from './Admin_EditTourModal';
-import '../Admin/css/Admin_TourTemplate.css';
-
-interface Tour {
-    id: string;
-    tour_name: string;
-    date: string;
-    color: string;
-    amount: number;
-    timeRange: string;
-    driver: string;
-    tour_comments: string;
-    driver_id?: number;
-}
-
-interface SnackbarState {
-    open: boolean;
-    message: string;
-    severity: 'success' | 'error' | 'info' | 'warning';
-}
-
-const ActionButton = ({ title, icon, color, onClick, disabled }: { title: string, icon: JSX.Element, color: 'error' | 'secondary' | 'primary', onClick: () => void, disabled: boolean }) => (
-    <Tooltip title={title}>
-        <span>
-            <Button variant="contained" color={color} startIcon={icon} size="small" onClick={onClick} disabled={disabled}>
-                {title}
-            </Button>
-        </span>
-    </Tooltip>
-);
-
-export const Admin_TourTemplates = () => {
-    const [tours, setTours] = useState<Tour[]>([]);
-    const [selected, setSelected] = useState<string[]>([]);
-    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-    const [currentTour, setCurrentTour] = useState<Tour | null>(null);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [modalOpen, setModalOpen] = useState(false);
-    const [snackbar, setSnackbar] = useState<SnackbarState>({
-        open: false,
-        message: '',
-        severity: 'info'
-    });
-    const navigate = useNavigate();
-
-    const loadTours = async (): Promise<void> => {
-        try {
-            const instance = latestOrderServices.getInstance();
-            const tourData = await instance.RealTimeToursData();
-            const mappedTours: Tour[] = tourData.map((tour: TourInfo) => ({
-                id: tour.id.toString(),
-                tour_name: tour.tour_name,
-                tour_comments: tour.tour_comments,
-                date: new Date(tour.tour_date).toLocaleDateString(),
-                color: tour.tour_route_color,
-                amount: tour.orders.length,
-                timeRange: `${tour.tour_startTime.slice(0, 5)} - ${tour.tour_endTime.slice(0, 5)}`,
-                driver: tour.driver?.driver_name || 'N/A',
-                driver_id: tour.driver?.driver_id || 0,
-            }));
-            setTours(mappedTours);
-        } catch (error) {
-            console.error('Error fetching tours:', error);
-            showSnackbar('Failed to load tours', 'error');
-        }
-    };
-
-    useEffect(() => {
-        loadTours();
-    }, []);
-
-    const filteredTours = useMemo<Tour[]>(() => {
-        const term = searchTerm.trim().toLowerCase();
-        return term ? tours.filter(tour => 
-            [tour.tour_name, tour.driver, tour.date, tour.timeRange, tour.id]
-                .some(field => field?.toLowerCase().includes(term))
-        ) : tours;
-    }, [tours, searchTerm]);
-
-    const isSelected = (id: string): boolean => selected.includes(id);
-
-    const handleSelectAllClick = (event: ChangeEvent<HTMLInputElement>): void => {
-        setSelected(event.target.checked ? filteredTours.map(t => t.id) : []);
-    };
-
-    const handleCheckboxClick = (event: MouseEvent<unknown>, id: string): void => {
-        event.stopPropagation();
-        setSelected(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
-    };
-
-    const handleSearchChange = (event: ChangeEvent<HTMLInputElement>): void => setSearchTerm(event.target.value);
-
-    const handleMenuClick = (event: MouseEvent<HTMLElement>, tour: Tour): void => {
-        setAnchorEl(event.currentTarget);
-        setCurrentTour(tour);
-    };
-
-    const handleMenuClose = (): void => setAnchorEl(null);
-
-    const showSnackbar = (message: string, severity: SnackbarState['severity']) => {
-        setSnackbar({ open: true, message, severity });
-    };
-
-    const handleCloseSnackbar = () => {
-        setSnackbar(prev => ({ ...prev, open: false }));
-    };
-
-    const handleDelete = async (ids: string[]) => {
-        try {
-            await deleteTours(ids);
-            await loadTours();
-            setSelected(prev => prev.filter(id => !ids.includes(id)));
-            showSnackbar(`Successfully deleted ${ids.length} tour(s)`, 'success');
-        } catch (error) {
-            console.error('Delete failed:', error);
-            showSnackbar('Failed to delete tour(s)', 'error');
-        }
-    };
-
-    const handleAction = async (action: 'delete' | 'merge' | 'export'): Promise<void> => {
-        if (selected.length === 0) {
-            showSnackbar('No tours selected', 'warning');
-            return;
-        }
-
-        try {
-            if (action === 'delete') {
-                await handleDelete(selected);
-            }
-            if (action === 'merge' && selected.length === 2) {
-                console.log('Merging tours:', selected);
-                showSnackbar('Merge functionality not yet implemented', 'info');
-            }
-            if (action === 'export') {
-                await exportTours(selected);
-                showSnackbar(`Successfully exported ${selected.length} tour(s)`, 'success');
-            }
-        } catch (error) {
-            console.error(`${action.charAt(0).toUpperCase() + action.slice(1)} failed:`, error);
-            showSnackbar(`${action.charAt(0).toUpperCase() + action.slice(1)} failed`, 'error');
-        }
-    };
-
-    const handleMenuDelete = () => {
-        if (!currentTour) return;
-        handleDelete([currentTour.id]);
-        handleMenuClose();
-    };
-
-    return (
-        <Box p={3} sx={{ minHeight: '100vh' }}>
-            <Card sx={{ borderRadius: 4, boxShadow: 3 }}>
-                <CardHeader
-                    title="Tour Overview"
-                    sx={{ bgcolor: '#1976d2', color: 'white', borderTopLeftRadius: 16, borderTopRightRadius: 16, '& .MuiCardHeader-action': { alignSelf: 'center' }}}
-                />
-                <CardContent>
-                    <Box display="flex" justifyContent="space-between" flexWrap="wrap" mb={2} gap={2}>
-                        <TextField
-                            placeholder="Search tours..."
-                            size="small"
-                            sx={{ flexGrow: 1, maxWidth: 300 }}
-                            value={searchTerm}
-                            onChange={handleSearchChange}
-                        />
-                        <Box display="flex" gap={1} flexWrap="wrap">
-                            <ActionButton 
-                                title="Delete" 
-                                icon={<DeleteIcon />} 
-                                color="error" 
-                                onClick={() => handleAction('delete')} 
-                                disabled={selected.length === 0} 
-                            />
-                            <ActionButton 
-                                title="Merge" 
-                                icon={<MergeIcon />} 
-                                color="secondary" 
-                                onClick={() => handleAction('merge')} 
-                                disabled={selected.length !== 2} 
-                            />
-                            <ActionButton 
-                                title="Export" 
-                                icon={<FileDownloadIcon />} 
-                                color="primary" 
-                                onClick={() => handleAction('export')} 
-                                disabled={selected.length === 0} 
-                            />
-                        </Box>
-                    </Box>
-                    <Divider sx={{ mb: 2 }} />
-                    <Table>
-                        <TableHead>
-                            <TableRow sx={{ bgcolor: '#f0f0f0' }}>
-                                <TableCell padding="checkbox">
-                                    <Checkbox
-                                        indeterminate={selected.length > 0 && selected.length < filteredTours.length}
-                                        checked={filteredTours.length > 0 && selected.length === filteredTours.length}
-                                        onChange={handleSelectAllClick}
-                                    />
-                                </TableCell>
-                                <TableCell><strong>Name</strong></TableCell>
-                                <TableCell><strong>Driver</strong></TableCell>
-                                <TableCell><strong>Period</strong></TableCell>
-                                <TableCell><strong>Actions</strong></TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {filteredTours.map((tour) => {
-                                const isItemSelected = isSelected(tour.id);
-                                return (
-                                    <TableRow
-                                        key={tour.id}
-                                        hover
-                                        selected={isItemSelected}
-                                        sx={{ '&:hover td': { bgcolor: isItemSelected ? 'action.selected' : '' } }}
-                                    >
-                                        <TableCell padding="checkbox">
-                                            <Checkbox
-                                                checked={isItemSelected}
-                                                onClick={(e) => handleCheckboxClick(e, tour.id)}
-                                            />
-                                        </TableCell>
-                                        <TableCell>
-                                            <Box display="flex" alignItems="center" gap={1}>
-                                                <Box sx={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: tour.color }} />
-                                                <Box>
-                                                    <Typography fontWeight="bold">{tour.tour_name} - {tour.date}</Typography>
-                                                    <Typography variant="body2" color="text.secondary">
-                                                        {tour.amount} orders · {tour.timeRange}
-                                                    </Typography>
-                                                </Box>
-                                            </Box>
-                                        </TableCell>
-                                        <TableCell>{tour.driver}</TableCell>
-                                        <TableCell>{tour.timeRange}</TableCell>
-                                        <TableCell>
-                                            <Box display="flex" alignItems="center" gap={1}>
-                                                <Button 
-                                                    variant="outlined" 
-                                                    color="warning" 
-                                                    size="small" 
-                                                    onClick={() => navigate(`/Admin_TourMapView/${tour.id}`)}
-                                                >
-                                                    View Map
-                                                </Button>
-                                                <IconButton onClick={(e) => handleMenuClick(e, tour)}>
-                                                    <MoreVertIcon />
-                                                </IconButton>
-                                            </Box>
-                                        </TableCell>
-                                    </TableRow>
-                                );
-                            })}
-                        </TableBody>
-                    </Table>
-                    <Menu 
-                        anchorEl={anchorEl} 
-                        open={Boolean(anchorEl)} 
-                        onClose={handleMenuClose}
-                        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-                        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                    >
-                        <MenuItem onClick={() => { setModalOpen(true); handleMenuClose(); }}>
-                            Edit Tour
-                        </MenuItem>
-                        <Divider />
-                        <MenuItem 
-                            onClick={handleMenuDelete} 
-                            sx={{ color: 'error.main' }}
-                        >
-                            Delete
-                        </MenuItem>
-                    </Menu>
-                    <EditTourModal 
-                        open={modalOpen} 
-                        handleClose={() => setModalOpen(false)} 
-                        tourData={currentTour} 
-                        onTourUpdated={() => {
-                            loadTours();
-                            showSnackbar('Tour updated successfully', 'success');
-                        }} 
-                    />
-                </CardContent>
-            </Card>
-
-            <Snackbar
-                open={snackbar.open}
-                autoHideDuration={6000}
-                onClose={handleCloseSnackbar}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-            >
-                <Alert 
-                    onClose={handleCloseSnackbar} 
-                    severity={snackbar.severity}
-                    sx={{ width: '100%' }}
-                >
-                    {snackbar.message}
-                </Alert>
-            </Snackbar>
-        </Box>
-    );
+import adminApiService from '../../services/adminApiService';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import 'leaflet-polylinedecorator';
+import { useParams } from 'react-router-dom';
+import latestOrderServices from './AdminServices/latestOrderServices';
+import "./css/Admin_TourMapView.css";
+import 'leaflet-polylinedecorator';
+type Stop = {
+  id: string;
+  location_id: string;
+  lat: number;
+  lon: number;
+  arrival: string;
+  type: string;
+  name?: string;
+  address?: string;
 };
 
-export default Admin_TourTemplates;
+const TourMapPage: React.FC = () => {
+  const { tour_id } = useParams<{ tour_id: string }>();
+  const parsedTourId = tour_id ? parseInt(tour_id, 10) : null;
+  const [routePoints, setRoutePoints] = useState<[number, number][][]>([]);
+  const [stops, setStops] = useState<Stop[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedTour, setSelectedTour] = useState<any | null>(null);
+  const mapRef = useRef<L.Map>(null);
+  const [routeDistance, setRouteDistance] = useState<number>(0);
+  const [routeTime, setRouteTime] = useState<number>(0);
+  useEffect(() => {
+    const fetchData = async () => {
+      const instance = latestOrderServices.getInstance();
+      const toursdata = await instance.getTours();
+      const tour = toursdata.find((tour: any) => tour.id === Number(tour_id));
+      setSelectedTour(tour);
+    };
+
+    fetchData();
+  }, [tour_id]);
+
+  console.log(selectedTour);
+  console.log("stops" + JSON.stringify(stops));
+  const fetchRouteData = async () => {
+    try {
+      if (parsedTourId !== null) {
+        const response = await adminApiService.getRouteResponse(parsedTourId);
+        const data = response.data;
+        if (data && data.solution && data.solution.routes.length > 0) {
+          const route = data.solution.routes[0];
+
+          const distance = data.solution.distance; // in meters
+
+          const distanceInKilometers = (distance / 1000).toFixed(2); // 2 decimal places
+          setRouteDistance(parseFloat(distanceInKilometers)); // Set distance in kilometers
+
+          const time = data.solution.time; // in seconds
+
+          setRouteTime(time);
+          const formattedRoutes = route.points.map((routePoint: { coordinates: [number, number][] }) =>
+            routePoint.coordinates.map(([lon, lat]) => [lat, lon])
+          );
+          setRoutePoints(formattedRoutes);
+
+          const mappedStops: Stop[] = route.activities.map((activity: any, index: number) => ({
+            id: `${index + 1}`,
+            location_id: activity.location_id,
+            lat: activity.address.lat,
+            lon: activity.address.lon,
+            arrival: activity.arr_date_time,
+            type: activity.type
+          }));
+
+          setStops(mappedStops);
+
+        }
+        setLoading(false);
+
+      }
+    } catch (error) {
+      console.error("Error fetching route data:", error);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRouteData();
+  }, [parsedTourId]);
+
+  const createIcon = useMemo(() => {
+    return (label: string, bgColor: string) =>
+      L.divIcon({
+        html: `<div style="
+          background-color: ${bgColor};
+          color: white;
+          border-radius: 50%;
+          width: 28px;
+          height: 28px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 13px;
+        ">${label}</div>`,
+        className: 'custom-icon',
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+      });
+  }, []);
+
+  const zoomToStop = (lat: number, lon: number) => {
+    const map = mapRef.current;
+    if (map) {
+      map.flyTo([lat, lon], 15, { duration: 0.5 });
+    }
+  };
+
+  const PolylineDecoratorComponent = React.memo(({ positions }: { positions: [number, number][] }) => {
+    const map = useMap();
+
+    useEffect(() => {
+      if (!selectedTour) return;
+
+      const polyline = L.polyline(positions, {
+        color: selectedTour.tour_route_color,
+        weight: 5,
+        opacity: 0.7,
+      }).addTo(map);
+
+      const arrowHead = L.Symbol.arrowHead({
+        pixelSize: 10,
+        pathOptions: { stroke: true, color: selectedTour.tour_route_color }
+      });
+
+      const decorator = (L as any).polylineDecorator(polyline, {
+        patterns: [{
+          offset: '20%',
+          repeat: '100px',
+          symbol: arrowHead,
+        }],
+      }).addTo(map);
+
+      return () => {
+        map.removeLayer(polyline);
+        map.removeLayer(decorator);
+      };
+    }, [map, positions, selectedTour]);
+
+    return null;
+  });
+
+  if (loading || !selectedTour) return <div>Loading route data...</div>;
+
+  const formattedDate = new Date(selectedTour.tour_date);
+  const cleanDate = formattedDate.toISOString().split('T')[0]; // Extract YYYY-MM-DD
+  const formatTime = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    return `${hours}h ${minutes}m`;
+  };
+
+  // Format the tour start time (remove trailing :00)
+  const cleanStartTime = selectedTour.tour_startTime.replace(/:00$/, '');
+  return (
+    <Box sx={{ display: 'flex', height: '100vh' }}>
+      <Paper sx={{ width: 340, p: 2, overflowY: 'auto', borderRight: '1px solid #ddd', backgroundColor: '#f9f9f9' }} elevation={3}>
+        <Typography variant="h6">
+          {selectedTour.tour_name} - {cleanDate} {cleanStartTime}
+        </Typography>
+
+        <Box mt={1} display="flex" flexWrap="wrap" gap={1}>
+          <Typography variant="caption" sx={{ bgcolor: '#86d160', px: 1, py: 0.5, borderRadius: 1 }}>
+            {stops.length} Ziele
+          </Typography>
+          <Typography variant="caption" sx={{ bgcolor: '#41d7eb', px: 1, py: 0.5, borderRadius: 1 }}>
+            {routeDistance} km
+          </Typography>
+          <Typography variant="caption" sx={{ bgcolor: '#f1aae9', px: 1, py: 0.5, borderRadius: 1 }}>
+            {formatTime(routeTime)}
+          </Typography>
+          <Typography variant="caption" sx={{ bgcolor: '#dec1ff', px: 1, py: 0.5, borderRadius: 1 }}>
+            {selectedTour.tour_startTime} - {selectedTour.tour_endTime}
+          </Typography>
+        </Box>
+
+        <Divider sx={{ my: 2 }} />
+
+        <List disablePadding>
+          {stops.map((stop, index) => (
+            <ListItem
+              key={index}
+              sx={{
+                mb: 1,
+                borderBottom: '1px dashed #ccc',
+                pb: 1,
+                alignItems: 'flex-start',
+              }}
+              disableGutters
+            >
+              <ListItemButton onClick={() => zoomToStop(stop.lat, stop.lon)}>
+                <Avatar
+                  sx={{
+                    bgcolor: selectedTour?.tour_route_color,
+                    width: 28,
+                    height: 28,
+                    fontSize: 14,
+                    mt: 0.5
+                  }}
+                >
+                  {stop.type === 'start' ? 'S' : stop.type === 'end' ? 'E' : index}
+                </Avatar>
+
+                <Box sx={{ ml: 2, flexGrow: 1 }}>
+                  {stop.location_id === "v1" ? (
+                    <Typography variant="body2" fontWeight="bold">
+                      {selectedTour.warehouseaddress}
+                    </Typography>
+                  ) : (
+                    <Typography fontWeight="bold" variant="body2">
+                      Order ID: {stop.location_id}
+                    </Typography>
+                  )}
+
+
+                  {/* ✅ Find the matching order */}
+                  {selectedTour?.orders && (() => {
+                    const matchedOrder = selectedTour.orders.find(
+                      (order: any) => order.order_id === Number(stop.location_id)
+                    );
+
+                    return matchedOrder ? (
+                      <>
+                        <Typography variant="caption" color="text.secondary">
+                          {matchedOrder.firstname} {matchedOrder.lastname}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {matchedOrder.street}, {matchedOrder.city}, {matchedOrder.zipcode}
+                        </Typography>
+                        <Typography variant="caption" display="block" fontWeight="bold" mt={0.5}>
+                          Order Number: {matchedOrder.order_number}
+                        </Typography>
+                      </>
+                    ) : (
+                      <Typography variant="caption" color="error">
+                        {stop.location_id === "v1" ? "" : "Order not found for this stop."}
+                      </Typography>
+                    );
+                  })()}
+
+                  <Typography variant="caption" display="block" mt={0.5}>
+                    Arrival: {new Date(stop.arrival).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </Typography>
+                </Box>
+              </ListItemButton>
+
+            </ListItem>
+          ))}
+        </List>
+        <Divider sx={{ my: 2 }} />
+      </Paper>
+
+      <Box sx={{ flex: 1 }}>
+        <MapContainer
+          center={[stops[0]?.lat || 51.191566, stops[0]?.lon || 10.00519]}
+          zoom={13} maxZoom={19}
+          ref={mapRef}
+          style={{ height: "100vh", width: "100%" }}
+        >
+          {/* <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap contributors' detectRetina={true} /> */}
+          <TileLayer
+  url={`https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoiemFpbi12ZW5kb21uaWEiLCJhIjoiY204ZmlramFxMGNzazJscHRjNGs5em80NyJ9.1nIfy1EdSPl2cYvwvxOEmA`}
+  attribution='&copy; <a href="https://www.mapbox.com/">Mapbox</a> &copy; OpenStreetMap contributors'
+  detectRetina={true}
+  tileSize={512}
+  zoomOffset={-1}
+/>
+          {routePoints.length > 0 &&
+            routePoints.map((route, index) => (
+              <PolylineDecoratorComponent key={index} positions={route} />
+            ))}
+
+
+          {stops.map((stop, index) => (
+            <Marker
+              key={index}
+              position={[stop.lat, stop.lon]}
+              icon={
+                stop.type === 'start'
+                  ? createIcon('S', selectedTour.tour_route_color)
+                  : stop.type === 'end'
+                    ? createIcon('E', selectedTour.tour_route_color)
+                    : createIcon(String(index), selectedTour.tour_route_color)
+              }
+            >
+              <Popup className="custom-popup">
+                <div className="popup-content">
+                  <div className="popup-title" style={{ color: selectedTour.tour_route_color }}>
+                    {stop.location_id}
+                  </div>
+
+                  <div>
+                    <span className="popup-label">Type : </span>
+                    <span className="popup-value">{stop.type}</span>
+                  </div>
+
+                  <div>
+                    <span className="popup-label">Arrival : </span>
+                    <span className="popup-value">
+                      {new Date(stop.arrival).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+
+                  {/* 👇 Only for warehouse stop (v1) */}
+                  {stop.location_id === "v1" ? (
+                    <div>
+                      <span className="popup-label">Address : </span>
+                      <span className="popup-value">{selectedTour.warehouseaddress}</span>
+                    </div>
+                  ) : (
+                    // 👇 For customer stop: matchedOrder content
+                    selectedTour?.orders && (() => {
+                      const matchedOrder = selectedTour.orders.find(
+                        (order: any) => order.order_id === Number(stop.location_id)
+                      );
+
+                      return matchedOrder ? (
+                        <>
+                          <div className="popup-section">
+                            <span className="popup-label" style={{ fontWeight: 'bold' }}>OrderNumber : </span>
+                            <span className="popup-value" style={{ fontWeight: 'bold', color: selectedTour.tour_route_color }}>
+                              {matchedOrder.order_number}
+                            </span>
+                          </div>
+                          <div className="popup-section">
+                            <span className="popup-label">Customer : </span>
+                            <span className="popup-value" style={{ fontWeight: 'bold', color: selectedTour.tour_route_color }}>
+                              {matchedOrder.firstname} {matchedOrder.lastname}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="popup-label">Address : </span>
+                            <span className="popup-value">
+                              {matchedOrder.street}, {matchedOrder.city}, {matchedOrder.zipcode}
+                            </span>
+                          </div>
+                          <div style={{ marginTop: '5px' }}>
+                            <span className="popup-label">Invoice Amount : </span>
+                            <span className="popup-invoice" style={{ color: selectedTour.tour_route_color }}>€{matchedOrder.invoice_amount}</span>
+                          </div>
+                          <div className="popup-section">
+                            <span className="popup-label">Items : </span>
+                            <ul className="popup-items">
+                              {matchedOrder.items.map((item: any, index: number) => (
+                                <li key={index}>
+                                  <span className="popup-article">Article : </span>
+                                  <span className="popup-article-value" style={{ color: selectedTour.tour_route_color, fontWeight: 'bold' }}>
+                                    {item.slmdl_articleordernumber}
+                                  </span>,&nbsp;
+                                  <span className="popup-quantity">Qty : </span>
+                                  <span className="popup-quantity-value" style={{ color: selectedTour.tour_route_color, fontWeight: 'bold' }}>
+                                    {item.quantity}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="popup-error">Order not found for this stop.</div>
+                      );
+                    })()
+                  )}
+                </div>
+              </Popup>
+
+            </Marker>
+          ))}
+
+        </MapContainer>
+      </Box>
+    </Box>
+  );
+};
+
+export default TourMapPage;

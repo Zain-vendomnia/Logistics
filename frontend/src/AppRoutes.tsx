@@ -15,6 +15,7 @@ import AdminAddTour from "./components/Admin/Admin_AddTour";
 import Admin_TourTemplates from "./components/Admin/Admin_TourTemplates";
 import Admin_MapComponent from "./components/Admin/Admin_MapComponent";
 import Admin_TourMapView from "./components/Admin/Admin_TourMapView";
+import ManageTour from "./components/Admin/TourManagement";
 import ManageDrivers from "./components/Admin/ManageDrivers";
 import ManageWarehouse from "./components/Admin/ManageWarehouse";
 
@@ -102,6 +103,10 @@ const AppRoutes = () => {
       <Route
         path="/admin_addtour"
         element={<ProtectedRoute element={<AdminAddTour />} allowedRoles={["admin"]} />}
+      />
+      <Route
+        path="/manage_tours"
+        element={<ProtectedRoute element={<ManageTour />} allowedRoles={["admin"]} />}
       />
       <Route
         path="/manage_drivers"

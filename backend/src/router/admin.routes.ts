@@ -20,6 +20,9 @@ import { scheduleWmsOrderController } from "../controller/Admin_Api/scheduleWmsO
 import { uploadImageController } from "../controller/Admin_Api/uploadImage.controller";
 import { HandleOrderDelivery } from "../controller/AdminDriverApi/HandleOrderDelivery";
 
+import { getFilteredToursController } from "../controller/tourManagement.controller";
+import { updateCustomerInfoController } from "../controller/Admin_RouteOptimzation/updateCustomerInfo.controller";
+
 //  driver routes
 import driverRoutes from "./driverRoutes";
 
@@ -30,16 +33,19 @@ import warehouseRoutes from "./warehouseRoutes";
 const adminRouter = Router();
 
 // Remove restrictions from these routes (make them public):
+adminRouter.get('/customer/updatelatlng', updatelatlngController);
 adminRouter.get("/orderinfo", orderInfoController);
 adminRouter.get("/scheduleOrderInfo", scheduleOrderInfoController);
 adminRouter.get("/scheduleWmsOrderInfo", scheduleWmsOrderController);
-adminRouter.post('/customer/updatelatlng', updatelatlngController);
+
+
 // adminRouter.get('/geocode', GeocodingController.getLatLng);
 
 // Apply token & role check to all routes EXCEPT the ones we want to make public
 adminRouter.use(validateToken, roleCheck(["admin"]));
 
 // Define routes with restrictions
+adminRouter.get("/tours", getFilteredToursController);
 adminRouter.get('/route/routeoptimize/optimize', optimizeRouteController);
 adminRouter.get('/routeoptimize/orders', getAllLogisticOrders);
 adminRouter.get('/routeoptimize/ordercount', getcountcheck);
@@ -51,6 +57,7 @@ adminRouter.delete('/routeoptimize/deleteTours', deleteTourController);
 adminRouter.post('/routeoptimize/exportTours', ExportTourController);
 adminRouter.post('/routeoptimize/getGraphhopperRoute', getgraphhopperRoute);
 adminRouter.get('/routeoptimize/getSegmentRoute', getSegmentRoutes);
+adminRouter.put('/routeoptimize/updateCustomer', updateCustomerInfoController);
 adminRouter.get("/orderCount", getOrderCount);
 
 

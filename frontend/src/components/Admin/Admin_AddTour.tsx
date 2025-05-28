@@ -16,7 +16,9 @@ import AdminOrderTable from './Admin_OrderTable';
 import CreateTourModal from './Admin_CreateTourModal';
 import { LogisticOrder } from './AdminServices/latestOrderServices';
 import "./css/Admin_common.css";
+
 const Admin_AddTour = () => {
+  
   const [selectedZipcodes, setSelectedZipcodes] = useState<string[]>([]);
   const [selectedOrders, setSelectedOrders] = useState<number[]>([]); 
   const [ordersData, setOrdersData] = useState<LogisticOrder[]>([]);
@@ -24,6 +26,7 @@ const Admin_AddTour = () => {
   const [modalConfig, setModalConfig] = useState<{
     open: boolean;
     warehouseId?: number;
+    orderIds?: number[];
   }>({ open: false });
 
   const [alertOpen, setAlertOpen] = useState(false);
@@ -47,14 +50,16 @@ const Admin_AddTour = () => {
         setAlertOpen(true);
         // setModalConfig({ open: true, warehouseId: firstWarehouseId });
         return;
-    }
-    if (!allSameWarehouse) {
-      setAlertMessage('All selected orders must be from the same warehouse.');
-      setAlertSeverity('warning');
-      setAlertOpen(true);
-      return;
-    }
-    setModalConfig({ open: true, warehouseId: firstWarehouseId });
+      }
+      if (!allSameWarehouse) {
+        setAlertMessage('All selected orders must be from the same warehouse.');
+        setAlertSeverity('warning');
+        setAlertOpen(true);
+        return;
+      }
+      
+      console.log('Selected Orders:', selectedOrders);
+    setModalConfig({ open: true, warehouseId: firstWarehouseId , orderIds: selectedOrders });
 
   };
 
@@ -107,11 +112,11 @@ const Admin_AddTour = () => {
                 textTransform: 'none',
                 fontWeight: '500',
                 background: theme.palette.primary.gradient,
-                color: "#fff",
+                color: theme.palette.primary.contrastText,
                 transition: "all 0.3s ease",
                 "&:hover": {
-                  background: "#fff",
-                  color: theme.palette.primary.dark,
+                  background: theme.palette.primary.dark,
+                  color: theme.palette.primary.contrastText,
                 }                
               })}
             >
@@ -135,7 +140,7 @@ const Admin_AddTour = () => {
         open={modalConfig.open}
         warehouseId={modalConfig.warehouseId}
         handleClose={() => setModalConfig({ open: false })}
-        orderIds={selectedOrders}
+        orderIds={modalConfig.orderIds}
       />
       {/* Centered Alert Notification */}
       {alertOpen && (

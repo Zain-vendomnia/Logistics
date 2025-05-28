@@ -48,6 +48,7 @@ const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
         { text: "Dashboard", icon: <DashboardIcon />, path: "/admin_dashboard" },
         { text: "Add Tour", icon: <TourIcon />, path: "/Admin_AddTour" },
         { text: "Tour Templates", icon: <TourOutlinedIcon />, path: "/Admin_TourTemplates" },
+        { text: "Manage Tours", icon: <TourIcon />, path: "/manage_tours" },
         { text: "Manage Drivers", icon: <DirectionsBusFilled />, path: "/manage_drivers" },
         { text: "Manage Warehouse", icon: <Warehouse />, path: "/manage_warehouse" },
         // { text: "Driver Register", icon: <Warehouse />, path: "/register" },

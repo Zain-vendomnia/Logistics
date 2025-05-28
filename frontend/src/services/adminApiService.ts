@@ -45,6 +45,24 @@ const getOrderCount = async (): Promise<number> => {
   }
 };
 
+const checkDriverRest = async (driverId: number) => {
+  try {
+    const response = await axios.get(
+      `http://localhost:8080/api/admin/drivers/check-eligibility/${driverId}`,
+      { headers: authHeader() }
+    );
+    return response.data; // This should include nextTourEligible, message, restHours, etc.
+  } catch (error) {
+    console.error(`Error checking rest for driver ${driverId}:`, error);
+    throw error;
+  }
+};
+
+const updateCustomerInfo = (customerData: Record<string, any>) =>
+  axios.put(`http://localhost:8080/api/admin/routeoptimize/updateCustomer`, customerData, {
+    headers: authHeader()
+  });
+
 const adminApiService = {
   fetchRouteData,
   fetchOrderTourCount,
@@ -58,6 +76,8 @@ const adminApiService = {
   fetchRouteSegmentData,
   updateTour,
   getOrderCount,
+  checkDriverRest,
+  updateCustomerInfo
 };
 
 export default adminApiService;

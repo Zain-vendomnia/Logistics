@@ -8,6 +8,7 @@ import {
   updateDriver,
   deleteDriver,
   deleteMultipleDrivers,
+  checkDriverEligibility
 } from "../controller/Admin_Api/driverController";
 
 const router = express.Router();
@@ -21,5 +22,8 @@ router.post("/", createDriver);
 router.put("/:id", updateDriver);
 router.delete("/:id", deleteDriver);
 router.post("/delete-multiple", deleteMultipleDrivers);
+
+router.get("/check-eligibility/:driverId", checkDriverEligibility);
+
 
 export default router;

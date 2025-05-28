@@ -14,37 +14,37 @@ import {
   CircularProgress,
   Box,
   Avatar,
+  InputAdornment,
 } from "@mui/material";
+
+import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 
 type Props = {}
 
 const Login: React.FC<Props> = () => {
-  let navigate: NavigateFunction = useNavigate();
-
+  const navigate: NavigateFunction = useNavigate();
   const [loading, setLoading] = useState<boolean>(false);
   const [message, setMessage] = useState<string>("");
 
-  const initialValues: {
-    username: string;
-    password: string;
-  } = {
-    username: "",
+  const initialValues = {
+    email: "",
     password: "",
   };
 
   const validationSchema = Yup.object().shape({
-    username: Yup.string().required("This field is required!"),
+    email: Yup.string().email("Invalid email format").required("This field is required!"),
     password: Yup.string().required("This field is required!"),
   });
 
-  const handleLogin = (formValue: { username: string; password: string }) => {
-    const { username, password } = formValue;
+  const handleLogin = (formValue: { email: string; password: string }) => {
+    const { email, password } = formValue;
 
     setMessage("");
     setLoading(true);
 
-    login(username, password).then(
+    login(email, password).then(
       () => {
         const user = AuthService.getCurrentUser();
         localStorage.setItem("user", JSON.stringify(user));
@@ -60,9 +60,7 @@ const Login: React.FC<Props> = () => {
       },
       (error) => {
         const resMessage =
-          (error.response &&
-            error.response.data &&
-            error.response.data.message) ||
+          (error.response?.data?.message) ||
           error.message ||
           error.toString();
         setLoading(false);
@@ -99,12 +97,20 @@ const Login: React.FC<Props> = () => {
                 <Box mb={2}>
                   <Field
                     as={TextField}
-                    name="username"
-                    label="Username"
+                    name="email"
+                    label="Email"
+                    type="email"
                     fullWidth
                     variant="outlined"
-                    error={touched.username && Boolean(errors.username)}
-                    helperText={<ErrorMessage name="username" />}
+                    error={touched.email && Boolean(errors.email)}
+                    helperText={<ErrorMessage name="email" />}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <EmailOutlinedIcon />
+                        </InputAdornment>
+                      ),
+                    }}
                   />
                 </Box>
                 <Box mb={2}>
@@ -117,6 +123,13 @@ const Login: React.FC<Props> = () => {
                     variant="outlined"
                     error={touched.password && Boolean(errors.password)}
                     helperText={<ErrorMessage name="password" />}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <LockOutlinedIcon />
+                        </InputAdornment>
+                      ),
+                    }}
                   />
                 </Box>
                 <Box mb={2}>

@@ -139,6 +139,7 @@ const ManageWarehouses = () => {
       field: "actions",
       headerName: "Actions",
       width: 160,
+       headerAlign: "center", 
       sortable: false,
       filterable: false,
       renderCell: (params) => (

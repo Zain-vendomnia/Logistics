@@ -78,15 +78,14 @@ export async function signup(req: Request, res: Response) {
 }
 
 
-
 export async function login(req: Request, res: Response) {
   try {
-    const { username, password } = req.body;
+    const { email, password } = req.body;
 
-    // 1) Authenticate
+    // 1) Authenticate by email
     const [users] = await pool.query<RowDataPacket[]>(
-      "SELECT * FROM users WHERE username = ?",
-      [username]
+      "SELECT * FROM users WHERE email = ?",
+      [email]
     );
 
     if (users.length === 0) {
@@ -95,19 +94,25 @@ export async function login(req: Request, res: Response) {
 
     const user = users[0];
 
+    // 2) Check if the user is active
+    if (user.is_active === 0) {
+      return res.status(403).json({ message: "Account is inactive. Please contact support." });
+    }
+
+    // 3) Verify password
     const isPasswordCorrect = await bcrypt.compare(password, user.password);
     if (!isPasswordCorrect) {
       return res.status(400).json({ message: "Incorrect password" });
     }
 
-    // 2) Generate JWT
-   const accessToken = jwt.sign(
-    { user_id: user.user_id, role: user.role },
-    config.SECRET,
-    { expiresIn: "1h" }  // Token valid for 2 minutes
-  );
+    // 4) Generate JWT
+    const accessToken = jwt.sign(
+      { user_id: user.user_id, role: user.role },
+      config.SECRET,
+      { expiresIn: "1h" }
+    );
 
-    // 3) If driver, fetch today’s tour
+    // 5) If driver, fetch today’s tour
     let todayTour: {
       tour_id: number | null;
       tour_date: string | null;
@@ -115,7 +120,6 @@ export async function login(req: Request, res: Response) {
     } | null = null;
 
     if (user.role === "driver") {
-      // Get driver_id from driver_details
       const [drivers] = await pool.query<RowDataPacket[]>(
         "SELECT id FROM driver_details WHERE user_id = ?",
         [user.user_id]
@@ -124,7 +128,6 @@ export async function login(req: Request, res: Response) {
       if (drivers.length > 0) {
         const driverId = drivers[0].id;
 
-        // Check for today's assigned tour
         const [tours] = await pool.query<RowDataPacket[]>(
           `SELECT 
              tour_id, 
@@ -156,7 +159,7 @@ export async function login(req: Request, res: Response) {
       }
     }
 
-    // 4) Return response
+    // 6) Return response
     return res.status(200).json({
       accessToken,
       user_id: user.user_id,

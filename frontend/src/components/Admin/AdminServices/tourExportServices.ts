@@ -1,136 +1,128 @@
 import adminApiService from "../../../services/adminApiService";
-import * as XLSX from 'xlsx';  
-
-
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 
 export const exportTours = async (tourIds: string[]) => {
     try {
-        // Validate input
         if (!Array.isArray(tourIds)) {
             throw new Error('tourIds must be an array');
         }
 
         const numericIds = tourIds.map(id => parseInt(id));
-        
-        // Get the export data from the API
         const response = await adminApiService.exportTours(numericIds);
-        
+
         console.log('Exported tours data:', response?.data);
 
-        // Check if response and response.data exists
         if (!response || !response.data) {
             throw new Error('No data received from the API');
         }
 
-        // Access the tours data
         const tours = response.data;
-
         if (!Array.isArray(tours)) {
             throw new Error('Expected array of tours in response data');
         }
 
-        // Prepare data for single sheet
-        const exportData = tours.flatMap((tour: any) => {
-            if (!tour || typeof tour !== 'object') {
-                console.warn('Invalid tour data encountered');
-                return [];
-            }
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Tour Orders');
 
-            // Check if orders exist and is an array
-            if (!tour.orders || !Array.isArray(tour.orders)) {
-                console.warn(`Tour ${tour.id || 'unknown'} has no valid orders array`);
-                return [];
-            }
-            
-            return tour.orders.flatMap((order: any) => {
-                if (!order || typeof order !== 'object') {
-                    console.warn('Invalid order data encountered');
-                    return [];
-                }
+        const headers = [
+            'Tour ID', 'Tour Name', 'Tour Date', 'Tour Start Time', 'Tour End Time', 'Route Color',
+            'Driver Name', 'Driver Mobile', 'Driver Address',
+            'Order ID', 'Order Number', 'Customer ID', 'Customer Number', 'Invoice Amount', 'Order Time', 'Expected Delivery',
+            'First Name', 'Last Name', 'Email', 'Street', 'Zipcode', 'City', 'Phone',
+            'Article Number', 'Quantity', 'Warehouse ID'
+        ];
 
-                // Check if items exist and is an array
-                if (!order.items || !Array.isArray(order.items)) {
-                    console.warn(`Order ${order.order_id || 'unknown'} has no valid items array`);
-                    return [];
-                }
-                
-                return order.items.map((item: any) => ({
-                    // Tour Information
-                    'Tour ID': tour.id || '',
-                    'Tour Name': tour.tour_name || '',
-                    'Tour Date': tour.tour_date || '',
-                    'Tour Start Time': tour.tour_startTime || '',
-                    'Tour End Time': tour.tour_endTime || '',
-                    'Route Color': tour.tour_route_color || '',
-                    
-                    // Driver Information
-                    'Driver Name': tour.driver?.driver_name || '',
-                    'Driver Mobile': tour.driver?.mobile || '',
-                    'Driver Address': tour.driver?.address || '',
-                    
-                    // Order Information
-                    'Order ID': order.order_id || '',
-                    'Order Number': order.order_number || '',
-                    'Customer ID': order.customer_id || '',
-                    'Customer Number': order.customer_number || '',
-                    'Invoice Amount': order.invoice_amount || '',
-                    'Order Time': order.order_time || '',
-                    'Expected Delivery': order.expected_delivery_time || '',
-                    
-                    // Customer Information
-                    'First Name': order.firstname || '',
-                    'Last Name': order.lastname || '',
-                    'Email': order.email || '',
-                    'Street': order.street || '',
-                    'Zipcode': order.zipcode || '',
-                    'City': order.city || '',
-                    'Phone': order.phone || '',
-                    
-                    // Item Information
-                    'Article Number': item.slmdl_articleordernumber || '',
-                    'Quantity': item.quantity || '',
-                    
-                    // Warehouse
-                    'Warehouse ID': order.warehouse_id || ''
-                }));
+        // Add header row
+        const headerRow = worksheet.addRow(headers);
+
+        // Style header row
+        headerRow.eachCell((cell) => {
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'ED6508' }, // Red background
+            };
+            cell.font = {
+                color: { argb: 'FFFFFF' }, // White font
+                bold: true,
+            };
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        });
+
+        // Populate data rows
+        tours.forEach((tour: any) => {
+            if (!tour?.orders) return;
+            tour.orders.forEach((order: any) => {
+                if (!order?.items) return;
+                order.items.forEach((item: any) => {
+                    const rowData = [
+                        tour.id || '',
+                        tour.tour_name || '',
+                        tour.tour_date || '',
+                        tour.tour_startTime || '',
+                        tour.tour_endTime || '',
+                        tour.tour_route_color || '',
+                        tour.driver?.driver_name || '',
+                        tour.driver?.mobile || '',
+                        tour.driver?.address || '',
+                        order.order_id || '',
+                        order.order_number || '',
+                        order.customer_id || '',
+                        order.customer_number || '',
+                        order.invoice_amount || '',
+                        order.order_time || '',
+                        order.expected_delivery_time || '',
+                        order.firstname || '',
+                        order.lastname || '',
+                        order.email || '',
+                        order.street || '',
+                        order.zipcode || '',
+                        order.city || '',
+                        order.phone || '',
+                        item.slmdl_articleordernumber || '',
+                        item.quantity || '',
+                        order.warehouse_id || ''
+                    ];
+
+                    const row = worksheet.addRow(rowData);
+
+                    // Highlight Phone column (index 22 = position 23) if empty
+                    if (!order.phone) {
+                        const phoneCell = row.getCell(23);
+                        phoneCell.fill = {
+                            type: 'pattern',
+                            pattern: 'solid',
+                            fgColor: { argb: 'FFFF0000' }, // Red
+                        };
+                        phoneCell.font = {
+                            color: { argb: 'FFFFFFFF' }, // White
+                        };
+                    }
+                });
             });
         });
 
-        // Check if we have any data to export
-        if (exportData.length === 0) {
-            throw new Error('No valid data to export');
+        if (worksheet.columns) {
+            worksheet.columns.forEach((column) => {
+                let maxLength = 10;
+                column.eachCell?.({ includeEmpty: true }, (cell) => {
+                    const cellText = cell.value ? cell.value.toString() : '';
+                    maxLength = Math.max(maxLength, cellText.length);
+                });
+                column.width = maxLength + 2;
+            });
         }
-
-        // Create a new workbook with single sheet
-        const workbook = XLSX.utils.book_new();
-        const worksheet = XLSX.utils.json_to_sheet(exportData);
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Tour Orders");
-
-        // Generate Excel file
-        const excelBuffer = XLSX.write(workbook, { 
-            bookType: 'xlsx', 
-            type: 'array' 
+        // Create Excel file
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         });
-        
-        // Create Blob and download
-        const blob = new Blob([excelBuffer], { 
-            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
-        });
-        
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `tours_export_${new Date().toISOString().slice(0, 10)}.xlsx`;
-        
-        document.body.appendChild(link);
-        link.click();
-        
-        // Clean up
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+
+        saveAs(blob, `tours_export_${new Date().toISOString().slice(0, 10)}.xlsx`);
         return tours;
     } catch (error) {
-        console.error('Error exporting tours:', error);
+        console.error('Error exporting tours with ExcelJS:', error);
         throw error;
-    } 
+    }
 };
