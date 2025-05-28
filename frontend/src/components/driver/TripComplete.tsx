@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   Box,
@@ -12,14 +12,65 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import PublishIcon from "@mui/icons-material/Publish";
 import Camera from "../common/Camera";
 
-const imageChecklist = ["Truck Image", "Odometer Image"];
+import { resetDeliveryStore } from "../../utils/resetDeliveryStore";
+import {
+  NotificationSeverity,
+  useNotificationStore,
+} from "../../store/useNotificationStore";
+import CustomInputField from "../delivery/CustomInputField";
+import { ImageType } from "../../hooks/useCameraCapture";
+
+type ImageChecklistItem = {
+  title: string;
+  imageType: ImageType;
+  requiredInputValue?: boolean;
+};
+
+const imageChecklist: ImageChecklistItem[] = [
+  { title: "Truck Image", imageType: ImageType.TruckImage_TripEnd },
+  {
+    title: "Odometer Image",
+    imageType: ImageType.Millage_TripEnd,
+    requiredInputValue: true,
+  },
+  { title: "Fuel Receipt", imageType: ImageType.GasReceipt },
+];
 
 const TripComplete = () => {
+  const iconSize = "6rem";
+
+  const [millageValue, setMillageValue] = useState<string>("");
+  const [shouldShowInputField, setShouldShowInputField] = useState(false);
+  const [showInputFieldAlert, setShowInputFieldAlert] = useState(false);
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [componentStatus, setComponentStatus] = useState<boolean[]>(
     new Array(imageChecklist.length).fill(false)
   );
   const [isAllComplied, setIsAllComplied] = useState(false);
+  const [isCameraDisabled, setIsCameraDisabled] = useState(false);
+
+  useEffect(() => {
+    const requiresInput = imageChecklist[currentIndex]?.requiredInputValue;
+
+    if (requiresInput) {
+      setShouldShowInputField(requiresInput);
+      setIsCameraDisabled(requiresInput);
+      if (millageValue.length > 1) {
+        setIsCameraDisabled(false);
+      } else {
+        setIsCameraDisabled(true);
+      }
+    } else {
+      setIsCameraDisabled(false);
+      setShouldShowInputField(false);
+    }
+
+    if (showInputFieldAlert) {
+      setShowInputFieldAlert(false);
+    }
+  }, [currentIndex, millageValue, showInputFieldAlert]);
+
   useEffect(() => {
     if (componentStatus.every((s) => s === true)) {
       setIsAllComplied(true);
@@ -41,14 +92,89 @@ const TripComplete = () => {
     }
   };
 
+  const handleInputValue = (value: string) => {
+    setMillageValue(value);
+  };
+  const { showNotification } = useNotificationStore();
+
+  const handleTripComplete = () => {
+    setTimeout(() => {
+      resetDeliveryStore();
+    }, 2000);
+
+    showNotification({
+      message: "Trip completed!",
+      severity: NotificationSeverity.Success,
+    });
+  };
+
+  const debouncedcallRef = useRef(0);
+  const checkCameraEnable = () => {
+    if (!shouldShowInputField) return;
+
+    const currentCall = Date.now();
+
+    if (currentCall - debouncedcallRef.current < 4000) return;
+
+    if (shouldShowInputField && !millageValue) {
+      showNotification({
+        message:
+          "Please enter the odometer reading before uploading the image.",
+        severity: NotificationSeverity.Warning,
+      });
+      setShowInputFieldAlert(true);
+
+      debouncedcallRef.current = currentCall;
+    }
+  };
+
   return (
     <Grid2 container spacing={0} p={0} height={"100%"}>
       <Grid2 height={"100%"} bgcolor={"#00695f"} size={{ sm: 8, md: 9, lg: 9 }}>
-        <Camera
-          buttonText={imageChecklist[currentIndex]}
-          isComplied={isAllComplied}
-          onImageUploaded={handleImageUploaded}
-        />
+        <Box
+          height="100%"
+          display={"flex"}
+          alignItems={"center"}
+          justifyContent={"center"}
+        >
+          <Stack spacing={4} p={4} height={"100%"}>
+            {shouldShowInputField && (
+              <Box display={"flex"} width="100%">
+                <CustomInputField
+                  label="Km's driven"
+                  placeholder="000000000"
+                  blinkAlert={showInputFieldAlert}
+                  onChange={handleInputValue}
+                />
+              </Box>
+            )}
+
+            <Box height={"100%"} onClick={checkCameraEnable}>
+              <Box
+                sx={{
+                  height: "100%",
+                  pointerEvents: "auto",
+                  ...(shouldShowInputField &&
+                    !millageValue && {
+                      cursor: "not-allowed",
+                      pointerEvents: "none",
+                      opacity: 0.5,
+                    }),
+                }}
+              >
+                <Camera
+                  type={imageChecklist[currentIndex].imageType}
+                  millage={millageValue ?? null}
+                  buttonText={
+                    imageChecklist[currentIndex]?.title ?? "Upload Image"
+                  }
+                  isComplied={isAllComplied}
+                  onImageUploaded={handleImageUploaded}
+                />
+              </Box>
+            </Box>
+          </Stack>
+        </Box>
       </Grid2>
       <Grid2 height={"100%"} bgcolor={"#009688"} size={{ sm: 4, md: 3, lg: 3 }}>
         <Stack
@@ -58,7 +184,7 @@ const TripComplete = () => {
           height={"100%"}
           py={4}
         >
-          {imageChecklist.map((value, index) => (
+          {imageChecklist.map((item, index) => (
             <Box
               key={index}
               display="flex"
@@ -103,7 +229,7 @@ const TripComplete = () => {
                         boxShadow: 3,
                       }}
                     >
-                      <PublishIcon sx={{ fontSize: "6rem" }} />
+                      <PublishIcon sx={{ fontSize: iconSize }} />
                     </Box>
 
                     <Box
@@ -123,20 +249,20 @@ const TripComplete = () => {
                         boxShadow: 3,
                       }}
                     >
-                      <CheckCircleIcon sx={{ fontSize: "6rem" }} />
+                      <CheckCircleIcon sx={{ fontSize: iconSize }} />
                     </Box>
                   </Box>
                 </Box>
               </IconButton>
-              <Typography variant="h5">{value}</Typography>
+              <Typography variant="h5">{item.title}</Typography>
             </Box>
           ))}
 
           <Button
             disabled={!isAllComplied}
             variant="contained"
+            onClick={handleTripComplete}
             sx={{
-              //   position: "relative",
               padding: "6px 12px",
               borderRadius: 2,
               width: "12rem",

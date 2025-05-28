@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Avatar, Box, Divider, Stack, Typography } from "@mui/material";
 import { grey } from "@mui/material/colors";
@@ -6,6 +6,8 @@ import { grey } from "@mui/material/colors";
 import ContactIcons from "./Contact_Icons";
 import MessageBox from "./Message_Box";
 import { useDeliveryStore } from "../../store/useDeliveryStore";
+import { motion } from "framer-motion";
+import { fade, shake, slideUp } from "../base - ui/motionPresets";
 
 const ClientDetails = () => {
   const store = useDeliveryStore();
@@ -29,19 +31,30 @@ const ClientDetails = () => {
               height: "48px",
             }}
           />
+
           <Stack spacing={0}>
-            <Typography variant="body1" fontWeight={"bold"} color={grey[800]}>
-              Customer
-            </Typography>
-            <Typography variant="body1" fontSize={"large"}>
-              {tripData?.client.name}
-            </Typography>
+            <motion.div variants={fade} initial="hidden" animate="visible">
+              <motion.div variants={slideUp}>
+                <Typography
+                  variant="body1"
+                  fontWeight={"bold"}
+                  color={grey[800]}
+                >
+                  Customer
+                </Typography>
+                <Typography variant="body1" fontSize={"large"}>
+                  {tripData?.client.name}
+                </Typography>
+              </motion.div>
+            </motion.div>
           </Stack>
         </Box>
 
-        <ContactIcons
-          onMessageClicked={() => setShowMessageBox(!showMessageBox)}
-        />
+        <motion.div variants={shake} initial="initial" animate="animate">
+          <ContactIcons
+            onMessageClicked={() => setShowMessageBox(!showMessageBox)}
+          />
+        </motion.div>
       </Box>
       {showMessageBox && (
         <MessageBox onClose={() => setShowMessageBox(false)} />

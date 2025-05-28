@@ -11,6 +11,8 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../providers/AuthProvider";
 import EventBus from "../../common/EventBus";
 import PersonIcon from "@mui/icons-material/Person";
+import DashboardIcon from "@mui/icons-material/Dashboard";
+
 const style = {
   navButton: {
     color: "#fff",
@@ -117,10 +119,18 @@ const NavBar: React.FC = () => {
               </>
             )}
             {showDriverBoard && (
-              <Button sx={style.navButton} component={Link} to="/profile">
-                <PersonIcon sx={{ mr: 0.5 }} />
-                Profile
-              </Button>
+              <>
+                {location.pathname !== "/driver" && (
+                  <Button sx={style.navButton} component={Link} to="/driver">
+                    <DashboardIcon sx={{ mr: 0.5 }} />
+                    Dashboard
+                  </Button>
+                )}
+                <Button sx={style.navButton} component={Link} to="/profile">
+                  <PersonIcon sx={{ mr: 0.5 }} />
+                  Profile
+                </Button>
+              </>
             )}
             <Button
               sx={style.navButton}

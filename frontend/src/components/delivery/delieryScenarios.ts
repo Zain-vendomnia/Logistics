@@ -13,10 +13,12 @@ export type DeliveryStep =
   | "captureCustomerSignature"
   | "findCustomer"
   | "findNeighbor"
+  | "getNeighborDetails"
   | "captureNeighborDoorstepImage"
   | "captureNeighborSignature"
   | "showContactPromptAlert"
   | "showFindNeighborPromptAlert"
+  | "showFindNeighborNotification"
   | "waitForResponse"
   | "returnToWarehouse";
 
@@ -36,6 +38,7 @@ export const deliveryScenarios: Record<DeliveryScenario, DeliveryStep[]> = {
   [DeliveryScenario.customerNotFound]: [
     "captureDoorstepImage",
     "showContactPromptAlert",
+    "showFindNeighborNotification",
     // wait untill customer is communicated
     // "showFindNeighborPromptAlert",
     "findNeighbor",
@@ -54,6 +57,7 @@ export const deliveryScenarios: Record<DeliveryScenario, DeliveryStep[]> = {
 
   [DeliveryScenario.neighborAccepts]: [
     "captureDoorstepImage",
+    "getNeighborDetails",
     "captureNeighborDoorstepImage",
     "captureParcelImage",
     "captureNeighborSignature",

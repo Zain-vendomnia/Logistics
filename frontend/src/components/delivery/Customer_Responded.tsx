@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { ChangeEvent, useState } from "react";
 
 import {
   Alert,
@@ -13,6 +13,7 @@ import {
   IconButton,
   Radio,
   RadioGroup,
+  Slide,
   Snackbar,
   Typography,
 } from "@mui/material";
@@ -73,11 +74,14 @@ const CustomerResponded = ({ onComplete }: Props) => {
       onComplete(false);
     }
   };
-  const handleResponseSelection = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setSelectedResponse(event.target.value);
-    console.log("Customer Responded Scenario: ", event.target.value);
+
+  const handleResponseSelection = (e: ChangeEvent<HTMLInputElement>) => {
+    setSelectedResponse(e.target.value);
+    console.log("Customer Responded Scenario: ", e.target.value);
+  };
+
+  const slideTransition = (props: any) => {
+    return <Slide {...props} direction="left" />;
   };
 
   return (
@@ -85,12 +89,14 @@ const CustomerResponded = ({ onComplete }: Props) => {
       <Snackbar
         open={showAlert}
         anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        slots={{ transition: slideTransition }}
+        sx={{ mt: 4 }}
       >
         <Alert
           icon={false}
           variant="filled"
           severity={"info"}
-          sx={{ minWidth: "290px", mt: 8 }}
+          sx={{ minWidth: "290px", mt: 8, borderRadius: 2 }}
           // onClose={handleClose}
           // action={actionButton}
         >
@@ -154,7 +160,7 @@ const CustomerResponded = ({ onComplete }: Props) => {
           </DialogContent>
           <DialogActions>
             <Button autoFocus onClick={handleDialogueClose} color="primary">
-              Save
+              Proceed
             </Button>
           </DialogActions>
         </Dialog>

@@ -60,7 +60,8 @@ const themeOptions: ThemeOptions = {
     h1: { fontSize: "2rem", fontWeight: 600 },
     h2: { fontSize: "1.8rem", fontWeight: 600 },
     h3: { fontSize: "1.5rem", fontWeight: 500 },
-    body1: { fontSize: "1rem" },
+    body1: { fontSize: "1.25rem" },
+    body2: { fontSize: "1rem" },
   },
   components: {
     MuiContainer: {

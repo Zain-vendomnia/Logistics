@@ -3,7 +3,6 @@ import { useLocation } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import useTokenValidation from "./utility/validateToken";
 import "./App.css";
-import SnackbarProvider from "./providers/SnackbarProvider";
 import GlobalChecksProvider from "./providers/GlobalChecksProvider";
 
 import { AuthProvider } from "./providers/AuthProvider";
@@ -11,6 +10,7 @@ import AppRoutes from "./AppRoutes";
 import NavBar from "./components/layout/NavBar";
 import Sidebar from "./components/layout/Sidebar";
 import { Box } from "@mui/material";
+import { NotificationManager } from "./components/Notification";
 
 const App: React.FC = () => {
   useTokenValidation();
@@ -19,7 +19,8 @@ const App: React.FC = () => {
     location.pathname.toLocaleLowerCase()
   );
   return (
-    <SnackbarProvider>
+    <>
+      <NotificationManager />
       <GlobalChecksProvider>
         <AuthProvider>
           <Box
@@ -43,7 +44,7 @@ const App: React.FC = () => {
           </Box>
         </AuthProvider>
       </GlobalChecksProvider>
-    </SnackbarProvider>
+    </>
   );
 };
 

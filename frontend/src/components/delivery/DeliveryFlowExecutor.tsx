@@ -4,6 +4,12 @@ import { DeliveryStepRenderer } from "./DeliveryStepRenderer";
 import { useDeliveryStore } from "../../store/useDeliveryStore";
 import { useTripLifecycle } from "../../hooks/useTripLifecycle";
 import { useScenarioExecutor } from "../../hooks/useScenarioExecutor";
+import { useEffect } from "react";
+import {
+  NotificationSeverity,
+  useNotificationStore,
+} from "../../store/useNotificationStore";
+import { useDelayStep } from "../../hooks/useDelayStep";
 
 const Style = {
   container: {
@@ -24,11 +30,25 @@ const Style = {
   },
 };
 
+const externalSteps: DeliveryStep[] = [
+  "findCustomer",
+  "findNeighbor",
+  "showContactPromptAlert",
+  "showFindNeighborPromptAlert",
+  "showFindNeighborNotification",
+  "getNeighborDetails",
+  "waitForResponse",
+];
+
 interface Props {
   scenarioKey: DeliveryScenario;
+  completeButtonActivated: (active: boolean) => void;
 }
 
-export const DeliveryFlowExecutor = ({ scenarioKey }: Props) => {
+export const DeliveryFlowExecutor = ({
+  scenarioKey,
+  completeButtonActivated,
+}: Props) => {
   const store = useDeliveryStore();
   const { actionsCompleted } = store;
 
@@ -42,13 +62,29 @@ export const DeliveryFlowExecutor = ({ scenarioKey }: Props) => {
     handleStepComplete,
   } = useScenarioExecutor({ scenarioKey });
 
-  const externalSteps: DeliveryStep[] = [
-    "findCustomer",
-    "findNeighbor",
-    "showContactPromptAlert",
-    "showFindNeighborPromptAlert",
-    "waitForResponse",
-  ];
+  const { showNotification } = useNotificationStore();
+
+  useEffect(() => {
+    if (currentStep === "showFindNeighborNotification") {
+      const timer = setTimeout(() => {
+        showNotification({
+          message: "Find Neighbors around who can accept deliery for customer.",
+          severity: NotificationSeverity.Success,
+        });
+        setTimeout(() => {
+          handleStepComplete();
+        }, 9000);
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [currentStep]);
+
+  useEffect(() => {
+    if (orderCompleteButton === true) {
+      completeButtonActivated(true);
+    }
+  }, [orderCompleteButton]);
 
   if (!stepsToRender.length) return null;
   return (
@@ -86,9 +122,9 @@ export const DeliveryFlowExecutor = ({ scenarioKey }: Props) => {
             sx={{
               ...Style.completeButton,
               ...(orderCompleteButton &&
-              currentIndex !== stepsToRender.length -1
-              // currentIndex < stepsToRender.length - 1
-                ? { pointerEvents: "none", opacity: "50%" }
+              currentIndex !== stepsToRender.length - 1
+                ? // currentIndex < stepsToRender.length - 1
+                  { pointerEvents: "none", opacity: "50%" }
                 : { pointerEvents: "auto" }),
             }}
             onClick={

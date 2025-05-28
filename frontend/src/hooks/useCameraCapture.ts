@@ -1,8 +1,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { debounce } from "lodash";
 import { uploadImage } from "../utils/upload_Image";
-import { useSnackbar } from "../providers/SnackbarProvider";
 // import { uploadImage } from "../../services/trip_Service";
+
+export enum ImageType {
+  LoadCargo_TripStart = "loadCargoTripStart",
+  Millage_TripStart = "millageTripStart",
+  Millage_TripEnd = "millageTripEnd",
+  TruckImage_TripEnd = "truckImageTripEnd",
+  GasReceipt = "gasReceipt",
+  ParcelImage = "parcelImage",
+  ParcelImage_Damaged = "parcelImageDamaged",
+  Customer_Doorstep = "customerDoorstep",
+  Neighbor_Doorstep = "neighborDoorstep",
+  Customer_Signature = "customerSignature",
+  Neighbor_Signature = "neighborSignature",
+  PermitScreenshot = "permitScreenshot",
+}
 
 export type CameraState = {
   active: boolean;
@@ -11,11 +25,13 @@ export type CameraState = {
   uploaded: boolean;
 };
 
-export const useCameraCapture = (
-  onComplete?: (imageUploaded: boolean) => void
-) => {
-  const { showSnackbar } = useSnackbar();
+type Props = {
+  type: ImageType;
+  millage?: string;
+  onComplete?: (imageUploaded: boolean) => void;
+};
 
+export const useCameraCapture = ({ type, millage, onComplete }: Props) => {
   const webcamRef = useRef<any>(null);
   const lastUploadedImageRef = useRef<string | null>(null);
 
@@ -47,7 +63,9 @@ export const useCameraCapture = (
         updateCameraState("uploading", false);
         updateCameraState("uploaded", true);
 
-        console.log("Uploaded Image: ", imageSrc);
+        console.log("Image data: ", imageSrc);
+        console.log("Image type: ", type);
+        millage && console.log("Millage passed: ", millage);
 
         onComplete?.(true);
       }, 3000);

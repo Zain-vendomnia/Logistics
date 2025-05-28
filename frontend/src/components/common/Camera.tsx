@@ -3,28 +3,29 @@ import CloseIcon from "@mui/icons-material/Close";
 import CircularProgress from "@mui/material/CircularProgress";
 import CameraIcon from "@mui/icons-material/Camera";
 import Webcam from "react-webcam";
-import { useCameraCapture } from "../../hooks/useCameraCapture";
+import { ImageType, useCameraCapture } from "../../hooks/useCameraCapture";
 import { useEffect } from "react";
 
 interface Props {
+  type: ImageType;
+  millage?: string;
   buttonText: string;
   isComplied: boolean;
   onImageUploaded: (isDone: boolean) => void;
 }
 
-const Camera = ({ buttonText, isComplied, onImageUploaded }: Props) => {
+const Camera = ({ type, millage, buttonText, isComplied, onImageUploaded }: Props) => {
   const {
     webcamRef,
     cameraState,
     updateCameraState,
     handleButtonClick,
     retakeImage,
-    captureImage,
-    uploadImageAsync,
     clearCamera,
-  } = useCameraCapture();
+  } = useCameraCapture({type, millage});
 
   useEffect(() => {
+    console.log("isComplied: ", isComplied);
     if (cameraState.uploaded) {
       onImageUploaded(true);
 
@@ -48,7 +49,7 @@ const Camera = ({ buttonText, isComplied, onImageUploaded }: Props) => {
         flexDirection={"column"}
         alignItems={"center"}
         justifyContent={"center"}
-        gap={5}
+        gap={4}
       >
         {/* Camera */}
         <Box
@@ -69,14 +70,15 @@ const Camera = ({ buttonText, isComplied, onImageUploaded }: Props) => {
           }}
         >
           {!cameraState.active && !cameraState.captured && (
-            <CameraIcon
-              onClick={handleButtonClick}
-              sx={{
-                fontSize: "12rem",
-                opacity: "0.5",
-                "&:hover": { cursor: "pointer" },
-              }}
-            />
+            <IconButton onClick={handleButtonClick} disabled={isComplied}>
+              <CameraIcon
+                sx={{
+                  fontSize: "12rem",
+                  opacity: "0.5",
+                  "&:hover": { cursor: "pointer" },
+                }}
+              />
+            </IconButton>
           )}
 
           {cameraState.active && (

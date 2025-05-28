@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   Box,
@@ -11,40 +11,50 @@ import {
   Slide,
   Snackbar,
   Stack,
+  Tooltip,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import ClearAllIcon from "@mui/icons-material/ClearAll";
+import LeafletMaps from "../common/leaflet_Map/Leaflet_Maps";
+// import GoogleMaps from "../common/GoogleMaps";
 
-import { useSnackbar } from "../../providers/SnackbarProvider";
 import ShippingDetails from "./Shipping_Details";
 import Delivery from "../delivery/Delivery";
+import PreTripChecks from "./PreTripChecks";
 
 import useStyles from "./Dashboard_style";
-import LeafletMaps from "../common/leaflet_Map/Leaflet_Maps";
 import { useDeliveryStore } from "../../store/useDeliveryStore";
-import { DeliveryScenario } from "../delivery/delieryScenarios";
-import { resetDeliveryStore } from "../../utils/resetDeliveryStore";
-import PreTripChecks from "./PreTripChecks";
 import { useTripLifecycle } from "../../hooks/useTripLifecycle";
+import { resetDeliveryStore } from "../../utils/resetDeliveryStore";
+import DeliveryDrawer from "../delivery/Delivery_Drawer";
 
 const Dashboard = () => {
-  const { showSnackbar } = useSnackbar();
-
   const styles = useStyles;
 
   const store = useDeliveryStore();
-  const {
-    tripData,
-    deliveryCompleted,
-    deliveryId,
-    tripDetails,
-    scenarioKey,
-    setScenario,
-    ordersReturnToWareHouse,
-    ordersDeliveredSuccessfully,
-  } = store;
+  const { tripData, deliveryCompleted, deliveryId, tripDetails } = store;
 
-  const { isDeliveryStarted, startNewTrip, handleDriverReachedToDestination } =
+  const { isDeliveryStarted, handleDriverReachedToDestination } =
     useTripLifecycle();
+
+  // const [showDeliveryDrawer, setShowDeliveryDrawer] = useState(false);
+
+  // Dev Helpers
+  // const [showActiveDeliveryScenario, setShowActiveDeliveryScenario] =
+  //   useState(true);
+
+  // useEffect(() => {
+  //   setShowActiveDeliveryScenario(true);
+  // }, [store.scenarioKey, showActiveDeliveryScenario]);
+  // const slideTransition = (props: any) => {
+  //   return <Slide {...props} direction="left" />;
+  // };
+
+  // const snackbarAction = (
+  //   <IconButton onClick={() => setShowActiveDeliveryScenario(false)}>
+  //     <CloseIcon style={{ color: "#fff" }} />
+  //   </IconButton>
+  // );
 
   return (
     <Grid2 container spacing={0} height={"100%"} p={0}>
@@ -56,7 +66,7 @@ const Dashboard = () => {
         <Box
           position={"relative"}
           height={"100%"}
-          p={2}
+          // p={2}
           sx={{
             border: "1px solid #e0e0e0",
             borderRadius: 2,
@@ -113,9 +123,29 @@ const Dashboard = () => {
       </Box>
       </Grid2>
 
-      {/* Dev helpers */}
+      {isDeliveryStarted && <DeliveryDrawer key={deliveryId} />}
 
-      {/* <Fab
+      {/* Dev helpers */}
+      {/* {showActiveDeliveryScenario && (
+        <Snackbar
+          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+          open={true}
+          message={store.scenarioKey}
+          slots={{ transition: slideTransition }}
+          action={snackbarAction}
+          sx={{ marginTop: 4 }}
+          slotProps={{
+            content: {
+              sx: {
+                bgcolor: "secondary.main",
+                color: "white",
+                mt: 0,
+              },
+            },
+          }}
+        />
+      )}
+      <Fab
         onClick={resetDeliveryStore}
         color="primary"
         aria-label="open delivery drawer"
@@ -133,26 +163,6 @@ const Dashboard = () => {
           }}
         />
       </Fab> */}
-      {/* {showActiveDeliveryScenario && (
-          <Snackbar
-            anchorOrigin={{ vertical: "top", horizontal: "right" }}
-            open={true}
-            message={store.scenarioKey}
-            slots={{ transition: SlideTransition }}
-            action={snackbarAction}
-            sx={{ marginTop: 4 }}
-            // onClose={() => setShowActiveDeliveryScenario(false)}
-            slotProps={{
-              content: {
-                sx: {
-                  bgcolor: "info.dark",
-                  color: "white",
-                  mt: 3,
-                },
-              },
-            }}
-          />
-      )} */}
     </Grid2>
   );
 };
