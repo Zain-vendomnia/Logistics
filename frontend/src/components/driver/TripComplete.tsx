@@ -30,7 +30,7 @@ type ImageChecklistItem = {
 const imageChecklist: ImageChecklistItem[] = [
   { title: "Truck Image", imageType: ImageType.TruckImage_TripEnd },
   {
-    title: "Odometer Image",
+    title: "Speedometer",
     imageType: ImageType.Millage_TripEnd,
     requiredInputValue: true,
   },
@@ -129,6 +129,12 @@ const TripComplete = () => {
     }
   };
 
+  const lastValidIndex = Math.max(
+    0,
+    Math.min(currentIndex, imageChecklist.length - 1)
+  );
+  const currentItem = imageChecklist[lastValidIndex];
+
   return (
     <Grid2 container spacing={0} p={0} height={"100%"}>
       <Grid2 height={"100%"} bgcolor={"#00695f"} size={{ sm: 8, md: 9, lg: 9 }}>
@@ -164,11 +170,9 @@ const TripComplete = () => {
                 }}
               >
                 <Camera
-                  type={imageChecklist[currentIndex].imageType}
+                  type={currentItem.imageType}
                   millage={millageValue ?? null}
-                  buttonText={
-                    imageChecklist[currentIndex]?.title ?? "Upload Image"
-                  }
+                  buttonText={currentItem?.title ?? "Upload Image"}
                   isComplied={isAllComplied}
                   onImageUploaded={handleImageUploaded}
                 />
