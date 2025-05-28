@@ -10,7 +10,7 @@ const BoardDriver = () => {
 
   useEffect(() => {
     // if (deliveryId === "M1") {
-    if (deliveryInstanceKey >= 4) {
+    if (deliveryInstanceKey >= 10) {
       updateTripDetails({
         isTripCompleted: true,
         tripCompletedAt: new Date().toUTCString(),
