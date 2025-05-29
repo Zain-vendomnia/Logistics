@@ -70,7 +70,7 @@ export const loadingPulse = {
 
 export const uploading = {
   animate: {
-    y: [0, -70, 70, 0],
+    y: [0, -70, 50, 0],
     opacity: [1, 0, 0, 1],
     transition: {
       duration: 0.9,
