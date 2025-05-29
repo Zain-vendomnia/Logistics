@@ -18,6 +18,8 @@ export interface NotificationProp {
   actions?: ReactNode;
 
   duration?: number;
+
+  onComplete?: () => void;
 }
 
 interface NotificationStore {

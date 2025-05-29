@@ -31,11 +31,13 @@ const Notification = ({
   icon,
   actions,
   duration,
+  onComplete,
 }: Omit<NotificationProp, "id">) => {
   const { showNotification: addNotification } = useNotificationStore();
 
   useEffect(() => {
     addNotification({ title, message, severity, icon, actions, duration });
+    onComplete?.();
   }, []);
 
   return null;

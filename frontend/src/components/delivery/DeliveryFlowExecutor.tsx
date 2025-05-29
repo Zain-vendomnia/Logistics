@@ -9,7 +9,6 @@ import {
   NotificationSeverity,
   useNotificationStore,
 } from "../../store/useNotificationStore";
-import { useDelayStep } from "../../hooks/useDelayStep";
 
 const Style = {
   container: {
@@ -38,6 +37,8 @@ const externalSteps: DeliveryStep[] = [
   "showFindNeighborNotification",
   "getNeighborDetails",
   "waitForResponse",
+  "getRating",
+  "notifyForOrderReturn",
 ];
 
 interface Props {
@@ -50,7 +51,7 @@ export const DeliveryFlowExecutor = ({
   completeButtonActivated,
 }: Props) => {
   const store = useDeliveryStore();
-  const { actionsCompleted } = store;
+  const { actionsCompleted, markStepCompleted } = store;
 
   const { handleOrderComplete, handleOrderReturn } = useTripLifecycle();
 
@@ -60,31 +61,23 @@ export const DeliveryFlowExecutor = ({
     currentIndex,
     currentStep,
     handleStepComplete,
-  } = useScenarioExecutor({ scenarioKey });
+  } = useScenarioExecutor({ scenarioKey, actionsCompleted, markStepCompleted });
 
   const { showNotification } = useNotificationStore();
-
-  useEffect(() => {
-    if (currentStep === "showFindNeighborNotification") {
-      const timer = setTimeout(() => {
-        showNotification({
-          message: "Find Neighbors around who can accept deliery for customer.",
-          severity: NotificationSeverity.Success,
-        });
-        setTimeout(() => {
-          handleStepComplete();
-        }, 9000);
-      }, 1000);
-
-      return () => clearTimeout(timer);
-    }
-  }, [currentStep]);
 
   useEffect(() => {
     if (orderCompleteButton === true) {
       completeButtonActivated(true);
     }
   }, [orderCompleteButton]);
+
+  const getContainerStyle = (currentStep: DeliveryStep | null) => {
+    if (!currentStep || externalSteps.includes(currentStep)) return {};
+    return Style.container;
+  };
+
+  const isCompleteButtonDisabled =
+    orderCompleteButton && currentIndex !== stepsToRender.length - 1;
 
   if (!stepsToRender.length) return null;
   return (
@@ -94,23 +87,25 @@ export const DeliveryFlowExecutor = ({
           display: "flex",
           justifyContent: "center",
           p: 2,
-          ...(externalSteps.includes(currentStep) ? {} : Style.container),
+          ...getContainerStyle(currentStep),
         }}
       >
         {(currentIndex === stepsToRender.length - 1 ||
-          !actionsCompleted[currentStep]) && (
+          (currentStep && !actionsCompleted[currentStep])) && (
           <Box
             sx={
-              actionsCompleted[currentStep] === true
+              currentStep && actionsCompleted[currentStep] === true
                 ? { pointerEvents: "none", opacity: 0.6 }
                 : { pointerEvents: "auto" }
             }
           >
-            <DeliveryStepRenderer
-              key={`${currentStep}-${currentIndex}`}
-              step={currentStep}
-              onComplete={handleStepComplete}
-            />
+            {currentStep && (
+              <DeliveryStepRenderer
+                key={`${currentStep}-${currentIndex}`}
+                step={currentStep}
+                onComplete={handleStepComplete}
+              />
+            )}
           </Box>
         )}
       </Box>
@@ -121,11 +116,10 @@ export const DeliveryFlowExecutor = ({
             variant="contained"
             sx={{
               ...Style.completeButton,
-              ...(orderCompleteButton &&
-              currentIndex !== stepsToRender.length - 1
-                ? // currentIndex < stepsToRender.length - 1
-                  { pointerEvents: "none", opacity: "50%" }
-                : { pointerEvents: "auto" }),
+              ...(isCompleteButtonDisabled && {
+                pointerEvents: "none",
+                opacity: "50%",
+              }),
             }}
             onClick={
               currentStep === "returnToWarehouse" &&

@@ -6,21 +6,29 @@ export enum DeliveryScenario {
   findNeighborNearby = "findNeighborNearby",
   neighborAccepts = "neighborAccepts",
   noAcceptance = "noAcceptance",
+  damagedParcel = "damagedParcel",
+  orderReturn = "orderReturn",
 }
-export type DeliveryStep =
-  | "captureDoorstepImage"
-  | "captureParcelImage"
-  | "captureCustomerSignature"
-  | "findCustomer"
-  | "findNeighbor"
-  | "getNeighborDetails"
-  | "captureNeighborDoorstepImage"
-  | "captureNeighborSignature"
-  | "showContactPromptAlert"
-  | "showFindNeighborPromptAlert"
-  | "showFindNeighborNotification"
-  | "waitForResponse"
-  | "returnToWarehouse";
+
+const deliverySteps = [
+  "captureDoorstepImage",
+  "captureParcelImage",
+  "captureCustomerSignature",
+  "findCustomer",
+  "findNeighbor",
+  "getNeighborDetails",
+  "captureNeighborDoorstepImage",
+  "captureNeighborSignature",
+  "showContactPromptAlert",
+  "showFindNeighborPromptAlert",
+  "showFindNeighborNotification",
+  "waitForResponse",
+  "getRating",
+  "returnToWarehouse",
+  "damagedParcelImage",
+  "notifyForOrderReturn",
+] as const;
+export type DeliveryStep = (typeof deliverySteps)[number];
 
 type ConditionalStep = {
   condition: string;
@@ -34,6 +42,7 @@ export const deliveryScenarios: Record<DeliveryScenario, DeliveryStep[]> = {
     "captureDoorstepImage",
     "captureParcelImage",
     "captureCustomerSignature",
+    // "getRating",
   ],
   [DeliveryScenario.customerNotFound]: [
     "captureDoorstepImage",
@@ -66,5 +75,13 @@ export const deliveryScenarios: Record<DeliveryScenario, DeliveryStep[]> = {
     "captureDoorstepImage",
     // "captureParcelImage", // proof image
     "returnToWarehouse",
+  ],
+  [DeliveryScenario.damagedParcel]: [
+    "captureDoorstepImage",
+    "damagedParcelImage",
+  ],
+  [DeliveryScenario.orderReturn]: [
+    "captureDoorstepImage",
+    "notifyForOrderReturn",
   ],
 };
