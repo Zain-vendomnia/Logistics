@@ -14,6 +14,8 @@ import ParkingPetmitRequest from "./ParkingPetmitRequest";
 import UploadPermitScreenshot from "./UploadPermitScreenshot";
 import ContactSupport from "./ContactSupport";
 
+import StarRating from "../common/Star_Rating";
+
 const DeliveryDrawer = () => {
   const drawerSize = "25vw";
 
@@ -76,6 +78,8 @@ const DeliveryDrawer = () => {
           <Stack spacing={2} p={2}>
             <ParkingPetmitRequest />
             <UploadPermitScreenshot />
+
+            <StarRating />
           </Stack>
 
           <Box mt="auto" p={2}>
