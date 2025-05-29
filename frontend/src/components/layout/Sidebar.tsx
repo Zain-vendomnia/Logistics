@@ -50,6 +50,7 @@ const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
         { text: "Tours", icon: <TourOutlinedIcon />, path: "/Admin_TourTemplates" },
         { text: "Completed Tour", icon: <AltRoute />, path: "/completed_tour" },
         { text: "Live Tour", icon: <Moving />, path: "/live_tours" },
+        { text: "Manage Tours", icon: <TourIcon />, path: "/manage_tours" },
         { text: "Manage Drivers", icon: <DirectionsBusFilled />, path: "/manage_drivers" },
         { text: "Manage Warehouse", icon: <Warehouse />, path: "/manage_warehouse" },
         ]);

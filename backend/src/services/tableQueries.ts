@@ -52,12 +52,12 @@ export const CREATE_TOUR_INFO_MASTER_TABLE = `
     tour_total_km VARCHAR(45) NOT NULL,
     tour_start_fuel_pic BLOB,
     route_color VARCHAR(7) NOT NULL,
+    tour_status VARCHAR(20) NOT NULL DEFAULT 'pending',  -- Added this line
     graphhopper_route JSON,
     tour_status ENUM('pending', 'live', 'confirmed', 'completed') DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (driver_id) REFERENCES driver_details(id) ON DELETE CASCADE
-  );
+    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
+);
 `;
 
 
@@ -92,6 +92,7 @@ export const CREATE_API_RESPONSE_LOG_TABLE = `
     FOREIGN KEY (route_segment_id) REFERENCES route_segments(id) ON DELETE CASCADE
   );
 `;
+
 export const CREATE_ROUTE_SEGMENTS_TABLE = `
   CREATE TABLE route_segments (
     id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
@@ -107,7 +108,6 @@ export const CREATE_ROUTE_SEGMENTS_TABLE = `
     comments VARCHAR(45),
     delivery_time TIMESTAMP,
     FOREIGN KEY (tour_id) REFERENCES tourInfo_master(id) ON DELETE CASCADE,
-    FOREIGN KEY (order_id) REFERENCES logistic_order(order_id) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
   );
@@ -125,6 +125,7 @@ export const CREATE_WAREHOUSE_DETAILS_TABLE = `
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
   );
 `;
+
 export const LOGIC_ORDER_TABLE = `
    CREATE TABLE logistic_order (
       order_id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
@@ -197,14 +198,15 @@ export const WMS_ORDER_ARTICLES = `
 
 
 export const USERS_TABLE = `
-   CREATE TABLE IF NOT EXISTS users(
-        user_id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
-        username VARCHAR(20) NOT NULL UNIQUE,
-        email VARCHAR(30) NOT NULL UNIQUE,
-        password VARCHAR(100) NOT NULL,
-        role VARCHAR(20) NOT NULL DEFAULT 'user',  -- Adding role field with default 'user'
-        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-      );
+   CREATE TABLE IF NOT EXISTS users (
+    user_id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+    username VARCHAR(20) NOT NULL UNIQUE,
+    email VARCHAR(30) NOT NULL UNIQUE,
+    password VARCHAR(100) NOT NULL,
+    role VARCHAR(20) NOT NULL DEFAULT 'user',
+    is_active TINYINT(1) NOT NULL DEFAULT 1,  -- 1 = active, 0 = inactive
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 `;
 
 export const TOUR_DRIVER = `
@@ -215,8 +217,7 @@ export const TOUR_DRIVER = `
     tour_date DATE NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (tour_id) REFERENCES tourInfo_master(id) ON DELETE CASCADE,
-    FOREIGN KEY (driver_id) REFERENCES driver_details(id) ON DELETE CASCADE
+    FOREIGN KEY (tour_id) REFERENCES tourInfo_master(id) ON DELETE CASCADE
   );
 `;
 

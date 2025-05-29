@@ -34,21 +34,36 @@ const style = {
   },
 };
 const NavBar: React.FC = () => {
-  const { user, showDriverBoard, showAdminBoard, showSuperAdminBoard, logout } = useAuth();
+  const {
+    user,
+    showDriverBoard,
+    showAdminBoard,
+    showSuperAdminBoard,
+    logout,
+  } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const logo = "/sunniva_white.svg";
+ 
+
+  const isActive = (path: string) => location.pathname === path;
+
+  const getNavButtonStyles = (path: string) => ({
+    backgroundColor: isActive(path) ? "white" : "transparent",
+    color: isActive(path) ? "#f7941d" : "inherit",
+    "&:hover": {
+      backgroundColor: isActive(path)
+        ? "secondary.dark"
+        : "rgba(255,255,255,0.1)",
+    },
+  });
 
   React.useEffect(() => {
-    // Subscribe to logout event
     const cleanup = EventBus.on("logout", () => {
       logout();
       navigate("/login");
     });
-
-    return () => {
-      cleanup(); // Cleanup on component unmount
-    };
+    return () => cleanup();
   }, [logout, navigate]);
 
   const isLoginPage = location.pathname === "/login";
@@ -56,7 +71,7 @@ const NavBar: React.FC = () => {
   return (
     <AppBar
       position="sticky"
-      sx={(theme)=>({
+      sx={(theme) => ({
         background: theme.palette.primary.headerGradient,
         height: 50,
         boxShadow: "0px 2px 4px rgba(0,0,0,0.1)",
@@ -89,8 +104,14 @@ const NavBar: React.FC = () => {
               },
             }}
           >
-            {showAdminBoard }
-            {showSuperAdminBoard }
+            {showDriverBoard
+              ? "Driver"
+              : showAdminBoard
+              ? "Admin"
+              : showSuperAdminBoard
+              ? "Super Admin"
+              : ""}{" "}
+            Board
           </Typography>
         </Box>
 
@@ -98,39 +119,56 @@ const NavBar: React.FC = () => {
           <Stack direction="row" spacing={0} alignItems="center">
             {showSuperAdminBoard && (
               <>
-                <Button sx={style.navButton} component={Link} to="/register">
+                <Button
+                  component={Link}
+                  to="/register"
+                  color="inherit"
+                  sx={getNavButtonStyles("/register")}
+                >
                   Employees
                 </Button>
-                <Button sx={style.navButton} component={Link} to="/register">
+                <Button
+                  component={Link}
+                  to="/register"
+                  color="inherit"
+                  sx={getNavButtonStyles("/register")}
+                >
                   Drivers
                 </Button>
               </>
             )}
+
             {showAdminBoard && (
               <>
-
-                <Button color="inherit" component={Link} to="/admin-drivers">
-
+                <Button
+                  component={Link}
+                  to="/admin-drivers"
+                  color="inherit"
+                  sx={getNavButtonStyles("/admin-drivers")}
+                >
                   Drivers
                 </Button>
-                <Button sx={style.navButton} component={Link} to="/profile">
+                <Button
+                  component={Link}
+                  to="/profile"
+                  color="inherit"
+                  sx={getNavButtonStyles("/profile")}
+                >
                   Profile
                 </Button>
               </>
             )}
+
             {showDriverBoard && (
-              <>
-                {location.pathname !== "/driver" && (
-                  <Button sx={style.navButton} component={Link} to="/driver">
-                    <DashboardIcon sx={{ mr: 0.5 }} />
-                    Dashboard
-                  </Button>
-                )}
-                <Button sx={style.navButton} component={Link} to="/profile">
-                  <PersonIcon sx={{ mr: 0.5 }} />
-                  Profile
-                </Button>
-              </>
+              <Button
+                component={Link}
+                to="/profile"
+                color="inherit"
+                sx={getNavButtonStyles("/profile")}
+              >
+                <PersonIcon sx={{ mr: 0.5 }} />
+                Profile
+              </Button>
             )}
             <Button
               sx={style.navButton}
@@ -141,11 +179,16 @@ const NavBar: React.FC = () => {
               Log Out
             </Button>
           </Stack>
-        ) : isLoginPage ? (
-          <Button sx={style.navButton} component={Link} to="/login">
-            Login
-          </Button>
-        ) : null}
+        ) : (
+         <Button
+          component={Link}
+          to="/login"
+          color="inherit"
+          sx={getNavButtonStyles("/login")}
+        >
+          Login
+        </Button>
+        )}
       </Toolbar>
     </AppBar>
   );

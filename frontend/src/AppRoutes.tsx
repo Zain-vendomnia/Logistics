@@ -19,6 +19,8 @@ import Admin_TourMapView from "./components/Admin/Admin_TourMapView";
 import AdminAddTour from "./components/Admin/Admin_AddTour";
 import CompletedTour from "./components/Admin/completed_tour";
 import LiveTours from "./components/Admin/live_tours";
+import ManageTour from "./components/Admin/TourManagement";
+
 
 // Role-based route guard
 const ProtectedRoute = ({
@@ -84,6 +86,7 @@ const AppRoutes = () => {
       <Route path="/register" element={<ProtectedRoute element={<Register />} allowedRoles={["admin"]} />} />
 
       {/* ✅ Admin-only Routes */}
+
       <Route path = "/admin_dashboard" element={<ProtectedRoute element={<AdminDashboard />} allowedRoles={["admin"]} />}/>
       <Route path = "/admin_addtour" element={<ProtectedRoute element={<AdminAddTour />} allowedRoles={["admin"]} />} />
       <Route path = "/manage_drivers"  element={<ProtectedRoute element={<ManageDrivers />} allowedRoles={["admin"]} />} />
@@ -103,6 +106,7 @@ const AppRoutes = () => {
       <Route path = "/live_tours" element={<ProtectedRoute element={<LiveTours />} allowedRoles={["admin"]} />} />
       
    </Routes>
+
   );
 };
 

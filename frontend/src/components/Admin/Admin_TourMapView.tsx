@@ -36,6 +36,7 @@ import "./css/Admin_TourMapView.css";
 import 'leaflet-polylinedecorator';
 import { AccessTime, Article, ProductionQuantityLimits, Tour } from '@mui/icons-material';
 import Tooltip from '@mui/material/Tooltip';
+import CustomerEditModal from './CustomerEditModal';
 
 type Stop = {
   id: string;
@@ -58,6 +59,11 @@ const TourMapPage: React.FC = () => {
   const mapRef = useRef<L.Map>(null);
   const [routeDistance, setRouteDistance] = useState<number>(0);
   const [routeTime, setRouteTime] = useState<number>(0);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedOrderForEdit, setSelectedOrderForEdit] = useState<any | null>(null);
+  
+  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+
   useEffect(() => {
     const fetchData = async () => {
       const instance = latestOrderServices.getInstance();
@@ -116,6 +122,26 @@ const TourMapPage: React.FC = () => {
   useEffect(() => {
     fetchRouteData();
   }, [parsedTourId]);
+
+const handleEditOrder = (order: any) => {
+  setSelectedOrderForEdit(order);
+  setEditModalOpen(true);
+};
+const handleEditCustomer = (customer: any) => {
+  setSelectedCustomer(customer); // Set the selected customer
+  setEditModalOpen(true);        // Open the modal
+};
+const handleSaveEditedOrder = (updatedOrder: any) => {
+  // TODO: Update order in backend and refresh state
+  console.log('Saved Order:', updatedOrder);
+
+  setSelectedTour((prev: any) => ({
+    ...prev,
+    orders: prev.orders.map((order: any) =>
+      order.order_id === updatedOrder.order_id ? updatedOrder : order
+    ),
+  }));
+};
 
   const blink = {
     animation: 'blinker 1.5s linear infinite',
@@ -223,14 +249,12 @@ const TourMapPage: React.FC = () => {
 
   // Format the tour start time (remove trailing :00)
   const cleanStartTime = selectedTour.tour_startTime.replace(/:00$/, '');
- 
+
   const handleConfirm = async () => {
     setLoading(true);
-  
+
     try {
-     
-      const response = await adminApiService.update_tourstatus(selectedTour.id) ;
-        
+      const response = await adminApiService.update_tourstatus(selectedTour.id);
       if (response.status === 200) {
         setSelectedTour((prev: any) => ({ ...prev, tour_status: 'confirmed' }));
       } else {
@@ -244,10 +268,6 @@ const TourMapPage: React.FC = () => {
       setLoading(false);
     }
   };
-
-
-
-
 
   return (
     <Box sx={{ display: 'flex', height: '100vh' }}>
@@ -272,241 +292,239 @@ const TourMapPage: React.FC = () => {
         </Box>
 
         <Divider sx={{ my: 2 }} />
-<List disablePadding>
-  {stops.map((stop, index) => {
-    const isWarehouse = stop.location_id === "v1";
-    const matchedOrder = selectedTour?.orders?.find(
-      (order: any) => order.order_id === Number(stop.location_id)
-    );
+        <List disablePadding>
+          {stops.map((stop, index) => {
+            const isWarehouse = stop.location_id === "v1";
+            const matchedOrder = selectedTour?.orders?.find(
+              (order: any) => order.order_id === Number(stop.location_id)
+            );
 
-    // Skip rendering if not a warehouse and there's no matching order
-    if (!isWarehouse && !matchedOrder) return null;
+            // Skip rendering if not a warehouse and there's no matching order
+            if (!isWarehouse && !matchedOrder) return null;
 
-    return (
-      <ListItem
-        key={index}
-        sx={{
-          mb: 1,
-          borderBottom: '1px dashed #ccc',
-          pb: 1,
-          alignItems: 'flex-start',
-        }}
-        disableGutters
-      >
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', width: '100%' }}>
-          <Avatar
-            sx={{
-              bgcolor: selectedTour?.tour_route_color,
-              width: 28,
-              height: 28,
-              fontSize: 14,
-              mt: 0.5,
-              flexShrink: 0,
-            }}
-          >
-            {stop.type === 'start' ? 'S' : stop.type === 'end' ? 'E' : index}
-          </Avatar>
-
-          <Box
-            onClick={() => zoomToStop(stop.lat, stop.lon)}
-            sx={{ ml: 2, flexGrow: 1, minWidth: 0, cursor: 'pointer' }}
-          >
-            {isWarehouse ? (
-              <Typography variant="body2" fontWeight="bold">
-                {selectedTour.warehouseaddress}
-              </Typography>
-            ) : (
-              <Typography fontWeight="bold" variant="body2">
-                Order ID: {stop.location_id}
-              </Typography>
-            )}
-
-            {matchedOrder && (
-              <>
-                <Typography variant="caption" color="text.secondary">
-                  {matchedOrder.firstname} {matchedOrder.lastname}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {matchedOrder.street}, {matchedOrder.city}, {matchedOrder.zipcode}
-                </Typography>
-                <Typography variant="caption" display="block" fontWeight="bold" mt={0.5}>
-                  Order Number: {matchedOrder.order_number}
-                </Typography>
-              </>
-            )}
-
-            <Typography variant="caption" display="block" mt={0.5}>
-              Arrival:{' '}
-              {new Date(stop.arrival).toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </Typography>
-          </Box>
-
-          {/* Right side buttons */}
-          {!isWarehouse && matchedOrder && (
-            <Stack
-              direction="row"
-              spacing={0.5}
-              sx={{
-                ml: 1.5,
-                mt: 0.5,
-                flexShrink: 0,
-                '& .MuiIconButton-root:hover': {
-                  backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                  transform: 'scale(1.05)',
-                  transition: 'all 0.2s ease',
-                },
-              }}
-            >
-              {/* Quantity Tooltip */}
-             <Tooltip
-                      arrow
-                      placement="top"
-                      title={
-                        <Typography variant="caption">
-                          Total Qty:{' '}
-                          <strong >
-                            {matchedOrder.items.reduce(
-                              (total: number, item: any) => total + Number(item.quantity),
-                              0
-                            )}
-                          </strong>
-                        </Typography>
-                      }
-                    >
-                <IconButton size="small" color="primary">
-                  <ProductionQuantityLimits fontSize="small" />
-                </IconButton>
-              </Tooltip>
-
-              {/* Article Tooltip */}
-              <Tooltip
-                arrow
-                placement="top"
-                title={
-                  <ul style={{ margin: 0, padding: '4px 8px', listStyle: 'none' }}>
-                    {matchedOrder.items.map((item: any, i: number) => (
-                      <li key={i}>
-                        <Typography component="span" variant="caption">
-                          <strong >
-                            {item.slmdl_articleordernumber}
-                          </strong>
-                        </Typography>
-                      </li>
-                    ))}
-                  </ul>
-                }
+            return (
+              <ListItem
+                key={index}
+                sx={{
+                  mb: 1,
+                  borderBottom: '1px dashed #ccc',
+                  pb: 1,
+                  alignItems: 'flex-start',
+                }}
+                disableGutters
               >
-                <IconButton size="small" color="success">
-                  <Article fontSize="small" />
-                </IconButton>
-              </Tooltip>
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', width: '100%' }}>
+                  <Avatar
+                    sx={{
+                      bgcolor: selectedTour?.tour_route_color,
+                      width: 28,
+                      height: 28,
+                      fontSize: 14,
+                      mt: 0.5,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {stop.type === 'start' ? 'S' : stop.type === 'end' ? 'E' : index}
+                  </Avatar>
 
-              {/* Time Log */}
-              <Tooltip title="View Time Log" arrow placement="top">
-                <IconButton size="small" color="warning">
-                  <AccessTime fontSize="small" />
-                </IconButton>
-              </Tooltip>
+                  <Box
+                    onClick={() => zoomToStop(stop.lat, stop.lon)}
+                    sx={{ ml: 2, flexGrow: 1, minWidth: 0, cursor: 'pointer' }}
+                  >
+                    {isWarehouse ? (
+                      <Typography variant="body2" fontWeight="bold">
+                        {selectedTour.warehouseaddress}
+                      </Typography>
+                    ) : (
+                      <Typography fontWeight="bold" variant="body2">
+                        Order ID: {stop.location_id}
+                      </Typography>
+                    )}
 
-              {/* More Options */}
-              <Tooltip title="" arrow placement="top">
-                <IconButton size="small">
-                  <MoreVertIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </Stack>
+                    {matchedOrder && (
+                      <>
+                        <Typography variant="caption" color="text.secondary">
+                          {matchedOrder.firstname} {matchedOrder.lastname}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {matchedOrder.street}, {matchedOrder.city}, {matchedOrder.zipcode}
+                        </Typography>
+                        <Typography variant="caption" display="block" fontWeight="bold" mt={0.5}>
+                          Order Number: {matchedOrder.order_number}
+                        </Typography>
+                      </>
+                    )}
+
+                    <Typography variant="caption" display="block" mt={0.5}>
+                      Arrival:{' '}
+                      {new Date(stop.arrival).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </Typography>
+                  </Box>
+
+                  {/* Right side buttons */}
+                  {!isWarehouse && matchedOrder && (
+                    <Stack
+                      direction="row"
+                      spacing={0.5}
+                      sx={{
+                        ml: 1.5,
+                        mt: 0.5,
+                        flexShrink: 0,
+                        '& .MuiIconButton-root:hover': {
+                          backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                          transform: 'scale(1.05)',
+                          transition: 'all 0.2s ease',
+                        },
+                      }}
+                    >
+                      {/* Quantity Tooltip */}
+                      <Tooltip
+                        arrow
+                        placement="top"
+                        title={
+                          <Typography variant="caption">
+                            Total Qty:{' '}
+                            <strong >
+                              {matchedOrder.items.reduce(
+                                (total: number, item: any) => total + Number(item.quantity),
+                                0
+                              )}
+                            </strong>
+                          </Typography>
+                        }
+                      >
+                        <IconButton size="small" color="primary">
+                          <ProductionQuantityLimits fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+
+                      {/* Article Tooltip */}
+                      <Tooltip
+                        arrow
+                        placement="top"
+                        title={
+                          <ul style={{ margin: 0, padding: '4px 8px', listStyle: 'none' }}>
+                            {matchedOrder.items.map((item: any, i: number) => (
+                              <li key={i}>
+                                <Typography component="span" variant="caption">
+                                  <strong >
+                                    {item.slmdl_articleordernumber}
+                                  </strong>
+                                </Typography>
+                              </li>
+                            ))}
+                          </ul>
+                        }
+                      >
+                        <IconButton size="small" color="success">
+                          <Article fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+
+                      {/* Time Log */}
+                      <Tooltip title="View Time Log" arrow placement="top">
+                        <IconButton size="small" color="warning">
+                          <AccessTime fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+
+                      {/* More Options */}
+                    <Tooltip title="Edit Customer" arrow placement="top">
+                      <IconButton
+                        size="small"
+                        color="info"
+                        onClick={() =>handleEditCustomer(matchedOrder)}
+                      >
+                        <NoteAltIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                    </Stack>
+                  )}
+                </Box>
+              </ListItem>
+            );
+          })}
+        </List>
+        <Box display="flex" justifyContent="center" mt={2}>
+          {selectedTour.tour_status === 'pending' ? (
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={handleConfirm}
+              disabled={loading}
+              sx={(theme) => ({
+                padding: '8px 24px',
+                borderRadius: '4px',
+                textTransform: 'none',
+                fontWeight: '500',
+                background: theme.palette.warning.dark,
+                color: theme.palette.warning.contrastText,
+                borderColor: theme.palette.warning.main,
+                transition: 'all 0.3s ease',
+                ...blink,
+                '&:hover': {
+                  background: theme.palette.warning.main,
+                  color: theme.palette.warning.contrastText,
+                  opacity: 1,
+                },
+              })}
+            >
+              {loading ? 'Confirming...' : 'Confirm'}
+            </Button>
+          ) : selectedTour.tour_status === 'live' ? (
+            <Button
+              variant="contained"
+              size="small"
+              disabled
+              sx={(theme) => ({
+                padding: '8px 24px',
+                borderRadius: '4px',
+                textTransform: 'none',
+                fontWeight: '500',
+                backgroundColor: theme.palette.info.main,
+                color: theme.palette.info.contrastText,
+                ...livePulse,
+              })}
+            >
+              Live
+            </Button>
+          ) : selectedTour.tour_status === 'completed' ? (
+            <Button
+              variant="contained"
+              size="small"
+              disabled
+              sx={(theme) => ({
+                padding: '8px 24px',
+                borderRadius: '4px',
+                textTransform: 'none',
+                fontWeight: '500',
+                backgroundColor: theme.palette.grey[700],
+                color: theme.palette.common.white,
+              })}
+            >
+              Completed
+            </Button>
+          ) : (
+            <Chip
+              label="✔ Confirmed"
+              color="success"
+              sx={{
+                fontWeight: 500,
+                fontSize: '0.875rem',
+                px: 2,
+                py: 1,
+                borderRadius: '4px',
+                backgroundColor: (theme) => theme.palette.success.main,
+                color: (theme) => theme.palette.success.contrastText,
+              }}
+            />
           )}
         </Box>
-      </ListItem>
-    );
-  })}
-</List>
-
-
-
-
-     
-        <Box display="flex" justifyContent="center" mt={2}>
-        {selectedTour.tour_status === 'pending' ? (
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={handleConfirm}
-            disabled={loading}
-            sx={(theme) => ({
-              padding: '8px 24px',
-              borderRadius: '4px',
-              textTransform: 'none',
-              fontWeight: '500',
-              background: theme.palette.warning.dark,
-              color: theme.palette.warning.contrastText,
-              borderColor: theme.palette.warning.main,
-              transition: 'all 0.3s ease',
-              ...blink,
-              '&:hover': {
-                background: theme.palette.warning.main,
-                color: theme.palette.warning.contrastText,
-                opacity: 1,
-              },
-            })}
-          >
-            {loading ? 'Confirming...' : 'Confirm'}
-          </Button>
-        ) : selectedTour.tour_status === 'live' ? (
-          <Button
-            variant="contained"
-            size="small"
-            disabled
-            sx={(theme) => ({
-              padding: '8px 24px',
-              borderRadius: '4px',
-              textTransform: 'none',
-              fontWeight: '500',
-              backgroundColor: theme.palette.info.main,
-              color: theme.palette.info.contrastText,
-              ...livePulse,
-            })}
-          >
-            Live
-          </Button>
-        ) : selectedTour.tour_status === 'completed' ? (
-          <Button
-            variant="contained"
-            size="small"
-            disabled
-            sx={(theme) => ({
-              padding: '8px 24px',
-              borderRadius: '4px',
-              textTransform: 'none',
-              fontWeight: '500',
-              backgroundColor: theme.palette.grey[700],
-              color: theme.palette.common.white,
-            })}
-          >
-            Completed
-          </Button>
-        ) : (
-          <Chip
-            label="✔ Confirmed"
-            color="success"
-            sx={{
-              fontWeight: 500,
-              fontSize: '0.875rem',
-              px: 2,
-              py: 1,
-              borderRadius: '4px',
-              backgroundColor: (theme) => theme.palette.success.main,
-              color: (theme) => theme.palette.success.contrastText,
-            }}
-          />
-        )}
-      </Box>
-
       </Paper>
-         
+        
       <Box sx={{ flex: 1 }}>
         <MapContainer
           center={[stops[0]?.lat || 51.191566, stops[0]?.lon || 10.00519]}
@@ -516,12 +534,12 @@ const TourMapPage: React.FC = () => {
         >
           {/* <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap contributors' detectRetina={true} /> */}
           <TileLayer
-  url={`https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoiemFpbi12ZW5kb21uaWEiLCJhIjoiY204ZmlramFxMGNzazJscHRjNGs5em80NyJ9.1nIfy1EdSPl2cYvwvxOEmA`}
-  attribution='&copy; <a href="https://www.mapbox.com/">Mapbox</a> &copy; OpenStreetMap contributors'
-  detectRetina={true}
-  tileSize={512}
-  zoomOffset={-1}
-/>
+            url={`https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoiemFpbi12ZW5kb21uaWEiLCJhIjoiY204ZmlramFxMGNzazJscHRjNGs5em80NyJ9.1nIfy1EdSPl2cYvwvxOEmA`}
+            attribution='&copy; <a href="https://www.mapbox.com/">Mapbox</a> &copy; OpenStreetMap contributors'
+            detectRetina={true}
+            tileSize={512}
+            zoomOffset={-1}
+          />
           {routePoints.length > 0 &&
             routePoints.map((route, index) => (
               <PolylineDecoratorComponent key={index} positions={route} />
@@ -626,7 +644,15 @@ const TourMapPage: React.FC = () => {
 
         </MapContainer>
       </Box>
+       
+      <CustomerEditModal
+      open={editModalOpen}
+      onClose={() => setEditModalOpen(false)}
+      customer={selectedCustomer}
+      color={selectedTour?.tour_route_color}
+      />
     </Box>
+    
   );
 };
 

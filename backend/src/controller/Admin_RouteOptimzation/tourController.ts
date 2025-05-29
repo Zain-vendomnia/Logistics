@@ -6,41 +6,43 @@ import { createRoutedata } from '../../services/createRoutedata';
 import { route_segments } from '../../model/routeSegments';
 import pool from '../../database';
 
-
-// Controller to create a new tour
 export const createTourController = async (req: Request, res: Response) => {
-    const { tourName, comments, startTime, endTime, driverid, routeColor, tourDate, orderIds,warehouseId} = req.body;
-  
-    try {
-      const result = await createTour({
-        tourName,
-        comments,
-        startTime,
-        endTime,
-        driverid,
-        routeColor,
-        tourDate,
-        orderIds,
-        warehouseId,
-      });
-  
-      // If result is of type OkPacket (from mysql2), it will contain affectedRows
-      const affectedRows = (result as OkPacket).affectedRows;
-      const insertedTourId = (result as OkPacket).insertId;
-      if (affectedRows > 0) {
-        // await UpdateRouteData(orderIds, insertedTourId);
-        await UpdateRouteData(orderIds, insertedTourId, tourDate, driverid);
+  const { tourName, comments, startTime, endTime, driverid, routeColor, tourDate, orderIds, warehouseId } = req.body;
+console.log(tourName, comments, startTime, endTime, driverid, routeColor, tourDate, orderIds, warehouseId);
+  try {
+    const result = await createTour({
+      tourName,
+      comments,
+      startTime,
+      endTime,
+      driverid,
+      routeColor,
+      tourDate,
+      orderIds,
+      warehouseId,
+    });
 
+    const affectedRows = (result as OkPacket).affectedRows;
+    const insertedTourId = (result as OkPacket).insertId;
 
-        res.status(200).json({ message: 'Tour saved successfully' });
-      } else {
-        res.status(500).json({ message: 'Failed to save the tour' });
-      }
-    } catch (error) {
-      console.error('Error saving tour:', error);
-      res.status(500).json({ message: 'Error saving tour' });
+    if (affectedRows > 0) {
+      await UpdateRouteData(orderIds, insertedTourId, tourDate, driverid);
+      res.status(200).json({ message: 'Tour saved successfully' });
+    } else {
+      res.status(500).json({ message: 'Failed to save the tour' });
     }
-  };
+  } catch (error) {
+    console.error('Error saving tour:', error);
+    if (error instanceof Error) {
+      if (error.message.includes('Driver already has a tour')) {
+        return res.status(409).json({ message: error.message });
+      }
+      return res.status(400).json({ message: error.message });
+    } else {
+      res.status(500).json({ message: 'An unexpected error occurred while saving the tour.' });
+    }
+  }
+};
 
   export const getTourcountcheck = async(_req: Request, res: Response) => {
     try {
