@@ -51,6 +51,14 @@ const picklistEmail = (emailData: any) => {
       headers: authHeader(),
     });
   };
+
+const insertParkingPermit = (formData: any) => {
+
+    return axios.post(API_BaseUrl_Admin + "insertParkingPermit", formData, {
+      headers: authHeader(),
+    });
+  };
+
 const adminApiService = {
   fetchRouteData,
   fetchOrderTourCount,
@@ -65,6 +73,7 @@ const adminApiService = {
   updateTour,
   getOrderCount,
   picklistEmail,
+  insertParkingPermit,
 };
 
 export default adminApiService;

@@ -18,6 +18,7 @@ const modalStyle = {
   p: 4,
   borderRadius: '8px',
   height:'90vh',
+  fontFamily: 'Raleway',
 };
 
 
@@ -258,56 +259,81 @@ const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({ open, handleClose
       <Box>
         <Grid container spacing={2}>
           <Box sx={modalStyle}>
-            <Typography variant="h6" mb={2} sx={{ color: '#ef972e' }}>PICKLIST</Typography>
+            <Box sx={{ textAlign: 'center', mb: '25px' }}>
+              <img
+                src={`https://sunniva-solar.de/wp-content/uploads/2025/01/Sunniva_1600x500_transparent-min.png`}
+                alt="Sunniva Logo"
+                style={{ height: '52px' }}
+              />
+            </Box>
 
-            {/* Static Info */}
-            <Paper sx={{ p: 2, mb: 3, backgroundColor: '#f5f5f5' }}>
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <Typography>
-                    <strong>Location:</strong> {picklistData?.warehouseName}
-                    <br />
-                    <strong>Driver:</strong> {picklistData?.driver?.driver_name}
-                    <br />
-                    <strong>Licence Plate:</strong> {picklistData?.driver?.licenceplate}
-                  </Typography>
-                </Grid>
-                <Grid item xs={6}>
-                 <Typography>
-                 <strong>Email:</strong> {picklistData?.driver?.email}
-                 <br />
-                 <strong>Phone:</strong> {picklistData?.driver?.mobile}
-                 <br />
-                 <strong>ZIP Code:</strong>{' '}
-                 {(() => {
-                   const uniqueZips = picklistData?.orders
-                     ?.map((order: { zipcode: string }) => order.zipcode)
-                     .filter((zip: string, index: number, self: string[]) => zip && self.indexOf(zip) === index);
+            <Paper sx={{ p: 1, boxShadow: 'none' }}>
+              {/* Title */}
+              <Typography
+                variant="h6"
+                sx={{
+                  textAlign: 'center',
+                  color: '#000',
+                  fontSize: '14px',
+                  textDecoration: 'underline',
+                  fontWeight: 'bold',
+                  mb: 2,
+                  fontFamily: 'Raleway',
+                }}
+              >
+                PICK LIST
+              </Typography>
 
-                   if (!uniqueZips || uniqueZips.length === 0) return 'N/A';
+              {/* Warehouse & Driver Details */}
+              <Box
+                sx={{
+                  fontFamily: 'Raleway',
+                  color: '#000',
+                  fontSize: '13px',
+                  width: '430px',
+                  lineHeight: 1.1,
+                }}
+              >
+                <p>
+                  <strong>Location&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> {picklistData?.warehouseName ?? 'N/A'} <br />
+                  <strong>Driver&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> {picklistData?.driver?.driver_name ?? 'N/A'} <br />
+                  <strong>Licence plate&nbsp;&nbsp;&nbsp;:</strong> {picklistData?.driver?.licenceplate ?? 'N/A'} <br />
+                  <strong>Email&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> {picklistData?.driver?.email ?? 'N/A'} <br />
+                  <strong>Phone&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> {picklistData?.driver?.mobile ?? 'N/A'} <br />
+                  <strong>ZIP Code&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> 
+                  {(() => {
+                    const uniqueZips = picklistData?.orders
+                      ?.map((order: { zipcode: string }) => order.zipcode)
+                      .filter((zip: string, index: number, self: string[]) => zip && self.indexOf(zip) === index);
 
-                   return uniqueZips.length === 1
-                     ? uniqueZips[0]
-                     : uniqueZips.map((zip: string) => zip.slice(-2)).join(', ');
-                 })()}
-                 </Typography>
-                </Grid>
-                <Grid item xs={12}>
-                 <Typography>
-                   <strong>Date:</strong>{' '}
-                   {picklistData?.tour_date
-                     ? new Date(picklistData.tour_date).toLocaleDateString('en-GB')
-                     : 'N/A'}
-                 </Typography>
-                </Grid>
-              </Grid>
+                    if (!uniqueZips || uniqueZips.length === 0) return ' N/A';
+
+                    return uniqueZips.length === 1
+                      ? ` ${uniqueZips[0]}`
+                      : ` ${uniqueZips.map((zip: string) => zip.slice(-2)).join(', ')}`;
+                  })()} <br />
+                  <strong>Date&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong>
+                  {picklistData?.tour_date
+                    ? (() => {
+                        const dates = picklistData.tour_date.split(',');
+                        return dates
+                          .map((day: string, index: number) =>
+                            index === 0
+                              ? ` ${new Date(day).toLocaleDateString('en-GB')}`
+                              : `\n                     ${new Date(day).toLocaleDateString('en-GB')}`
+                          )
+                          .join('\n');
+                      })()
+                    : ' N/A'}
+                </p>
+              </Box>
             </Paper>
 
 
-            <Typography variant="h6" mb={2} sx={{ color: '#ef972e' }}>Order item details</Typography>
+            {/*<Typography variant="h6" mb={2} sx={{ color: '#ef972e' }}>Order item details</Typography>*/}
 
             {/* Orders Table */}
-            <TableContainer component={Paper}>
+      {/*      <TableContainer component={Paper}>
               <Table>
                 <TableHead sx={{ backgroundColor: '#f3ab2d' }}>
                   <TableRow>
@@ -326,34 +352,101 @@ const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({ open, handleClose
                   ))}
                 </TableBody>
               </Table>
-            </TableContainer>
+            </TableContainer>*/}
 
             {/* Aggregated Table */}
-            <Typography variant="h6" mb={2} mt={3} sx={{ color: '#ef972e' }}>Total pickup items</Typography>
-            <TableContainer component={Paper}>
-              <Table>
-                <TableHead sx={{ backgroundColor: '#f3ab2d' }}>
-                  <TableRow>
-                    <TableCell align="center" sx={{ color: 'white' }}><strong>TOTAL ITEM</strong></TableCell>
-                    <TableCell align="center" sx={{ color: 'white' }}><strong>TOTAL QUANTITY</strong></TableCell>
+            {/*<Typography variant="h6" mb={2} mt={3} sx={{ color: '#ef972e' }}>Total pickup items</Typography>*/}
+            <TableContainer
+              component={Paper}
+              sx={{
+                width: '89%',
+                marginLeft: '11%',
+                boxShadow: 'none', // Remove Paper shadow
+                fontFamily: 'Raleway, sans-serif',
+                borderRadius: '0px'
+              }}
+            >
+              <Table
+                sx={{
+                  borderCollapse: 'collapse',
+                  fontSize: '14px',
+                }}
+              >
+                <TableHead>
+                  <TableRow sx={{ backgroundColor: '#f79c22' }}>
+                    <TableCell
+                      align="center"
+                      sx={{
+                        border: '1.5px solid #000',
+                        padding: '14px 20px 2px',
+                        color: 'white',
+                        fontWeight: 'bold',
+                      }}
+                    >
+                      ITEM
+                    </TableCell>
+                    <TableCell
+                      align="center"
+                      sx={{
+                        border: '1.5px solid #000',
+                        padding: '14px 20px 2px',
+                        color: 'white',
+                        fontWeight: 'bold',
+                      }}
+                    >
+                      QUANTITY
+                    </TableCell> 
+                    <TableCell
+                      align="center"
+                      sx={{
+                        border: '1.5px solid #000',
+                        padding: '14px 20px 2px',
+                        color: 'white',
+                        fontWeight: 'bold',
+                      }}
+                    >
+                      CHECK
+                    </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {Object.entries(aggregatedItems).map(([articleNumber, qty], index) => (
                     <TableRow key={index}>
-                      <TableCell align="center">{articleNumber}</TableCell>
-                      <TableCell align="center">{qty}</TableCell>
+                      <TableCell
+                        align="center"
+                        sx={{
+                          border: '1.5px solid #000',
+                          padding: '29px 8px',
+                          fontFamily: 'Raleway, sans-serif',
+                        }}
+                      >
+                        {articleNumber}
+                      </TableCell>
+                      <TableCell
+                        align="center"
+                        sx={{
+                          border: '1.5px solid #000',
+                          padding: '29px 8px',
+                          fontFamily: 'Raleway, sans-serif',
+                        }}
+                      >
+                        {qty}
+                      </TableCell> 
+                      <TableCell
+                        align="center"
+                        sx={{
+                          border: '1.5px solid #000',
+                          padding: '29px 8px',
+                          fontFamily: 'Raleway, sans-serif',
+                        }}
+                      >
+
+                      </TableCell>
                     </TableRow>
                   ))}
-                  <TableRow>
-                    <TableCell colSpan={2} align="right">
-                      <strong>Total Solar Panels: {totalQuantity}</strong>
-                    </TableCell>
-                  </TableRow>
                 </TableBody>
               </Table>
             </TableContainer>
-
             {/* Email Button */}
             <Box mt={3} textAlign="center">
             <Button

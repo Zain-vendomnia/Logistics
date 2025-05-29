@@ -1,19 +1,24 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Box, Grid, Typography, TextField, MenuItem, Button, Checkbox, FormControlLabel } from '@mui/material';
+import { Box, Grid, Typography, TextField, MenuItem, Button, Checkbox, FormControlLabel, Snackbar, Alert } from '@mui/material';
 import SignaturePad from 'react-signature-canvas';
 import SignatureCanvas from 'react-signature-canvas';
 import { useLocation } from 'react-router-dom'; // Import useLocation
+import latestOrderServices from '../Admin/AdminServices/latestOrderServices';
 import axios from 'axios'; // If using axios for API calls
-
 import './ParkingPermitForm.css'; // Import CSS
+import adminApiService from '../../services/adminApiService';
+import { getParkingPermitEmailHTML } from '../../assets/templates/ParkingPermitEmailTemplate';
+import ThankYouModal from './ThankYouModal';
 
 const salutations = ['Herr', 'Frau', 'Divers', 'Firma'];
+
 
 interface SignatureCanvasRef {
   getTrimmedCanvas: () => HTMLCanvasElement;
   toDataURL: (type?: string) => string;
   clear: () => void;
 }
+
 
 const DeliveryPermitForm = () => {
   const sigPad = useRef<SignatureCanvas & SignatureCanvasRef | null>(null);
@@ -32,10 +37,36 @@ const DeliveryPermitForm = () => {
     privacyAgreed: false,
   });
 
+
   // Step 1: Get the base64 encoded order number from the URL
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
-  const encodedOrderNumber = queryParams.get('orderNumber');
+  const encodedOrderNumber = queryParams.get('o');
+  const [generatedCode, setGeneratedCode] = useState('');
+  const [codeSent, setCodeSent] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' as any });
+  const [codeVerified, setCodeVerified] = useState(false);
+  const [thankYouOpen, setThankYouOpen] = useState(false);
+
+  const showSnackbar = (message: string, severity: any) =>
+    setSnackbar({ open: true, message, severity });
+
+
+  const [errors, setErrors] = useState({
+    firstName:        false,
+    lastName:         false,
+    street:           false,
+    postalCode:       false,
+    city:             false,
+    orderNumber:      false,
+    parkingLocation:  false,
+    email:            false,
+    verificationCode: false,
+    signature:        false,
+    termsAgreed:      false,
+    privacyAgreed:    false,
+  });
+
 
   // Step 2: Decode the base64 order number (with URL encoding handling)
   const decodeBase64 = (encodedString: string | null) => {
@@ -63,50 +94,183 @@ const DeliveryPermitForm = () => {
 
 
   const decodedOrderNumber = decodeBase64(encodedOrderNumber);
+  const fetchPicklistData = async (orderId: string) => {
 
-  // Step 3: Fetch order data from the API
+    try {
+
+     if (orderId) {
+
+       const instance = latestOrderServices.getInstance();
+       const orders = await instance.getOrders();
+       const orderData = orders.find((order: any) => order.order_number === orderId);
+
+       if (orderData) {
+
+         setFormData({
+           ...formData,
+           orderNumber:orderData.order_number,
+           firstName:  orderData.firstname,
+           lastName:   orderData.lastname,
+           street:     orderData.street,
+           postalCode: orderData.zipcode,
+           city:       orderData.city,
+           email:      orderData.email,
+         });
+       }
+     }
+    } catch (error) {
+      console.error('Error fetching order data:', error);
+    } 
+  };
+
+
   useEffect(() => {
     if (decodedOrderNumber) {
-      axios
-        .get('http://localhost:8080/api/admin/routeoptimize/getAlltours')
-        .then((response) => {
-          const tours = response.data;
-          const orderData = tours
-            .flatMap((tour: any) => tour.orders)
-            .find((order: any) => order.order_number === decodedOrderNumber);
-
-          if (orderData) {
-            // Step 4: Pre-fill the form with the fetched data
-            setFormData({
-              ...formData,
-              orderNumber: orderData.order_number,
-              firstName: orderData.firstname,
-              lastName: orderData.lastname,
-              street: orderData.street,
-              postalCode: orderData.zipcode,
-              city: orderData.city,
-              email: orderData.email,
-            });
-          }
-        })
-        .catch((error) => {
-          console.error('Error fetching order data:', error);
-        });
+      fetchPicklistData(decodedOrderNumber);
     }
   }, [decodedOrderNumber]);
 
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+
+    // Automatically check verification code
+    if (name === 'verificationCode') {
+      setCodeVerified(value === generatedCode);
+    }
   };
 
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.checked });
   };
 
-  const handleSubmit = () => {
-    console.log(sigPad);
-    const signature = sigPad.current?.toDataURL('image/png');
-    console.log({ ...formData, signature });
+  const handleSubmit = async () => {
+    const signatureData = sigPad.current?.isEmpty() ? '' : sigPad.current?.toDataURL('image/png');
+
+    const newErrors = {
+      firstName:        !formData.firstName.trim(),
+      lastName:         !formData.lastName.trim(),
+      street:           !formData.street.trim(),
+      postalCode:       !formData.postalCode.trim(),
+      city:             !formData.city.trim(),
+      orderNumber:      !formData.orderNumber.trim(),
+      parkingLocation:  !formData.parkingLocation.trim(),
+      email:            !formData.email.trim(),
+      verificationCode: !codeVerified,
+      signature:        !signatureData,
+      termsAgreed:      !formData.termsAgreed,
+      privacyAgreed:    !formData.privacyAgreed,
+    };
+
+    setErrors(newErrors);
+
+    // If any validation fails, stop submission
+    if (Object.values(newErrors).some(Boolean)) {
+      showSnackbar('Bitte füllen Sie alle Pflichtfelder aus.', 'error');
+      return;
+    }
+
+    try{
+      // ✅ Save data to backend
+      await adminApiService.insertParkingPermit({
+           orderNumber: formData.orderNumber,
+           customer_signature: signatureData,
+           parkingLocation: formData.parkingLocation,
+         });
+    }catch{
+      console.log('error');
+    }
+    
+
+    
+    // Customer Greeting Text
+    const greetingText = '<p>Lieber '+formData.firstName+' '+formData.lastName+',</p><p>Die Parkberechtigung wurde erfolgreich übermittelt.</p><p>Ihr Auftrag wird wie gewünscht ausgeführt.</p>';
+    const subject = 'Formular zur Abgabegenehmigung - Bestellnummer #'+decodedOrderNumber;
+    
+
+    // Customer Email
+    handleEmail(formData.email,formData, signatureData || '', greetingText, subject);
+
+    // Customer Care Text
+    const CCText = '<p><strong>Dear Customer Care,</strong></p><p>You have received a new Drop Off Permission Form submission. Below are the details submitted by the user:</p>';
+    const CCsubject = 'Drop Off Permission Form - Order ID '+decodedOrderNumber;
+    
+    // Customer Care Email
+    handleEmail('muhammad.jahanzaibbaloch@vendomnia.com',formData, signatureData || '', CCText, CCsubject);
+
+
+      // On successful submission
+      setThankYouOpen(true);
+
+      // ✅ Reset form
+      setFormData({
+        salutation:       '',
+        firstName:        '',
+        lastName:         '',
+        street:           '',
+        postalCode:       '',
+        city:             '',
+        orderNumber:      '',
+        parkingLocation:  '',
+        email:            '',
+        verificationCode: '',
+        termsAgreed:      false,
+        privacyAgreed:    false,
+      });
+      setCodeVerified(false);
+      setGeneratedCode('');
+      setCodeSent(false);
+      sigPad.current?.clear();
+
+  };
+
+  const handleSendVerificationCode = async () => {
+    if (!formData.email.trim()) {
+      setErrors((prev) => ({ ...prev, email: true }));
+      return;
+    }
+
+    const code = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit code
+    setGeneratedCode(code);
+    setCodeSent(true);
+
+    const OTPEmail = 'Sehr geehrte Kundin, sehr geehrter Kunde, Ihr OTP für die Einreichung des Parkausweisformulars lautet: '+code+'. Bitte verwenden Sie diesen Code, um Ihre Einreichung abzuschließen.';
+
+    await adminApiService.picklistEmail({
+      to: formData.email, // Update with actual email
+      subject: 'Parking Permit - OTP',
+      html: OTPEmail,
+    });
+
+  };
+
+  const handleEmail = async (to: string, formData: any, signatureData: string, greetingText: string, subject: string) => {
+
+   try {
+     const html = getParkingPermitEmailHTML(
+       {
+         ...formData,
+         termsAgreed: formData.termsAgreed ? 'Ja' : 'NEIN',
+         privacyAgreed: formData.privacyAgreed ? 'Ja' : 'NEIN',
+       },
+       signatureData,
+       greetingText || ''
+     );
+
+
+     await adminApiService.picklistEmail({
+       to: to,
+       subject: subject,
+       html,
+       signatureData
+     });
+
+     console.log('Email sent successfully!');
+   } catch (err) {
+     console.error('Email sending failed:', err);
+   }
+
   };
 
   return (
@@ -136,9 +300,14 @@ const DeliveryPermitForm = () => {
             fullWidth
             label="Vorname"
             name="firstName"
+            required
             value={formData.firstName}
+            InputProps={{ readOnly: true }}
             onChange={handleChange}
+            error={errors.firstName}
+            helperText={errors.firstName ? '* Vorname ist erforderlich' : ''}
           />
+
         </Grid>
 
         <Grid item xs={12} sm={4.5}>
@@ -146,8 +315,12 @@ const DeliveryPermitForm = () => {
             fullWidth
             label="Nachname"
             name="lastName"
+            required
             value={formData.lastName}
+            InputProps={{ readOnly: true }}
             onChange={handleChange}
+            error={errors.lastName}
+            helperText={errors.lastName ? '* Nachname ist erforderlich' : ''}
           />
         </Grid>
 
@@ -156,8 +329,12 @@ const DeliveryPermitForm = () => {
             fullWidth
             label="Straße"
             name="street"
+            required
             value={formData.street}
+            InputProps={{ readOnly: true }}
             onChange={handleChange}
+            error={errors.street}
+            helperText={errors.street ? '* Straße ist erforderlich' : ''}
           />
         </Grid>
 
@@ -167,7 +344,11 @@ const DeliveryPermitForm = () => {
             label="Postleitzahl"
             name="postalCode"
             value={formData.postalCode}
+            required
+            InputProps={{ readOnly: true }}
             onChange={handleChange}
+            error={errors.postalCode}
+            helperText={errors.postalCode ? '* Postleitzahl ist erforderlich' : ''}
           />
         </Grid>
 
@@ -177,7 +358,11 @@ const DeliveryPermitForm = () => {
             label="Stadt"
             name="city"
             value={formData.city}
+            required
+            InputProps={{ readOnly: true }}
             onChange={handleChange}
+            error={errors.city}
+            helperText={errors.city ? '* Stadt ist erforderlich' : ''}
           />
         </Grid>
 
@@ -187,8 +372,11 @@ const DeliveryPermitForm = () => {
             label="Bestellnummer"
             name="orderNumber"
             value={formData.orderNumber}
+            required
+            InputProps={{ readOnly: true }}
             onChange={handleChange}
-            disabled
+            error={errors.orderNumber}
+            helperText={errors.orderNumber ? '* Bestellnummer ist erforderlich' : ''}
           />
         </Grid>
 
@@ -198,7 +386,10 @@ const DeliveryPermitForm = () => {
             label="Abstellort"
             name="parkingLocation"
             value={formData.parkingLocation}
+            required
             onChange={handleChange}
+            error={errors.parkingLocation}
+            helperText={errors.parkingLocation ? '* Abstellort ist erforderlich' : ''}
           />
         </Grid>
 
@@ -208,11 +399,20 @@ const DeliveryPermitForm = () => {
             label="eMail Adresse"
             name="email"
             value={formData.email}
+            required
             onChange={handleChange}
+            error={errors.email}
+            helperText={errors.email ? '* eMail Adresse ist erforderlich' : ''}
           />
-          <Button variant="contained" className="confirm-button email-confirm">
-            Klicken Sie hier, um Ihre E-Mail zu bestätigen
+          <Button
+            variant="contained"
+            className="confirm-button email-confirm"
+            onClick={handleSendVerificationCode}
+            disabled={codeSent}
+          >
+            {codeSent ? 'Code Gesendet' : 'Klicken Sie hier, um Ihre E-Mail zu bestätigen'}
           </Button>
+
         </Grid>
 
         <Grid item xs={10} sm={7}>
@@ -227,6 +427,11 @@ const DeliveryPermitForm = () => {
                 height: 250,
               }}
             />
+            {errors.signature && (
+              <Typography color="error" variant="caption" className="signature-req">
+                * Unterschrift ist erforderlich
+              </Typography>
+            )}
             <Button onClick={() => sigPad.current?.clear()} size="small" className="clear-signature-button">
               Klare Signatur
             </Button>
@@ -234,15 +439,21 @@ const DeliveryPermitForm = () => {
         </Grid>
 
         <Grid item xs={2} sm={5}>
-          <Box className="submit-container">
-            <TextField
-              fullWidth
-              label="Verifizierungscode"
-              name="verificationCode"
-              value={formData.verificationCode}
-              onChange={handleChange}
-            />
+          <Box className="submit-container"  sx={{ textAlign: 'left' }}>
+          <TextField
+            // fullWidth
+            label="Verifizierungscode"
+            name="verificationCode"
+            value={formData.verificationCode}
+            onChange={handleChange}
+            error={errors.verificationCode}
+            helperText={
+              errors.verificationCode ? 'Ungültiger Verifizierungscode' : codeVerified ? 'Code erfolgreich verifiziert.' : ''
+            }
+          />
+          
             <Typography variant="caption" className="error-caption">
+              <br/>
               * Geben Sie Ihre E-Mail-Adresse ein und klicken Sie auf Bestätigen, um den Bestätigungscode zu erhalten.
             </Typography>
           </Box>
@@ -251,22 +462,63 @@ const DeliveryPermitForm = () => {
               control={
                 <Checkbox
                   name="termsAgreed"
+                  required
                   checked={formData.termsAgreed}
                   onChange={handleCheckboxChange}
                 />
               }
-              label="Ich stimme den Bedingungen der Abstellgenehmigung zu."
+
+              label={
+                  <span>
+                    Ich stimme den{' '}
+                    <a
+                      href="https://sunniva-solar.de/terms-of-the-parking-permit/" // Replace with your actual privacy URL
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: '#ef972e', textDecoration: 'underline' }}
+                    >
+                      Bedingungen der Abstellgenehmigung
+                    </a>{' '}
+                    zu.
+                  </span>
+                }
             />
+            {errors.termsAgreed && (
+              <Typography color="error" variant="caption">
+              <br/>
+                * Allgemeine Geschäftsbedingungen ist erforderlich
+              </Typography>
+            )}
             <FormControlLabel
               control={
                 <Checkbox
                   name="privacyAgreed"
+                  required
                   checked={formData.privacyAgreed}
                   onChange={handleCheckboxChange}
                 />
               }
-              label="Ich stimme der Datenschutzerklärung zu."
+              label={
+                  <span>
+                    Ich stimme der{' '}
+                    <a
+                      href="https://sunniva-solar.de/privacy-policy/" // Replace with your actual privacy URL
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: '#ef972e', textDecoration: 'underline' }}
+                    >
+                      Datenschutzerklärung
+                    </a>{' '}
+                    zu.
+                  </span>
+                }
             />
+            {errors.privacyAgreed && (
+              <Typography color="error" variant="caption">
+                <br/>
+                * Datenschutzerklärung ist erforderlich
+              </Typography>
+            )}
           </Box>
 
           <Box className="submit-container">
@@ -276,7 +528,20 @@ const DeliveryPermitForm = () => {
           </Box>
         </Grid>
       </Grid>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+      <ThankYouModal isOpen={thankYouOpen} onClose={() => setThankYouOpen(false)} />
+
     </Box>
+
   );
 };
 
