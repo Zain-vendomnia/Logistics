@@ -14,7 +14,13 @@ interface Props {
   onImageUploaded: (isDone: boolean) => void;
 }
 
-const Camera = ({ type, millage, buttonText, isComplied, onImageUploaded }: Props) => {
+const Camera = ({
+  type,
+  millage,
+  buttonText,
+  isComplied,
+  onImageUploaded,
+}: Props) => {
   const {
     webcamRef,
     cameraState,
@@ -22,7 +28,7 @@ const Camera = ({ type, millage, buttonText, isComplied, onImageUploaded }: Prop
     handleButtonClick,
     retakeImage,
     clearCamera,
-  } = useCameraCapture({type, millage});
+  } = useCameraCapture({ type, millage });
 
   useEffect(() => {
     console.log("isComplied: ", isComplied);
@@ -35,6 +41,14 @@ const Camera = ({ type, millage, buttonText, isComplied, onImageUploaded }: Prop
       updateCameraState("uploaded", false);
     }
   }, [cameraState.uploaded]);
+
+  const cameraButtonText = isComplied
+    ? "Images Uploaded"
+    : cameraState.active
+      ? `Take ${buttonText}`
+      : cameraState.captured
+        ? `Upload ${buttonText}`
+        : `Upload ${buttonText}`;
 
   return (
     <Box
@@ -155,15 +169,7 @@ const Camera = ({ type, millage, buttonText, isComplied, onImageUploaded }: Prop
                 </Typography>
               </>
             ) : (
-              <Typography>
-                {isComplied
-                  ? "Images Uploaded"
-                  : cameraState.active
-                    ? `Take ${buttonText}`
-                    : cameraState.captured
-                      ? `Upload ${buttonText}`
-                      : `Upload ${buttonText}`}
-              </Typography>
+              <Typography>{cameraButtonText}</Typography>
             )}
           </Button>
 
