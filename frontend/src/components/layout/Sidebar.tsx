@@ -21,7 +21,7 @@ import {
   Route as TourOutlinedIcon,
   DirectionsBusFilled,
   Warehouse,
-  AltRoute,Moving
+  AltRoute, Moving
 } from "@mui/icons-material";
 import { useAuth } from "../../providers/AuthProvider";
 import { useLocation, Link } from "react-router-dom";
@@ -50,10 +50,9 @@ const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
         { text: "Tours", icon: <TourOutlinedIcon />, path: "/Admin_TourTemplates" },
         { text: "Completed Tour", icon: <AltRoute />, path: "/completed_tour" },
         { text: "Live Tour", icon: <Moving />, path: "/live_tours" },
-        { text: "Manage Tours", icon: <TourIcon />, path: "/manage_tours" },
         { text: "Manage Drivers", icon: <DirectionsBusFilled />, path: "/manage_drivers" },
         { text: "Manage Warehouse", icon: <Warehouse />, path: "/manage_warehouse" },
-        ]);
+      ]);
     } else if (showSuperAdminBoard) {
       setMenuItems([{ text: "Dashboard", icon: <DashboardIcon />, path: "/Admin_dashboard" }]);
     }
@@ -118,52 +117,52 @@ const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
 
         {/* Menu List */}
         <List sx={{ flex: 1, py: 2 }}>
-  {menuItems.map((item, index) => {
-    const selected = location.pathname === item.path;
-    return (
-      <ListItem key={index} disablePadding sx={{ px: 1 }}>
-        <ListItemButton
-          component={Link}
-          to={item.path}
-          onClick={() => onMenuItemClick?.(item.path)}
-          sx={(theme) => ({
-            borderRadius: 2,
-            px: 2,
-            py: 1.5,
-            my: 0.5,
-            background: selected ? theme.palette.primary.gradient : "transparent",
-            "&:hover": {
-              background: selected
-                ? theme.palette.primary.gradient
-                : theme.palette.grey[100],
-            },
+          {menuItems.map((item, index) => {
+            const selected = location.pathname === item.path;
+            return (
+              <ListItem key={index} disablePadding sx={{ px: 1 }}>
+                <ListItemButton
+                  component={Link}
+                  to={item.path}
+                  onClick={() => onMenuItemClick?.(item.path)}
+                  sx={(theme) => ({
+                    borderRadius: 2,
+                    px: 2,
+                    py: 1.5,
+                    my: 0.5,
+                    background: selected ? theme.palette.primary.gradient : "transparent",
+                    "&:hover": {
+                      background: selected
+                        ? theme.palette.primary.gradient
+                        : theme.palette.grey[100],
+                    },
+                  })}
+                >
+                  <ListItemIcon
+                    sx={{
+                      minWidth: 0,
+                      mr: isOpen ? 2 : "auto",
+                      color: selected ? "black" : "text.secondary",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {item.icon}
+                  </ListItemIcon>
+                  {isOpen && (
+                    <ListItemText
+                      primary={item.text}
+                      primaryTypographyProps={{
+                        fontWeight: selected ? "bold" : "normal",
+                        color: selected ? "black" : "text.primary",
+                        noWrap: true,
+                      }}
+                    />
+                  )}
+                </ListItemButton>
+              </ListItem>
+            );
           })}
-        >
-          <ListItemIcon
-            sx={{
-              minWidth: 0,
-              mr: isOpen ? 2 : "auto",
-              color: selected ? "black" : "text.secondary",
-              justifyContent: "center",
-            }}
-          >
-            {item.icon}
-          </ListItemIcon>
-          {isOpen && (
-            <ListItemText
-              primary={item.text}
-              primaryTypographyProps={{
-                fontWeight: selected ? "bold" : "normal",
-                color: selected ? "black" : "text.primary",
-                noWrap: true,
-              }}
-            />
-          )}
-        </ListItemButton>
-      </ListItem>
-    );
-  })}
-</List>
+        </List>
       </Box>
     </Box>
   );

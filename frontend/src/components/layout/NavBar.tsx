@@ -111,7 +111,7 @@ const NavBar: React.FC = () => {
               : showSuperAdminBoard
               ? "Super Admin"
               : ""}{" "}
-            Board
+            
           </Typography>
         </Box>
 

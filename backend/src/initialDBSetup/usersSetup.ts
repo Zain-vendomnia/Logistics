@@ -28,7 +28,7 @@ const initialSetup = async () => {
       console.log("Admin user already exists");
     }
 
-    const [existingDriver] = await pool.query("SELECT * FROM users WHERE username = 'driver'");
+   /* const [existingDriver] = await pool.query("SELECT * FROM users WHERE username = 'driver'");
     if ((existingDriver as RowDataPacket[]).length === 0) {
       const hashedDriverPassword = await bcrypt.hash("1234", 10);
        await pool.query(
@@ -40,11 +40,7 @@ const initialSetup = async () => {
     } else {
       console.log("Driver user already exists");
     }
-
-
-
-
-
+ */
 
   } catch (error) {
     console.error("Error during initial setup:", error);

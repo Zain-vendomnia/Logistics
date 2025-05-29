@@ -52,7 +52,6 @@ export const CREATE_TOUR_INFO_MASTER_TABLE = `
     tour_total_km VARCHAR(45) NOT NULL,
     tour_start_fuel_pic BLOB,
     route_color VARCHAR(7) NOT NULL,
-    tour_status VARCHAR(20) NOT NULL DEFAULT 'pending',  -- Added this line
     graphhopper_route JSON,
     tour_status ENUM('pending', 'live', 'confirmed', 'completed') DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
