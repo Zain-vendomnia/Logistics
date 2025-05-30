@@ -60,19 +60,24 @@ const TourMapPage: React.FC = () => {
   const [routeDistance, setRouteDistance] = useState<number>(0);
   const [routeTime, setRouteTime] = useState<number>(0);
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [selectedOrderForEdit, setSelectedOrderForEdit] = useState<any | null>(null);
-  
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
 
   useEffect(() => {
+    const instance = latestOrderServices.getInstance();
+
     const fetchData = async () => {
-      const instance = latestOrderServices.getInstance();
-      const toursdata = await instance.getTours();
+      const toursdata = await instance.getTours(); // cached unless changed
       const tour = toursdata.find((tour: any) => tour.id === Number(tour_id));
       setSelectedTour(tour);
     };
 
-    fetchData();
+    fetchData(); // initial load
+
+    const interval = setInterval(() => {
+      fetchData(); // update periodically
+    }, 3000); // every 30 seconds
+
+    return () => clearInterval(interval); 
   }, [tour_id]);
 
   console.log(selectedTour);
@@ -123,24 +128,10 @@ const TourMapPage: React.FC = () => {
     fetchRouteData();
   }, [parsedTourId]);
 
-const handleEditOrder = (order: any) => {
-  setSelectedOrderForEdit(order);
-  setEditModalOpen(true);
-};
+
 const handleEditCustomer = (customer: any) => {
   setSelectedCustomer(customer); // Set the selected customer
   setEditModalOpen(true);        // Open the modal
-};
-const handleSaveEditedOrder = (updatedOrder: any) => {
-  // TODO: Update order in backend and refresh state
-  console.log('Saved Order:', updatedOrder);
-
-  setSelectedTour((prev: any) => ({
-    ...prev,
-    orders: prev.orders.map((order: any) =>
-      order.order_id === updatedOrder.order_id ? updatedOrder : order
-    ),
-  }));
 };
 
   const blink = {
@@ -650,6 +641,17 @@ const handleSaveEditedOrder = (updatedOrder: any) => {
       onClose={() => setEditModalOpen(false)}
       customer={selectedCustomer}
       color={selectedTour?.tour_route_color}
+      onSave={(updatedCustomer) => {
+    // ✅ Update selectedTour.orders with the updated customer
+        setSelectedTour((prev: any) => {
+          if (!prev) return prev;
+          const updatedOrders = prev.orders.map((order: any) =>
+            order.order_id === updatedCustomer.order_id ? updatedCustomer : order
+          );
+          return { ...prev, orders: updatedOrders };
+        });
+      }}
+
       />
     </Box>
     

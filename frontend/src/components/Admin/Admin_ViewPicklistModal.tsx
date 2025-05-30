@@ -18,6 +18,7 @@ const modalStyle = {
   p: 4,
   borderRadius: '8px',
   height:'90vh',
+  fontFamily: 'Raleway',
 };
 
 
@@ -107,14 +108,14 @@ const emailSignatureHtml = `
   </div>
 `;
 
-export interface Item {
+interface OrderItem {
   slmdl_articleordernumber: string;
   quantity: number;
 }
 
-export interface Order {
+interface Order {
   order_number: string;
-  items: Item[];
+  items: OrderItem[];
 }
 
 export interface Driver {
@@ -143,32 +144,40 @@ const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({ open, handleClose
   const [loading, setLoading] = useState(false);
   const [Btnloading, setBtnloading] = useState(false);
   const [selectedTour, setSelectedTour] = useState<any | null>(null);
-
   useEffect(() => {
-    if (open && tourData?.id) {
+    if (!open || !tourData?.id) return;
+
+    const fetchPicklistData = async (tourId: string) => {
+      setLoading(true);
+      try {
+        const instance = latestOrderServices.getInstance();
+        const toursdata = await instance.getTours();
+        const matchedTour = toursdata.find((tour: any) => tour.id === Number(tourId));
+        if (matchedTour) {
+          setPicklistData(matchedTour);
+        } else {
+          console.error('Tour not found');
+        }
+      } catch (error) {
+        console.error('Error fetching picklist data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Initial fetch immediately
+    fetchPicklistData(tourData.id);
+
+    // Setup interval for polling every 3 seconds
+    const intervalId = setInterval(() => {
       fetchPicklistData(tourData.id);
-    }
+    }, 3000);
+
+    // Cleanup on unmount or when open/tourData changes
+    return () => clearInterval(intervalId);
+
   }, [open, tourData]);
 
-  const fetchPicklistData = async (tourId: string) => {
-    setLoading(true);
-
-    try {
-      const instance = latestOrderServices.getInstance();
-      const toursdata = await instance.getTours();
-      const matchedTour = toursdata.find((tour: any) => tour.id === Number(tourId));
-      if (matchedTour) {
-        setPicklistData(matchedTour);
-      } else {
-        console.error('Tour not found');
-      }
-    } catch (error) {
-      console.error('Error fetching picklist data:', error);
-    } finally {
-      setLoading(false);
-    }
-
-  };
 
   const handleSendEmail = async () => {
     if (!picklistData) return;
@@ -196,6 +205,28 @@ const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({ open, handleClose
      } finally {
       setBtnloading(false);
     }
+  };
+
+  // Helper: Merge logic
+  const getMergedOrderItems = (orders: Order[]) => {
+    const mergedMap = new Map<string, { order_number: string; slmdl_articleordernumber: string; quantity: number }>();
+
+    orders.forEach((order) => {
+      order.items.forEach((item) => {
+        const key = `${order.order_number}-${item.slmdl_articleordernumber}`;
+        if (mergedMap.has(key)) {
+          mergedMap.get(key)!.quantity += item.quantity;
+        } else {
+          mergedMap.set(key, {
+            order_number: order.order_number,
+            slmdl_articleordernumber: item.slmdl_articleordernumber,
+            quantity: item.quantity,
+          });
+        }
+      });
+    });
+
+    return Array.from(mergedMap.values());
   };
   // Aggregate items by article number
   const aggregatedItems: { [key: string]: number } = {};
@@ -236,46 +267,81 @@ const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({ open, handleClose
       <Box>
         <Grid container spacing={2}>
           <Box sx={modalStyle}>
-            <Typography variant="h6" mb={2} sx={{ color: '#ef972e' }}>PICKLIST</Typography>
+            <Box sx={{ textAlign: 'center', mb: '25px' }}>
+              <img
+                src={`https://sunniva-solar.de/wp-content/uploads/2025/01/Sunniva_1600x500_transparent-min.png`}
+                alt="Sunniva Logo"
+                style={{ height: '52px' }}
+              />
+            </Box>
 
-            {/* Static Info */}
-            <Paper sx={{ p: 2, mb: 3,   background: 'linear-gradient(135deg, #fff, #abb7c5)' }}>
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <Typography>
-                    <strong>Location:</strong> ESCHWEGE
-                    <br />
-                    <strong>Driver:</strong> {picklistData?.driver?.driver_name}
-                    <br />
-                    <strong>Licence Plate:</strong> ESW-SN600
-                  </Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography>
-                    <strong>Email:</strong> yousef.alomar@vendomnia.com
-                    <br />
-                    <strong>Phone:</strong> {picklistData?.driver?.mobile}
-                    <br />
-                    <strong>ZIP Code:</strong> 30-31
-                  </Typography>
-                </Grid>
-                <Grid item xs={12}>
-                  <Typography>
-                    <strong>Date:</strong>
-                    <br />
-                    Montag - 05.05.2025 - Tag 1
-                    <br />
-                    Dienstag - 06.05.2025 - Tag 2
-                  </Typography>
-                </Grid>
-              </Grid>
+            <Paper sx={{ p: 1, boxShadow: 'none' }}>
+              {/* Title */}
+              <Typography
+                variant="h6"
+                sx={{
+                  textAlign: 'center',
+                  color: '#000',
+                  fontSize: '14px',
+                  textDecoration: 'underline',
+                  fontWeight: 'bold',
+                  mb: 2,
+                  fontFamily: 'Raleway',
+                }}
+              >
+                PICK LIST
+              </Typography>
+
+              {/* Warehouse & Driver Details */}
+              <Box
+                sx={{
+                  fontFamily: 'Raleway',
+                  color: '#000',
+                  fontSize: '13px',
+                  width: '430px',
+                  lineHeight: 1.1,
+                }}
+              >
+                <p>
+                  <strong>Location&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> {picklistData?.warehouseName ?? 'N/A'} <br />
+                  <strong>Driver&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> {picklistData?.driver?.driver_name ?? 'N/A'} <br />
+                  <strong>Licence plate&nbsp;&nbsp;&nbsp;:</strong> {picklistData?.driver?.licenceplate ?? 'N/A'} <br />
+                  <strong>Email&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> {picklistData?.driver?.email ?? 'N/A'} <br />
+                  <strong>Phone&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> {picklistData?.driver?.mobile ?? 'N/A'} <br />
+                  <strong>ZIP Code&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> 
+                  {(() => {
+                    const uniqueZips = picklistData?.orders
+                      ?.map((order: { zipcode: string }) => order.zipcode)
+                      .filter((zip: string, index: number, self: string[]) => zip && self.indexOf(zip) === index);
+
+                    if (!uniqueZips || uniqueZips.length === 0) return ' N/A';
+
+                    return uniqueZips.length === 1
+                      ? ` ${uniqueZips[0]}`
+                      : ` ${uniqueZips.map((zip: string) => zip.slice(-2)).join(', ')}`;
+                  })()} <br />
+                  <strong>Date&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong>
+                  {picklistData?.tour_date
+                    ? (() => {
+                        const dates = picklistData.tour_date.split(',');
+                        return dates
+                          .map((day: string, index: number) =>
+                            index === 0
+                              ? ` ${new Date(day).toLocaleDateString('en-GB')}`
+                              : `\n                     ${new Date(day).toLocaleDateString('en-GB')}`
+                          )
+                          .join('\n');
+                      })()
+                    : ' N/A'}
+                </p>
+              </Box>
             </Paper>
 
 
-            <Typography variant="h6" mb={2} sx={{ color: '#ef972e' }}>Order item details</Typography>
+            {/*<Typography variant="h6" mb={2} sx={{ color: '#ef972e' }}>Order item details</Typography>*/}
 
             {/* Orders Table */}
-            <TableContainer component={Paper}>
+      {/*      <TableContainer component={Paper}>
               <Table>
                 <TableHead  sx={{ background: 'linear-gradient(45deg, #f7941d 30%, #f37021 90%)'}}>
                   <TableRow>
@@ -285,45 +351,110 @@ const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({ open, handleClose
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {picklistData.orders.map((order: { items: any[]; order_number: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | React.ReactFragment | React.ReactPortal | null | undefined; }, orderIndex: any) =>
-                    order.items.map((item, itemIndex) => (
-                      <TableRow key={`${orderIndex}-${itemIndex}`}>
-                        <TableCell align="center">{item.slmdl_articleordernumber}</TableCell>
-                        <TableCell align="center">{item.quantity}</TableCell>
-                        <TableCell align="center">{order.order_number}</TableCell>
-                      </TableRow>
-                    ))
-                  )}
+                  {getMergedOrderItems(picklistData.orders).map((item, index) => (
+                    <TableRow key={index}>
+                      <TableCell align="center">{item.slmdl_articleordernumber}</TableCell>
+                      <TableCell align="center">{item.quantity}</TableCell>
+                      <TableCell align="center">{item.order_number}</TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
-            </TableContainer>
+            </TableContainer>*/}
 
             {/* Aggregated Table */}
-            <Typography variant="h6" mb={2} mt={3} sx={{ color: '#ef972e' }}>Total pickup items</Typography>
-            <TableContainer component={Paper}>
-              <Table>
-                <TableHead sx={{ background: 'linear-gradient(45deg, #f7941d 30%, #f37021 90%)'}}>
-                  <TableRow>
-                    <TableCell align="center" sx={{ color: 'white' }}><strong>TOTAL ITEM</strong></TableCell>
-                    <TableCell align="center" sx={{ color: 'white' }}><strong>TOTAL QUANTITY</strong></TableCell>
+            {/*<Typography variant="h6" mb={2} mt={3} sx={{ color: '#ef972e' }}>Total pickup items</Typography>*/}
+            <TableContainer
+              component={Paper}
+              sx={{
+                width: '89%',
+                marginLeft: '11%',
+                boxShadow: 'none', // Remove Paper shadow
+                fontFamily: 'Raleway, sans-serif',
+                borderRadius: '0px'
+              }}
+            >
+              <Table
+                sx={{
+                  borderCollapse: 'collapse',
+                  fontSize: '14px',
+                }}
+              >
+                <TableHead>
+                  <TableRow sx={{ backgroundColor: '#f79c22' }}>
+                    <TableCell
+                      align="center"
+                      sx={{
+                        border: '1.5px solid #000',
+                        padding: '14px 20px 2px',
+                        color: 'white',
+                        fontWeight: 'bold',
+                      }}
+                    >
+                      ITEM
+                    </TableCell>
+                    <TableCell
+                      align="center"
+                      sx={{
+                        border: '1.5px solid #000',
+                        padding: '14px 20px 2px',
+                        color: 'white',
+                        fontWeight: 'bold',
+                      }}
+                    >
+                      QUANTITY
+                    </TableCell> 
+                    <TableCell
+                      align="center"
+                      sx={{
+                        border: '1.5px solid #000',
+                        padding: '14px 20px 2px',
+                        color: 'white',
+                        fontWeight: 'bold',
+                      }}
+                    >
+                      CHECK
+                    </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {Object.entries(aggregatedItems).map(([articleNumber, qty], index) => (
                     <TableRow key={index}>
-                      <TableCell align="center">{articleNumber}</TableCell>
-                      <TableCell align="center">{qty}</TableCell>
+                      <TableCell
+                        align="center"
+                        sx={{
+                          border: '1.5px solid #000',
+                          padding: '29px 8px',
+                          fontFamily: 'Raleway, sans-serif',
+                        }}
+                      >
+                        {articleNumber}
+                      </TableCell>
+                      <TableCell
+                        align="center"
+                        sx={{
+                          border: '1.5px solid #000',
+                          padding: '29px 8px',
+                          fontFamily: 'Raleway, sans-serif',
+                        }}
+                      >
+                        {qty}
+                      </TableCell> 
+                      <TableCell
+                        align="center"
+                        sx={{
+                          border: '1.5px solid #000',
+                          padding: '29px 8px',
+                          fontFamily: 'Raleway, sans-serif',
+                        }}
+                      >
+
+                      </TableCell>
                     </TableRow>
                   ))}
-                  <TableRow>
-                    <TableCell colSpan={2} align="center">
-                      <strong>Total Solar Panels:  {totalQuantity}</strong>
-                    </TableCell>
-                  </TableRow>
                 </TableBody>
               </Table>
             </TableContainer>
-
             {/* Email Button */}
             <Box mt={3} textAlign="center">
             <Button

@@ -10,7 +10,7 @@ import {
   NotificationSeverity,
   useNotificationStore,
 } from "../../store/useNotificationStore";
-import { uploading, loadingPulse } from "../base - ui/motionPresets";
+import { uploading, loadingPulse } from "../base-ui/motionPresets";
 
 const UploadPermitScreenshot = () => {
   const { showNotification } = useNotificationStore();

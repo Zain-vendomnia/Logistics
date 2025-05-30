@@ -7,7 +7,7 @@ import ContactIcons from "./Contact_Icons";
 import MessageBox from "./Message_Box";
 import { useDeliveryStore } from "../../store/useDeliveryStore";
 import { motion } from "framer-motion";
-import { fade, shake, slideUp } from "../base - ui/motionPresets";
+import { fade, shake, slideUp } from "../base-ui/motionPresets";
 
 const ClientDetails = () => {
   const store = useDeliveryStore();

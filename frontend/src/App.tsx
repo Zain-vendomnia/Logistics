@@ -11,6 +11,7 @@ import NavBar from "./components/layout/NavBar";
 import Sidebar from "./components/layout/Sidebar";
 import { Box } from "@mui/material";
 import { NotificationManager } from "./components/Notification";
+import '@fontsource/raleway'; // Defaults to weight 400
 
 const App: React.FC = () => {
   useTokenValidation();

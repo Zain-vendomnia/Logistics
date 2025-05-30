@@ -77,6 +77,10 @@ const LiveTours = () => {
 
   useEffect(() => {
     loadTours();
+    const interval = setInterval(() => {
+    loadTours(); // fetch tours every 30 seconds
+    }, 3000); // 30,00 ms = 3 seconds
+  return () => clearInterval(interval);
   }, [loadTours]); // loadTours is stable now
 
   const filteredTours = useMemo(() => {

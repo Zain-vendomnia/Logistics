@@ -5,13 +5,13 @@ import * as yup from "yup";
 import { TextField, Button, Box, Typography } from "@mui/material";
 import { ModalWrapper } from "../common/ModalWrapper";
 import { motion } from "framer-motion";
-import { useShakeEvery } from "../base - ui/useShakeEvery";
+import { useShakeEvery } from "../base-ui/useShakeEvery";
 import {
   NotificationSeverity,
   useNotificationStore,
 } from "../../store/useNotificationStore";
-import { useHeadingUnderline } from "../base - ui/useHeadingUnderline";
-import { UnderlineElement } from "../base - ui/UnderlineElement";
+import { useHeadingUnderline } from "../base-ui/useHeadingUnderline";
+import { UnderlineElement } from "../base-ui/UnderlineElement";
 
 const getHelperText = (error?: string | undefined) => (
   <Typography component="span" sx={{ fontSize: "1.2rem", color: "error.main" }}>

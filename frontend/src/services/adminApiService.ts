@@ -73,6 +73,14 @@ const updateCustomerInfo = (customerData: Record<string, any>) =>
     headers: authHeader()
   });
 
+
+const insertParkingPermit = (formData: any) => {
+
+    return axios.post(API_BaseUrl_Admin + "insertParkingPermit", formData, {
+      headers: authHeader(),
+    });
+  };
+
 const adminApiService = {
   fetchRouteData,
   fetchOrderTourCount,
@@ -90,8 +98,8 @@ const adminApiService = {
   fetchAlltourstatushistory,
   update_tourstatus,
   checkDriverRest,
-  updateCustomerInfo
-
+  updateCustomerInfo,
+  insertParkingPermit,
 };
 
 export default adminApiService;

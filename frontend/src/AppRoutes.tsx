@@ -8,7 +8,7 @@ import Register from "./components/pages/Register";
 import Home from "./components/pages/Home";
 import Profile from "./components/pages/Profile";
 import BoardDriver from "./components/driver/BoardDriver";
-import BoardAdmin from "./components/BoardAdmin/BoardAdmin";
+
 import SuperAdmin from "./components/SuperAdmin";
 import AdminDashboard from "./components/Admin/Admin_dashboard";
 import ManageDrivers from "./components/Admin/ManageDrivers";
@@ -16,11 +16,10 @@ import ManageWarehouse from "./components/Admin/ManageWarehouse";
 import Admin_TourTemplates from "./components/Admin/Admin_TourTemplates";
 import Admin_MapComponent from "./components/Admin/Admin_MapComponent";
 import Admin_TourMapView from "./components/Admin/Admin_TourMapView";
+import ParkingPermitForm from './components/parkingPermit/ParkingPermitForm';
 import AdminAddTour from "./components/Admin/Admin_AddTour";
 import CompletedTour from "./components/Admin/completed_tour";
 import LiveTours from "./components/Admin/live_tours";
-import ManageTour from "./components/Admin/TourManagement";
-
 
 // Role-based route guard
 const ProtectedRoute = ({
@@ -73,9 +72,7 @@ const AppRoutes = () => {
       {/* Driver Route */}
       <Route path="/driver"  element={<ProtectedRoute element={<BoardDriver />} allowedRoles={["driver"]} />}/>
 
-      {/* Admin Board */}
-      <Route path="/admin" element={<ProtectedRoute element={<BoardAdmin />} allowedRoles={["admin"]} />}/>
-
+    
       {/* General Protected Routes */}
       <Route path="/home" element={<ProtectedRoute element={<Home />} />} />
       <Route path="/profile" element={<ProtectedRoute element={<Profile />} />} />
@@ -104,7 +101,8 @@ const AppRoutes = () => {
       <Route path = "/Admin_TourMapView/:tour_id"  element={<ProtectedRoute element={<Admin_TourMapView />} allowedRoles={["admin"]} />}/>
       <Route path = "/completed_tour" element={<ProtectedRoute element={<CompletedTour />} allowedRoles={["admin"]} />} />
       <Route path = "/live_tours" element={<ProtectedRoute element={<LiveTours />} allowedRoles={["admin"]} />} />
-      
+      <Route path = "/ParkingPermitForm" element = {<ParkingPermitForm/>}/>
+      {/* <Route path="/Admin_PickList" element={<Admin_PickListPage />} />  */}
    </Routes>
 
   );

@@ -9,19 +9,57 @@ import {
   DialogActions,
   Button,
   Snackbar,
-  Alert
+  Alert,
+  InputAdornment,
+  Paper
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import adminApiService from '../../services/adminApiService'; 
+import PhoneIcon from '@mui/icons-material/Phone';
+import adminApiService from '../../services/adminApiService';
 
 interface Props {
   open: boolean;
   onClose: () => void;
   customer: any;
   color: string;
+  onSave?: (updatedCustomer: any) => void;
 }
+const CustomInput = ({
+  label,
+  value,
+  onChange,
+  startAdornment = null
+}: {
+  label: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  startAdornment?: React.ReactNode;
+}) => (
+  <TextField
+    label={label}
+    value={value}
+    fullWidth
+    onChange={onChange}
+    InputProps={{
+      startAdornment,
+      sx: {
+        borderRadius: 2,
+      }
+    }}
+    sx={{
+      '& .MuiOutlinedInput-root': {
+        borderRadius: '10px',
+        backgroundColor: '#f5f5f5',
+      },
+      '& label.Mui-focused': { color: '#555' },
+      '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+        borderColor: '#888',
+      }
+    }}
+  />
+);
 
-const CustomerEditModal: React.FC<Props> = ({ open, onClose, customer, color }) => {
+const CustomerEditModal: React.FC<Props> = ({ open, onClose, customer, color, onSave }) => {
   const [formData, setFormData] = useState({
     street: '',
     city: '',
@@ -73,7 +111,11 @@ const CustomerEditModal: React.FC<Props> = ({ open, onClose, customer, color }) 
         severity: 'success'
       });
 
-      onClose(); // Optionally delay this if you want the snackbar to remain longer
+      if (onSave) {
+        onSave({ ...customer, ...updatedData });
+      }
+
+      onClose();
     } catch (error) {
       console.error("❌ Error updating customer:", error);
 
@@ -91,59 +133,128 @@ const CustomerEditModal: React.FC<Props> = ({ open, onClose, customer, color }) 
 
   return (
     <>
-   <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-  <DialogTitle sx={{ backgroundColor: color, color: 'white', display: 'flex', justifyContent: 'space-between' }}>
-    Edit Customer Info
-    <IconButton onClick={onClose} sx={{ color: 'white' }}>
-      <CloseIcon />
-    </IconButton>
-  </DialogTitle>
-
-  {customer ? (
-    <>
-      <DialogContent>
-        <Box mt={2} display="flex" flexDirection="column" gap={2}>
-          <TextField label="First Name" value={customer.firstname} fullWidth disabled />
-          <TextField label="Last Name" value={customer.lastname} fullWidth disabled />
-          <TextField label="Order Number" value={customer.order_number} fullWidth disabled />
-          <TextField
-            label="Street"
-            value={formData.street}
-            fullWidth
-            onChange={(e) => handleChange('street', e.target.value)}
-          />
-          <TextField
-            label="City"
-            value={formData.city}
-            fullWidth
-            onChange={(e) => handleChange('city', e.target.value)}
-          />
-          <TextField
-            label="ZIP Code"
-            value={formData.zipcode}
-            fullWidth
-            onChange={(e) => handleChange('zipcode', e.target.value)}
-          />
-          <TextField
-            label="Phone Number"
-            value={formData.phone_number}
-            fullWidth
-            onChange={(e) => handleChange('phone_number', e.target.value)}
-          />
+      <Dialog
+        open={open}
+        onClose={onClose}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 4,
+            overflow: 'hidden',
+            boxShadow: 6,
+            backgroundColor: '#fafafa',
+          }
+        }}
+      >
+        <Box
+          sx={{
+            background: `linear-gradient(90deg, ${color} 0%, ${color}CC 100%)`,
+            color: 'white',
+            p: 2,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <DialogTitle sx={{ m: 0, p: 0, color: 'inherit', fontWeight: 'bold' }}>
+            Edit Customer Info
+          </DialogTitle>
+          <IconButton onClick={onClose} sx={{ color: 'white' }}>
+            <CloseIcon />
+          </IconButton>
         </Box>
-      </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={onClose} variant="outlined">Cancel</Button>
-        <Button onClick={handleSave} variant="contained" sx={{ backgroundColor: color }}>Save</Button>
-      </DialogActions>
-    </>
-  ) : (
-    <DialogContent>
-      <Box>Loading customer info...</Box>
-    </DialogContent>
-  )}
-</Dialog>
 
+        {customer ? (
+          <>
+            <DialogContent sx={{ py: 3 }}>
+              <Paper
+                elevation={2}
+                sx={{
+                  p: 3,
+                  borderRadius: 3,
+                  backgroundColor: '#ffffff',
+                }}
+              >
+                <Box display="flex" flexDirection="column" gap={2}>
+                  <TextField label="First Name" value={customer.firstname} fullWidth disabled
+                    InputProps={{
+                      sx: {
+                        fontSize: '1.0rem', // 👈 Input text size
+                        fontFamily: 'Poppins, sans-serif',
+                        color: 'text.primary',
+                        mt: 1.5 // Ensures text is visible even when disabled
+                      }
+                    }}
+                    InputLabelProps={{
+                      sx: {
+                        fontSize: '1.3rem', // 👈 Label text size
+                        fontFamily: 'Poppins, sans-serif'
+                      }
+                    }}
+                  />
+
+                  <TextField label="Last Name" value={customer.lastname} fullWidth disabled  InputProps={{
+                      sx: {
+                        fontSize: '1.0rem', // 👈 Input text size
+                        fontFamily: 'Poppins, sans-serif',
+                        color: 'text.primary',
+                        mt: 1.5 // Ensures text is visible even when disabled
+                      }
+                    }}
+                    InputLabelProps={{
+                      sx: {
+                        fontSize: '1.3rem', // 👈 Label text size
+                        fontFamily: 'Poppins, sans-serif'
+                      }
+                    }}/>
+                  <TextField label="Order Number" value={customer.order_number} fullWidth disabled  InputProps={{
+                      sx: {
+                        fontSize: '1.0rem', // 👈 Input text size
+                        fontFamily: 'Poppins, sans-serif',
+                        color: 'text.primary',
+                        mt: 1.5// Ensures text is visible even when disabled
+                      }
+                    }}
+                    InputLabelProps={{
+                      sx: {
+                        fontSize: '1.3rem', // 👈 Label text size
+                        fontFamily: 'Poppins, sans-serif'
+                      }
+                    }}/>
+
+                  <CustomInput label="Street" value={formData.street} onChange={(e) => handleChange('street', e.target.value)} />
+                  <CustomInput label="City" value={formData.city} onChange={(e) => handleChange('city', e.target.value)} />
+                  <CustomInput label="ZIP Code" value={formData.zipcode} onChange={(e) => handleChange('zipcode', e.target.value)} />
+                  <CustomInput
+                    label="Phone Number"
+                    value={formData.phone_number}
+                    onChange={(e) => handleChange('phone_number', e.target.value)}
+                    startAdornment={
+                      <InputAdornment position="start">
+                        <PhoneIcon sx={{ color: 'gray' }} />
+                      </InputAdornment>
+                    }
+                  />
+                </Box>
+              </Paper>
+            </DialogContent>
+
+            <DialogActions sx={{ px: 4, pb: 3 }}>
+              <Button onClick={onClose} variant="contained" sx={{ backgroundColor: color }}>
+                Cancel
+              </Button>
+              <Button onClick={handleSave} variant="contained" sx={{ backgroundColor: color }}>
+                Save
+              </Button>
+            </DialogActions>
+          </>
+        ) : (
+          <DialogContent>
+            <Box>Loading customer info...</Box>
+          </DialogContent>
+        )}
+      </Dialog>
 
       <Snackbar
         open={snackbar.open}
@@ -155,6 +266,7 @@ const CustomerEditModal: React.FC<Props> = ({ open, onClose, customer, color }) 
           {snackbar.message}
         </Alert>
       </Snackbar>
+
     </>
   );
 };

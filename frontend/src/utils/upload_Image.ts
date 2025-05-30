@@ -1,7 +1,7 @@
 import axios from "axios";
 
 export const uploadImage = async (dataURI: string) => {
-  const blob = dataURItoBlob(dataURI);
+  const blob = dataUriToBlob(dataURI);
   const formData = new FormData();
   formData.append("file", blob, "image.jpg");
 
@@ -24,7 +24,7 @@ export const uploadImage = async (dataURI: string) => {
   }
 };
 
-function dataURItoBlob(dataURI: string): Blob {
+function dataUriToBlob (dataURI: string): Blob {
   const byteString = atob(dataURI.split(",")[1]);
   const mimeString = dataURI.split(",")[0].split(":")[1].split(";")[0];
   const ab = new ArrayBuffer(byteString.length);

@@ -16,6 +16,9 @@ import { scheduleWmsOrderController } from "./controller/Admin_Api/scheduleWmsOr
 import { uploadImageController } from "./controller/Admin_Api/uploadImage.controller";
 // Picklist Email
 import { picklistEmail } from './controller/Admin_Api/picklistEmail.controller'; // Import the controller
+
+// Parking Permit 
+import { insertParkingPermit } from './controller/Admin_Api/insertParkingPermit.controller'; // Import the controller
 // total orders count controller 
 import { getOrderCount } from "./controller/Admin_Api/orderCount.controller";
 //  driver routes
@@ -64,6 +67,7 @@ app.use("/api/admin/", driverRoutes);
 app.use("/api/admin/", warehouseRoutes);
 // Picklist Email Route
 app.post("/api/admin/picklistEmail", picklistEmail); // This will handle POST requests to send the email
+app.post("/api/admin/insertParkingPermit", insertParkingPermit); // This will handle POST requests to insert the parking permit form
 app.use('/api/admindriver/tour/:tourId/order', HandleOrderDelivery);
 
 

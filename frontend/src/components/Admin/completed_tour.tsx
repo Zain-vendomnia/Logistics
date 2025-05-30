@@ -77,6 +77,10 @@ const CompletedTour = () => {
 
   useEffect(() => {
     loadTours();
+    const intervalId = setInterval(() => {
+    loadTours();
+  }, 3000); // every 3 seconds
+  return () => clearInterval(intervalId);
   }, [loadTours]); // loadTours is stable now
 
   const filteredTours = useMemo(() => {

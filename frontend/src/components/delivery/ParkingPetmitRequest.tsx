@@ -10,7 +10,7 @@ import {
 import { grey } from "@mui/material/colors";
 import { motion } from "framer-motion";
 
-import { useShakeEvery } from "../base - ui/useShakeEvery";
+import { useShakeEvery } from "../base-ui/useShakeEvery";
 import {
   NotificationSeverity,
   useNotificationStore,

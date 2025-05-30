@@ -18,7 +18,7 @@ import {
   useNotificationStore,
 } from "../../store/useNotificationStore";
 import { motion } from "framer-motion";
-import { useShakeEvery } from "../base - ui/useShakeEvery";
+import { useShakeEvery } from "../base-ui/useShakeEvery";
 import ParkingPetmitRequest from "../delivery/ParkingPetmitRequest";
 
 interface Props {

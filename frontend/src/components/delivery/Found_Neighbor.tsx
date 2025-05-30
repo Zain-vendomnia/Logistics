@@ -11,7 +11,7 @@ import {
   NotificationSeverity,
   useNotificationStore,
 } from "../../store/useNotificationStore";
-import { AttentionBox } from "../base - ui/AttentionBox";
+import { AttentionBox } from "../base-ui/AttentionBox";
 
 interface Props {
   onComplete: () => void;
