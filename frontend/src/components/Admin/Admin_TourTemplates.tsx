@@ -129,7 +129,7 @@ const AdminTourTemplates = () => {
 
         await adminApiService.picklistEmail({
           // to: order.email,
-          to: 'muhammad.jahanzaibbaloch@vendomnia.com',
+          to: 'jishi.puthanpurayil@vendomnia.com',
           subject: 'Parking Permit - Order #'+order.order_number ,
           html
         });
@@ -256,6 +256,11 @@ const AdminTourTemplates = () => {
           <Box display="flex" justifyContent="space-between" flexWrap="wrap" mb={2} gap={2}>
             <TextField placeholder="Search tours..." size="small" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} sx={{ maxWidth: 300 }} />
             <Box display="flex" gap={1}>
+                 <Tooltip title="Send Parking Permit">
+                <span>
+                  <Button variant="contained" color="success" startIcon={<Email/>} onClick={() => handleAction('permit')} disabled={!selected.length}>Send Parking Permit</Button>
+                </span>
+              </Tooltip>
               <Tooltip title="Delete">
                 <span>
                   <Button variant="contained" color="error" startIcon={<Delete />} onClick={() => handleAction('delete')} disabled={!selected.length}>Delete</Button>
@@ -292,7 +297,17 @@ const AdminTourTemplates = () => {
               <Divider />
             <MenuItem onClick={() => { setViewPicklistModalOpen(true); setAnchorEl(null); }}>View Picklist</MenuItem>
               <Divider />
+                <MenuItem onClick={() => {
+              if (currentTour) {
+                setPermitTourIds([currentTour.id]);
+                setConfirmOpen(true);
+                setAnchorEl(null);
+              }
+            }}>Send Parking Permit</MenuItem>
+             <Divider />
             <MenuItem sx={{ color: 'error.main' }} onClick={() => { if (currentTour) { handleDelete([currentTour.id]);  } setAnchorEl(null); }}>Delete</MenuItem>
+            
+
           </Menu>
 
           <EditTourModal
@@ -301,7 +316,7 @@ const AdminTourTemplates = () => {
             tourData={currentTour}
             onTourUpdated={() => { loadTours(); showSnackbar('Tour updated', 'success'); }}
           />
-
+          
           <ViewPicklistModal
             open={viewPicklistModalOpen}
             handleClose={() => setViewPicklistModalOpen(false)}
@@ -315,9 +330,12 @@ const AdminTourTemplates = () => {
               }
             }}
           />
+
+
+          
         </CardContent>
       </Card>
-
+        
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}

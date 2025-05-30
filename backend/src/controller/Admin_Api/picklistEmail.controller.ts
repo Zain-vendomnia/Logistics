@@ -6,6 +6,7 @@ export const picklistEmail = async (req: Request, res: Response) => {
   try {
     const { to, subject, html, signatureData } = req.body;
 
+
     // Configure nodemailer
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
@@ -25,11 +26,11 @@ export const picklistEmail = async (req: Request, res: Response) => {
       html
     };
 
-    // Conditionally add attachment if signatureData is present
+    // Conditionally add attachment if attachment is present
     if (signatureData) {
       mailOptions.attachments = [
         {
-          filename: 'signature.png',
+          filename: 'picklist.pdf',
           content: signatureData.split(',')[1], // remove "data:image/png;base64,"
           encoding: 'base64',
           cid: 'signature_cid' // reference this in the HTML img src

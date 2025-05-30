@@ -6,6 +6,9 @@ import { generatePicklistEmailHtml} from '../../assets/templates/generatePicklis
 import { renderToStaticMarkup } from 'react-dom/server';
 import latestOrderServices from './AdminServices/latestOrderServices';
 
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+
 const modalStyle = {
   overflow: 'auto',
   position: 'absolute' as 'absolute',
@@ -183,14 +186,33 @@ const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({ open, handleClose
     if (!picklistData) return;
 
     const emailHtml = generatePicklistEmailHtml(picklistData, aggregatedItems, totalQuantity);
-    const fullEmailHtml = emailHtml + emailSignatureHtml;
+    const fullEmailHtml = 'Dear,<br><br> Please find attached Picklist for your reference.' + emailSignatureHtml;
     setBtnloading(true);
     
+
     try {
+
+      // 🔁 1. Create a hidden container
+      const element = document.createElement('div');
+      element.innerHTML = emailHtml;
+      element.style.position = 'absolute';
+      element.style.left = '-9999px';
+      element.style.top = '0';
+      element.style.width = '800px'; // match your content width
+      element.style.backgroundColor = 'white'; // avoid transparency issues
+      document.body.appendChild(element);
+
+       const pdfBlob = await generatePdfFromElement(element);
+
+       const signatureData = await blobToBase64(pdfBlob); // use FileReader
+       // Wait a bit in case it's just rendered
+
+
       await adminApiService.picklistEmail({
         to: 'jishi.puthanpurayil@vendomnia.com', // Update with actual email
         subject: 'Picklist',
         html: fullEmailHtml,
+        signatureData
       });
 
       // On success
@@ -206,7 +228,59 @@ const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({ open, handleClose
       setBtnloading(false);
     }
   };
+  // Helper to convert Blob to base64
+const blobToBase64 = (blob: Blob): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
 
+const generatePdfFromElement = async (element: HTMLElement): Promise<Blob> => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      const imgProps = {
+        width: canvas.width,
+        height: canvas.height
+      };
+
+      const ratio = imgProps.height / imgProps.width;
+      const pdfWidth = pageWidth;
+      const pdfHeight = pdfWidth * ratio;
+
+      let position = 0;
+
+      if (pdfHeight < pageHeight) {
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      } else {
+        while (position < pdfHeight) {
+          pdf.addImage(imgData, 'PNG', 0, -position, pdfWidth, pdfHeight);
+          position += pageHeight;
+          if (position < pdfHeight) pdf.addPage();
+        }
+      }
+
+      const pdfBlob = pdf.output('blob');
+      resolve(pdfBlob);
+    } catch (err) {
+      reject(err);
+    }
+  });
+};
   // Helper: Merge logic
   const getMergedOrderItems = (orders: Order[]) => {
     const mergedMap = new Map<string, { order_number: string; slmdl_articleordernumber: string; quantity: number }>();
@@ -266,7 +340,7 @@ const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({ open, handleClose
     <Modal open={open} onClose={handleClose}>
       <Box>
         <Grid container spacing={2}>
-          <Box sx={modalStyle}>
+          <Box sx={modalStyle} id="pdf-content">
             <Box sx={{ textAlign: 'center', mb: '25px' }}>
               <img
                 src={`https://sunniva-solar.de/wp-content/uploads/2025/01/Sunniva_1600x500_transparent-min.png`}
