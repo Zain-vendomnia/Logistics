@@ -24,7 +24,9 @@ import { DeliveryScenario } from "./delieryScenarios";
 const CustomerResponses = [
   "Leave the parcal at the door step",
   "Drop it to a neighbor",
-  "Reschedule delivery",
+  "Reschedule Delivery",
+  "Damaged Parcel",
+  "Order Return",
 ];
 
 interface Props {
@@ -51,8 +53,12 @@ const CustomerResponded = ({ onComplete }: Props) => {
         return DeliveryScenario.hasPermit;
       case "Drop it to a neighbor":
         return DeliveryScenario.neighborAccepts;
-      case "Reschedule delivery":
+      case "Reschedule Delivery":
         return DeliveryScenario.noAcceptance;
+      case "Damaged Parcel":
+        return DeliveryScenario.damagedParcel;
+      case "Order Return":
+        return DeliveryScenario.orderReturn;
       default:
         return DeliveryScenario.foundCustomer;
     }
@@ -77,7 +83,7 @@ const CustomerResponded = ({ onComplete }: Props) => {
 
   const handleResponseSelection = (e: ChangeEvent<HTMLInputElement>) => {
     setSelectedResponse(e.target.value);
-    console.log("Customer Responded Scenario: ", e.target.value);
+    console.log("Selected option: ", e.target.value);
   };
 
   const slideTransition = (props: any) => {
@@ -126,7 +132,7 @@ const CustomerResponded = ({ onComplete }: Props) => {
             <Box
               display="flex"
               justifyContent="space-between"
-              alignItems="center"
+              alignItems="flex-start"
             >
               <Typography variant="h5">Customer Requests To:</Typography>
               <IconButton onClick={handleDialogueClose}>
@@ -134,7 +140,7 @@ const CustomerResponded = ({ onComplete }: Props) => {
               </IconButton>
             </Box>
           </DialogTitle>
-          <DialogContent dividers sx={{ height: "220px", width: "600px" }}>
+          <DialogContent dividers sx={{ height: "100%", minWidth: "600px" }}>
             <FormControl>
               <RadioGroup
                 aria-labelledby="customer-response-radio"

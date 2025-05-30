@@ -102,22 +102,27 @@ export const useTripLifecycle = () => {
       store.actionsCompleted.captureCustomerSignature ||
       store.actionsCompleted.captureNeighborSignature;
 
-    if (scenarioKey === DeliveryScenario.hasPermit || signatureCaptured) {
+    if (
+      scenarioKey === DeliveryScenario.hasPermit ||
+      scenarioKey === DeliveryScenario.damagedParcel ||
+      scenarioKey === DeliveryScenario.orderReturn ||
+      signatureCaptured
+    ) {
       addOrdersDeliveredSuccessfully(store.deliveryId);
       setDeliveryCompleted(true);
     }
   };
 
   const handleOrderReturn = () => {
-    if (
-      store.deliveryState.noAcceptance === true &&
-      store.deliveryState.deliveryReturnReason &&
-      store.actionsCompleted.returnToWarehouse === true
-    ) {
-      console.log("handleOrderReturn Conditions fulfilled");
-      store.addOrdersReturnToWareHouse(store.deliveryId);
-      store.setDeliveryCompleted(true);
-    }
+    // if (
+    //   store.deliveryState.noAcceptance === true &&
+    //   store.deliveryState.deliveryReturnReason &&
+    //   store.actionsCompleted.returnToWarehouse === true
+    // ) {
+    // }
+    console.log("handleOrderReturn Conditions fulfilled");
+    store.addOrdersReturnToWareHouse(store.deliveryId);
+    store.setDeliveryCompleted(true);
   };
 
   return {
