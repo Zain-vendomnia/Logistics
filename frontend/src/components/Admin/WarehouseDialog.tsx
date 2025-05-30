@@ -29,30 +29,59 @@ interface Props {
 }
 
 const WarehouseFormModal: React.FC<Props> = ({
-  open, onClose, onSubmit, initialData, editMode
+  open,
+  onClose,
+  onSubmit,
+  initialData,
+  editMode
 }) => {
-  const [form, setForm] = useState<Partial<Warehouse>>({});
+  const [form, setForm] = useState<Partial<Warehouse>>({ clerk_mob: "+49" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    setForm(initialData);
+    setForm({ clerk_mob: "+49", ...initialData });
     setErrors({});
   }, [initialData, open]);
 
-  const handleChange = (field: keyof Warehouse) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setForm({ ...form, [field]: e.target.value });
+  const handleChange = (field: keyof Warehouse) =>
+    (e: React.ChangeEvent<HTMLInputElement>) =>
+      setForm(prev => ({ ...prev, [field]: e.target.value }));
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!form.warehouse_name) e.warehouse_name = "Warehouse name is required";
-    else if (!/^[A-Za-z\s]+$/.test(form.warehouse_name)) e.warehouse_name = "Warehouse name must contain only letters";
-    if (!form.clerk_name) e.clerk_name = "Clerk name is required";
-    if (!form.clerk_mob) e.clerk_mob = "Clerk mobile is required";
-    else if (!/^\+?\d{7,15}$/.test(form.clerk_mob)) e.clerk_mob = "Enter valid mobile number (7–15 digits, optional +)";
-    if (!form.email) e.email = "Email is required";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = "Invalid email format";
-    if (!form.address) e.address = "Address is required";
+
+    // Warehouse Name: required & only letters and spaces
+    if (!form.warehouse_name) {
+      e.warehouse_name = "Warehouse name is required";
+    } else if (!/^[A-Za-z\s]+$/.test(form.warehouse_name)) {
+      e.warehouse_name = "Warehouse name must contain only letters";
+    }
+
+    // Clerk Name: required
+    if (!form.clerk_name) {
+      e.clerk_name = "Clerk name is required";
+    }
+
+    // Clerk Mobile: German format
+    if (!form.clerk_mob) {
+      e.clerk_mob = "Clerk mobile is required";
+    } else if (!/^\+49\d{10,12}$/.test(form.clerk_mob)) {
+      e.clerk_mob = "Enter valid German mobile number (starts with +49, 10–12 digits after)";
+    }
+
+    // Email: required and format check
+    if (!form.email) {
+      e.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      e.email = "Invalid email format";
+    }
+
+    // Address: required
+    if (!form.address) {
+      e.address = "Address is required";
+    }
+
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -62,14 +91,19 @@ const WarehouseFormModal: React.FC<Props> = ({
     setSubmitting(true);
     try {
       await onSubmit(form);
-      setForm({});
       onClose();
     } finally {
       setSubmitting(false);
     }
   };
 
-  const isFormFilled = form.warehouse_name && form.clerk_name && form.clerk_mob && form.email && form.address;
+  const isFormFilled = Boolean(
+    form.warehouse_name &&
+    form.clerk_name &&
+    form.clerk_mob &&
+    form.email &&
+    form.address
+  );
 
   const renderField = (
     label: string,
@@ -112,40 +146,31 @@ const WarehouseFormModal: React.FC<Props> = ({
             {renderField("Clerk Name", "clerk_name", <PersonIcon />)}
           </Grid>
           <Grid item xs={12} sm={6}>
-            {renderField("Clerk Mobile", "clerk_mob", <PhoneIcon />, {
-              inputProps: { maxLength: 16 }
-            })}
+            {renderField(
+              "Clerk Mobile",
+              "clerk_mob",
+              <PhoneIcon />, 
+              { inputProps: { maxLength: 16 } }
+            )}
           </Grid>
           <Grid item xs={12}>
             {renderField("Email", "email", <EmailIcon />)}
           </Grid>
           <Grid item xs={12}>
-            {renderField("Address", "address", <HomeIcon />, {
-              multiline: true,
-              minRows: 2
-            })}
+            {renderField(
+              "Address",
+              "address",
+              <HomeIcon />, 
+              { multiline: true, minRows: 2 }
+            )}
           </Grid>
         </Grid>
       </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2}}>
-        <Button onClick={onClose} variant="outlined" size="small" sx={(theme) => ({
-                padding: '8px 24px',
-                borderRadius: '4px',
-                textTransform: 'none',
-                fontWeight: '500',
-                background: theme.palette.primary.gradient,
-                color: "#fff",
-                transition: "all 0.3s ease",
-                "&:hover": {
-                  background: "#fff",
-                  color: theme.palette.primary.dark,
-                }                
-              })}>
-          Cancel
-        </Button>
+      <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button
-          onClick={handleSubmit}
-          variant="contained"
+          onClick={onClose}
+          variant="outlined"
+          size="small"
           sx={(theme) => ({
             padding: '8px 24px',
             borderRadius: '4px',
@@ -157,7 +182,28 @@ const WarehouseFormModal: React.FC<Props> = ({
             "&:hover": {
               background: "#fff",
               color: theme.palette.primary.dark,
-            }                
+            }
+          })}
+        >
+          Cancel
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          variant="contained"
+          size="small"
+          disabled={!isFormFilled || submitting}
+          sx={(theme) => ({
+            padding: '8px 24px',
+            borderRadius: '4px',
+            textTransform: 'none',
+            fontWeight: '500',
+            background: theme.palette.primary.gradient,
+            color: "#fff",
+            transition: "all 0.3s ease",
+            "&:hover": {
+              background: "#fff",
+              color: theme.palette.primary.dark,
+            }
           })}
         >
           {editMode ? "Update" : "Create"}

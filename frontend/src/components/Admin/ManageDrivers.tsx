@@ -13,7 +13,7 @@ import {
 import DriverDialog from "./DriverDialog";
 import ConfirmDialog from "./ConfirmDialog"; 
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-import CancelIcon from "@mui/icons-material/Cancel";import theme from "../../theme";
+import CancelIcon from "@mui/icons-material/Cancel";
 
 
 type Driver = {
@@ -23,9 +23,14 @@ type Driver = {
   address: string;
   email: string;
   warehouse_id: number;
+  status:number;
 };
 
-const initialFormState: Partial<Driver> = {};
+// const initialFormState: Partial<Driver> = {};
+const initialFormState: Partial<Driver> = {
+  mob: "+49",           // ← default mobile field value
+  status: 1             // ← default driver status: Active
+};
 
 const ManageDrivers: React.FC = () => {
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -68,7 +73,10 @@ const ManageDrivers: React.FC = () => {
     if (!formData.name?.trim()) newErrors.name = "Name is required";
     else if (/\d/.test(formData.name)) newErrors.name = "Name should not contain numbers";
 
-    if (!/^\+\d{7,15}$/.test(formData.mob || "")) newErrors.mob = "Mobile must start with '+' and be 7–15 digits";
+    // if (!/^\+\d{7,15}$/.test(formData.mob || "")) newErrors.mob = "Mobile must start with '+' and be 7–15 digits";
+    if (!/^\+49\d{10,12}$/.test(formData.mob || "")) {
+     newErrors.mob = "Mobile must be a valid German number starting with +49 and 11–13 digits total";
+    }
 
     if (!formData.address?.trim()) newErrors.address = "Address is required";
 

@@ -37,6 +37,7 @@ interface Driver {
   id: number;
   name:string;
   warehouse_id?: number;
+  status:number;
 }
 
 const generateTimeOptions = () => {
@@ -77,8 +78,9 @@ const CreateTourModal: React.FC<CreateTourModalProps> = ({ open, handleClose, wa
   useEffect(() => {
     const fetchDrivers = async () => {
       try {
-        const result = await getAllDrivers();
-        setDrivers(result);
+        const allDrivers = await getAllDrivers();
+        const activeDrivers = allDrivers.filter((driver: Driver) => driver.status === 1);
+        setDrivers(activeDrivers);
       } catch (error) {
         console.error("Failed to fetch drivers:", error);
       }
@@ -127,39 +129,54 @@ const handleDriverChange = async (event: SelectChangeEvent<string | number>) => 
   }
 };
 
-  const handleSave = async () => {
-    if ( !startTime || !selectedDriver || !tourDate) {
-      setSnackbar({ open: true, message: 'Please fill all required fields!', severity: 'error' });
-      return;
+  const validateForm = () => {
+    const errors = [];
+
+    if (!selectedDriver) errors.push('Driver is required.');
+    if (!startTime) errors.push('Start Time is required.');
+    if (!tourDate) errors.push('Tour Date is required.');
+
+    if (errors.length > 0) {
+      setSnackbar({ open: true, message: errors.join(' '), severity: 'error' });
+      return false;
     }
-    setLoading(true);
-    setIsSuccess(false);
-    try {
-      const response = await adminApiService.createTour({
-        comments,
-        startTime: `${startTime}:00`,
-        routeColor,
-        driverid: selectedDriver,
-        tourDate: `${tourDate} 00:00:00`,
-        orderIds,
-        warehouseId
-      });
-      if (response.status === 200) {
-        handleClose();
-        setSnackbar({ open: true, message: 'Tour created successfully!', severity: 'success' });
-        setIsSuccess(true);
-        setTimeout(() => {
-          navigate('/Admin_TourTemplates');
-        }, 500);
-      }
-    } catch (error: any) {
-      console.error('Error saving tour:', error);
-      const message = error?.response?.data?.message || 'Failed to save the tour. Please try again.';
-      setSnackbar({ open: true, message, severity: 'error' });
-    } finally {
-      setLoading(false);
-    }
+
+    return true;
   };
+
+const handleSave = async () => {
+  if (!validateForm()) return;
+
+  setLoading(true);
+  setIsSuccess(false);
+
+  try {
+    const response = await adminApiService.createTour({
+      comments,
+      startTime: `${startTime}:00`,
+      routeColor,
+      driverid: selectedDriver,
+      tourDate: `${tourDate} 00:00:00`,
+      orderIds,
+      warehouseId
+    });
+
+    if (response.status === 200) {
+      handleClose();
+      setSnackbar({ open: true, message: 'Tour created successfully!', severity: 'success' });
+      setIsSuccess(true);
+      setTimeout(() => {
+        navigate('/Admin_TourTemplates');
+      }, 500);
+    }
+  } catch (error: any) {
+    console.error('Error saving tour:', error);
+    const message = error?.response?.data?.message || 'Failed to save the tour. Please try again.';
+    setSnackbar({ open: true, message, severity: 'error' });
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleSnackbarClose = () => {
     setSnackbar(prev => ({ ...prev, open: false }));
