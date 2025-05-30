@@ -175,7 +175,7 @@ const AdminTourTemplates = () => {
       headerName: 'Name',
       flex: 2,
       renderCell: ({ row }) => (
-        <Box display="flex" gap={1} alignItems="center">
+        <Box display="flex" gap={1} alignItems="center" height="100%">
           <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: row.color }} />
           <Box>
             <Typography fontWeight="bold">{row.tour_name}</Typography>
@@ -285,7 +285,7 @@ const AdminTourTemplates = () => {
             rows={filteredTours}
             columns={columns}
             checkboxSelection
-            autoHeight
+            rowHeight={75}
             disableRowSelectionOnClick
             onRowSelectionModelChange={(ids) => setSelected(ids as string[])}
             rowSelectionModel={selected}

@@ -125,3 +125,9 @@
 .css-oc1jq3-MuiButtonBase-root-MuiButton-root:not(:hover):not(:focus):not(:active){
     color: #FFFFFF !important;
 }
+.css-1gw2kma-MuiTablePagination-selectLabel{
+    margin-top: 12px !important;
+}
+.css-1qbrj23-MuiTablePagination-displayedRows{
+    margin-top: 12px !important; 
+}
