@@ -28,18 +28,18 @@ const initialSetup = async () => {
       console.log("Admin user already exists");
     }
 
-    const [existingDriver] = await pool.query("SELECT * FROM users WHERE username = 'driver'");
-    if ((existingDriver as RowDataPacket[]).length === 0) {
-      const hashedDriverPassword = await bcrypt.hash("1234", 10);
-       await pool.query(
-        "INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)",
-        ["driver", "driver@system.com", hashedDriverPassword, "driver"]
-      );
+    // const [existingDriver] = await pool.query("SELECT * FROM users WHERE username = 'driver'");
+    // if ((existingDriver as RowDataPacket[]).length === 0) {
+    //   const hashedDriverPassword = await bcrypt.hash("1234", 10);
+    //    await pool.query(
+    //     "INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)",
+    //     ["driver", "driver@system.com", hashedDriverPassword, "driver"]
+    //   );
         
-      console.log("Driver user and profile created successfully");
-    } else {
-      console.log("Driver user already exists");
-    }
+    //   console.log("Driver user and profile created successfully");
+    // } else {
+    //   console.log("Driver user already exists");
+    // }
 
 
 

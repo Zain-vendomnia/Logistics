@@ -174,7 +174,7 @@ class latestOrderServices {
         return { count: data.count, lastUpdated: data.last_updated };
       }
 
-      console.warn("⚠️ Invalid order count response format:", data);
+      // console.warn("⚠️ Invalid order count response format:", data);
       return { count: this.cachedCount, lastUpdated: this.cachedOrderLastUpdated || '' };
 
     } catch (error) {

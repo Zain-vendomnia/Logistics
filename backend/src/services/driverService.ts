@@ -34,36 +34,59 @@ export const createDriver = async (driver: {
   password: string;
   warehouse_id: number;
 }) => {
- 
+  const conn = await pool.getConnection();
   try {
+    
+    await conn.beginTransaction();
 
-    await pool.query('START TRANSACTION');
-
-    // Check if the email already exists
-    const [existingEmail]: any = await pool.query(
-      `SELECT id FROM driver_details WHERE email = ?`,
+    // 1. Check if email exists in users table
+    const [existingUser]: any = await conn.query(
+      `SELECT user_id FROM users WHERE email = ?`,
       [driver.email]
     );
 
-    if (existingEmail.length > 0) {
-      await pool.query('ROLLBACK');
+    if (existingUser.length > 0) {
+      await conn.rollback();
       return { error: true, message: "Email already exists" };
     }
 
-    // Proceed with insertion
-    const [result]: any = await pool.query(
-      `INSERT INTO driver_details (name, mob, address, email, warehouse_id) VALUES (?, ?, ?, ?, ?)`,
-      [driver.name, driver.mob, driver.address, driver.email, driver.warehouse_id]
+    // 2. Hash the password
+    const hashedPassword = await bcrypt.hash(driver.password, 10);
+
+    // 3. Insert into users table
+    const [userResult]: any = await conn.query(
+      `INSERT INTO users (username, email, password, role,is_active) VALUES (?, ?, ?, ?,?)`,
+      [driver.name, driver.email, hashedPassword, "driver",driver.status]
     );
 
-    await pool.query('COMMIT');
-    return { id: result.insertId, ...driver };
-   
+    const userId = userResult.insertId;
 
+    // 4. Insert into driver_details table
+    const [driverResult]: any = await conn.query(
+      `INSERT INTO driver_details (name, mob, address, email, user_id, warehouse_id) VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        driver.name,
+        driver.mob,
+        driver.address,
+        driver.email,
+        userId,
+        driver.warehouse_id,
+      ]
+    );
+
+    await conn.commit();
+
+    return {
+      id: driverResult.insertId,
+      user_id: userId,
+      ...driver,
+    };
   } catch (err) {
-    await pool.query('ROLLBACK');
+    await conn.rollback();
     throw err;
-  } 
+  } finally {
+    conn.release();
+  }
 };
 
 export const updateDriver = async (
@@ -74,27 +97,26 @@ export const updateDriver = async (
     address: string;
     email: string;
     warehouse_id: number;
-    status: number;
-    password?: string;
+    status: number; // added status
+    password?: string; // optional
   }
 ) => {
+  const conn = await pool.getConnection();
   try {
-    await pool.query('START TRANSACTION');
+    await conn.beginTransaction();
 
     // 1. Check if email already exists for another driver
-    const [existing]: any = await pool.query(
+    const [existing]: any = await conn.query(
       `SELECT id FROM driver_details WHERE email = ? AND id != ?`,
       [driver.email, id]
     );
-
     if (existing.length > 0) {
-      console.log("Email already exists for another driver");
-      await pool.query('ROLLBACK');
+      await conn.rollback();
       return { error: true, message: "Email already exists" };
     }
 
     // 2. Update driver_details
-    const [result]: any = await pool.query(
+    await conn.query(
       `UPDATE driver_details SET name = ?, mob = ?, address = ?, email = ?, warehouse_id = ? WHERE id = ?`,
       [
         driver.name,
@@ -106,142 +128,141 @@ export const updateDriver = async (
       ]
     );
 
-    // 3. Get associated user_id
-    const [driverRow]: any = await pool.query(
+    // 3. Get associated user_id from driver_details
+    const [driverRow]: any = await conn.query(
       `SELECT user_id FROM driver_details WHERE id = ?`,
       [id]
     );
-
     const userId = driverRow[0]?.user_id;
 
-    // 4. Update users table
     if (userId) {
-      if (driver.password?.trim()) {
+      if (driver.password && driver.password.trim() !== "") {
         const hashedPassword = await bcrypt.hash(driver.password, 10);
-        await pool.query(
+        // 4. Update users table with password and status
+        await conn.query(
           `UPDATE users SET username = ?, email = ?, password = ?, is_active = ? WHERE user_id = ?`,
           [driver.name, driver.email, hashedPassword, driver.status, userId]
         );
       } else {
-        await pool.query(
+        // 4. Update users table without password
+        await conn.query(
           `UPDATE users SET username = ?, email = ?, is_active = ? WHERE user_id = ?`,
           [driver.name, driver.email, driver.status, userId]
         );
       }
     }
 
-    await pool.query('COMMIT');
-    return { success: result.affectedRows > 0 };
-
+    await conn.commit();
+    return { success: true };
   } catch (err) {
-    await pool.query('ROLLBACK');
+    await conn.rollback();
     throw err;
+  } finally {
+    conn.release();
   }
 };
 
-
 export const deleteDriver = async (id: number) => {
+  const conn = await pool.getConnection();
   try {
     console.log("---------------------------------------------------------------------");
     console.log(`🔄 Starting transaction to deactivate driver ID: ${id}`);
-
-    await pool.query('START TRANSACTION');
+    await conn.beginTransaction();
 
     // 1. Get user_id from driver_details
-    const [driverRows]: any = await pool.query(
+    const [driverRows]: any = await conn.query(
       "SELECT user_id FROM driver_details WHERE id = ?",
       [id]
     );
 
     if (driverRows.length === 0) {
       console.log(`❌ No driver found with ID: ${id}`);
-      await pool.query('ROLLBACK');
+      await conn.rollback();
       return false;
     }
 
     const userId = driverRows[0].user_id;
     console.log(`✅ Retrieved user_id: ${userId} for driver_id: ${id}`);
 
-    // 2. Get future/current tour IDs
-    const [tourRows]: any = await pool.query(
+    // 2. Get tour IDs from tourinfo_master for current/future dates
+    const [tourRows]: any = await conn.query(
       "SELECT id FROM tourinfo_master WHERE driver_id = ? AND tour_date >= CURRENT_DATE()",
       [id]
     );
 
     const tourIds = tourRows.map((row: any) => row.id);
-    console.log(`📦 Found ${tourIds.length} future/current tour(s):`, tourIds);
+    console.log(`📦 Found ${tourIds.length} future/current tour(s) for driver_id ${id}:`, tourIds);
 
-    // 3. Delete related tour data
+    // 3. Delete related data using tour IDs (if any)
     if (tourIds.length > 0) {
-      const [routeDelete]: any = await pool.query(
+      // Delete from route_segments
+      const [routeDelete]: any = await conn.query(
         "DELETE FROM route_segments WHERE tour_id IN (?)",
         [tourIds]
       );
       console.log(`🗑️ Deleted ${routeDelete.affectedRows} route segment(s)`);
 
-      const [tourDriverDelete]: any = await pool.query(
+      // Delete from tour_driver
+      const [tourDriverDelete]: any = await conn.query(
         "DELETE FROM tour_driver WHERE tour_id IN (?)",
         [tourIds]
       );
       console.log(`🗑️ Deleted ${tourDriverDelete.affectedRows} row(s) from tour_driver`);
 
-      const [tourInfoDelete]: any = await pool.query(
+      // Delete from tourinfo_master
+      const [tourInfoDelete]: any = await conn.query(
         "DELETE FROM tourinfo_master WHERE id IN (?)",
         [tourIds]
       );
       console.log(`🗑️ Deleted ${tourInfoDelete.affectedRows} row(s) from tourinfo_master`);
     } else {
-      console.log(`ℹ️ No future tours to delete for the driver.`);
+      console.log(`ℹ️ No future tours found to delete for the driver.`);
     }
 
-    // 4. Update user status
-    const [userUpdate]: any = await pool.query(
+    // 4. Set user as inactive
+    const [userUpdate]: any = await conn.query(
       "UPDATE users SET is_active = 0 WHERE user_id = ?",
       [userId]
     );
     console.log(`⚠️ Set is_active = 0 for user_id: ${userId}`);
 
-    // 5. Skip deleting from driver_details
-    console.log(`🚫 Skipping deletion from driver_details — driver deactivated only.`);
-
-    await pool.query('COMMIT');
+    await conn.commit();
     console.log(`✅ Transaction committed successfully. Driver ID ${id} deactivated.`);
     return userUpdate.affectedRows > 0;
-
   } catch (err) {
-    await pool.query('ROLLBACK');
+    await conn.rollback();
     console.error(`❌ Error occurred. Transaction rolled back.`, err);
     throw err;
   } finally {
+    conn.release();
     console.log(`🔚 Connection released for driver_id: ${id}`);
     console.log("---------------------------------------------------------------------");
   }
 };
 
 
-
-
 export const deleteMultipleDrivers = async (ids: number[]) => {
+  const conn = await pool.getConnection();
   try {
     console.log("---------------------------------------------------------------------");
     console.log(`🔄 Starting transaction to deactivate multiple drivers: [${ids.join(", ")}]`);
+    await conn.beginTransaction();
 
     if (ids.length === 0) {
       console.log("⚠️ No driver IDs provided.");
+      await conn.rollback();
       return 0;
     }
 
-    await pool.query('START TRANSACTION');
-
     // 1. Get user_ids for each driver
-    const [driverRows]: any = await pool.query(
+    const [driverRows]: any = await conn.query(
       `SELECT id, user_id FROM driver_details WHERE id IN (?)`,
       [ids]
     );
 
     if (driverRows.length === 0) {
       console.log("❌ No matching driver records found.");
-      await pool.query('ROLLBACK');
+      await conn.rollback();
       return 0;
     }
 
@@ -251,29 +272,28 @@ export const deleteMultipleDrivers = async (ids: number[]) => {
     console.log(`✅ Retrieved user_ids for driver_ids: [${validDriverIds.join(", ")}]`);
 
     // 2. Get tour IDs for all drivers for current/future tours
-    const [tourRows]: any = await pool.query(
+    const [tourRows]: any = await conn.query(
       `SELECT id FROM tourinfo_master WHERE driver_id IN (?) AND tour_date >= CURRENT_DATE()`,
       [validDriverIds]
     );
-
     const tourIds = tourRows.map((row: any) => row.id);
     console.log(`📦 Found ${tourIds.length} future/current tour(s) across drivers:`, tourIds);
 
-    // 3. Delete tour-related data
+    // 3. Delete tour-related data if applicable
     if (tourIds.length > 0) {
-      const [routeDelete]: any = await pool.query(
+      const [routeDelete]: any = await conn.query(
         `DELETE FROM route_segments WHERE tour_id IN (?)`,
         [tourIds]
       );
       console.log(`🗑️ Deleted ${routeDelete.affectedRows} route segment(s)`);
 
-      const [tourDriverDelete]: any = await pool.query(
+      const [tourDriverDelete]: any = await conn.query(
         `DELETE FROM tour_driver WHERE tour_id IN (?)`,
         [tourIds]
       );
       console.log(`🗑️ Deleted ${tourDriverDelete.affectedRows} row(s) from tour_driver`);
 
-      const [tourInfoDelete]: any = await pool.query(
+      const [tourInfoDelete]: any = await conn.query(
         `DELETE FROM tourinfo_master WHERE id IN (?)`,
         [tourIds]
       );
@@ -282,32 +302,31 @@ export const deleteMultipleDrivers = async (ids: number[]) => {
       console.log(`ℹ️ No future/current tours found for the given drivers.`);
     }
 
-    // 4. Set users as inactive
+    // 4. Instead of deleting, update is_active = 0 in users
     if (userIds.length > 0) {
-      const [userUpdate]: any = await pool.query(
+      const [userUpdate]: any = await conn.query(
         `UPDATE users SET is_active = 0 WHERE user_id IN (?)`,
         [userIds]
       );
       console.log(`🛑 Set is_active = 0 for ${userUpdate.affectedRows} user(s)`);
     }
 
-    // 5. Skip deletion of drivers
+    // 5. Do NOT delete from driver_details
     console.log(`🚫 Skipped deleting from driver_details. Drivers deactivated instead.`);
 
-    await pool.query('COMMIT');
+    await conn.commit();
     console.log(`✅ Transaction committed for multiple driver deactivations.`);
     return validDriverIds.length;
-
   } catch (err) {
-    await pool.query('ROLLBACK');
+    await conn.rollback();
     console.error(`❌ Error during bulk deactivation. Transaction rolled back.`, err);
     throw err;
   } finally {
+    conn.release();
     console.log("🔚 Connection released after bulk driver deactivation");
     console.log("---------------------------------------------------------------------");
   }
 };
-
 
 export const evaluateDriverEligibility = async (driverId: number) => {
   console.log(`[Service] Evaluating driver eligibility for driver ID: ${driverId}`);

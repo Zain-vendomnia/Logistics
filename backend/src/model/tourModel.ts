@@ -61,11 +61,9 @@ export const createTour = async (tour: Tour) => {
     const fromZip = zipcodes[0];
     const toZip = zipcodes[zipcodes.length - 1];
 
-    // 5. Format date as YYYYMMDD
     const tourDateFormatted = new Date(tour.tourDate);
-    const formattedDate = `${tourDateFormatted.getFullYear()}${String(tourDateFormatted.getMonth() + 1).padStart(2, '0')}${String(tourDateFormatted.getDate()).padStart(2, '0')}`;
+    const formattedDate = `${tourDateFormatted.getFullYear()}.${String(tourDateFormatted.getMonth() + 1).padStart(2, '0')}.${String(tourDateFormatted.getDate()).padStart(2, '0')}`;
 
-    // 6. Generate tour name
     const tourName = `${driverName}-${fromZip}-${toZip}-${formattedDate}`;
 
     // 7. Prepare final insert values
