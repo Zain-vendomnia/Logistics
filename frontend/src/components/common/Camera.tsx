@@ -12,6 +12,7 @@ interface Props {
   buttonText: string;
   isComplied: boolean;
   onImageUploaded: (isDone: boolean) => void;
+  onImageSrc?: (imageSrc: string) => void;
 }
 
 const Camera = ({
@@ -20,6 +21,7 @@ const Camera = ({
   buttonText,
   isComplied,
   onImageUploaded,
+  onImageSrc,
 }: Props) => {
   const {
     webcamRef,
@@ -29,6 +31,12 @@ const Camera = ({
     retakeImage,
     clearCamera,
   } = useCameraCapture({ type, millage });
+
+  useEffect(() => {
+    if (!cameraState.captured) return;
+
+    onImageSrc?.(cameraState.captured);
+  }, [cameraState.captured]);
 
   useEffect(() => {
     console.log("isComplied: ", isComplied);
