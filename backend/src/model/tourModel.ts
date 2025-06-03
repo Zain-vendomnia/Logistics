@@ -58,13 +58,23 @@ export const createTour = async (tour: Tour) => {
     if (!zipRows.length) throw new Error(`No valid orders found`);
 
     const zipcodes = zipRows.map((r: any) => r.zipcode);
-    const fromZip = zipcodes[0];
-    const toZip = zipcodes[zipcodes.length - 1];
+    const firstZip = zipcodes[0];
+    const lastZip = zipcodes[zipcodes.length - 1];
+
+    const firstZipPrefix = firstZip.substring(0, 2);
+    const lastZipPrefix = lastZip.substring(0, 2);
 
     const tourDateFormatted = new Date(tour.tourDate);
+
+    // Get weekday name (e.g., Monday)
+    const dayName = tourDateFormatted.toLocaleDateString('en-US', { weekday: 'long' });
+
+    // Format date as YYYY.MM.DD
     const formattedDate = `${tourDateFormatted.getFullYear()}.${String(tourDateFormatted.getMonth() + 1).padStart(2, '0')}.${String(tourDateFormatted.getDate()).padStart(2, '0')}`;
 
-    const tourName = `${driverName}-${fromZip}-${toZip}-${formattedDate}`;
+    // Final tour name
+    const tourName = `PLZ-${firstZipPrefix}-${lastZipPrefix}-${driverName}-${dayName}-${formattedDate}`;
+
 
     // 7. Prepare final insert values
     const values = [

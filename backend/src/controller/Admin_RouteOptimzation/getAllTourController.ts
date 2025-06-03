@@ -88,6 +88,7 @@ export const getAllTourController = async (_req: any, res: any) => {
         tour_endTime: tour.end_time,
         tour_comments: tour.comments,
         tour_status: tour.tour_status,
+        tour_notice: tour.tour_notice,
         driver: {
           driver_name: tour.driver_name,
           driver_id: tour.driver_id,

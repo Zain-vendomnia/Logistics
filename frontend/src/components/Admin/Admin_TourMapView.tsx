@@ -353,6 +353,8 @@ const handleEditCustomer = (customer: any) => {
                         minute: '2-digit',
                       })}
                     </Typography>
+                    
+                   
                   </Box>
 
                   {/* Right side buttons */}
@@ -566,6 +568,10 @@ const handleEditCustomer = (customer: any) => {
                       {new Date(stop.arrival).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
+
+
+
+
 
                   {/* 👇 Only for warehouse stop (v1) */}
                   {stop.location_id === "v1" ? (

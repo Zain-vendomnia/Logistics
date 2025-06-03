@@ -64,7 +64,8 @@ const CustomerEditModal: React.FC<Props> = ({ open, onClose, customer, color, on
     street: '',
     city: '',
     zipcode: '',
-    phone_number: ''
+    phone_number: '',
+    notice:''
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -84,7 +85,8 @@ const CustomerEditModal: React.FC<Props> = ({ open, onClose, customer, color, on
         street: customer.street || '',
         city: customer.city || '',
         zipcode: customer.zipcode || '',
-        phone_number: customer.phone || ''
+        phone_number: customer.phone || '',
+        notice: customer.notice||''
       });
       setErrors({});
     }
@@ -136,7 +138,8 @@ const CustomerEditModal: React.FC<Props> = ({ open, onClose, customer, color, on
       street: formData.street,
       city: formData.city,
       zipcode: formData.zipcode,
-      phone: formData.phone_number
+      phone: formData.phone_number,
+      notice: formData.notice
     };
 
     try {
@@ -259,6 +262,8 @@ const CustomerEditModal: React.FC<Props> = ({ open, onClose, customer, color, on
                   <CustomInput label="Street" value={formData.street} onChange={(e) => handleChange('street', e.target.value)} />
                   <CustomInput label="City" value={formData.city} onChange={(e) => handleChange('city', e.target.value)} />
                   <CustomInput label="ZIP Code" value={formData.zipcode} onChange={(e) => handleChange('zipcode', e.target.value)} />
+                  <CustomInput label="Notice" value={formData.notice} onChange={(e) => handleChange('notice', e.target.value)} />
+ 
                   <CustomInput
                     label="Phone Number"
                     value={formData.phone_number}
