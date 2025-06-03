@@ -66,25 +66,25 @@ const NavBar: React.FC = () => {
     return () => cleanup();
   }, [logout, navigate]);
 
-  const isLoginPage = location.pathname === "/login";
-
-  return (
-    <AppBar
-      position="sticky"
-      sx={(theme) => ({
-        background: theme.palette.primary.headerGradient,
-        height: 50,
-        boxShadow: "0px 2px 4px rgba(0,0,0,0.1)",
-      })}
-    >
-      <Toolbar sx={{ minHeight: "50px !important", px: 2 }}>
-        <Box display="flex" flexGrow={1} alignItems="center" gap={2}>
-          <Box
-            component="img"
-            src={logo}
-            alt="Logo"
-            sx={{ height: 36, width: "auto", cursor: "pointer" }}
-          />
+const isParkingPermitFormPage = location.pathname === "/ParkingPermitForm";
+return (
+  <AppBar
+    position="sticky"
+    sx={(theme) => ({
+      background: theme.palette.primary.headerGradient,
+      height: 50,
+      boxShadow: "0px 2px 4px rgba(0,0,0,0.1)",
+    })}
+  >
+    <Toolbar sx={{ minHeight: "50px !important", px: 2 }}>
+      <Box display="flex" flexGrow={1} alignItems="center" gap={2}>
+        <Box
+          component="img"
+          src={logo}
+          alt="Logo"
+          sx={{ height: 36, width: "auto", cursor: "pointer" }}
+        />
+        {!isParkingPermitFormPage && (
           <Typography
             variant="h5"
             component={Link}
@@ -110,77 +110,80 @@ const NavBar: React.FC = () => {
               ? "Admin"
               : showSuperAdminBoard
               ? "Super Admin"
-              : ""}{" "}
-            
+              : ""}
           </Typography>
-        </Box>
+        )}
+      </Box>
 
-        {user ? (
-          <Stack direction="row" spacing={0} alignItems="center">
-            {showSuperAdminBoard && (
-              <>
-                <Button
-                  component={Link}
-                  to="/register"
-                  color="inherit"
-                  sx={getNavButtonStyles("/register")}
-                >
-                  Employees
-                </Button>
-                <Button
-                  component={Link}
-                  to="/register"
-                  color="inherit"
-                  sx={getNavButtonStyles("/register")}
-                >
-                  Drivers
-                </Button>
-              </>
-            )}
+      {/* Only show menu if not on ParkingPermitForm */}
+      {!isParkingPermitFormPage && user && (
+        <Stack direction="row" spacing={0} alignItems="center">
+          {showSuperAdminBoard && (
+            <>
+              <Button
+                component={Link}
+                to="/register"
+                color="inherit"
+                sx={getNavButtonStyles("/register")}
+              >
+                Employees
+              </Button>
+              <Button
+                component={Link}
+                to="/register"
+                color="inherit"
+                sx={getNavButtonStyles("/register")}
+              >
+                Drivers
+              </Button>
+            </>
+          )}
 
-            {showAdminBoard && (
-              <>
-                <Button
-                  component={Link}
-                  to="/admin-drivers"
-                  color="inherit"
-                  sx={getNavButtonStyles("/admin-drivers")}
-                >
-                  Drivers
-                </Button>
-                <Button
-                  component={Link}
-                  to="/profile"
-                  color="inherit"
-                  sx={getNavButtonStyles("/profile")}
-                >
-                  Profile
-                </Button>
-              </>
-            )}
-
-            {showDriverBoard && (
+          {showAdminBoard && (
+            <>
+              <Button
+                component={Link}
+                to="/admin-drivers"
+                color="inherit"
+                sx={getNavButtonStyles("/admin-drivers")}
+              >
+                Drivers
+              </Button>
               <Button
                 component={Link}
                 to="/profile"
                 color="inherit"
                 sx={getNavButtonStyles("/profile")}
               >
-                <PersonIcon sx={{ mr: 0.5 }} />
                 Profile
               </Button>
-            )}
+            </>
+          )}
+
+          {showDriverBoard && (
             <Button
-              sx={style.navButton}
-              onClick={() => {
-                EventBus.dispatch("logout");
-              }}
+              component={Link}
+              to="/profile"
+              color="inherit"
+              sx={getNavButtonStyles("/profile")}
             >
-              Log Out
+              <PersonIcon sx={{ mr: 0.5 }} />
+              Profile
             </Button>
-          </Stack>
-        ) : (
-         <Button
+          )}
+          <Button
+            sx={style.navButton}
+            onClick={() => {
+              EventBus.dispatch("logout");
+            }}
+          >
+            Log Out
+          </Button>
+        </Stack>
+      )}
+
+      {!isParkingPermitFormPage && !user && (
+        <Button
           component={Link}
           to="/login"
           color="inherit"
@@ -188,10 +191,10 @@ const NavBar: React.FC = () => {
         >
           Login
         </Button>
-        )}
-      </Toolbar>
-    </AppBar>
-  );
+      )}
+    </Toolbar>
+  </AppBar>
+);
 };
 
 export default NavBar;

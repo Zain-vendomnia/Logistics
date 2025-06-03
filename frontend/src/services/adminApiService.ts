@@ -10,7 +10,9 @@ const fetchOrderTourCount = () => axios.get(`${API_BaseUrl}tourcount`, { headers
 const fetchAllTours = () => axios.get(`${API_BaseUrl}getAlltours`, { headers: authHeader() });
 const fetchOrderCount = () => axios.get(`${API_BaseUrl}ordercount`, { headers: authHeader() });
 const fetchAllOrders = () => axios.get(`${API_BaseUrl}orders`, { headers: authHeader() });
-
+const fetchSpecifiedOrder = (order_number: string) => {
+  return axios.post(`${API_BaseUrl}getOrder`, { order_number });
+};
 const createTour = (tourData: Record<string, any>) => 
   axios.post(`${API_BaseUrl}createtour`, tourData, { headers: authHeader() });
 
@@ -46,14 +48,13 @@ const getOrderCount = async (): Promise<number> => {
   }
 };
 const picklistEmail = (emailData: any) => {
-    return axios.post(API_BaseUrl_Admin + "picklistEmail", emailData, {
-      headers: authHeader(),
-    });
-  };
-  const fetchAlltourstatushistory = () => axios.get(`${API_BaseUrl}gettourStatushistory`, { headers: authHeader() });
-  const update_tourstatus = (tour_id: number) => axios.post(`${API_BaseUrl}updatetourstatus/${tour_id}`, {}, {
-      headers: authHeader()
-    });
+  return axios.post(API_BaseUrl_Admin + "picklistEmail", emailData);
+};
+
+const fetchAlltourstatushistory = () => axios.get(`${API_BaseUrl}gettourStatushistory`, { headers: authHeader() });
+const update_tourstatus = (tour_id: number) => axios.post(`${API_BaseUrl}updatetourstatus/${tour_id}`, {}, {
+    headers: authHeader()
+  });
 
 const checkDriverRest = async (driverId: number) => {
   try {
@@ -87,6 +88,7 @@ const adminApiService = {
   fetchAllTours,
   fetchOrderCount,
   fetchAllOrders,
+  fetchSpecifiedOrder,
   createTour,
   getRouteResponse,
   deleteTours,

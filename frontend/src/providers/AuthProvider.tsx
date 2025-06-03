@@ -9,6 +9,7 @@ import IUser from "../types/user.type";
 import EventBus from "../common/EventBus";
 import * as AuthService from "../services/auth.service";
 import { isSuperAdmin, isAdmin, isDriver } from "../types/user.type";
+import useTokenValidation from "../utility/validateToken"; // ✅ Ensure correct path
 
 type AuthContextType = {
   user: IUser | null;
@@ -37,13 +38,18 @@ export function AuthProvider({ children }: Props) {
   const [currentUser, setCurrentUser] = useState<IUser | null>(null);
   const [showDriverBoard, setShowDriverBoard] = useState<boolean>(false);
   const [showAdminBoard, setShowAdminBoard] = useState<boolean>(false);
-  const [showSuperAdminBoard, setShowSuperAdminBoard] =
-    useState<boolean>(false);
+  const [showSuperAdminBoard, setShowSuperAdminBoard] = useState<boolean>(false);
+
+  // ✅ Call token validation at the top level — safe even if currentUser is null
+  useTokenValidation(currentUser);
 
   useEffect(() => {
     const user = AuthService.getCurrentUser();
     console.log("userdetails: " + JSON.stringify(user));
+
     if (user) {
+      console.log("valid user");
+      console.log("===============================");
       setCurrentUser(user);
       setShowDriverBoard(isDriver(user));
       setShowAdminBoard(isAdmin(user));
@@ -51,10 +57,8 @@ export function AuthProvider({ children }: Props) {
     }
 
     EventBus.on("logout", logout);
-
     return () => {
       EventBus.remove("logout", logout);
-      // AuthContext.Provider = null; // Context clean up to avoid memory leaks
       setCurrentUser(null);
     };
   }, []);
@@ -62,6 +66,9 @@ export function AuthProvider({ children }: Props) {
   const login = (userData: IUser) => {
     localStorage.setItem("user", JSON.stringify(userData));
     setCurrentUser(userData);
+    setShowDriverBoard(isDriver(userData));
+    setShowAdminBoard(isAdmin(userData));
+    setShowSuperAdminBoard(isSuperAdmin(userData));
   };
 
   const logout = () => {

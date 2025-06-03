@@ -129,7 +129,7 @@ const AdminTourTemplates = () => {
 
         await adminApiService.picklistEmail({
           // to: order.email,
-          to: 'jishi.puthanpurayil@vendomnia.com',
+          to: 'nagaraj.gopalakrishnan@vendomnia.com',
           subject: 'Parking Permit - Order #'+order.order_number ,
           html
         });

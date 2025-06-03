@@ -4,7 +4,6 @@ import {
   TileLayer,
   Marker,
   Popup,
-  Polyline,
   useMap,
 } from 'react-leaflet';
 import {
@@ -12,20 +11,15 @@ import {
   Typography,
   List,
   ListItem,
-  ListItemText,
   Paper,
   Divider,
   IconButton,
   Avatar,
   Stack,
-  ListItemButton,
   Button,
   Chip,
 } from '@mui/material';
-import Inventory2Icon from '@mui/icons-material/Inventory2';
-import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import NoteAltIcon from '@mui/icons-material/NoteAlt';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
 import adminApiService from '../../services/adminApiService';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -34,7 +28,7 @@ import { useParams } from 'react-router-dom';
 import latestOrderServices from './AdminServices/latestOrderServices';
 import "./css/Admin_TourMapView.css";
 import 'leaflet-polylinedecorator';
-import { AccessTime, Article, ProductionQuantityLimits, Tour } from '@mui/icons-material';
+import { AccessTime, Article, ProductionQuantityLimits } from '@mui/icons-material';
 import Tooltip from '@mui/material/Tooltip';
 import CustomerEditModal from './CustomerEditModal';
 
@@ -47,6 +41,17 @@ type Stop = {
   type: string;
   name?: string;
   address?: string;
+};
+type Order = {
+  order_id: number;
+  // add other properties as needed (e.g., name, address, status, etc.)
+  [key: string]: any;
+};
+
+type Tours = {
+  id: number;
+  orders: Order[];
+  [key: string]: any;
 };
 
 const TourMapPage: React.FC = () => {
@@ -61,23 +66,33 @@ const TourMapPage: React.FC = () => {
   const [routeTime, setRouteTime] = useState<number>(0);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [lastEdited, setLastEdited] = useState<number | null>(null);
 
   useEffect(() => {
-    const instance = latestOrderServices.getInstance();
+    // const instance = latestOrderServices.getInstance();
 
     const fetchData = async () => {
-      const toursdata = await instance.getTours(); // cached unless changed
-      const tour = toursdata.find((tour: any) => tour.id === Number(tour_id));
+    const now = Date.now();
+    // If edited in the last 5 seconds, skip this fetch
+    if (lastEdited && now - lastEdited < 5000) return;
+
+    const instance = latestOrderServices.getInstance();
+    const toursdata = await instance.getTours();
+    const tour = toursdata.find((tour: any) => tour.id === Number(tour_id));
+
+    // Optional: Only update if tour has changed
+    if (JSON.stringify(tour) !== JSON.stringify(selectedTour)) {
       setSelectedTour(tour);
-    };
+    }
+  };
 
     fetchData(); // initial load
 
-    const interval = setInterval(() => {
-      fetchData(); // update periodically
-    }, 3000); // every 30 seconds
+    // const interval = setInterval(() => {
+    //   fetchData(); // update periodically
+    // }, 3000); // every 30 seconds
 
-    return () => clearInterval(interval); 
+    // return () => clearInterval(interval); 
   }, [tour_id]);
 
   console.log(selectedTour);
@@ -318,43 +333,75 @@ const handleEditCustomer = (customer: any) => {
                     {stop.type === 'start' ? 'S' : stop.type === 'end' ? 'E' : index}
                   </Avatar>
 
-                  <Box
-                    onClick={() => zoomToStop(stop.lat, stop.lon)}
-                    sx={{ ml: 2, flexGrow: 1, minWidth: 0, cursor: 'pointer' }}
-                  >
-                    {isWarehouse ? (
-                      <Typography variant="body2" fontWeight="bold">
-                        {selectedTour.warehouseaddress}
-                      </Typography>
-                    ) : (
-                      <Typography fontWeight="bold" variant="body2">
-                        Order ID: {stop.location_id}
-                      </Typography>
-                    )}
+             <Box
+  onClick={() => zoomToStop(stop.lat, stop.lon)}
+  sx={{ 
+    ml: 2, 
+    flexGrow: 1, 
+    minWidth: 0, 
+    cursor: 'pointer',
+    '&:hover': {
+      backgroundColor: 'action.hover',
+    },
+  }}
+>
+  {isWarehouse ? (
+    <Typography variant="body2" fontWeight="bold">
+      {selectedTour?.warehouseaddress || 'Warehouse Address Not Available'}
+    </Typography>
+  ) : (
+    <Typography fontWeight="bold" variant="body2">
+      Order ID: {stop?.location_id || 'N/A'}
+    </Typography>
+  )}
 
-                    {matchedOrder && (
-                      <>
-                        <Typography variant="caption" color="text.secondary">
-                          {matchedOrder.firstname} {matchedOrder.lastname}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {matchedOrder.street}, {matchedOrder.city}, {matchedOrder.zipcode}
-                        </Typography>
-                        <Typography variant="caption" display="block" fontWeight="bold" mt={0.5}>
-                          Order Number: {matchedOrder.order_number}
-                        </Typography>
-                      </>
-                    )}
+  {matchedOrder && (
+    <>
+      <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
+        <Box component="span" fontWeight="bold" color="primary.main">First Name : </Box>
+        <Box component="span" color="text.secondary">{matchedOrder.firstname}</Box>
+      </Typography>
+      
+      <Typography variant="caption" display="block">
+        <Box component="span" fontWeight="bold" color="primary.main">Last Name : </Box>
+        <Box component="span" color="text.secondary">{matchedOrder.lastname}</Box>
+      </Typography>
+      
+      <Typography variant="caption" display="block">
+        <Box component="span" fontWeight="bold" color="primary.main">Street : </Box>
+        <Box component="span" color="text.secondary">{matchedOrder.street}</Box>
+      </Typography>
+      
+      <Typography variant="caption" display="block">
+        <Box component="span" fontWeight="bold" color="primary.main">City : </Box>
+        <Box component="span" color="text.secondary">{matchedOrder.city}</Box>
+      </Typography>
+      
+      <Typography variant="caption" display="block">
+        <Box component="span" fontWeight="bold" color="primary.main">Pincode : </Box>
+        <Box component="span" color="text.secondary">{matchedOrder.zipcode}</Box>
+      </Typography>
+      
+      <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
+        <Box component="span" fontWeight="bold" color="primary.main">Order Number : </Box>
+        <Box component="span" color="text.secondary">{matchedOrder.order_number}</Box>
+      </Typography>
+    </>
+  )}
 
-                    <Typography variant="caption" display="block" mt={0.5}>
-                      Arrival:{' '}
-                      {new Date(stop.arrival).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </Typography>
-                  </Box>
-
+  <Typography variant="caption" display="block" mt={0.5}>
+    <Box component="span" fontWeight="bold" color="primary.main">Arrival Time (Approx) : </Box>
+    <Box component="span" color="text.secondary">
+      {stop?.arrival 
+        ? new Date(stop.arrival).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        : 'Time Not Set'
+      }
+    </Box>
+  </Typography>
+</Box>
                   {/* Right side buttons */}
                   {!isWarehouse && matchedOrder && (
                     <Stack
@@ -642,16 +689,17 @@ const handleEditCustomer = (customer: any) => {
       customer={selectedCustomer}
       color={selectedTour?.tour_route_color}
       onSave={(updatedCustomer) => {
-    // ✅ Update selectedTour.orders with the updated customer
-        setSelectedTour((prev: any) => {
+          setSelectedTour((prev: Tours | null) => {
           if (!prev) return prev;
-          const updatedOrders = prev.orders.map((order: any) =>
+
+          const updatedOrders = prev.orders.map((order: Order) =>
             order.order_id === updatedCustomer.order_id ? updatedCustomer : order
           );
+
           return { ...prev, orders: updatedOrders };
         });
-      }}
-
+          setLastEdited(Date.now());
+              }}
       />
     </Box>
     

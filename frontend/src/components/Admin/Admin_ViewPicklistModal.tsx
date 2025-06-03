@@ -209,7 +209,7 @@ const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({ open, handleClose
 
 
       await adminApiService.picklistEmail({
-        to: 'jishi.puthanpurayil@vendomnia.com', // Update with actual email
+        to: 'nagaraj.gopalakrishnan@vendomnia.com', // Update with actual email
         subject: 'Picklist',
         html: fullEmailHtml,
         signatureData

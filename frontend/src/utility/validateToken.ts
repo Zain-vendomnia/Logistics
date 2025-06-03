@@ -3,26 +3,21 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import authHeader from "../services/auth-header";
 import EventBus from "../common/EventBus";
-import * as AuthService from "../services/auth.service";
+import IUser from "../types/user.type";
 
-const useTokenValidation = () => {
+const useTokenValidation = (user: IUser | null) => {
   const navigate = useNavigate();
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    if (!user) return; // ✅ Do nothing if no user is logged in
+
     const logoutAndRedirect = () => {
       EventBus.dispatch("logout");
       navigate("/login");
     };
 
     const validateToken = async () => {
-      // const user = AuthService.getCurrentUser();
-      // if (!user) {
-      //   // User not logged in; stop checking
-      //   if (intervalRef.current) clearInterval(intervalRef.current);
-      //   return;
-      // }
-
       try {
         const headers = authHeader();
         if (!headers.Authorization) {
@@ -30,7 +25,10 @@ const useTokenValidation = () => {
           return;
         }
 
-        const response = await axios.get("http://localhost:8080/api/auth/validate-token", { headers });
+        const response = await axios.get(
+          "http://localhost:8080/api/auth/validate-token",
+          { headers }
+        );
 
         if (response.status !== 200) {
           logoutAndRedirect();
@@ -40,17 +38,17 @@ const useTokenValidation = () => {
       }
     };
 
-    validateToken();
+    validateToken(); // ✅ Validate immediately on mount
 
-    // Only start interval if user exists
-    if (AuthService.getCurrentUser()) {
-      intervalRef.current = setInterval(validateToken, 20000);
-    }
+    // ✅ Set interval for periodic validation
+    intervalRef.current = setInterval(validateToken, 20000); // 20 seconds
 
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
     };
-  }, [navigate]);
+  }, [user, navigate]); // ✅ Depend on `user` and `navigate`
 };
 
 export default useTokenValidation;
