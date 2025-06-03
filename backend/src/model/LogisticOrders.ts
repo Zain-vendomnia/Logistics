@@ -55,7 +55,43 @@ export class LogisticOrder  {
     `);
     return rows as any[];
   }
- 
+  
+  static async getOrder(order_number: string): Promise<any[]> {
+  const [rows] = await pool.execute(
+    `
+    SELECT 
+      lo.*, 
+      JSON_ARRAYAGG(
+        JSON_OBJECT(
+          'driver_id', dd.id,
+          'driver_name', dd.name,
+          'driver_mobile', dd.mob,
+          'driver_address', dd.address,
+          'warehouse_id', dd.warehouse_id
+        )
+      ) AS drivers,
+      (
+        SELECT GROUP_CONCAT(loi.slmdl_articleordernumber SEPARATOR ', ')
+        FROM logistic_order_items loi
+        WHERE loi.order_id = lo.order_id
+      ) AS article_order_numbers,
+      (
+        SELECT SUM(loi.quantity)
+        FROM logistic_order_items loi
+        WHERE loi.order_id = lo.order_id
+      ) AS total_quantity
+    FROM logistic_order lo
+    INNER JOIN driver_details dd 
+      ON lo.warehouse_id = dd.warehouse_id
+    WHERE lo.order_number = ?
+    GROUP BY lo.order_id;
+    `,
+    [order_number] // ✅ Provide the value for the placeholder
+  );
+
+  return rows as any[];
+}
+
   static async getWmsOrderNumbers(): Promise<string[]> {
     const [rows] = await pool.execute(`
       SELECT order_number FROM wms_orders

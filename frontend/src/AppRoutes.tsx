@@ -8,7 +8,7 @@ import Register from "./components/pages/Register";
 import Home from "./components/pages/Home";
 import Profile from "./components/pages/Profile";
 import BoardDriver from "./components/driver/BoardDriver";
-
+ 
 import SuperAdmin from "./components/SuperAdmin";
 import AdminDashboard from "./components/Admin/Admin_dashboard";
 import ManageDrivers from "./components/Admin/ManageDrivers";
@@ -64,9 +64,10 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/" element={user ? getUserBoard() : <Navigate to="/login" replace />} />
       <Route path="/login" element={!user ? <Login /> : <Navigate to="/" replace />} />
-      <Route path="/dashboard" element={<ProtectedRoute element={getUserBoard()} />} />
+      <Route path = "/ParkingPermitForm" element = {<ParkingPermitForm/>}/>
 
       {/* SuperAdmin Route */}
+      <Route path="/dashboard" element={<ProtectedRoute element={getUserBoard()} />} />
       <Route path="/superadmin"  element={<ProtectedRoute element={<SuperAdmin />} allowedRoles={["superadmin"]} />}/>
 
       {/* Driver Route */}
@@ -80,7 +81,6 @@ const AppRoutes = () => {
       {/* ✅ Only Admin can register (registering drivers) */}
       <Route path="/register" element={<ProtectedRoute element={<Register />} allowedRoles={["admin"]} />} />
 
-      <Route path="/register" element={<ProtectedRoute element={<Register />} allowedRoles={["admin"]} />} />
 
       {/* ✅ Admin-only Routes */}
 
@@ -101,7 +101,6 @@ const AppRoutes = () => {
       <Route path = "/Admin_TourMapView/:tour_id"  element={<ProtectedRoute element={<Admin_TourMapView />} allowedRoles={["admin"]} />}/>
       <Route path = "/completed_tour" element={<ProtectedRoute element={<CompletedTour />} allowedRoles={["admin"]} />} />
       <Route path = "/live_tours" element={<ProtectedRoute element={<LiveTours />} allowedRoles={["admin"]} />} />
-      <Route path = "/ParkingPermitForm" element = {<ParkingPermitForm/>}/>
       {/* <Route path="/Admin_PickList" element={<Admin_PickListPage />} />  */}
    </Routes>
 

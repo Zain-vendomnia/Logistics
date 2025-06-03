@@ -28,18 +28,24 @@ const CustomInput = ({
   label,
   value,
   onChange,
-  startAdornment = null
+  startAdornment = null,
+  error = '',
+  helperText = ''
 }: {
   label: string;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   startAdornment?: React.ReactNode;
+  error?: string;
+  helperText?: string;
 }) => (
   <TextField
     label={label}
     value={value}
     fullWidth
     onChange={onChange}
+    error={!!error}
+    helperText={error || helperText}
     InputProps={{
       startAdornment,
       sx: {
@@ -58,7 +64,6 @@ const CustomInput = ({
     }}
   />
 );
-
 const CustomerEditModal: React.FC<Props> = ({ open, onClose, customer, color, onSave }) => {
   const [formData, setFormData] = useState({
     street: '',
@@ -92,46 +97,50 @@ const CustomerEditModal: React.FC<Props> = ({ open, onClose, customer, color, on
     }
   }, [customer, open]);
 
-  const handleChange = (field: string, value: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({ ...prev, [field]: e.target.value }));
-    setErrors(prev => ({ ...prev, [field]: '' }));
-  };
+    const handleChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+        setFormData(prev => ({ ...prev, [field]: e.target.value }));
+        setErrors(prev => ({ ...prev, [field]: '' }));
+    };
 
-  const validate = () => {
-    const e: Record<string, string> = {};
+    const validate = () => {
+      const e: Record<string, string> = {};
+      
+      console.log("Validating form data:", formData); // Debug log
 
-    // Street: required
-    if (!formData.street.trim()) {
-      e.street = 'Street is required';
-    }
+      // Street: required
+      if (!formData.street.trim()) {
+        e.street = 'Street is required';
+      }
 
-    // City: required, letters and spaces only
-    if (!formData.city.trim()) {
-      e.city = 'City is required';
-    } else if (!/^[A-Za-z\s]+$/.test(formData.city)) {
-      e.city = 'City must contain only letters';
-    }
+      // City: required, letters and spaces only
+      if (!formData.city.trim()) {
+        e.city = 'City is required';
+      } else if (!/^[A-Za-z\s]+$/.test(formData.city)) {
+        e.city = 'City must contain only letters';
+      }
 
-    // ZIP Code: required, digits only (German format 5 digits)
-    if (!formData.zipcode.trim()) {
-      e.zipcode = 'ZIP code is required';
-    } else if (!/^\d{5}$/.test(formData.zipcode)) {
-      e.zipcode = 'Enter valid 5-digit ZIP code';
-    }
+      // ZIP Code: required, digits only (German format 5 digits)
+      if (!formData.zipcode.trim()) {
+        e.zipcode = 'ZIP code is required';
+      } else if (!/^\d{5}$/.test(formData.zipcode)) {
+        e.zipcode = 'Enter valid 5-digit ZIP code';
+      }
 
-    // Phone Number: required, German format
-    if (!formData.phone_number.trim()) {
-      e.phone_number = 'Phone number is required';
-    } else if (!/^\+49\d{10,12}$/.test(formData.phone_number)) {
-      e.phone_number = 'Enter valid German phone number (starts +49, 10–12 digits)';
-    }
+      // Phone Number: required, German format
+      if (!formData.phone_number.trim()) {
+        e.phone_number = 'Phone number is required';
+      } else if (!/^\+49\d{10,12}$/.test(formData.phone_number)) {
+        e.phone_number = 'Enter valid German phone number (starts +49, 10–12 digits)';
+      }
 
-    setErrors(e);
-    return Object.keys(e).length === 0;
-  };
-
-  const handleSave = async () => {
-    if (!validate()) return;
+      console.log("Validation errors:", e); // Debug log
+      setErrors(e);
+      return Object.keys(e).length === 0;
+    };
+    
+const handleSave = async () => {
+  console.log("form submitting !.....")
+  if (!validate()) return;
 
     const updatedData = {
       order_id: customer.order_id,
@@ -142,26 +151,34 @@ const CustomerEditModal: React.FC<Props> = ({ open, onClose, customer, color, on
       notice: formData.notice
     };
 
-    try {
-      const response = await adminApiService.updateCustomerInfo(updatedData);
-      console.log("✅ Customer update success:", response.data);
+  try {
+    const response = await adminApiService.updateCustomerInfo(updatedData);
+    console.log("✅ Customer update success:", response.data);
 
-      setSnackbar({
-        open: true,
-        message: "Customer info updated successfully",
-        severity: 'success'
-      });
+    setSnackbar({
+      open: true,
+      message: "Customer info updated successfully",
+      severity: 'success'
+    });
 
-      if (onSave) {
-        onSave({ ...customer, ...updatedData });
-      }
-
-      onClose();
-    } catch (error) {
-      console.error('Error updating customer:', error);
-      setSnackbar({ open: true, message: 'Failed to update customer info', severity: 'error' });
+    if (onSave) {
+      // More explicit version - create the complete updated customer object
+      const completeUpdatedCustomer = {
+        ...customer,
+        street: formData.street,
+        city: formData.city,
+        zipcode: formData.zipcode,
+        phone: formData.phone_number
+      };
+      onSave(completeUpdatedCustomer);
     }
-  };
+
+    onClose();
+  } catch (error) {
+    console.error('Error updating customer:', error);
+    setSnackbar({ open: true, message: 'Failed to update customer info', severity: 'error' });
+  }
+};
 
   const handleSnackbarClose = () => {
     setSnackbar(prev => ({ ...prev, open: false }));
@@ -258,22 +275,35 @@ const CustomerEditModal: React.FC<Props> = ({ open, onClose, customer, color, on
                         fontFamily: 'Poppins, sans-serif'
                       }
                     }}/>
-
-                  <CustomInput label="Street" value={formData.street} onChange={(e) => handleChange('street', e.target.value)} />
-                  <CustomInput label="City" value={formData.city} onChange={(e) => handleChange('city', e.target.value)} />
-                  <CustomInput label="ZIP Code" value={formData.zipcode} onChange={(e) => handleChange('zipcode', e.target.value)} />
-                  <CustomInput label="Notice" value={formData.notice} onChange={(e) => handleChange('notice', e.target.value)} />
- 
-                  <CustomInput
-                    label="Phone Number"
-                    value={formData.phone_number}
-                    onChange={(e) => handleChange('phone_number', e.target.value)}
-                    startAdornment={
-                      <InputAdornment position="start">
-                        <PhoneIcon sx={{ color: 'gray' }} />
-                      </InputAdornment>
-                    }
-                  />
+                    <CustomInput 
+                      label="Street" 
+                      value={formData.street} 
+                      onChange={handleChange('street')} 
+                      error={errors.street}
+                    />
+                    <CustomInput 
+                      label="City" 
+                      value={formData.city} 
+                      onChange={handleChange('city')} 
+                      error={errors.city}
+                    />
+                    <CustomInput 
+                      label="ZIP Code" 
+                      value={formData.zipcode} 
+                      onChange={handleChange('zipcode')} 
+                      error={errors.zipcode}
+                    />
+                    <CustomInput
+                      label="Phone Number"
+                      value={formData.phone_number}
+                      onChange={handleChange('phone_number')}
+                      error={errors.phone_number}
+                      startAdornment={
+                        <InputAdornment position="start">
+                          <PhoneIcon sx={{ color: 'gray' }} />
+                        </InputAdornment>
+                      }
+                    />
                 </Box>
               </Paper>
             </DialogContent>

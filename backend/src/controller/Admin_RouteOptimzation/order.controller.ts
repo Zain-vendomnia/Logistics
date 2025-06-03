@@ -19,6 +19,17 @@ export const getAllLogisticOrders = async (_req: Request, res: Response) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+export const getAllLogisticOrder = async (_req: Request, res: Response) => {
+  const { order_number } = _req.body; // ✅ Correct destructuring
+
+  try {
+    const orderData = await LogisticOrder.getOrder(order_number); // Assuming this method exists and works
+    res.status(200).json(orderData);
+  } catch (error) {
+    console.error('Error fetching order:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
 
 
 export const getcountcheck = async(_req: Request, res: Response) => {

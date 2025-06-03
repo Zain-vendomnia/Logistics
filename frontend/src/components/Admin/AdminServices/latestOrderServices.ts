@@ -226,6 +226,21 @@ class latestOrderServices {
     }
   }
 
+  public async getOrder(order_number: string): Promise<LogisticOrder[]> {
+    console.log('📡 Fetching specified order data');
+
+    try {
+      // const response = await fetch('http://localhost:8080/api/admin/routeoptimize/getOrder');
+      const response = adminApiService.fetchSpecifiedOrder(order_number);
+      const data = (await response).data as LogisticOrder[];
+      return data;
+
+    } catch (error) {
+      console.error('❌ Error fetching orders:', error);
+      return [];
+    }
+  }
+
   public getDrivers(): Driver[] {
     return this.drivers;
   }
