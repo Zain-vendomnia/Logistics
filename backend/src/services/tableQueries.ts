@@ -105,7 +105,7 @@ export const CREATE_ROUTE_SEGMENTS_TABLE = `
     neighbour_signature BLOB,
     delivered_pic_neighbour BLOB,
     order_id VARCHAR(45),
-    comments VARCHAR(45),
+    comments VARCHAR(45) DEFAULT NULL,
     delivery_time TIMESTAMP,
     FOREIGN KEY (tour_id) REFERENCES tourInfo_master(id) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

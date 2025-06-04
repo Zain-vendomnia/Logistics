@@ -30,7 +30,8 @@ const CustomInput = ({
   onChange,
   startAdornment = null,
   error = '',
-  helperText = ''
+  helperText = '',
+  inputProps
 }: {
   label: string;
   value: string;
@@ -38,6 +39,7 @@ const CustomInput = ({
   startAdornment?: React.ReactNode;
   error?: string;
   helperText?: string;
+  inputProps?: React.InputHTMLAttributes<HTMLInputElement>;
 }) => (
   <TextField
     label={label}
@@ -48,10 +50,9 @@ const CustomInput = ({
     helperText={error || helperText}
     InputProps={{
       startAdornment,
-      sx: {
-        borderRadius: 2,
-      }
+      sx: { borderRadius: 2 },
     }}
+    inputProps={inputProps} // Only applies if passed
     sx={{
       '& .MuiOutlinedInput-root': {
         borderRadius: '10px',
@@ -275,35 +276,41 @@ const handleSave = async () => {
                         fontFamily: 'Poppins, sans-serif'
                       }
                     }}/>
-                    <CustomInput 
+                   <CustomInput 
                       label="Street" 
                       value={formData.street} 
                       onChange={handleChange('street')} 
                       error={errors.street}
                     />
+
                     <CustomInput 
                       label="City" 
                       value={formData.city} 
                       onChange={handleChange('city')} 
                       error={errors.city}
                     />
+
                     <CustomInput 
                       label="ZIP Code" 
                       value={formData.zipcode} 
                       onChange={handleChange('zipcode')} 
                       error={errors.zipcode}
+                      inputProps={{ inputMode: 'numeric', pattern: '[0-9]*', maxLength: 5 }}
                     />
+
                     <CustomInput
                       label="Phone Number"
                       value={formData.phone_number}
                       onChange={handleChange('phone_number')}
                       error={errors.phone_number}
+                      inputProps={{ inputMode: 'tel', maxLength: 15 }}
                       startAdornment={
                         <InputAdornment position="start">
                           <PhoneIcon sx={{ color: 'gray' }} />
                         </InputAdornment>
                       }
                     />
+
                 </Box>
               </Paper>
             </DialogContent>

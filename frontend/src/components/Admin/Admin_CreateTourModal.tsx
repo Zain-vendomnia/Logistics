@@ -71,7 +71,7 @@ const CreateTourModal: React.FC<CreateTourModalProps> = ({ open, handleClose, wa
 
 
   const [restCheckMessage, setRestCheckMessage] = useState('');
-  const [isDriverEligible, setIsDriverEligible] = useState<boolean | null>(null); // null = not checked yet
+  const [isDriverEligible, setIsDriverEligible] = useState<boolean | null>(true); // null = not checked yet
 
   const timeOptions = generateTimeOptions();
 
