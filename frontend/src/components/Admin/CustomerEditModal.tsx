@@ -22,6 +22,8 @@ interface Props {
   onClose: () => void;
   customer: any;
   color: string;
+  notice?: string;
+  tourId: string | undefined; 
   onSave?: (updatedCustomer: any) => void;
 }
 const CustomInput = ({
@@ -64,15 +66,16 @@ const CustomInput = ({
     }}
   />
 );
-const CustomerEditModal: React.FC<Props> = ({ open, onClose, customer, color, onSave }) => {
+const CustomerEditModal: React.FC<Props> = ({ open, onClose, customer, color,tourId, onSave }) => {
   const [formData, setFormData] = useState({
     street: '',
     city: '',
     zipcode: '',
     phone_number: '',
-    notice:''
+    notice: '',
+    tourId: ''
   });
-
+  console.log("customer"+ JSON.stringify(formData));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
@@ -91,56 +94,60 @@ const CustomerEditModal: React.FC<Props> = ({ open, onClose, customer, color, on
         city: customer.city || '',
         zipcode: customer.zipcode || '',
         phone_number: customer.phone || '',
-        notice: customer.notice||''
+        notice: customer.notice || '',
+        tourId: tourId ||''
+      
       });
       setErrors({});
     }
   }, [customer, open]);
 
-    const handleChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData(prev => ({ ...prev, [field]: e.target.value }));
-        setErrors(prev => ({ ...prev, [field]: '' }));
-    };
+  const handleChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log("field name -",field)
+    console.log(formData)
+    setFormData(prev => ({ ...prev, [field]: e.target.value }));
+    setErrors(prev => ({ ...prev, [field]: '' }));
+  };
 
-    const validate = () => {
-      const e: Record<string, string> = {};
-      
-      console.log("Validating form data:", formData); // Debug log
+  const validate = () => {
+    const e: Record<string, string> = {};
 
-      // Street: required
-      if (!formData.street.trim()) {
-        e.street = 'Street is required';
-      }
+    console.log("Validating form data:", formData); // Debug log
 
-      // City: required, letters and spaces only
-      if (!formData.city.trim()) {
-        e.city = 'City is required';
-      } else if (!/^[A-Za-z\s]+$/.test(formData.city)) {
-        e.city = 'City must contain only letters';
-      }
+    // Street: required
+    if (!formData.street.trim()) {
+      e.street = 'Street is required';
+    }
 
-      // ZIP Code: required, digits only (German format 5 digits)
-      if (!formData.zipcode.trim()) {
-        e.zipcode = 'ZIP code is required';
-      } else if (!/^\d{5}$/.test(formData.zipcode)) {
-        e.zipcode = 'Enter valid 5-digit ZIP code';
-      }
+    // City: required, letters and spaces only
+    if (!formData.city.trim()) {
+      e.city = 'City is required';
+    } else if (!/^[A-Za-z\s]+$/.test(formData.city)) {
+      e.city = 'City must contain only letters';
+    }
 
-      // Phone Number: required, German format
-      if (!formData.phone_number.trim()) {
-        e.phone_number = 'Phone number is required';
-      } else if (!/^\+49\d{10,12}$/.test(formData.phone_number)) {
-        e.phone_number = 'Enter valid German phone number (starts +49, 10–12 digits)';
-      }
+    // ZIP Code: required, digits only (German format 5 digits)
+    if (!formData.zipcode.trim()) {
+      e.zipcode = 'ZIP code is required';
+    } else if (!/^\d{5}$/.test(formData.zipcode)) {
+      e.zipcode = 'Enter valid 5-digit ZIP code';
+    }
 
-      console.log("Validation errors:", e); // Debug log
-      setErrors(e);
-      return Object.keys(e).length === 0;
-    };
-    
-const handleSave = async () => {
-  console.log("form submitting !.....")
-  if (!validate()) return;
+    // Phone Number: required, German format
+    if (!formData.phone_number.trim()) {
+      e.phone_number = 'Phone number is required';
+    } else if (!/^\+49\d{10,12}$/.test(formData.phone_number)) {
+      e.phone_number = 'Enter valid German phone number (starts +49, 10–12 digits)';
+    }
+
+    console.log("Validation errors:", e); // Debug log
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const handleSave = async () => {
+    console.log("form submitting !.....")
+    if (!validate()) return;
 
     const updatedData = {
       order_id: customer.order_id,
@@ -148,37 +155,41 @@ const handleSave = async () => {
       city: formData.city,
       zipcode: formData.zipcode,
       phone: formData.phone_number,
-      notice: formData.notice
-    };
-
-  try {
-    const response = await adminApiService.updateCustomerInfo(updatedData);
-    console.log("✅ Customer update success:", response.data);
-
-    setSnackbar({
-      open: true,
-      message: "Customer info updated successfully",
-      severity: 'success'
-    });
-
-    if (onSave) {
-      // More explicit version - create the complete updated customer object
-      const completeUpdatedCustomer = {
-        ...customer,
-        street: formData.street,
-        city: formData.city,
-        zipcode: formData.zipcode,
-        phone: formData.phone_number
+      notice: formData.notice,
+      tourId: formData.tourId,
       };
-      onSave(completeUpdatedCustomer);
-    }
+     console.log("updatedData" + JSON.stringify(updatedData));
+    try {
+      const response = await adminApiService.updateCustomerInfo(updatedData);
+      console.log("✅ Customer update success:", response.data);
+   
+      setSnackbar({
+        open: true,
+        message: "Customer info updated successfully",
+        severity: 'success'
+      });
 
-    onClose();
-  } catch (error) {
-    console.error('Error updating customer:', error);
-    setSnackbar({ open: true, message: 'Failed to update customer info', severity: 'error' });
-  }
-};
+      if (onSave) {
+        // More explicit version - create the complete updated customer object
+        const completeUpdatedCustomer = {
+          ...customer,
+          street: formData.street,
+          city: formData.city,
+          zipcode: formData.zipcode,
+          phone: formData.phone_number,
+          notice: formData.notice,
+          tourId: formData.tourId,
+        };
+        onSave(completeUpdatedCustomer);
+        
+      }
+
+      onClose();
+    } catch (error) {
+      console.error('Error updating customer:', error);
+      setSnackbar({ open: true, message: 'Failed to update customer info', severity: 'error' });
+    }
+  };
 
   const handleSnackbarClose = () => {
     setSnackbar(prev => ({ ...prev, open: false }));
@@ -247,63 +258,69 @@ const handleSave = async () => {
                     }}
                   />
 
-                  <TextField label="Last Name" value={customer.lastname} fullWidth disabled  InputProps={{
-                      sx: {
-                        fontSize: '1.0rem', // 👈 Input text size
-                        fontFamily: 'Poppins, sans-serif',
-                        color: 'text.primary',
-                        mt: 1.5 // Ensures text is visible even when disabled
-                      }
-                    }}
+                  <TextField label="Last Name" value={customer.lastname} fullWidth disabled InputProps={{
+                    sx: {
+                      fontSize: '1.0rem', // 👈 Input text size
+                      fontFamily: 'Poppins, sans-serif',
+                      color: 'text.primary',
+                      mt: 1.5 // Ensures text is visible even when disabled
+                    }
+                  }}
                     InputLabelProps={{
                       sx: {
                         fontSize: '1.3rem', // 👈 Label text size
                         fontFamily: 'Poppins, sans-serif'
                       }
-                    }}/>
-                  <TextField label="Order Number" value={customer.order_number} fullWidth disabled  InputProps={{
-                      sx: {
-                        fontSize: '1.0rem', // 👈 Input text size
-                        fontFamily: 'Poppins, sans-serif',
-                        color: 'text.primary',
-                        mt: 1.5// Ensures text is visible even when disabled
-                      }
-                    }}
+                    }} />
+                  <TextField label="Order Number" value={customer.order_number} fullWidth disabled InputProps={{
+                    sx: {
+                      fontSize: '1.0rem', // 👈 Input text size
+                      fontFamily: 'Poppins, sans-serif',
+                      color: 'text.primary',
+                      mt: 1.5// Ensures text is visible even when disabled
+                    }
+                  }}
                     InputLabelProps={{
                       sx: {
                         fontSize: '1.3rem', // 👈 Label text size
                         fontFamily: 'Poppins, sans-serif'
                       }
-                    }}/>
-                    <CustomInput 
-                      label="Street" 
-                      value={formData.street} 
-                      onChange={handleChange('street')} 
-                      error={errors.street}
-                    />
-                    <CustomInput 
-                      label="City" 
-                      value={formData.city} 
-                      onChange={handleChange('city')} 
-                      error={errors.city}
-                    />
-                    <CustomInput 
-                      label="ZIP Code" 
-                      value={formData.zipcode} 
-                      onChange={handleChange('zipcode')} 
-                      error={errors.zipcode}
-                    />
-                    <CustomInput
-                      label="Phone Number"
-                      value={formData.phone_number}
-                      onChange={handleChange('phone_number')}
-                      error={errors.phone_number}
-                      startAdornment={
-                        <InputAdornment position="start">
-                          <PhoneIcon sx={{ color: 'gray' }} />
-                        </InputAdornment>
-                      }
-                    />
+                    }} />
+                  <CustomInput
+                    label="Street"
+                    value={formData.street}
+                    onChange={handleChange('street')}
+                    error={errors.street}
+                  />
+                  <CustomInput
+                    label="City"
+                    value={formData.city}
+                    onChange={handleChange('city')}
+                    error={errors.city}
+                  />
+                  <CustomInput
+                    label="ZIP Code"
+                    value={formData.zipcode}
+                    onChange={handleChange('zipcode')}
+                    error={errors.zipcode}
+                  />
+                  <CustomInput
+                    label="Notice"
+                    value={formData.notice}
+                    onChange={handleChange('notice')}
+                    error={errors.notice}
+                  />
+                  <CustomInput
+                    label="Phone Number"
+                    value={formData.phone_number}
+                    onChange={handleChange('phone_number')}
+                    error={errors.phone_number}
+                    startAdornment={
+                      <InputAdornment position="start">
+                        <PhoneIcon sx={{ color: 'gray' }} />
+                      </InputAdornment>
+                    }
+                  />
                 </Box>
               </Paper>
             </DialogContent>

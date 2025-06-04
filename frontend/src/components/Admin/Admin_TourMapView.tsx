@@ -32,6 +32,7 @@ import 'leaflet-polylinedecorator';
 import { AccessTime, Article, ProductionQuantityLimits } from '@mui/icons-material';
 import Tooltip from '@mui/material/Tooltip';
 import CustomerEditModal from './CustomerEditModal';
+import { Console } from 'console';
 
 type Stop = {
   id: string;
@@ -71,33 +72,23 @@ const TourMapPage: React.FC = () => {
 
   useEffect(() => {
     // const instance = latestOrderServices.getInstance();
-
     const fetchData = async () => {
-    const now = Date.now();
-    // If edited in the last 5 seconds, skip this fetch
-    if (lastEdited && now - lastEdited < 5000) return;
+      const now = Date.now();
+      // If edited in the last 5 seconds, skip this fetch
+      const instance = latestOrderServices.getInstance();
+      const toursdata = await instance.getTours();
+      const tour = toursdata.find((tour: any) => tour.id === Number(tour_id));
 
-    const instance = latestOrderServices.getInstance();
-    const toursdata = await instance.getTours();
-    const tour = toursdata.find((tour: any) => tour.id === Number(tour_id));
-
-    // Optional: Only update if tour has changed
-    if (JSON.stringify(tour) !== JSON.stringify(selectedTour)) {
-      setSelectedTour(tour);
-    }
-  };
-
-    fetchData(); // initial load
-
-    // const interval = setInterval(() => {
-    //   fetchData(); // update periodically
-    // }, 3000); // every 30 seconds
-
-    // return () => clearInterval(interval); 
+      // Optional: Only update if tour has changed
+      if (JSON.stringify(tour) !== JSON.stringify(selectedTour)) {
+        setSelectedTour(tour);
+      }
+    };
+    fetchData();
   }, [tour_id]);
 
   console.log(selectedTour);
-  console.log("stops" + JSON.stringify(stops));
+
   const fetchRouteData = async () => {
     try {
       if (parsedTourId !== null) {
@@ -145,10 +136,10 @@ const TourMapPage: React.FC = () => {
   }, [parsedTourId]);
 
 
-const handleEditCustomer = (customer: any) => {
-  setSelectedCustomer(customer); // Set the selected customer
-  setEditModalOpen(true);        // Open the modal
-};
+  const handleEditCustomer = (customer: any) => {
+    setSelectedCustomer(customer); 
+    setEditModalOpen(true);        
+  };
 
   const blink = {
     animation: 'blinker 1.5s linear infinite',
@@ -305,6 +296,8 @@ const handleEditCustomer = (customer: any) => {
             const matchedOrder = selectedTour?.orders?.find(
               (order: any) => order.order_id === Number(stop.location_id)
             );
+            console.log("matchedOrder"+ JSON.stringify(matchedOrder));
+
 
             // Skip rendering if not a warehouse and there's no matching order
             if (!isWarehouse && !matchedOrder) return null;
@@ -334,70 +327,70 @@ const handleEditCustomer = (customer: any) => {
                     {stop.type === 'start' ? 'S' : stop.type === 'end' ? 'E' : index}
                   </Avatar>
 
-             <Box
-  onClick={() => zoomToStop(stop.lat, stop.lon)}
-  sx={{ 
-    ml: 2, 
-    flexGrow: 1, 
-    minWidth: 0, 
-    cursor: 'pointer',
-    '&:hover': {
-      backgroundColor: 'action.hover',
-    },
-  }}
->
-  {isWarehouse ? (
-    <Typography variant="body2" fontWeight="bold">
-      {selectedTour?.warehouseaddress || 'Warehouse Address Not Available'}
-    </Typography>
-  ) : (
-    <Typography fontWeight="bold" variant="body2">
-      Order ID: {stop?.location_id || 'N/A'}
-    </Typography>
-  )}
+                  <Box
+                    onClick={() => zoomToStop(stop.lat, stop.lon)}
+                    sx={{
+                      ml: 2,
+                      flexGrow: 1,
+                      minWidth: 0,
+                      cursor: 'pointer',
+                      '&:hover': {
+                        backgroundColor: 'action.hover',
+                      },
+                    }}
+                  >
+                    {isWarehouse ? (
+                      <Typography variant="body2" fontWeight="bold">
+                        {selectedTour?.warehouseaddress || 'Warehouse Address Not Available'}
+                      </Typography>
+                    ) : (
+                      <Typography fontWeight="bold" variant="body2">
+                        Order ID: {stop?.location_id || 'N/A'}
+                      </Typography>
+                    )}
 
-  {matchedOrder && (
-    <>
-      <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
-        <Box component="span" color="text.secondary">{matchedOrder.firstname}</Box>
-      </Typography>
-      
-      <Typography variant="caption" display="block">
-        <Box component="span" color="text.secondary">{matchedOrder.lastname}</Box>
-      </Typography>
-      
-      <Typography variant="caption" display="block">
-        <Box component="span" color="text.secondary">{matchedOrder.street}</Box>
-      </Typography>
-      
-      <Typography variant="caption" display="block">
-        <Box component="span" color="text.secondary">{matchedOrder.city}</Box>
-      </Typography>
-      
-      <Typography variant="caption" display="block">
-        <Box component="span" color="text.secondary">{matchedOrder.zipcode}</Box>
-      </Typography>
-      
-      <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
-        <Box component="span" fontWeight="bold" >Order Number : </Box>
-        <Box component="span" color="text.secondary">{matchedOrder.order_number}</Box>
-      </Typography>
-    </>
-  )}
+                    {matchedOrder && (
+                      <>
+                        <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
+                          <Box component="span" color="text.secondary">{matchedOrder.firstname}</Box>
+                        </Typography>
 
-  <Typography variant="caption" display="block" mt={0.5}>
-    <Box component="span" fontWeight="bold" >Arrival Time : </Box>
-    <Box component="span" color="text.secondary">
-      {stop?.arrival 
-        ? new Date(stop.arrival).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-          })
-        : 'Time Not Set'
-      }
-    </Box>
-  </Typography>
-</Box>
+                        <Typography variant="caption" display="block">
+                          <Box component="span" color="text.secondary">{matchedOrder.lastname}</Box>
+                        </Typography>
+
+                        <Typography variant="caption" display="block">
+                          <Box component="span" color="text.secondary">{matchedOrder.street}</Box>
+                        </Typography>
+
+                        <Typography variant="caption" display="block">
+                          <Box component="span" color="text.secondary">{matchedOrder.city}</Box>
+                        </Typography>
+
+                        <Typography variant="caption" display="block">
+                          <Box component="span" color="text.secondary">{matchedOrder.zipcode}</Box>
+                        </Typography>
+
+                        <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
+                          <Box component="span" fontWeight="bold" >Order Number : </Box>
+                          <Box component="span" color="text.secondary">{matchedOrder.order_number}</Box>
+                        </Typography>
+                      </>
+                    )}
+
+                    <Typography variant="caption" display="block" mt={0.5}>
+                      <Box component="span" fontWeight="bold" >Arrival Time : </Box>
+                      <Box component="span" color="text.secondary">
+                        {stop?.arrival
+                          ? new Date(stop.arrival).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })
+                          : 'Time Not Set'
+                        }
+                      </Box>
+                    </Typography>
+                  </Box>
                   {/* Right side buttons */}
                   {!isWarehouse && matchedOrder && (
                     <Stack
@@ -453,7 +446,7 @@ const handleEditCustomer = (customer: any) => {
                           </ul>
                         }
                       >
-                        <IconButton size="small" color="success">
+                      <IconButton size="small" color="success">
                           <Article fontSize="small" />
                         </IconButton>
                       </Tooltip>
@@ -466,15 +459,15 @@ const handleEditCustomer = (customer: any) => {
                       </Tooltip>
 
                       {/* More Options */}
-                    <Tooltip title="Edit Customer" arrow placement="top">
-                      <IconButton
-                        size="small"
-                        color="info"
-                        onClick={() =>handleEditCustomer(matchedOrder)}
-                      >
-                        <NoteAltIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
+                      <Tooltip title="Edit Customer" arrow placement="top">
+                        <IconButton
+                          size="small"
+                          color="info"
+                          onClick={() => handleEditCustomer(matchedOrder)}
+                        >
+                          <NoteAltIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                     </Stack>
                   )}
                 </Box>
@@ -558,7 +551,7 @@ const handleEditCustomer = (customer: any) => {
           )}
         </Box>
       </Paper>
-        
+
       <Box sx={{ flex: 1 }}>
         <MapContainer
           center={[stops[0]?.lat || 51.191566, stops[0]?.lon || 10.00519]}
@@ -678,27 +671,29 @@ const handleEditCustomer = (customer: any) => {
 
         </MapContainer>
       </Box>
-       
+
       <CustomerEditModal
-      open={editModalOpen}
-      onClose={() => setEditModalOpen(false)}
-      customer={selectedCustomer}
-      color={selectedTour?.tour_route_color}
-      onSave={(updatedCustomer) => {
+        open={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        customer={selectedCustomer}
+        notice={selectedCustomer?.route_segment_notice || ''} 
+        tourId = {tour_id}
+        color={selectedTour?.tour_route_color}
+        onSave={(updatedCustomer) => {
           setSelectedTour((prev: Tours | null) => {
-          if (!prev) return prev;
+            if (!prev) return prev;
 
-          const updatedOrders = prev.orders.map((order: Order) =>
-            order.order_id === updatedCustomer.order_id ? updatedCustomer : order
-          );
+            const updatedOrders = prev.orders.map((order: Order) =>
+              order.order_id === updatedCustomer.order_id ? updatedCustomer : order
+            );
 
-          return { ...prev, orders: updatedOrders };
-        });
+            return { ...prev, orders: updatedOrders };
+          });
           setLastEdited(Date.now());
-              }}
+        }}
       />
     </Box>
-    
+
   );
 };
 
