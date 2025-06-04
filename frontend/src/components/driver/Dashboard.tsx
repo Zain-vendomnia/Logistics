@@ -1,17 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   Box,
-  Button,
   Fab,
   Grid2,
   IconButton,
-  keyframes,
   Paper,
   Slide,
   Snackbar,
-  Stack,
-  Tooltip,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import ClearAllIcon from "@mui/icons-material/ClearAll";
@@ -27,6 +23,7 @@ import { useDeliveryStore } from "../../store/useDeliveryStore";
 import { useTripLifecycle } from "../../hooks/useTripLifecycle";
 import { resetDeliveryStore } from "../../utils/resetDeliveryStore";
 import DeliveryDrawer from "../delivery/Delivery_Drawer";
+import OrientationOverlay from "../common/OrientationOverlay";
 
 const Dashboard = () => {
   const styles = useStyles;
@@ -36,8 +33,6 @@ const Dashboard = () => {
 
   const { isDeliveryStarted, handleDriverReachedToDestination } =
     useTripLifecycle();
-
-  // const [showDeliveryDrawer, setShowDeliveryDrawer] = useState(false);
 
   // Dev Helpers
   // const [showActiveDeliveryScenario, setShowActiveDeliveryScenario] =
@@ -124,7 +119,8 @@ const Dashboard = () => {
         </Box>
       </Grid2>
 
-      {isDeliveryStarted && <DeliveryDrawer key={deliveryId} />}
+      {/* {isDeliveryStarted && <DeliveryDrawer key={deliveryId} />} */}
+      <DeliveryDrawer key={deliveryId} />
 
       {/* Dev helpers */}
       {/* {showActiveDeliveryScenario && (
@@ -145,8 +141,8 @@ const Dashboard = () => {
             },
           }}
         />
-      )}
-      <Fab
+      )} */}
+      {/* <Fab
         onClick={resetDeliveryStore}
         color="primary"
         aria-label="open delivery drawer"
@@ -164,6 +160,8 @@ const Dashboard = () => {
           }}
         />
       </Fab> */}
+
+      <OrientationOverlay />
     </Grid2>
   );
 };
