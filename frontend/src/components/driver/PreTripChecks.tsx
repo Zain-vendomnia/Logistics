@@ -67,23 +67,6 @@ const PreTripChecks = () => {
 
   const [millageInputValue, setMillageInputValue] = useState("");
 
-  const handleImageUpload = (index: number, isImageUplaoded: boolean) => {
-    setComponentStatus((prevState) => {
-      const newState = [...prevState];
-      newState[index] = true;
-      return newState;
-    });
-  };
-
-  const handleStartTripButton = () => {
-    startNewTrip();
-    updateTripDetails({
-      isTripStarted: true,
-      tripStartedAt: new Date().toUTCString(),
-    });
-    console.log("Compliances completed, Trip hass starts now.");
-  };
-
   const { showNotification } = useNotificationStore();
 
   useEffect(() => {
@@ -102,6 +85,24 @@ const PreTripChecks = () => {
     const isAllComplied = componentStatus.every((status) => status === true);
     setIsComplied(isAllComplied);
   }, [componentStatus]);
+
+  const handleImageUpload = (index: number, isImageUplaoded: boolean) => {
+    console.log("image done!!!");
+    setComponentStatus((prevState) => {
+      const newState = [...prevState];
+      newState[index] = true;
+      return newState;
+    });
+  };
+
+  const handleStartTripButton = () => {
+    startNewTrip();
+    updateTripDetails({
+      isTripStarted: true,
+      tripStartedAt: new Date().toUTCString(),
+    });
+    console.log("Compliances completed, Trip hass starts now.");
+  };
 
   return (
     <Stack spacing={1}>

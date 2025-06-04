@@ -10,6 +10,7 @@ import { ModalWrapper } from "../common/ModalWrapper";
 import StarRating from "../common/Star_Rating";
 import Notification from "../Notification";
 import { NotificationSeverity } from "../../store/useNotificationStore";
+import QrProcessor from "../common/QrProcessor";
 
 const getLabel = (step: string) => {
   switch (step) {
@@ -106,6 +107,8 @@ export const DeliveryStepRenderer = ({ step, onComplete }: Props) => {
           <StarRating onComplete={onComplete} />
         </ModalWrapper>
       );
+    case "scanQR":
+      return <QrProcessor onComplete={onComplete} />;
     case "notifyForOrderReturn":
       return (
         <Notification

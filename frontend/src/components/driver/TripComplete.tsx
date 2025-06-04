@@ -39,6 +39,7 @@ const imageChecklist: ImageChecklistItem[] = [
 
 const TripComplete = () => {
   const iconSize = "6rem";
+  const { showNotification } = useNotificationStore();
 
   const [millageValue, setMillageValue] = useState<string>("");
   const [shouldShowInputField, setShouldShowInputField] = useState(false);
@@ -76,9 +77,11 @@ const TripComplete = () => {
     if (componentStatus.every((s) => s === true)) {
       setIsAllComplied(true);
     }
-    console.log("Current Index", currentIndex);
-    console.log("Component Status: ", componentStatus);
   }, [componentStatus]);
+
+  const handleInputValue = (value: string) => {
+    setMillageValue(value);
+  };
 
   const handleImageUploaded = (value: boolean) => {
     if (value) {
@@ -92,11 +95,6 @@ const TripComplete = () => {
       }
     }
   };
-
-  const handleInputValue = (value: string) => {
-    setMillageValue(value);
-  };
-  const { showNotification } = useNotificationStore();
 
   const handleTripComplete = () => {
     setTimeout(() => {
@@ -119,8 +117,7 @@ const TripComplete = () => {
 
     if (shouldShowInputField && !millageValue) {
       showNotification({
-        message:
-          "Please enter the odometer reading before uploading the image.",
+        message: "Please enter the Km driven before uploading the image.",
         severity: NotificationSeverity.Warning,
       });
       setShowInputFieldAlert(true);
