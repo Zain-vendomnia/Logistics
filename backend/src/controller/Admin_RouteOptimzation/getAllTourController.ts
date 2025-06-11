@@ -71,7 +71,7 @@ export const getAllTourController = async (_req: any, res: any) => {
           orders.push({
             ...order,
             items: itemRows,
-            route_segment_notice: comment,
+            notice: comment,
             });
         }
       }

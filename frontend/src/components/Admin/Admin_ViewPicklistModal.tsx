@@ -172,12 +172,12 @@ const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({ open, handleClose
     fetchPicklistData(tourData.id);
 
     // Setup interval for polling every 3 seconds
-    const intervalId = setInterval(() => {
-      fetchPicklistData(tourData.id);
-    }, 3000);
+    //const intervalId = setInterval(() => {
+     // fetchPicklistData(tourData.id);
+   // }, 3000);
 
     // Cleanup on unmount or when open/tourData changes
-    return () => clearInterval(intervalId);
+   // return () => clearInterval(intervalId);
 
   }, [open, tourData]);
 
@@ -209,7 +209,7 @@ const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({ open, handleClose
 
 
       await adminApiService.picklistEmail({
-        to: 'nagaraj.gopalakrishnan@vendomnia.com', // Update with actual email
+        to: 'jishi.puthanpurayil@vendomnia.com', // Update with actual email
         subject: 'Picklist',
         html: fullEmailHtml,
         signatureData

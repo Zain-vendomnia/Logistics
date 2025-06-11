@@ -206,7 +206,7 @@ const handleSubmit = async () => {
     const CCsubject = `Drop Off Permission Form - Order ID ${decodedOrderNumber}`;
 
     handleEmail(
-      "nagaraj.gopalakrishnan@vendomnia.com",
+      "jishi.puthanpurayil@vendomnia.com",
       formData,
       signatureData,
       CCText,
