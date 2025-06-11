@@ -13,80 +13,89 @@ import {
   Button,
   Switch,
   FormControlLabel,
-  CircularProgress
+  CircularProgress,
+  SelectChangeEvent,
 } from '@mui/material';
 import ClearIcon from '@mui/icons-material/Clear';
-import latestOrderServices from './AdminServices/latestOrderServices';
+import { getAllWarehouses } from '../../services/warehouseService';
 
 interface AdminMultiselectCardProps {
-  selectedZipcodes: string[];
-  setSelectedZipcodes: (zips: string[]) => void;
+  selectedWarehouses: number[];
+  setSelectedWarehouses: (warehouses: number[]) => void;
 }
 
-interface ZipOption {
-  zipcode: string;
-  city: string;
+interface WarehouseOption {
+  id: number;
+  name: string;
+}
+
+interface WarehouseApiResponse {
+  warehouse_id: number;
+  warehouse_name: string;
 }
 
 const AdminMultiselectCard: React.FC<AdminMultiselectCardProps> = ({
-  selectedZipcodes = [], // Default empty array
-  setSelectedZipcodes,
+  selectedWarehouses,
+  setSelectedWarehouses,
 }) => {
   const [isMultiple, setIsMultiple] = useState(false);
-  const [zipOptions, setZipOptions] = useState<ZipOption[]>([]);
+  const [warehouseOptions, setWarehouseOptions] = useState<WarehouseOption[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Properly handle both single and multi-select values
-  const selectValue = isMultiple 
-    ? selectedZipcodes 
-    : selectedZipcodes[0] || '';
+  const selectValue = isMultiple ? selectedWarehouses : selectedWarehouses[0] || '';
 
-  const handleChange = (event: any) => {
+  const handleChange = (
+    event: SelectChangeEvent<number | number[]>
+  ) => {
     const value = event.target.value;
-    setSelectedZipcodes(
-      isMultiple 
-        ? (typeof value === 'string' ? value.split(',') : value) 
-        : [value].filter(Boolean) // Ensure we always return an array
+    setSelectedWarehouses(
+      isMultiple
+        ? (typeof value === 'string'
+            ? value.split(',').map(Number)
+            : value as number[])
+        : [value as number].filter(Boolean)
     );
   };
 
   const handleReset = () => {
-    setSelectedZipcodes([]);
+    setSelectedWarehouses([]);
   };
 
   useEffect(() => {
-    const fetchZipData = async () => {
+    const fetchWarehouseData = async () => {
       try {
-        const orderService = latestOrderServices.getInstance();
-        const orders = await orderService.getOrders();
+        const warehouses = await getAllWarehouses();
+        const warehousesData = warehouses as WarehouseApiResponse[];
 
-        // Extract and de-duplicate ZIP + City combos (your original logic)
-        const uniqueZips = Array.from(
+        const uniqueWarehouses = Array.from(
           new Map(
-            orders.map((o) => [`${o.zipcode}-${o.city}`, { zipcode: o.zipcode, city: o.city }])
+            warehousesData.map((w) => [
+              w.warehouse_id,
+              { id: w.warehouse_id, name: `${w.warehouse_name} - ${w.warehouse_id}` },
+            ])
           ).values()
         );
 
-        setZipOptions(uniqueZips);
-        
-        // Filter out any selected zipcodes that don't exist in the new options
-        if (selectedZipcodes.length > 0) {
-          const availableZips = uniqueZips.map(z => z.zipcode);
-          setSelectedZipcodes(selectedZipcodes.filter(z => availableZips.includes(z)));
+        setWarehouseOptions(uniqueWarehouses);
+
+        const validIds = new Set(uniqueWarehouses.map((w) => w.id));
+        const filteredSelected = selectedWarehouses.filter((id) =>
+          validIds.has(id)
+        );
+
+        if (filteredSelected.length !== selectedWarehouses.length) {
+          setSelectedWarehouses(filteredSelected);
         }
       } catch (error) {
-        console.error('Error fetching zip data:', error);
+        console.error('Error fetching warehouse data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-      fetchZipData();
-      const intervalId = setInterval(() => {
-      fetchZipData(); 
-    }, 3000);
-    return () => clearInterval(intervalId);
-  }, []);
+    fetchWarehouseData();
+    // Only run once or when `setSelectedWarehouses` changes, not on every selectedWarehouses change
+  }, [setSelectedWarehouses, selectedWarehouses]);
 
   if (loading) {
     return (
@@ -99,16 +108,9 @@ const AdminMultiselectCard: React.FC<AdminMultiselectCardProps> = ({
   return (
     <Card sx={{ maxWidth: 600, p: 2, border: '1px solid #e0e0e0' }}>
       <CardContent>
-      <Typography 
-        variant="h6" 
-        gutterBottom 
-        sx={{ 
-          fontWeight: 'bold',
-          color: '#f7941d'  // Direct hex color
-        }}
-      >
-        Select ZIP Codes
-      </Typography>
+        <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', color: '#f7941d' }}>
+          Select Warehouses
+        </Typography>
 
         <FormControlLabel
           control={
@@ -123,39 +125,45 @@ const AdminMultiselectCard: React.FC<AdminMultiselectCardProps> = ({
         />
 
         <FormControl fullWidth>
-          <InputLabel id="zipcode-select-label">ZIP Codes</InputLabel>
+          <InputLabel id="warehouse-select-label">Warehouses</InputLabel>
           <Select
-            labelId="zipcode-select-label"
+            labelId="warehouse-select-label"
             value={selectValue}
             onChange={handleChange}
             multiple={isMultiple}
-            input={<OutlinedInput label="ZIP Codes" />}
+            input={<OutlinedInput label="Warehouses" />}
             renderValue={(selected) => {
-              if (isMultiple) {
-                return (selected as string[]).join(', ');
-              }
-              return selected as string;
+              const selectedIds = isMultiple ? (selected as number[]) : [selected as number];
+              const names = selectedIds.map(
+                (id) => warehouseOptions.find((w) => w.id === id)?.name || id
+              );
+              return names.join(', ');
             }}
           >
-            {zipOptions.map((option) => (
-              <MenuItem key={option.zipcode} value={option.zipcode}>
-                {option.city} - {option.zipcode}
+            {warehouseOptions.map((option) => (
+              <MenuItem key={option.id} value={option.id}>
+                {option.name}
               </MenuItem>
             ))}
           </Select>
         </FormControl>
 
-        {selectedZipcodes.length > 0 && (
+        {selectedWarehouses.length > 0 && (
           <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-            {selectedZipcodes.map((zipcode) => (
-              <Chip
-                key={zipcode}
-                label={zipcode}
-                color="primary"
-                onDelete={() => setSelectedZipcodes(selectedZipcodes.filter((zip) => zip !== zipcode))}
-                deleteIcon={<ClearIcon />}
-              />
-            ))}
+            {selectedWarehouses.map((id) => {
+              const label = warehouseOptions.find((w) => w.id === id)?.name || id;
+              return (
+                <Chip
+                  key={id}
+                  label={label}
+                  color="primary"
+                  onDelete={() =>
+                    setSelectedWarehouses(selectedWarehouses.filter((w) => w !== id))
+                  }
+                  deleteIcon={<ClearIcon />}
+                />
+              );
+            })}
           </Box>
         )}
 
@@ -167,12 +175,12 @@ const AdminMultiselectCard: React.FC<AdminMultiselectCardProps> = ({
             mt: 2,
             background: theme.palette.primary.gradient,
             color: theme.palette.primary.contrastText,
-            "&:hover": {
+            '&:hover': {
               background: theme.palette.primary.dark,
               color: theme.palette.primary.contrastText,
-            }
+            },
           })}
-          disabled={selectedZipcodes.length === 0}
+          disabled={selectedWarehouses.length === 0}
         >
           Reset Selection
         </Button>

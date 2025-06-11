@@ -65,13 +65,14 @@ export const getAllTourController = async (_req: any, res: any) => {
 
           // Add the order's total quantity to the overall total
           totalOrderQuantity += orderTotalQuantity;
-
+          const [segmentCommentRows] = await pool.query<RowDataPacket[]>(`SELECT comments FROM route_segments WHERE order_id = ? AND tour_id = ?`, [order.order_id, tour.id]);
+          const comment = segmentCommentRows.length > 0 ? segmentCommentRows[0].comments : null;
           // Add items and the order's total quantity to the orders array
           orders.push({
             ...order,
             items: itemRows,
-            // totalQuantity: orderTotalQuantity // Add the total quantity for this order
-          });
+            route_segment_notice: comment,
+            });
         }
       }
 
@@ -88,7 +89,6 @@ export const getAllTourController = async (_req: any, res: any) => {
         tour_endTime: tour.end_time,
         tour_comments: tour.comments,
         tour_status: tour.tour_status,
-        tour_notice: tour.tour_notice,
         driver: {
           driver_name: tour.driver_name,
           driver_id: tour.driver_id,

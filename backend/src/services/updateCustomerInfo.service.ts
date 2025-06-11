@@ -6,13 +6,18 @@ export const updateCustomerInfoService = async (data: {
   zipcode: string;
   city: string;
   phone: string;
+  notice: string;
+  tourId: number; 
+  latitude: number;
+  longitude: number;
 }) => {
-  const { order_id, street, zipcode, city, phone } = data;
+  console.log("Updating customer info with data:", data);
+  const { order_id, street, zipcode, city, phone, notice , tourId, latitude, longitude } = data;
 
   try {
     const query = `
       UPDATE logistic_order 
-      SET street = ?, zipcode = ?, city = ?, phone = ?, updated_at = CURRENT_TIMESTAMP
+      SET street = ?, zipcode = ?, city = ?, phone = ?, lattitude = ?, longitude = ?, updated_at = CURRENT_TIMESTAMP
       WHERE order_id = ?
     `;
 
@@ -21,13 +26,26 @@ export const updateCustomerInfoService = async (data: {
       zipcode,
       city,
       phone,
-      order_id
+      latitude,
+      longitude,
+      order_id,
+      tourId
     ]);
 
+    
     if ((result as any).affectedRows === 0) {
       throw new Error(`No customer found with order_id: ${order_id}`);
     }
+    
+      const updateRouteSegmentQuery = `
+        UPDATE route_segments
+        SET comments = ?
+        WHERE order_id = ? and tour_id = ?
+      `;
+      await pool.query(updateRouteSegmentQuery, [notice, order_id, tourId]);
 
+console.log('SQL Query Preview:', updateRouteSegmentQuery);
+console.log('With values:', [notice, order_id, tourId]);
     return { message: "Customer updated successfully", affectedRows: (result as any).affectedRows };
   } catch (err) {
     console.error("❌ DB Update Error in updateCustomerInfoService:", err);

@@ -10,6 +10,29 @@ export const getAllDrivers = async (_req: Request, res: Response) => {
   }
 };
 
+export const getAvailableDriversByDateAndWarehouse = async (req: Request, res: Response) => {
+  try {
+    const { tourDate, warehouseId } = req.query;
+    if (!tourDate || !warehouseId) {
+      return res.status(400).json({ message: "tourDate and warehouseId are required query parameters." });
+    }
+
+    // Assuming warehouseId is a number
+    const warehouseIdNum = Number(warehouseId);
+    if (isNaN(warehouseIdNum)) {
+      return res.status(400).json({ message: "Invalid warehouseId parameter." });
+    }
+
+    // Call your service method to get available drivers for given date & warehouse
+    const availableDrivers = await driverService.getAvailableDrivers(tourDate as string, warehouseIdNum);
+
+    res.json(availableDrivers);
+  } catch (error) {
+    console.error("Error fetching available drivers:", error);
+    res.status(500).json({ message: "Failed to fetch available drivers." });
+  }
+};
+
 export const getDriverById = async (req: Request, res: Response) => {
   try {
     const driver = await driverService.getDriverById(Number(req.params.id));

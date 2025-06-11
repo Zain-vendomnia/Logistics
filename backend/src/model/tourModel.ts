@@ -14,10 +14,10 @@ interface Tour {
 }
 
 export const createTour = async (tour: Tour) => {
-  const checkPendingSql = `
-    SELECT COUNT(*) AS count FROM tourinfo_master
-    WHERE driver_id = ? AND tour_status IN ('pending', 'in-progress')
-  `;
+  // const checkPendingSql = `
+  //   SELECT COUNT(*) AS count FROM tourinfo_master
+  //   WHERE driver_id = ? AND tour_status IN ('pending', 'in-progress')
+  // `;
 
   const checkDateSql = `
     SELECT COUNT(*) AS count FROM tourinfo_master
@@ -42,10 +42,10 @@ export const createTour = async (tour: Tour) => {
 
   try {
     // 1. Validate pending/in-progress
-    const [pendingRows]: any = await pool.query(checkPendingSql, [tour.driverid]);
-    if (pendingRows[0].count > 0) {
-      throw new Error(`Driver already has a pending or in-progress tour. Complete it before assigning a new one.`);
-    }
+    // const [pendingRows]: any = await pool.query(checkPendingSql, [tour.driverid]);
+    // if (pendingRows[0].count > 0) {
+    //   throw new Error(`Driver already has a pending or in-progress tour. Complete it before assigning a new one.`);
+    // }
 
     // 2. Get user_id from driver
     const [driverUserRows]: any = await pool.query(getUserIdFromDriver, [tour.driverid]);

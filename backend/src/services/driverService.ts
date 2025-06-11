@@ -1,5 +1,23 @@
 import pool from "../database";
 import bcrypt from "bcryptjs";
+interface DriverBasic {
+  id: number;
+  name: string;
+  mob: string;
+  address: string;
+  email: string;
+  warehouse_id: number;
+}
+
+interface UnavailableDriver {
+  driver: DriverBasic;
+  reason: string;
+}
+
+interface AvailabilityResult {
+  available: DriverBasic[];
+  unavailable: UnavailableDriver[];
+}
 
 export const getAllDrivers = async () => {
   const [rows] = await pool.query(`
@@ -18,7 +36,94 @@ export const getAllDrivers = async () => {
 
   return rows;
 };
+export const getAvailableDrivers = async (
+  tourDate: string,
+  warehouseId: number
+): Promise<AvailabilityResult> => {
+  const [allDriversRows]: any = await pool.query(
+    `
+      SELECT d.id, d.name, d.mob, d.address, d.email, d.warehouse_id
+      FROM driver_details d
+      JOIN users u ON d.user_id = u.user_id
+      WHERE d.warehouse_id = ? AND u.is_active = 1
+    `,
+    [warehouseId]
+  );
+  const allDrivers: DriverBasic[] = allDriversRows;
 
+  const available: DriverBasic[] = [];
+  const unavailable: UnavailableDriver[] = [];
+
+  // Compute start of the week for the given tour date
+  const tourDay = new Date(tourDate);
+  tourDay.setHours(0, 0, 0, 0);
+  const dow = tourDay.getDay(); // 0=Sun … 6=Sat
+  const diffToMon = dow === 0 ? 6 : dow - 1;
+  const weekStart = new Date(tourDay);
+  weekStart.setDate(tourDay.getDate() - diffToMon);
+  weekStart.setHours(0, 0, 0, 0);
+
+  for (const drv of allDrivers) {
+    // Same-day check
+    const [sameDay]: any = await pool.query(
+      `
+        SELECT 1
+        FROM tourInfo_master t
+        WHERE t.driver_id = ? AND DATE(t.tour_date) = ?
+        LIMIT 1
+      `,
+      [drv.id, tourDate]
+    );
+    if (sameDay.length > 0) {
+      unavailable.push({
+        driver: drv,
+        reason: "Driver already has a trip scheduled on that date."
+      });
+      continue;
+    }
+
+    // Weekly hours calculation
+    const [tours]: any = await pool.query(
+      `
+        SELECT
+          t.id AS tour_id,
+          t.tour_date,
+          t.start_time,
+          t.end_time,
+          TIMESTAMPDIFF(MINUTE,
+            CONCAT(DATE(t.tour_date),' ',t.start_time),
+            CONCAT(DATE(t.tour_date),' ',t.end_time)
+          ) AS duration_minutes
+        FROM tourInfo_master t
+        WHERE t.driver_id = ?
+          AND t.tour_date >= ?
+          AND t.tour_date < DATE_ADD(?, INTERVAL 1 DAY)
+        ORDER BY t.tour_date DESC, t.end_time DESC
+      `,
+      [drv.id, weekStart, tourDate]
+    );
+
+    let totalMinutes = 0;
+    tours.forEach((row: any) => {
+      if (row.duration_minutes != null) totalMinutes += row.duration_minutes;
+    });
+
+    const totalHours = Math.floor(totalMinutes / 60);
+    const remainingMin = totalMinutes % 60;
+
+    if (totalHours >= 40) {
+      unavailable.push({
+        driver: drv,
+        reason: `Worked ${totalHours}h ${remainingMin}m this week (≥ 40h).`
+      });
+      continue;
+    }
+
+    available.push(drv);
+  }
+
+  return { available, unavailable };
+};
 
 export const getDriverById = async (id: number) => {
   const [rows]: any = await pool.query("SELECT * FROM driver_details WHERE id = ?", [id]);

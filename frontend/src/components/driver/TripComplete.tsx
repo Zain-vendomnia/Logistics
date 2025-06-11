@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   Box,
   Button,
-  Grid2,
+  Grid,
   IconButton,
   Stack,
   Typography,
@@ -135,8 +135,8 @@ const TripComplete = () => {
   const currentItem = imageChecklist[lastValidIndex];
 
   return (
-    <Grid2 container spacing={0} p={0} height={"100%"}>
-      <Grid2 height={"100%"} bgcolor={"#00695f"} size={{ sm: 8, md: 9, lg: 9 }}>
+    <Grid container spacing={0} p={0} height={"100%"}>
+      <Grid height={"100%"} bgcolor={"#00695f"} size={{ sm: 8, md: 9, lg: 9 }}>
         <Box
           height="100%"
           display={"flex"}
@@ -179,8 +179,8 @@ const TripComplete = () => {
             </Box>
           </Stack>
         </Box>
-      </Grid2>
-      <Grid2 height={"100%"} bgcolor={"#009688"} size={{ sm: 4, md: 3, lg: 3 }}>
+      </Grid>
+      <Grid height={"100%"} bgcolor={"#009688"} size={{ sm: 4, md: 3, lg: 3 }}>
         <Stack
           display={"flex"}
           alignItems={"center"}
@@ -278,8 +278,8 @@ const TripComplete = () => {
             Complete
           </Button>
         </Stack>
-      </Grid2>
-    </Grid2>
+      </Grid>
+    </Grid>
   );
 };
 

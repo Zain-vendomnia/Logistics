@@ -102,13 +102,13 @@ class latestOrderServices {
       const data = response.data[0];
       
 
-      console.log("🎯 Tour count response:", data);
+      // console.log("🎯 Tour count response:", data);
 
       if (data && typeof data.count === 'number' && typeof data.last_updated === 'string') {
         return { count: data.count, lastUpdated: data.last_updated };
       }
 
-      console.warn("⚠️ Invalid tour count response format:", data);
+      // console.warn("⚠️ Invalid tour count response format:", data);
       return { count: this.cachedTourCount, lastUpdated: this.cachedTourLastUpdated || '' };
 
     } catch (error) {
@@ -168,7 +168,7 @@ class latestOrderServices {
       const response = adminApiService.fetchOrderCount();
 
       const data = (await response).data[0];
-      console.log("📦 Order count response:", data);
+      // console.log("📦 Order count response:", data);
 
       if (data && typeof data.count === 'number' && typeof data.last_updated === 'string') {
         return { count: data.count, lastUpdated: data.last_updated };
@@ -185,18 +185,18 @@ class latestOrderServices {
 
   public async getOrders(): Promise<LogisticOrder[]> {
      const { count: currentCount, lastUpdated: currentLastUpdated } = await this.fetchOrderCount();
-     console.log("📊 currentOrderCount:", currentCount, "| cachedOrderCount:", this.cachedCount);
+    //  console.log("📊 currentOrderCount:", currentCount, "| cachedOrderCount:", this.cachedCount);
 
      if (
       this.orders.length > 0 &&
       currentCount === this.cachedCount &&
       currentLastUpdated === this.cachedOrderLastUpdated
     ) {
-      console.log('✅ Using cached order data');
+      // console.log('✅ Using cached order data');
       return this.orders;
     }
 
-    console.log('📡 Fetching fresh full order data');
+    // console.log('📡 Fetching fresh full order data');
 
     try {
       // const response = await fetch('http://localhost:8080/api/admin/routeoptimize/orders');
@@ -216,7 +216,7 @@ class latestOrderServices {
         new Map(allDrivers.map(d => [d.driver_id, d])).values()
       );
 
-      console.log("🚚 Unique drivers ----> last Order service:", uniqueDrivers);
+      // console.log("🚚 Unique drivers ----> last Order service:", uniqueDrivers);
       this.drivers = uniqueDrivers as Driver[];
       return this.orders;
 
@@ -292,7 +292,7 @@ class latestOrderServices {
         completed: [],
         live: []
       };
-      console.log("✅ Fetching fresh tourStatusHistory");
+      // console.log("✅ Fetching fresh tourStatusHistory");
       for (const status of Object.keys(allTours) as TourStatus[]) {
         const tours = allTours[status];
         grouped[status].push(...tours);
