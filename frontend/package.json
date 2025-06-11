@@ -6,9 +6,11 @@
     "@date-io/dayjs": "^3.2.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
+    "@fontsource/raleway": "^5.2.5",
+    "@hookform/resolvers": "^5.0.1",
     "@mui/icons-material": "^6.4.7",
     "@mui/lab": "^7.0.0-beta.12",
-    "@mui/material": "^6.4.7",
+    "@mui/material": "^6.4.11",
     "@mui/styles": "^6.4.9",
     "@mui/x-charts": "^7.27.1",
     "@mui/x-data-grid": "^7.28.3",
@@ -27,17 +29,26 @@
     "axios": "^0.27.2",
     "bootstrap": "^4.6.2",
     "dayjs": "^1.11.13",
+    "exceljs": "^4.4.0",
+    "file-saver": "^2.0.5",
     "formik": "^2.2.9",
+    "framer-motion": "^12.11.3",
     "graphhopper-js-api-client": "^7.6.1",
-    "framer-motion": "^12.7.4",
     "html-react-parser": "^5.2.3",
+    "html2canvas": "^1.4.1",
+    "html2pdf.js": "^0.10.3",
+    "jspdf": "^3.0.1",
     "leaflet": "^1.9.4",
     "leaflet-polylinedecorator": "^1.6.0",
     "leaflet-routing-machine": "^3.2.12",
     "leaflet.markercluster": "^1.5.3",
     "lodash": "^4.17.21",
+    "puppeteer": "^24.9.0",
     "react": "^18.2.0",
+    "react-animated-modal": "^1.1.1",
+    "react-checkmark": "^2.1.1",
     "react-dom": "^18.2.0",
+    "react-hook-form": "^7.56.4",
     "react-leaflet": "^4.2.1",
     "react-leaflet-markercluster": "^5.0.0-rc.0",
     "react-router-dom": "^6.4.1",
@@ -47,8 +58,7 @@
     "web-vitals": "^2.1.0",
     "xlsx": "^0.18.5",
     "yup": "^0.32.11",
-    "zustand": "^5.0.3"
-
+    "zustand": "^5.0.4"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -75,11 +85,11 @@
     ]
   },
   "devDependencies": {
+    "@types/file-saver": "^2.0.7",
     "@types/leaflet": "^1.9.16",
     "@types/leaflet-routing-machine": "^3.2.8",
     "@types/react-signature-canvas": "^1.0.7",
     "ajv": "^6.12.6",
     "typescript": "^4.9.5"
-
   }
 }

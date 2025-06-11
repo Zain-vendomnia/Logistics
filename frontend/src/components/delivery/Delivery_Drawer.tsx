@@ -1,171 +1,93 @@
-import React, { useEffect, useState } from "react";
-import clsx from "clsx";
+import React, { useState } from "react";
 
-import { Box, SwipeableDrawer, Typography, useTheme } from "@mui/material";
-import { makeStyles } from "@mui/styles";
-import InsertEmoticonIcon from "@mui/icons-material/InsertEmoticon";
-import SentimentVeryDissatisfiedIcon from "@mui/icons-material/SentimentVeryDissatisfied";
-import SupervisedUserCircleIcon from "@mui/icons-material/SupervisedUserCircle";
-import NoAccountsIcon from "@mui/icons-material/NoAccounts";
+import {
+  Box,
+  Fab,
+  Stack,
+  SwipeableDrawer,
+  Tooltip,
+  Typography,
+} from "@mui/material";
+import MultipleStopIcon from "@mui/icons-material/MultipleStop";
 
-import { useDeliveryStore } from "../../store/useDeliveryStore";
-import { DeliveryScenario } from "./delieryScenarios";
+import ParkingPetmitRequest from "./ParkingPetmitRequest";
+import UploadPermitScreenshot from "./UploadPermitScreenshot";
+import ContactSupport from "./ContactSupport";
 
-const useStyles = makeStyles({
-  scenarioBox: {
-    cursor: "pointer",
-    padding: "16px",
-    borderRadius: "8px",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    transition: "background-color 0.3s",
-  },
-  active: {
-    backgroundColor: "#000", // Default placeholder, will be overridden dynamically
-    color: "#fff",
-  },
-});
+import StarRating from "../common/Star_Rating";
 
-interface Props {
-  open: boolean;
-  onClose: () => void;
-  onOpen?: () => void;
-  onScenarioSelected?: (scenario: string) => void;
-}
+const DeliveryDrawer = () => {
+  const drawerSize = "25vw";
 
-const DeliveryDrawer = ({
-  open,
-  onClose,
-  onOpen,
-  onScenarioSelected,
-}: Props) => {
-  const { deliveryId, setScenario, deliveryState } = useDeliveryStore();
-
-  const theme = useTheme();
-  const classes = useStyles();
-
-  const iconSize: number = 64;
-  const [activeScenario, setActiveScenario] = useState<string | null>(null);
-  // const [neighborFound, setNeighborFound] = useState(
-  //   deliveryState.neighborFound
-  // );
-
-  const neighborFound = deliveryState.neighborFound;
-
-  const scenarios = [
-    {
-      label: "Customer Found",
-      icon: <InsertEmoticonIcon style={{ fontSize: iconSize }} />,
-      color: theme.palette.success.main,
-      value: DeliveryScenario.foundCustomer,
-    },
-    {
-      label: "Customer Not Found",
-      icon: <NoAccountsIcon style={{ fontSize: iconSize }} />,
-      color: theme.palette.info.main,
-      value: DeliveryScenario.customerNotFound,
-    },
-    {
-      label: "Neighbor Accepts",
-      icon: <SupervisedUserCircleIcon style={{ fontSize: iconSize }} />,
-      color: theme.palette.warning.light,
-      value: DeliveryScenario.neighborAccepts,
-    },
-    {
-      label: "No Acceptance",
-      icon: <SentimentVeryDissatisfiedIcon style={{ fontSize: iconSize }} />,
-      color: theme.palette.error.main,
-      value: DeliveryScenario.noAcceptance,
-    },
-  ];
-
-  // useEffect(() => {
-  //   setNeighborFound(deliveryState.neighborFound);
-  // }, [deliveryState.neighborFound]);
-
-  const restrictedScenarions = [
-    DeliveryScenario.neighborAccepts,
-    DeliveryScenario.noAcceptance,
-  ];
-  const isDisabled = (value: DeliveryScenario) => {
-    return restrictedScenarions.includes(value) && !neighborFound;
-  };
-
-  const handleClick = (scenario: any) => {
-    console.log("Delivery Scenario: ", scenario.value);
-
-    setTimeout(() => {
-      setScenario(deliveryId, scenario.value);
-    }, 500);
-    onScenarioSelected?.(scenario.value);
-    setActiveScenario(scenario.value);
-    onClose();
-  };
+  const [showDrawer, setShowDrawer] = useState(false);
 
   return (
-    <SwipeableDrawer
-      anchor="right"
-      open={open}
-      onClose={onClose}
-      onOpen={onOpen ?? (() => {})}
-    >
-      <Box width={250}>
+    <>
+      <Tooltip title="Side Options">
+        <Fab
+          onClick={() => {
+            setShowDrawer((prev) => !prev);
+          }}
+          color="primary"
+          aria-label="open delivery drawer"
+          sx={{
+            position: "absolute",
+            top: 55,
+            right: showDrawer ? drawerSize : "1vw",
+            zIndex: 1000,
+            transition: "right 0.3s ease-in-out",
+            // animation: !isDrawerClicked
+            //   ? `${blinkOverlay} 1.5s infinite`
+            //   : "none",
+          }}
+        >
+          <MultipleStopIcon
+            sx={{
+              transform: showDrawer ? "rotate(180deg)" : "rotate(0deg)",
+              transition: "transform 0.7s",
+            }}
+          />
+        </Fab>
+      </Tooltip>
+
+      <SwipeableDrawer
+        anchor="right"
+        open={showDrawer}
+        onOpen={() => {}}
+        onClose={() => setShowDrawer((prev) => !prev)}
+      >
         <Box
           display="flex"
-          alignItems={"center"}
-          justifyContent={"center"}
-          height={"50px"}
-          mb={3}
-          bgcolor={"primary.main"}
+          flexDirection="column"
+          height="100%"
+          width={drawerSize}
         >
-          <Typography variant="h5" fontWeight={"bold"} color="#fff">
-            Delivery
-          </Typography>
+          <Box
+            position="relative"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            height="50px"
+            bgcolor="primary.main"
+          >
+            <Typography variant="h5" fontWeight="bold" color="#fff">
+              Options
+            </Typography>
+          </Box>
+
+          <Stack spacing={2} p={2}>
+            <ParkingPetmitRequest />
+            <UploadPermitScreenshot />
+
+            <StarRating />
+          </Stack>
+
+          <Box mt="auto" p={2}>
+            <ContactSupport />
+          </Box>
         </Box>
-        <Box
-          display={"flex"}
-          flexDirection={"column"}
-          alignItems="center"
-          gap={2}
-        >
-          {scenarios.map((s) => (
-            <Box
-              width={"220px"}
-              key={s.label}
-              className={clsx(classes.scenarioBox, {
-                [classes.active]: activeScenario === s.value,
-              })}
-              style={{
-                ...(activeScenario === s.value && {
-                  backgroundColor: s.color,
-                  color: "#fff",
-                }),
-                ...(isDisabled(s.value) && {
-                  opacity: 0.5,
-                  pointerEvents: "none",
-                }),
-                // neighborFoundCheck && ("set the Box greyed-out and not selectable")
-              }}
-              onClick={() => handleClick(s)}
-            >
-              {React.cloneElement(s.icon, {
-                htmlColor: activeScenario === s.value ? "#fff" : s.color,
-              })}
-              <Typography
-                variant="h6"
-                style={{
-                  color: activeScenario === s.value ? "#fff" : undefined,
-                }}
-              >
-                {s.label}
-              </Typography>
-            </Box>
-          ))}
-        </Box>
-      </Box>
-    </SwipeableDrawer>
+      </SwipeableDrawer>
+    </>
   );
 };
 

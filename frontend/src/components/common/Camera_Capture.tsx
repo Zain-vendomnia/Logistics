@@ -15,9 +15,8 @@ import AddAPhotoIcon from "@mui/icons-material/AddAPhoto";
 import CircularProgress from "@mui/material/CircularProgress";
 
 // import { uploadImage } from "../../services/trip_Service";
-import { useSnackbar } from "../../providers/SnackbarProvider";
 import { uploadImage } from "../../utils/upload_Image";
-import { useCameraCapture } from "../../hooks/useCameraCapture";
+import { ImageType, useCameraCapture } from "../../hooks/useCameraCapture";
 
 interface Props {
   styleCard?: boolean;
@@ -29,6 +28,9 @@ interface Props {
   buttonDisabled?: boolean;
   onComplete?: (imageUploaded: boolean) => void;
   isMarkDone?: boolean;
+
+  imageType: ImageType;
+  millage?: string;
 }
 const CameraCapture = ({
   styleCard = true,
@@ -39,9 +41,9 @@ const CameraCapture = ({
   buttonDisabled,
   onComplete,
   isMarkDone,
+  imageType,
+  millage,
 }: Props) => {
-  const { showSnackbar } = useSnackbar();
-
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const isMediumScreen = useMediaQuery(theme.breakpoints.between("sm", "md"));
@@ -61,7 +63,7 @@ const CameraCapture = ({
     updateCameraState,
     handleButtonClick,
     retakeImage,
-  } = useCameraCapture(onComplete);
+  } = useCameraCapture({ type: imageType, millage, onComplete });
 
   const isInitialState =
     showCameraIcon &&
@@ -76,19 +78,21 @@ const CameraCapture = ({
       flexDirection={"column"}
       justifyContent={"center"}
       alignItems={"center"}
-      gap={4}
+      gap={3}
       height={"100%"}
       width={"100%"}
       sx={styleCard ? styles.container : undefined}
     >
-      <Stack spacing={1} width={"100%"}>
-        <Typography variant="h5" fontWeight="bold">
-          {title}
-        </Typography>
-        <Typography variant="body1" fontSize={"1.1rem"}>
-          {description}
-        </Typography>
-      </Stack>
+      {title && (
+        <Stack spacing={1} width={"100%"}>
+          <Typography variant="h5" fontWeight="bold">
+            {title}
+          </Typography>
+          <Typography variant="body1" fontSize={"1.1rem"}>
+            {description}
+          </Typography>
+        </Stack>
+      )}
 
       <Box
         mt={"auto"}

@@ -174,7 +174,7 @@ class latestOrderServices {
         return { count: data.count, lastUpdated: data.last_updated };
       }
 
-      console.warn("⚠️ Invalid order count response format:", data);
+      // console.warn("⚠️ Invalid order count response format:", data);
       return { count: this.cachedCount, lastUpdated: this.cachedOrderLastUpdated || '' };
 
     } catch (error) {
@@ -219,6 +219,21 @@ class latestOrderServices {
       console.log("🚚 Unique drivers ----> last Order service:", uniqueDrivers);
       this.drivers = uniqueDrivers as Driver[];
       return this.orders;
+
+    } catch (error) {
+      console.error('❌ Error fetching orders:', error);
+      return [];
+    }
+  }
+
+  public async getOrder(order_number: string): Promise<LogisticOrder[]> {
+    console.log('📡 Fetching specified order data');
+
+    try {
+      // const response = await fetch('http://localhost:8080/api/admin/routeoptimize/getOrder');
+      const response = adminApiService.fetchSpecifiedOrder(order_number);
+      const data = (await response).data as LogisticOrder[];
+      return data;
 
     } catch (error) {
       console.error('❌ Error fetching orders:', error);

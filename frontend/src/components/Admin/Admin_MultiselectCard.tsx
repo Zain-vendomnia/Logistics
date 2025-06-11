@@ -81,7 +81,11 @@ const AdminMultiselectCard: React.FC<AdminMultiselectCardProps> = ({
       }
     };
 
-    fetchZipData();
+      fetchZipData();
+      const intervalId = setInterval(() => {
+      fetchZipData(); 
+    }, 3000);
+    return () => clearInterval(intervalId);
   }, []);
 
   if (loading) {

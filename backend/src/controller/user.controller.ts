@@ -20,7 +20,7 @@ export async function getAllUsers(_req: Request, res: Response) {
     }
 }
 
-//5b3ce3597851110001cf62483a3db8aed5064d8fab5b8e661039d029
+
 
 // Fetch user details based on the JWT token
 export async function getUserDetails(req: Request, res: Response) {

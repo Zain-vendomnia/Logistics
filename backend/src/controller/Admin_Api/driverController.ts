@@ -62,3 +62,18 @@ export const deleteMultipleDrivers = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Error deleting drivers" });
   }
 };
+export const checkDriverEligibility = async (req: Request, res: Response) => {
+  try {
+    const driverId = Number(req.params.driverId);
+    if (isNaN(driverId)) {
+      return res.status(200).json({ message: 'Invalid driver ID' });
+    }
+
+    const result = await driverService.evaluateDriverEligibility(driverId);
+
+    return res.status(200).json(result);
+  } catch (err) {
+    console.error('Error checking driver eligibility:', err);
+    return res.status(200).json({ message: 'Internal server error' });
+  }
+};

@@ -30,13 +30,10 @@ const ReturnToWarehouse = ({ onComplete }: Props) => {
   const [returnReason, setReturnReason] = useState<string>("");
 
   useEffect(() => {
-    console.log(
-      "deliveryState deliveryReturnReason: ",
-      deliveryState.deliveryReturnReason
-    );
-    console.log("Selected Return Reasons: ", returnReason);
+    console.log("Delivery return Reason: ", returnReason);
   }, [returnReason]);
 
+  // fetching data from store
   useEffect(() => {
     if (deliveryState.deliveryReturnReason) {
       setReturnReason(deliveryState.deliveryReturnReason);
@@ -57,71 +54,74 @@ const ReturnToWarehouse = ({ onComplete }: Props) => {
     }
   };
 
-  const handleReturn = () => {
+  const handleOrderReturn = () => {
     updateDeliveryState({ deliveryReturnReason: returnReason });
+
     onComplete?.();
   };
 
   return (
-    <Box display={"flex"} flexDirection={"column"} gap={2} height="100%">
-      <Paper elevation={1} sx={{ py: 2, px: 2, height: "100%" }}>
-        <Stack spacing={1}>
-          <Typography variant="h6" fontWeight={"bold"}>
-            Select Reason:
-          </Typography>
-          <Divider color={grey[100]} />
+    <>
+      <Box display={"flex"} flexDirection={"column"} gap={2} height="100%">
+        <Paper elevation={1} sx={{ py: 2, px: 2, height: "100%" }}>
+          <Stack spacing={1}>
+            <Typography variant="h6" fontWeight={"bold"}>
+              Select Reason:
+            </Typography>
+            <Divider color={grey[100]} />
 
-          <List>
-            {DeliveryReturnReasons.map((value) => {
-              return (
-                <Box
-                  display={"flex"}
-                  alignItems={"center"}
-                  justifyContent={"flex-start"}
-                  gap={1}
-                  width="100%"
-                >
-                  <Checkbox
-                    edge="start"
-                    onChange={() => handleReasonSelection(value)}
-                    checked={returnReason.split(",").includes(value)}
-                    sx={{
-                      p: 0.5,
-                      alignSelf: "start",
-                    }}
-                  />
-                  <Typography
-                    variant={"body1"}
-                    fontSize={"1.2rem"}
-                    lineHeight={1.5}
+            <List>
+              {DeliveryReturnReasons.map((value, index) => {
+                return (
+                  <Box
+                    key={index}
+                    display={"flex"}
+                    alignItems={"center"}
+                    justifyContent={"flex-start"}
+                    gap={1}
+                    width="100%"
                   >
-                    {value}
-                  </Typography>
-                </Box>
-              );
-            })}
-          </List>
-        </Stack>
-      </Paper>
-      <Box mt="auto">
-        <Button
-          disabled={!returnReason}
-          variant="contained"
-          onClick={handleReturn}
-          sx={{
-            position: "relative",
-            padding: "6px 12px",
-            borderRadius: 2,
-            width: "20vw",
-            minWidth: 180,
-            maxWidth: 240,
-            height: "9vh",
-          }}
-        >
-          Mark Order Return
-        </Button>
+                    <Checkbox
+                      edge="start"
+                      onChange={() => handleReasonSelection(value)}
+                      checked={returnReason.split(",").includes(value)}
+                      sx={{
+                        p: 0.5,
+                        alignSelf: "start",
+                      }}
+                    />
+                    <Typography
+                      variant={"body1"}
+                      fontSize={"1.2rem"}
+                      lineHeight={1.5}
+                    >
+                      {value}
+                    </Typography>
+                  </Box>
+                );
+              })}
+            </List>
+          </Stack>
+        </Paper>
+        <Box display="flex" justifyContent={"center"} mt="auto">
+          <Button
+            disabled={!returnReason}
+            fullWidth
+            variant="contained"
+            onClick={handleOrderReturn}
+            sx={{
+              padding: "6px 12px",
+              borderRadius: 2,
+              minWidth: 180,
+              maxWidth: 240,
+              height: "9vh",
+            }}
+          >
+            Mark Order Return
+          </Button>
+        </Box>
       </Box>
-    </Box>
+    </>
   );
 };
 

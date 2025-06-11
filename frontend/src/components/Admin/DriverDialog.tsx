@@ -9,7 +9,10 @@ import PhoneAndroidIcon from "@mui/icons-material/PhoneAndroid";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import WarehouseOutlinedIcon from "@mui/icons-material/WarehouseOutlined";
 import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { getAllWarehouses } from "../../services/warehouseService";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+
 
 type Driver = {
   id: number;
@@ -18,6 +21,8 @@ type Driver = {
   mob: string;
   address: string;
   warehouse_id: number;
+  password?: string;
+  status: number; // 1 = active, 0 = inactive
 };
 
 type Warehouse = {
@@ -40,9 +45,12 @@ const DriverDialog: React.FC<Props> = ({
 }) => {
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [loading, setLoading] = useState(false);
+  const [passwordEditable, setPasswordEditable] = useState(!editMode);
 
   useEffect(() => {
     if (!open) return;
+    setPasswordEditable(!editMode);
+
     const fetchWarehouses = async () => {
       setLoading(true);
       try {
@@ -55,17 +63,20 @@ const DriverDialog: React.FC<Props> = ({
       }
     };
     fetchWarehouses();
-  }, [open]);
+  }, [open, editMode]);
 
   const renderTextField = (
     label: string,
     field: keyof Driver,
     icon: React.ReactNode,
     multiline = false,
-    autoFocus = false
+    autoFocus = false,
+    disabled = false,
+    highlight = false
   ) => (
     <TextField
       label={label}
+      type={field === "password" ? "password" : "text"}
       fullWidth
       autoFocus={autoFocus}
       multiline={multiline}
@@ -74,8 +85,20 @@ const DriverDialog: React.FC<Props> = ({
       onChange={(e) => onChange(field, e.target.value)}
       error={!!errors[field]}
       helperText={errors[field]}
+      autoComplete={field === "password" ? "new-password" : undefined}
+      disabled={disabled}
       InputProps={{
         startAdornment: <InputAdornment position="start">{icon}</InputAdornment>,
+        sx: {
+          backgroundColor: disabled
+            ? '#f0f0f0'
+            : highlight
+              ? '#fff9c4'
+              : 'inherit',
+          opacity: 1,
+          color: 'rgba(0,0,0,0.87)',
+          WebkitTextFillColor: 'rgba(0,0,0,0.87)'
+        }
       }}
     />
   );
@@ -104,11 +127,12 @@ const DriverDialog: React.FC<Props> = ({
             {renderTextField("Mobile", "mob", <PhoneAndroidIcon sx={{ color: "black" }} />)}
             {renderTextField("Address", "address", <HomeOutlinedIcon sx={{ color: "black" }} />, true)}
 
+            {/* Warehouse Dropdown */}
             <FormControl fullWidth error={!!errors.warehouse_id}>
               <InputLabel id="warehouse-label">Warehouse</InputLabel>
               <Select
                 labelId="warehouse-label"
-                value={formData.warehouse_id || ""}
+                value={formData.warehouse_id ?? ""}
                 onChange={(e) => onChange("warehouse_id", Number(e.target.value))}
                 input={
                   <OutlinedInput
@@ -136,6 +160,74 @@ const DriverDialog: React.FC<Props> = ({
                 </Typography>
               )}
             </FormControl>
+
+           <FormControl fullWidth error={!!errors.status}>
+  <InputLabel id="status-label">User Status</InputLabel>
+  <Select
+    labelId="status-label"
+    value={formData.status ?? ""}
+    onChange={(e) => onChange("status", Number(e.target.value))}
+    input={
+      <OutlinedInput
+        label="User Status"
+        startAdornment={
+          <InputAdornment position="start">
+            <CheckCircleOutlineIcon sx={{ color: "black" }} />
+          </InputAdornment>
+        }
+      />
+    }
+  >
+    <MenuItem value="">
+      <em>Select status</em>
+    </MenuItem>
+    <MenuItem value={1}>
+     
+      Active
+    </MenuItem>
+    <MenuItem value={0}>
+      
+      Inactive
+    </MenuItem>
+  </Select>
+  {errors.status && (
+    <Typography color="error" variant="caption" mt={0.5}>
+      {errors.status}
+    </Typography>
+  )}
+</FormControl>
+
+            {/* Password Field */}
+            {passwordEditable && renderTextField(
+              "Password",
+              "password",
+              <LockOutlinedIcon sx={{ color: "black" }} />,
+              false,
+              false,
+              false,
+              true
+            )}
+
+            {editMode && !passwordEditable && (
+              <Button
+                variant="text"
+                size="small"
+                onClick={() => setPasswordEditable(true)}
+                sx={{ mt: 1, textTransform: 'none', fontWeight: 500 }}
+              >
+                Change Password
+              </Button>
+            )}
+
+            {editMode && passwordEditable && (
+              <Typography
+                variant="body2"
+                color="error"
+                sx={{ ml: 0.5, fontWeight: 500 }}
+              >
+                Leave blank to keep current password.
+              </Typography>
+            )}
           </Stack>
         )}
       </DialogContent>

@@ -10,7 +10,9 @@ const fetchOrderTourCount = () => axios.get(`${API_BaseUrl}tourcount`, { headers
 const fetchAllTours = () => axios.get(`${API_BaseUrl}getAlltours`, { headers: authHeader() });
 const fetchOrderCount = () => axios.get(`${API_BaseUrl}ordercount`, { headers: authHeader() });
 const fetchAllOrders = () => axios.get(`${API_BaseUrl}orders`, { headers: authHeader() });
-
+const fetchSpecifiedOrder = (order_number: string) => {
+  return axios.post(`${API_BaseUrl}getOrder`, { order_number });
+};
 const createTour = (tourData: Record<string, any>) => 
   axios.post(`${API_BaseUrl}createtour`, tourData, { headers: authHeader() });
 
@@ -46,14 +48,39 @@ const getOrderCount = async (): Promise<number> => {
   }
 };
 const picklistEmail = (emailData: any) => {
-    return axios.post(API_BaseUrl_Admin + "picklistEmail", emailData, {
+  return axios.post(API_BaseUrl_Admin + "picklistEmail", emailData);
+};
+
+const fetchAlltourstatushistory = () => axios.get(`${API_BaseUrl}gettourStatushistory`, { headers: authHeader() });
+const update_tourstatus = (tour_id: number) => axios.post(`${API_BaseUrl}updatetourstatus/${tour_id}`, {}, {
+    headers: authHeader()
+  });
+
+const checkDriverRest = async (driverId: number) => {
+  try {
+    const response = await axios.get(
+      `http://localhost:8080/api/admin/drivers/check-eligibility/${driverId}`,
+      { headers: authHeader() }
+    );
+    return response.data; // This should include nextTourEligible, message, restHours, etc.
+  } catch (error) {
+    console.error(`Error checking rest for driver ${driverId}:`, error);
+    throw error;
+  }
+};
+
+const updateCustomerInfo = (customerData: Record<string, any>) =>
+  axios.put(`http://localhost:8080/api/admin/routeoptimize/updateCustomer`, customerData, {
+    headers: authHeader()
+  });
+
+
+const insertParkingPermit = (formData: any) => {
+
+    return axios.post(API_BaseUrl_Admin + "insertParkingPermit", formData, {
       headers: authHeader(),
     });
   };
-  const fetchAlltourstatushistory = () => axios.get(`${API_BaseUrl}gettourStatushistory`, { headers: authHeader() });
-  const update_tourstatus = (tour_id: number) => axios.post(`${API_BaseUrl}updatetourstatus/${tour_id}`, {}, {
-      headers: authHeader()
-    });
 
 const adminApiService = {
   fetchRouteData,
@@ -61,6 +88,7 @@ const adminApiService = {
   fetchAllTours,
   fetchOrderCount,
   fetchAllOrders,
+  fetchSpecifiedOrder,
   createTour,
   getRouteResponse,
   deleteTours,
@@ -71,6 +99,9 @@ const adminApiService = {
   picklistEmail,
   fetchAlltourstatushistory,
   update_tourstatus,
+  checkDriverRest,
+  updateCustomerInfo,
+  insertParkingPermit,
 };
 
 export default adminApiService;

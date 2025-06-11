@@ -10,6 +10,7 @@ import tourInfoMasterSetup from "./initialDBSetup/tourInfoMasterSetup";
 import driverLocationsSetup from "./initialDBSetup/driverLocationsSetup";
 import routeUpdatesSetup from "./initialDBSetup/routeUpdatesSetup";
 import apiResponseLogSetup from "./initialDBSetup/apiResponseLogSetup";
+import solarItemsSetup from "./initialDBSetup/solarmodulesItemsSetup";
 import routeSegmentsSetup from "./initialDBSetup/routeSegmentsSetup";
 import WMSOrderSetup from "./initialDBSetup/wms_orders";
 import WMSOrderArticlesSetup from "./initialDBSetup/wms_order_articles";
@@ -32,6 +33,7 @@ async function main() {
     await logisticOrderItemsSetup();
     await routeUpdatesSetup();
     await apiResponseLogSetup();
+    await solarItemsSetup();
 
     
     app.listen(app.get("port"), async () => {

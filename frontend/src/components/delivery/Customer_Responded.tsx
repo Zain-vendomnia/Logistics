@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { ChangeEvent, useState } from "react";
 
 import {
   Alert,
@@ -13,6 +13,7 @@ import {
   IconButton,
   Radio,
   RadioGroup,
+  Slide,
   Snackbar,
   Typography,
 } from "@mui/material";
@@ -23,7 +24,9 @@ import { DeliveryScenario } from "./delieryScenarios";
 const CustomerResponses = [
   "Leave the parcal at the door step",
   "Drop it to a neighbor",
-  "Reschedule delivery",
+  "Reschedule Delivery",
+  "Damaged Parcel",
+  "Order Return",
 ];
 
 interface Props {
@@ -50,8 +53,12 @@ const CustomerResponded = ({ onComplete }: Props) => {
         return DeliveryScenario.hasPermit;
       case "Drop it to a neighbor":
         return DeliveryScenario.neighborAccepts;
-      case "Reschedule delivery":
+      case "Reschedule Delivery":
         return DeliveryScenario.noAcceptance;
+      case "Damaged Parcel":
+        return DeliveryScenario.damagedParcel;
+      case "Order Return":
+        return DeliveryScenario.orderReturn;
       default:
         return DeliveryScenario.foundCustomer;
     }
@@ -73,11 +80,14 @@ const CustomerResponded = ({ onComplete }: Props) => {
       onComplete(false);
     }
   };
-  const handleResponseSelection = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setSelectedResponse(event.target.value);
-    console.log("Customer Responded Scenario: ", event.target.value);
+
+  const handleResponseSelection = (e: ChangeEvent<HTMLInputElement>) => {
+    setSelectedResponse(e.target.value);
+    console.log("Selected option: ", e.target.value);
+  };
+
+  const slideTransition = (props: any) => {
+    return <Slide {...props} direction="left" />;
   };
 
   return (
@@ -85,12 +95,14 @@ const CustomerResponded = ({ onComplete }: Props) => {
       <Snackbar
         open={showAlert}
         anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        slots={{ transition: slideTransition }}
+        sx={{ mt: 4 }}
       >
         <Alert
           icon={false}
           variant="filled"
           severity={"info"}
-          sx={{ minWidth: "290px", mt: 8 }}
+          sx={{ minWidth: "290px", mt: 8, borderRadius: 2 }}
           // onClose={handleClose}
           // action={actionButton}
         >
@@ -120,7 +132,7 @@ const CustomerResponded = ({ onComplete }: Props) => {
             <Box
               display="flex"
               justifyContent="space-between"
-              alignItems="center"
+              alignItems="flex-start"
             >
               <Typography variant="h5">Customer Requests To:</Typography>
               <IconButton onClick={handleDialogueClose}>
@@ -128,7 +140,7 @@ const CustomerResponded = ({ onComplete }: Props) => {
               </IconButton>
             </Box>
           </DialogTitle>
-          <DialogContent dividers sx={{ height: "220px", width: "600px" }}>
+          <DialogContent dividers sx={{ height: "100%", minWidth: "600px" }}>
             <FormControl>
               <RadioGroup
                 aria-labelledby="customer-response-radio"
@@ -154,7 +166,7 @@ const CustomerResponded = ({ onComplete }: Props) => {
           </DialogContent>
           <DialogActions>
             <Button autoFocus onClick={handleDialogueClose} color="primary">
-              Save
+              Proceed
             </Button>
           </DialogActions>
         </Dialog>

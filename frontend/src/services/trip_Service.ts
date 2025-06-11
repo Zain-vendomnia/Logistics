@@ -49,6 +49,9 @@ export const getTripData = async (): Promise<TripData> => {
 
     vehicle: "Truck",
     vehicleNumber: "001",
+
+    model: "SLMOL425P",
+    quantity: 50,
   };
 
   return await Promise.resolve(fakeTripData);
@@ -75,6 +78,8 @@ export interface TripData {
   client: ClientData;
   vehicle: string;
   vehicleNumber: string;
+  model: string;
+  quantity: number;
 }
 
 interface ClientData {

@@ -4,6 +4,11 @@ import { DeliveryStepRenderer } from "./DeliveryStepRenderer";
 import { useDeliveryStore } from "../../store/useDeliveryStore";
 import { useTripLifecycle } from "../../hooks/useTripLifecycle";
 import { useScenarioExecutor } from "../../hooks/useScenarioExecutor";
+import { useEffect } from "react";
+import {
+  NotificationSeverity,
+  useNotificationStore,
+} from "../../store/useNotificationStore";
 
 const Style = {
   container: {
@@ -24,13 +29,29 @@ const Style = {
   },
 };
 
+const externalSteps: DeliveryStep[] = [
+  "findCustomer",
+  "findNeighbor",
+  "showContactPromptAlert",
+  "showFindNeighborPromptAlert",
+  "showFindNeighborNotification",
+  "getNeighborDetails",
+  "waitForResponse",
+  "getRating",
+  "notifyForOrderReturn",
+];
+
 interface Props {
   scenarioKey: DeliveryScenario;
+  completeButtonActivated: (active: boolean) => void;
 }
 
-export const DeliveryFlowExecutor = ({ scenarioKey }: Props) => {
+export const DeliveryFlowExecutor = ({
+  scenarioKey,
+  completeButtonActivated,
+}: Props) => {
   const store = useDeliveryStore();
-  const { actionsCompleted } = store;
+  const { actionsCompleted, markStepCompleted } = store;
 
   const { handleOrderComplete, handleOrderReturn } = useTripLifecycle();
 
@@ -40,15 +61,23 @@ export const DeliveryFlowExecutor = ({ scenarioKey }: Props) => {
     currentIndex,
     currentStep,
     handleStepComplete,
-  } = useScenarioExecutor({ scenarioKey });
+  } = useScenarioExecutor({ scenarioKey, actionsCompleted, markStepCompleted });
 
-  const externalSteps: DeliveryStep[] = [
-    "findCustomer",
-    "findNeighbor",
-    "showContactPromptAlert",
-    "showFindNeighborPromptAlert",
-    "waitForResponse",
-  ];
+  const { showNotification } = useNotificationStore();
+
+  useEffect(() => {
+    if (orderCompleteButton === true) {
+      completeButtonActivated(true);
+    }
+  }, [orderCompleteButton]);
+
+  const getContainerStyle = (currentStep: DeliveryStep | null) => {
+    if (!currentStep || externalSteps.includes(currentStep)) return {};
+    return Style.container;
+  };
+
+  const isCompleteButtonDisabled =
+    orderCompleteButton && currentIndex !== stepsToRender.length - 1;
 
   if (!stepsToRender.length) return null;
   return (
@@ -58,23 +87,25 @@ export const DeliveryFlowExecutor = ({ scenarioKey }: Props) => {
           display: "flex",
           justifyContent: "center",
           p: 2,
-          ...(externalSteps.includes(currentStep) ? {} : Style.container),
+          ...getContainerStyle(currentStep),
         }}
       >
         {(currentIndex === stepsToRender.length - 1 ||
-          !actionsCompleted[currentStep]) && (
+          (currentStep && !actionsCompleted[currentStep])) && (
           <Box
             sx={
-              actionsCompleted[currentStep] === true
+              currentStep && actionsCompleted[currentStep] === true
                 ? { pointerEvents: "none", opacity: 0.6 }
                 : { pointerEvents: "auto" }
             }
           >
-            <DeliveryStepRenderer
-              key={`${currentStep}-${currentIndex}`}
-              step={currentStep}
-              onComplete={handleStepComplete}
-            />
+            {currentStep && (
+              <DeliveryStepRenderer
+                key={`${currentStep}-${currentIndex}`}
+                step={currentStep}
+                onComplete={handleStepComplete}
+              />
+            )}
           </Box>
         )}
       </Box>
@@ -85,11 +116,10 @@ export const DeliveryFlowExecutor = ({ scenarioKey }: Props) => {
             variant="contained"
             sx={{
               ...Style.completeButton,
-              ...(orderCompleteButton &&
-              currentIndex !== stepsToRender.length -1
-              // currentIndex < stepsToRender.length - 1
-                ? { pointerEvents: "none", opacity: "50%" }
-                : { pointerEvents: "auto" }),
+              ...(isCompleteButtonDisabled && {
+                pointerEvents: "none",
+                opacity: "50%",
+              }),
             }}
             onClick={
               currentStep === "returnToWarehouse" &&

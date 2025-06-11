@@ -6,19 +6,29 @@ export enum DeliveryScenario {
   findNeighborNearby = "findNeighborNearby",
   neighborAccepts = "neighborAccepts",
   noAcceptance = "noAcceptance",
+  damagedParcel = "damagedParcel",
+  orderReturn = "orderReturn",
 }
-export type DeliveryStep =
-  | "captureDoorstepImage"
-  | "captureParcelImage"
-  | "captureCustomerSignature"
-  | "findCustomer"
-  | "findNeighbor"
-  | "captureNeighborDoorstepImage"
-  | "captureNeighborSignature"
-  | "showContactPromptAlert"
-  | "showFindNeighborPromptAlert"
-  | "waitForResponse"
-  | "returnToWarehouse";
+
+const deliverySteps = [
+  "captureDoorstepImage",
+  "captureParcelImage",
+  "captureCustomerSignature",
+  "findCustomer",
+  "findNeighbor",
+  "getNeighborDetails",
+  "captureNeighborDoorstepImage",
+  "captureNeighborSignature",
+  "showContactPromptAlert",
+  "showFindNeighborPromptAlert",
+  "showFindNeighborNotification",
+  "waitForResponse",
+  "getRating",
+  "returnToWarehouse",
+  "damagedParcelImage",
+  "notifyForOrderReturn",
+] as const;
+export type DeliveryStep = (typeof deliverySteps)[number];
 
 type ConditionalStep = {
   condition: string;
@@ -32,10 +42,12 @@ export const deliveryScenarios: Record<DeliveryScenario, DeliveryStep[]> = {
     "captureDoorstepImage",
     "captureParcelImage",
     "captureCustomerSignature",
+    // "getRating",
   ],
   [DeliveryScenario.customerNotFound]: [
     "captureDoorstepImage",
     "showContactPromptAlert",
+    "showFindNeighborNotification",
     // wait untill customer is communicated
     // "showFindNeighborPromptAlert",
     "findNeighbor",
@@ -54,6 +66,7 @@ export const deliveryScenarios: Record<DeliveryScenario, DeliveryStep[]> = {
 
   [DeliveryScenario.neighborAccepts]: [
     "captureDoorstepImage",
+    "getNeighborDetails",
     "captureNeighborDoorstepImage",
     "captureParcelImage",
     "captureNeighborSignature",
@@ -62,5 +75,13 @@ export const deliveryScenarios: Record<DeliveryScenario, DeliveryStep[]> = {
     "captureDoorstepImage",
     // "captureParcelImage", // proof image
     "returnToWarehouse",
+  ],
+  [DeliveryScenario.damagedParcel]: [
+    "captureDoorstepImage",
+    "damagedParcelImage",
+  ],
+  [DeliveryScenario.orderReturn]: [
+    "captureDoorstepImage",
+    "notifyForOrderReturn",
   ],
 };

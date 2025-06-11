@@ -131,7 +131,15 @@ const AdminOrderTable: React.FC<AdminOrderTableProps> = ({
         setLoading(false);
       }
     };
-    fetchOrders();
+
+    fetchOrders(); // Initial fetch immediately on mount
+
+    const intervalId = setInterval(() => {
+      fetchOrders();
+    }, 3000); // Poll every 3000ms (3 seconds)
+
+    // Cleanup interval on unmount or dependencies change
+    return () => clearInterval(intervalId);
   }, [setOrdersData]);
 
   const filteredOrders = selectedZipcodes.length === 0

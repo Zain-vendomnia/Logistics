@@ -3,68 +3,212 @@ import validateToken from "./validateToken";
 import roleCheck from "../middlewares/roleCheck";
 
 // Import controllers
-// import { GeocodingController } from "../controller/Admin_RouteOptimzation/geocodingController";
 import { optimizeRouteController } from "../controller/Admin_RouteOptimzation/optimizeRouteController";
 import { updatelatlngController } from "../controller/Admin_RouteOptimzation/updatelatlngController";
-import { getAllLogisticOrders, getcountcheck } from '../controller/Admin_RouteOptimzation/order.controller';
 import {
-  createTourController, getTourcountcheck, updateTourController,
-  deleteTourController, getgraphhopperRoute, getSegmentRoutes, getTourstatus,updatetourstatus
-} from '../controller/Admin_RouteOptimzation/tourController';
-import { ExportTourController } from '../controller/Admin_RouteOptimzation/exportTourController';
+  getAllLogisticOrders,
+  getAllLogisticOrder,
+  getcountcheck,
+} from "../controller/Admin_RouteOptimzation/order.controller";
+import {
+  createTourController,
+  getTourcountcheck,
+  updateTourController,
+  deleteTourController,
+  getgraphhopperRoute,
+  getSegmentRoutes,
+  getTourstatus,
+  updatetourstatus,
+} from "../controller/Admin_RouteOptimzation/tourController";
+import { ExportTourController } from "../controller/Admin_RouteOptimzation/exportTourController";
 import { getAllTourController } from "../controller/Admin_RouteOptimzation/getAllTourController";
+
 import { getOrderCount } from "../controller/Admin_Api/orderCount.controller";
 import { orderInfoController } from "../controller/Admin_Api/orderInfo.controller";
 import { scheduleOrderInfoController } from "../controller/Admin_Api/scheduleOrderInfo.controller";
 import { scheduleWmsOrderController } from "../controller/Admin_Api/scheduleWmsOrderInfo.controller";
 import { uploadImageController } from "../controller/Admin_Api/uploadImage.controller";
 import { HandleOrderDelivery } from "../controller/AdminDriverApi/HandleOrderDelivery";
+import { picklistEmail } from "../controller/Admin_Api/picklistEmail.controller";
 
-//  driver routes
-import driverRoutes from "./driverRoutes";
-
-//  warehouse routes
-import warehouseRoutes from "./warehouseRoutes";
+import { getFilteredToursController } from "../controller/tourManagement.controller";
+import { updateCustomerInfoController } from "../controller/Admin_RouteOptimzation/updateCustomerInfo.controller";
 import { getAllTourhistory } from "../controller/Admin_RouteOptimzation/getAllTourhistory";
+import { insertParkingPermit } from '../controller/Admin_Api/insertParkingPermit.controller'; 
 
-// Create router
+import driverRoutes from "./driverRoutes";
+import warehouseRoutes from "./warehouseRoutes";
+
 const adminRouter = Router();
 
-// Remove restrictions from these routes (make them public):
+/**
+ * Public routes (no authentication required)
+ */
+adminRouter.get("/customer/updatelatlng", updatelatlngController);
 adminRouter.get("/orderinfo", orderInfoController);
 adminRouter.get("/scheduleOrderInfo", scheduleOrderInfoController);
 adminRouter.get("/scheduleWmsOrderInfo", scheduleWmsOrderController);
-adminRouter.get('/customer/updatelatlng', updatelatlngController);
-// adminRouter.get('/geocode', GeocodingController.getLatLng);
+adminRouter.post("/picklistEmail", picklistEmail);
+adminRouter.post("/routeoptimize/getOrder", getAllLogisticOrder);
+adminRouter.post("/insertParkingPermit", insertParkingPermit); 
 
-// Apply token & role check to all routes EXCEPT the ones we want to make public
-adminRouter.use(validateToken, roleCheck(["admin"]));
+/**
+ * Protected routes (each one applies validateToken + roleCheck)
+ */
+adminRouter.get(
+  "/tours",
+  validateToken,
+  roleCheck(["admin"]),
+  getFilteredToursController
+);
 
-// Define routes with restrictions
-adminRouter.get('/route/routeoptimize/optimize', optimizeRouteController);
-adminRouter.get('/routeoptimize/orders', getAllLogisticOrders);
-adminRouter.get('/routeoptimize/ordercount', getcountcheck);
-adminRouter.post('/routeoptimize/createtour', createTourController);
-adminRouter.get('/routeoptimize/getAlltours', getAllTourController);
-adminRouter.get('/routeoptimize/tourcount', getTourcountcheck);
-adminRouter.put('/routeoptimize/updateTour', updateTourController);
-adminRouter.delete('/routeoptimize/deleteTours', deleteTourController);
-adminRouter.post('/routeoptimize/exportTours', ExportTourController);
-adminRouter.post('/routeoptimize/getGraphhopperRoute', getgraphhopperRoute);
-adminRouter.get('/routeoptimize/getSegmentRoute', getSegmentRoutes);
-adminRouter.get("/orderCount", getOrderCount);
-adminRouter.get('/routeoptimize/gettourStatushistory', getAllTourhistory);
-adminRouter.get('/routeoptimize/gettourStatus', getTourstatus);
-adminRouter.post('/routeoptimize/updatetourstatus/:tourId', updatetourstatus);
+adminRouter.get(
+  "/route/routeoptimize/optimize",
+  validateToken,
+  roleCheck(["admin"]),
+  optimizeRouteController
+);
 
-// Keep the other routes under restriction:
-adminRouter.post("/upload_image", uploadImageController);
-adminRouter.post("/driver/tour/:tourId/order", HandleOrderDelivery);
+adminRouter.get(
+  "/routeoptimize/orders",
+  validateToken,
+  roleCheck(["admin"]),
+  getAllLogisticOrders
+);
 
-// ------------------ drivers routes ------------------
-adminRouter.use("/drivers", driverRoutes);
+adminRouter.get(
+  "/routeoptimize/ordercount",
+  validateToken,
+  roleCheck(["admin"]),
+  getcountcheck
+);
 
-// ------------------ warehouse routes ------------------
-adminRouter.use("/warehouses", warehouseRoutes);
+adminRouter.post(
+  "/routeoptimize/createtour",
+  validateToken,
+  roleCheck(["admin"]),
+  createTourController
+);
+
+adminRouter.get(
+  "/routeoptimize/getAlltours",
+  validateToken,
+  roleCheck(["admin"]),
+  getAllTourController
+);
+
+adminRouter.get(
+  "/routeoptimize/tourcount",
+  validateToken,
+  roleCheck(["admin"]),
+  getTourcountcheck
+);
+
+adminRouter.put(
+  "/routeoptimize/updateTour",
+  validateToken,
+  roleCheck(["admin"]),
+  updateTourController
+);
+
+adminRouter.delete(
+  "/routeoptimize/deleteTours",
+  validateToken,
+  roleCheck(["admin"]),
+  deleteTourController
+);
+
+adminRouter.post(
+  "/routeoptimize/exportTours",
+  validateToken,
+  roleCheck(["admin"]),
+  ExportTourController
+);
+
+adminRouter.post(
+  "/routeoptimize/getGraphhopperRoute",
+  validateToken,
+  roleCheck(["admin"]),
+  getgraphhopperRoute
+);
+
+adminRouter.get(
+  "/routeoptimize/getSegmentRoute",
+  validateToken,
+  roleCheck(["admin"]),
+  getSegmentRoutes
+);
+
+adminRouter.put(
+  "/routeoptimize/updateCustomer",
+  validateToken,
+  roleCheck(["admin"]),
+  updateCustomerInfoController
+);
+
+adminRouter.get(
+  "/orderCount",
+  validateToken,
+  roleCheck(["admin"]),
+  getOrderCount
+);
+
+adminRouter.get(
+  "/routeoptimize/gettourStatushistory",
+  validateToken,
+  roleCheck(["admin"]),
+  getAllTourhistory
+);
+
+adminRouter.get(
+  "/routeoptimize/gettourStatus",
+  validateToken,
+  roleCheck(["admin"]),
+  getTourstatus
+);
+
+adminRouter.post(
+  "/routeoptimize/updatetourstatus/:tourId",
+  validateToken,
+  roleCheck(["admin"]),
+  updatetourstatus
+);
+
+adminRouter.post(
+  "/upload_image",
+  validateToken,
+  roleCheck(["admin"]),
+  uploadImageController
+);
+
+adminRouter.post(
+  "/driver/tour/:tourId/order",
+  validateToken,
+  roleCheck(["admin"]),
+  HandleOrderDelivery
+);
+
+adminRouter.use(
+  "/drivers",
+  validateToken,
+  roleCheck(["admin"]),
+  driverRoutes
+);
+
+adminRouter.use(
+  "/warehouses",
+  validateToken,
+  roleCheck(["admin"]),
+  warehouseRoutes
+);
+
+/**
+ * Catch‐all 404 for any undefined /api/admin/* route
+ */
+adminRouter.use((req, res) => {
+  res.status(404).json({
+    message: `Route [${req.method}] ${req.originalUrl} not found under /api/admin`,
+  });
+});
 
 export default adminRouter;

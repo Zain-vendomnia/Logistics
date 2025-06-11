@@ -26,7 +26,9 @@ const ManageWarehouses = () => {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [formData, setFormData] = useState<Partial<Warehouse>>({});
+  const [formData, setFormData] = useState<Partial<Warehouse>>({
+    clerk_mob: "+49", // default German country code
+  });
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({
@@ -139,6 +141,7 @@ const ManageWarehouses = () => {
       field: "actions",
       headerName: "Actions",
       width: 160,
+       headerAlign: "center", 
       sortable: false,
       filterable: false,
       renderCell: (params) => (

@@ -1,23 +1,40 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   DeliveryScenario,
   deliveryScenarios,
   DeliveryStep,
   Step,
 } from "../components/delivery/delieryScenarios";
-import { DeliveryState, useDeliveryStore } from "../store/useDeliveryStore";
+import {
+  DeliveryActionsCompleted,
+  DeliveryState,
+  useDeliveryStore,
+} from "../store/useDeliveryStore";
 
 interface Props {
   scenarioKey: DeliveryScenario;
+  actionsCompleted: DeliveryActionsCompleted;
+  markStepCompleted: (step: DeliveryStep) => void;
 }
-export const useScenarioExecutor = ({ scenarioKey }: Props) => {
+
+export const useScenarioExecutor = ({
+  scenarioKey,
+  actionsCompleted,
+  markStepCompleted,
+}: Props) => {
   const store = useDeliveryStore();
-  const { deliveryState, actionsCompleted, markStepCompleted } = store;
+  const { deliveryState } = store;
 
   const [orderCompleteButton, setOrderCompleteButton] = useState(false);
 
   const [stepsToRender, setStepsToRender] = useState<DeliveryStep[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  const currentStep = useMemo(() => {
+    return stepsToRender.length > 0 && currentIndex < stepsToRender.length
+      ? stepsToRender[currentIndex]
+      : null;
+  }, [stepsToRender, currentIndex]);
 
   const advanceToNextStep = () => {
     const nextIndex = currentIndex + 1;
@@ -28,10 +45,12 @@ export const useScenarioExecutor = ({ scenarioKey }: Props) => {
     }
   };
 
-  const handleStepComplete = () => {
-    markStepCompleted(stepsToRender[currentIndex]);
-    advanceToNextStep();
-  };
+  const handleStepComplete = useCallback(() => {
+    if (currentStep) {
+      markStepCompleted(currentStep);
+      advanceToNextStep();
+    }
+  }, [currentStep, markStepCompleted]);
 
   const resolveSteps = (
     steps: Step[],
@@ -56,28 +75,25 @@ export const useScenarioExecutor = ({ scenarioKey }: Props) => {
     return actionSteps;
   };
 
+  // specify steps to render
   useEffect(() => {
     const scenarioSteps = deliveryScenarios[scenarioKey] || [];
     const resolvedSteps = resolveSteps(scenarioSteps, deliveryState, 0);
 
     setStepsToRender(resolvedSteps);
     setCurrentIndex(0);
-    // setOrderCompleteButton(false);
+    setOrderCompleteButton(false);
   }, [scenarioKey, deliveryState]);
 
   useEffect(() => {
-    if (!stepsToRender.length) return;
+    if (!stepsToRender.length || !currentStep) return;
 
     console.log("Steps to Follow: ", stepsToRender);
-
-    const currentStep = stepsToRender[currentIndex];
 
     if (actionsCompleted[currentStep] === true) {
       advanceToNextStep();
     }
   }, [actionsCompleted, stepsToRender, currentIndex]);
-
-  const currentStep = stepsToRender[currentIndex] ?? null;
 
   return {
     orderCompleteButton,

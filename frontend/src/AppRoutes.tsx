@@ -8,7 +8,7 @@ import Register from "./components/pages/Register";
 import Home from "./components/pages/Home";
 import Profile from "./components/pages/Profile";
 import BoardDriver from "./components/driver/BoardDriver";
-import BoardAdmin from "./components/BoardAdmin/BoardAdmin";
+ 
 import SuperAdmin from "./components/SuperAdmin";
 import AdminDashboard from "./components/Admin/Admin_dashboard";
 import ManageDrivers from "./components/Admin/ManageDrivers";
@@ -16,9 +16,12 @@ import ManageWarehouse from "./components/Admin/ManageWarehouse";
 import Admin_TourTemplates from "./components/Admin/Admin_TourTemplates";
 import Admin_MapComponent from "./components/Admin/Admin_MapComponent";
 import Admin_TourMapView from "./components/Admin/Admin_TourMapView";
+import ParkingPermitForm from './components/parkingPermit/ParkingPermitForm';
 import AdminAddTour from "./components/Admin/Admin_AddTour";
 import CompletedTour from "./components/Admin/completed_tour";
 import LiveTours from "./components/Admin/live_tours";
+import ProofdeliveryLiveloc from "./components/Admin/ProofdeliveryLiveloc";
+import ProofdeliveryImage from "./components/Admin/ProofdeliveryImage";
 
 // Role-based route guard
 const ProtectedRoute = ({
@@ -63,17 +66,16 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/" element={user ? getUserBoard() : <Navigate to="/login" replace />} />
       <Route path="/login" element={!user ? <Login /> : <Navigate to="/" replace />} />
-      <Route path="/dashboard" element={<ProtectedRoute element={getUserBoard()} />} />
+      <Route path = "/ParkingPermitForm" element = {<ParkingPermitForm/>}/>
 
       {/* SuperAdmin Route */}
+      <Route path="/dashboard" element={<ProtectedRoute element={getUserBoard()} />} />
       <Route path="/superadmin"  element={<ProtectedRoute element={<SuperAdmin />} allowedRoles={["superadmin"]} />}/>
 
       {/* Driver Route */}
       <Route path="/driver"  element={<ProtectedRoute element={<BoardDriver />} allowedRoles={["driver"]} />}/>
 
-      {/* Admin Board */}
-      <Route path="/admin" element={<ProtectedRoute element={<BoardAdmin />} allowedRoles={["admin"]} />}/>
-
+    
       {/* General Protected Routes */}
       <Route path="/home" element={<ProtectedRoute element={<Home />} />} />
       <Route path="/profile" element={<ProtectedRoute element={<Profile />} />} />
@@ -81,9 +83,9 @@ const AppRoutes = () => {
       {/* ✅ Only Admin can register (registering drivers) */}
       <Route path="/register" element={<ProtectedRoute element={<Register />} allowedRoles={["admin"]} />} />
 
-      <Route path="/register" element={<ProtectedRoute element={<Register />} allowedRoles={["admin"]} />} />
 
       {/* ✅ Admin-only Routes */}
+
       <Route path = "/admin_dashboard" element={<ProtectedRoute element={<AdminDashboard />} allowedRoles={["admin"]} />}/>
       <Route path = "/admin_addtour" element={<ProtectedRoute element={<AdminAddTour />} allowedRoles={["admin"]} />} />
       <Route path = "/manage_drivers"  element={<ProtectedRoute element={<ManageDrivers />} allowedRoles={["admin"]} />} />
@@ -101,8 +103,11 @@ const AppRoutes = () => {
       <Route path = "/Admin_TourMapView/:tour_id"  element={<ProtectedRoute element={<Admin_TourMapView />} allowedRoles={["admin"]} />}/>
       <Route path = "/completed_tour" element={<ProtectedRoute element={<CompletedTour />} allowedRoles={["admin"]} />} />
       <Route path = "/live_tours" element={<ProtectedRoute element={<LiveTours />} allowedRoles={["admin"]} />} />
-      
+      <Route path = "/ProofdeliveryLiveloc" element={<ProtectedRoute element={<ProofdeliveryLiveloc />} allowedRoles={["admin"]} />} />
+      <Route path = "/ProofdeliveryImage" element={<ProtectedRoute element={<ProofdeliveryImage />} allowedRoles={["admin"]} />} />
+      {/* <Route path="/Admin_PickList" element={<Admin_PickListPage />} />  */}
    </Routes>
+
   );
 };
 

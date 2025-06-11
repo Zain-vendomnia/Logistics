@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 
 import { useDeliveryStore } from "../store/useDeliveryStore";
 import { DeliveryScenario } from "../components/delivery/delieryScenarios";
+import {
+  NotificationSeverity,
+  useNotificationStore,
+} from "../store/useNotificationStore";
 
 export const useTripLifecycle = () => {
   const store = useDeliveryStore();
@@ -16,6 +20,8 @@ export const useTripLifecycle = () => {
     addOrdersDeliveredSuccessfully,
     setDeliveryCompleted,
   } = store;
+
+  const { showNotification } = useNotificationStore();
 
   const [isDeliveryStarted, setIsDeliveryStarted] = useState(false);
   const [isReachedToDestination, setIsReachedToDestination] = useState(true);
@@ -45,41 +51,31 @@ export const useTripLifecycle = () => {
           data.hasPermit === true
             ? store.setScenario(data.orderId, DeliveryScenario.hasPermit)
             : store.setScenario(data.orderId, DeliveryScenario.foundCustomer);
+
+          // showNotification({
+          //   message: "New Delivery has started.",
+          //   severity: NotificationSeverity.Success,
+          // });
         })
         .catch((err) => {
+          showNotification({
+            message: "Error fetching new Delivery data.",
+            severity: NotificationSeverity.Error,
+          });
           return Promise.reject(err);
         });
     }
   };
 
-  const handleDriverReachedToDestination = () => {
-    setIsReachedToDestination(true);
-    setIsDeliveryStarted(true);
-    store.updateDeliveryState({ driverReachedToLocation: true });
-  };
-
-  const handleOrderComplete = () => {
-    const signatureCaptured =
-      store.actionsCompleted.captureCustomerSignature ||
-      store.actionsCompleted.captureNeighborSignature;
-
-    if (scenarioKey === DeliveryScenario.hasPermit || signatureCaptured) {
-      addOrdersDeliveredSuccessfully(store.deliveryId);
-      setDeliveryCompleted(true);
-    }
-  };
-
-  const handleOrderReturn = () => {
-    if (
-      store.deliveryState.noAcceptance === true &&
-      store.deliveryState.deliveryReturnReason &&
-      store.actionsCompleted.returnToWarehouse === true
-    ) {
-      console.log("handleOrderReturn Conditions fulfilled");
-      store.addOrdersReturnToWareHouse(store.deliveryId);
-      store.setDeliveryCompleted(true);
-    }
-  };
+  useEffect(() => {
+    startNewTrip();
+    console.log("🚚 Delivery#: ", store.deliveryInstanceKey);
+    console.log("🚚 Order Id: ", deliveryId);
+    console.log(
+      "🚚 Orders Delivered Successfully:",
+      ordersDeliveredSuccessfully
+    );
+  }, [deliveryCompleted, deliveryId]);
 
   useEffect(() => {
     if (tripData && !deliveryCompleted) {
@@ -95,15 +91,39 @@ export const useTripLifecycle = () => {
     ordersReturnToWareHouse,
   ]);
 
-  useEffect(() => {
-    startNewTrip();
-    console.log("🚚 Delivery#: ", store.deliveryInstanceKey);
-    console.log("🚚 Order Id: ", deliveryId);
-    console.log(
-      "🚚 Orders Delivered Successfully:",
-      ordersDeliveredSuccessfully
-    );
-  }, [deliveryCompleted, deliveryId]);
+  const handleDriverReachedToDestination = () => {
+    setIsReachedToDestination(true);
+    setIsDeliveryStarted(true);
+    store.updateDeliveryState({ driverReachedToLocation: true });
+  };
+
+  const handleOrderComplete = () => {
+    const signatureCaptured =
+      store.actionsCompleted.captureCustomerSignature ||
+      store.actionsCompleted.captureNeighborSignature;
+
+    if (
+      scenarioKey === DeliveryScenario.hasPermit ||
+      scenarioKey === DeliveryScenario.damagedParcel ||
+      scenarioKey === DeliveryScenario.orderReturn ||
+      signatureCaptured
+    ) {
+      addOrdersDeliveredSuccessfully(store.deliveryId);
+      setDeliveryCompleted(true);
+    }
+  };
+
+  const handleOrderReturn = () => {
+    // if (
+    //   store.deliveryState.noAcceptance === true &&
+    //   store.deliveryState.deliveryReturnReason &&
+    //   store.actionsCompleted.returnToWarehouse === true
+    // ) {
+    // }
+    console.log("handleOrderReturn Conditions fulfilled");
+    store.addOrdersReturnToWareHouse(store.deliveryId);
+    store.setDeliveryCompleted(true);
+  };
 
   return {
     isDeliveryStarted,

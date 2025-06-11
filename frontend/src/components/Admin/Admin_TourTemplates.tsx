@@ -1,19 +1,19 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
-  Box, Typography, Table, TableHead, TableRow, TableCell, TableBody, Checkbox,
-  Button, IconButton, Menu, MenuItem, TextField, Card, CardContent, CardHeader,
-  Divider, Tooltip, Snackbar, Alert,Chip,
-  ChipProps
+  Box, Typography, TextField, Card, CardContent, CardHeader,
+  Divider, Tooltip, Snackbar, Alert,Stack, Button, IconButton, Menu, MenuItem, Chip, Modal, Fade, Backdrop 
 } from '@mui/material';
+import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { useNavigate } from 'react-router-dom';
-import { MoreVert, Delete, FileDownload, Merge } from '@mui/icons-material';
+import { MoreVert, Delete, FileDownload, Merge, Email } from '@mui/icons-material';
 import latestOrderServices, { TourInfo } from './AdminServices/latestOrderServices';
 import { deleteTours } from './AdminServices/tourDeletionServices';
 import { exportTours } from './AdminServices/tourExportServices';
 import EditTourModal from './Admin_EditTourModal';
 import ViewPicklistModal from './Admin_ViewPicklistModal';
 import '../Admin/css/Admin_TourTemplate.css';
-import { tourstatus } from './AdminServices/tourstatus';
+import adminApiService from '../../services/adminApiService';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 
 interface Tour {
   id: string;
@@ -23,21 +23,11 @@ interface Tour {
   amount: number;
   timeRange: string;
   driver: string;
-  tour_status:string,
+  tour_status: string;
   tour_comments: string;
   driver_id?: number;
   warehouseId: number;
 }
-
-const ActionButton = ({ title, icon, color, onClick, disabled }: any) => (
-  <Tooltip title={title}>
-    <span>
-      <Button variant="contained" color={color} startIcon={icon} size="small" onClick={onClick} disabled={disabled}>
-        {title}
-      </Button>
-    </span>
-  </Tooltip>
-);
 
 const AdminTourTemplates = () => {
   const [tours, setTours] = useState<Tour[]>([]);
@@ -48,13 +38,14 @@ const AdminTourTemplates = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' as any });
   const [viewPicklistModalOpen, setViewPicklistModalOpen] = useState(false);
-
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [permitTourIds, setPermitTourIds] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const showSnackbar = (message: string, severity: any) =>
     setSnackbar({ open: true, message, severity });
 
-  // useCallback ensures loadTours is stable, and prevents infinite rerendering.
   const loadTours = useCallback(async () => {
     try {
       const instance = latestOrderServices.getInstance();
@@ -77,19 +68,22 @@ const AdminTourTemplates = () => {
       console.error(e);
       showSnackbar('Failed to load tours', 'error');
     }
-  }, []); // Empty dependency array means this function is stable
+  }, []);
 
   useEffect(() => {
     loadTours();
+    const interval = setInterval(() => {
+        loadTours(); // fetch tours every 30 seconds
+      }, 3000); // 30,000 ms = 30 seconds
+  return () => clearInterval(interval); // clean up on unmount
+
   }, [loadTours]); // loadTours is stable now
+
 
   const filteredTours = useMemo(() => {
     const term = searchTerm.toLowerCase();
     return tours.filter(t => [t.tour_name, t.driver, t.date, t.timeRange, t.id].some(f => f.toLowerCase().includes(term)));
   }, [tours, searchTerm]);
-
-  const handleSelect = (id: string) =>
-    setSelected(s => s.includes(id) ? s.filter(i => i !== id) : [...s, id]);
 
   const handleDelete = async (ids: string[]) => {
     try {
@@ -102,9 +96,65 @@ const AdminTourTemplates = () => {
     }
   };
 
-  const handleAction = async (action: 'delete' | 'merge' | 'export') => {
+  // Function to handle the permit email sending process
+  const handlePermit = async () => {
+    setLoading(true);
+
+    const instance = latestOrderServices.getInstance();
+    const toursdata = await instance.getTours();
+
+    const idNumbers = permitTourIds.map(id => Number(id));  // Get the IDs of selected tours
+    const matchedTours = toursdata.filter((tour: any) => idNumbers.includes(tour.id)); // Filter the tours based on the selected IDs
+    const allOrders = matchedTours.flatMap((tour: any) => tour.orders);  // Extract all orders from matched tours
+
+    try {
+      // Send an email to each order's customer
+      for (const order of allOrders) {
+
+        const orderNumber = order.order_number;
+
+        // Use window.location.origin or env var
+        const baseUrl = `${window.location.protocol}//${window.location.host}/ParkingPermitForm`;
+
+        const encodedOrderNumber = btoa(orderNumber); // Or use Buffer.from if needed
+
+        const finalUrl = `${baseUrl}?o=${encodedOrderNumber}`;
+
+
+          const html = `Dear ${order.firstname} ${order.lastname},\n \n 
+          Please use the following form and return it to us completed and signed.
+          Fill out the parking permit:\n
+          ${finalUrl} \n \n
+          Once submitted, we will automatically receive your permission and arrange delivery accordingly.`;
+
+        await adminApiService.picklistEmail({
+          // to: order.email,
+          to: 'jishi.puthanpurayil@vendomnia.com',
+          subject: 'Parking Permit - Order #'+order.order_number ,
+          html
+        });
+      }
+      showSnackbar('Emails sent successfully', 'success');
+    } catch (error) {
+      console.error('Error sending emails:', error);
+      showSnackbar('Failed to send emails', 'error');
+    } finally {
+      // Close the modal after sending the emails
+      setLoading(false);
+      setConfirmOpen(false);
+      setPermitTourIds([]);
+    }
+  };
+
+
+  const handleAction = async (action: 'delete' | 'merge' | 'export'|'permit') => {
     if (!selected.length) return showSnackbar('No tours selected', 'warning');
     try {
+
+      if (action === 'permit'){
+            setPermitTourIds(selected);  
+            setConfirmOpen(true);
+      }
       if (action === 'delete') return handleDelete(selected);
       if (action === 'merge')
         return selected.length === 2
@@ -119,6 +169,85 @@ const AdminTourTemplates = () => {
     }
   };
 
+  const columns: GridColDef[] = [
+    {
+      field: 'tour_name',
+      headerName: 'Name',
+      flex: 2,
+      renderCell: ({ row }) => (
+        <Box display="flex" gap={1} alignItems="center" height="100%">
+          <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: row.color }} />
+          <Box>
+            <Typography fontWeight="bold">{row.tour_name}</Typography>
+            <Typography variant="body2" color="text.secondary">{row.amount} orders · {row.timeRange}</Typography>
+          </Box>
+        </Box>
+      )
+    },
+    { field: 'driver', headerName: 'Driver', flex: 1 },
+    { field: 'timeRange', headerName: 'Start Time', flex: 1 },
+   {
+  field: 'tour_status',
+  headerName: 'Status',
+  flex: 1,
+  renderCell: ({ value }) => {
+    let chipColor;
+    if (value === 'confirmed') {
+      chipColor = '#2e7d32'; // green
+    } else if (value === 'pending') {
+      chipColor = '#d32f2f'; // red
+    } else {
+      chipColor = '#1976d2'; // blue (primary)
+    }
+
+    return (
+      <Chip
+        label={value}
+        variant="filled"
+        sx={{
+          fontWeight: 500,
+          bgcolor: `${chipColor}`,
+          color: "white",
+        }}
+      />
+    );
+  }
+},
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      sortable: false,
+      flex: 1.5,
+      renderCell: ({ row }) => (
+        <Stack direction="row" spacing={1} alignItems="center" height="100%">
+          <Button
+            variant="outlined"
+            onClick={() => navigate(`/Admin_TourMapView/${row.id}`)}
+            size='small'
+            sx={(theme) => ({
+              padding: '8px 24px',
+              borderRadius: '4px',
+              textTransform: 'none',
+              fontWeight: '500',
+              background: theme.palette.primary.gradient,
+              color: "#fff",
+              transition: "all 0.3s ease",
+              "&:hover": {
+                background: "#fff",
+                color: theme.palette.primary.dark,
+              }
+            })}
+          >
+            View Map
+          </Button>
+          <IconButton onClick={e => { setAnchorEl(e.currentTarget); setCurrentTour(row); }}>
+            <MoreVert />
+          </IconButton>
+        </Stack>
+      )
+    }
+  ];
+
   return (
     <Box p={3}>
       <Card sx={{ borderRadius: 4, boxShadow: 3 }}>
@@ -127,94 +256,58 @@ const AdminTourTemplates = () => {
           <Box display="flex" justifyContent="space-between" flexWrap="wrap" mb={2} gap={2}>
             <TextField placeholder="Search tours..." size="small" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} sx={{ maxWidth: 300 }} />
             <Box display="flex" gap={1}>
-              <ActionButton title="Delete" icon={<Delete />} color="error" onClick={() => handleAction('delete')} disabled={!selected.length} />
-              <ActionButton title="Merge" icon={<Merge />} color="secondary" onClick={() => handleAction('merge')} disabled={selected.length !== 2} />
-              <ActionButton title="Export" icon={<FileDownload />} color="primary" onClick={() => handleAction('export')} disabled={!selected.length} />
+                 <Tooltip title="Send Parking Permit">
+                <span>
+                  <Button variant="contained" color="success" startIcon={<Email/>} onClick={() => handleAction('permit')} disabled={!selected.length}>Send Parking Permit</Button>
+                </span>
+              </Tooltip>
+              <Tooltip title="Delete">
+                <span>
+                  <Button variant="contained" color="error" startIcon={<Delete />} onClick={() => handleAction('delete')} disabled={!selected.length}>Delete</Button>
+                </span>
+              </Tooltip>
+              <Tooltip title="Merge">
+                <span>
+                  <Button variant="contained" color="secondary" startIcon={<Merge />} onClick={() => handleAction('merge')} disabled={selected.length !== 2}>Merge</Button>
+                </span>
+              </Tooltip>
+              <Tooltip title="Export">
+                <span>
+                  <Button variant="contained" color="primary" startIcon={<FileDownload />} onClick={() => handleAction('export')} disabled={!selected.length}>Export</Button>
+                </span>
+              </Tooltip>
             </Box>
           </Box>
 
           <Divider sx={{ mb: 2 }} />
 
-          <Table>
-            <TableHead>
-              <TableRow sx={{ bgcolor: '#f0f0f0' }}>
-                <TableCell padding="checkbox">
-                  <Checkbox
-                    indeterminate={selected.length > 0 && selected.length < filteredTours.length}
-                    checked={filteredTours.length > 0 && selected.length === filteredTours.length}
-                    onChange={e => setSelected(e.target.checked ? filteredTours.map(t => t.id) : [])}
-                  />
-                </TableCell>
-                {['Name', 'Driver', 'Start Time', 'Status', 'Actions'].map(h => <TableCell key={h}><strong>{h}</strong></TableCell>)}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredTours.length ? filteredTours.map(tour => {
-                const isChecked = selected.includes(tour.id);
-                return (
-                  <TableRow key={tour.id} hover selected={isChecked}>
-                    <TableCell padding="checkbox">
-                      <Checkbox checked={isChecked} onClick={e => { e.stopPropagation(); handleSelect(tour.id); }} />
-                    </TableCell>
-                    <TableCell>
-                      <Box display="flex" gap={1} alignItems="center">
-                        <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: tour.color }} />
-                        <Box>
-                          <Typography fontWeight="bold">{tour.tour_name} - {tour.date}</Typography>
-                          <Typography variant="body2" color="text.secondary">{tour.amount} orders · {tour.timeRange}</Typography>
-                        </Box>
-                      </Box>
-                    </TableCell>
-                    <TableCell>{tour.driver}</TableCell>
-                    <TableCell>{tour.timeRange}</TableCell>
-                    <TableCell>
-                    <Chip
-                        label = {tour.tour_status}
-                        color={
-                          tour.tour_status === 'confirmed' ? 'success' :
-                          tour.tour_status === 'pending' ? 'error' : 'primary' 
-                          
-                        }
-                        variant="filled"
-                        sx={{ fontWeight: 500 }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Box display="flex" gap={1}>
-                        <Button variant="outlined"  onClick={() => navigate(`/Admin_TourMapView/${tour.id}`)}
-                        size='small'
-                          sx={(theme) => ({
-                            padding: '8px 24px',
-                            borderRadius: '4px',
-                            textTransform: 'none',
-                            fontWeight: '500',
-                            background: theme.palette.primary.gradient,
-                            color: theme.palette.primary.contrastText,
-                            transition: "all 0.3s ease",
-                            "&:hover": {
-                              background: theme.palette.primary.dark,
-                              color: theme.palette.primary.contrastText,
-                            }                
-                          })}
-                          >View Map</Button>
-                        <IconButton onClick={e => { setAnchorEl(e.currentTarget); setCurrentTour(tour); }}><MoreVert /></IconButton>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                );
-              }) : (
-                <TableRow><TableCell colSpan={5} align="center"><Typography color="text.secondary">No tours found.</Typography></TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
+          <DataGrid
+            rows={filteredTours}
+            columns={columns}
+            checkboxSelection
+            rowHeight={75}
+            disableRowSelectionOnClick
+            onRowSelectionModelChange={(ids) => setSelected(ids as string[])}
+            rowSelectionModel={selected}
+            getRowId={(row) => row.id}
+          />
 
           <Menu anchorEl={anchorEl} open={!!anchorEl} onClose={() => setAnchorEl(null)}>
-            <MenuItem onClick={() => { setModalOpen(true); setAnchorEl(null); }}>Edit Tour</MenuItem>       
-            <Divider />
+            <MenuItem onClick={() => { setModalOpen(true); setAnchorEl(null); }}>Edit Tour</MenuItem>
+              <Divider />
             <MenuItem onClick={() => { setViewPicklistModalOpen(true); setAnchorEl(null); }}>View Picklist</MenuItem>
-       
-            <Divider />
-            <MenuItem sx={{ color: 'error.main' }} onClick={() => currentTour && handleDelete([currentTour.id])}>Delete</MenuItem>
+              <Divider />
+                <MenuItem onClick={() => {
+              if (currentTour) {
+                setPermitTourIds([currentTour.id]);
+                setConfirmOpen(true);
+                setAnchorEl(null);
+              }
+            }}>Send Parking Permit</MenuItem>
+             <Divider />
+            <MenuItem sx={{ color: 'error.main' }} onClick={() => { if (currentTour) { handleDelete([currentTour.id]);  } setAnchorEl(null); }}>Delete</MenuItem>
+            
+
           </Menu>
 
           <EditTourModal
@@ -223,7 +316,7 @@ const AdminTourTemplates = () => {
             tourData={currentTour}
             onTourUpdated={() => { loadTours(); showSnackbar('Tour updated', 'success'); }}
           />
-
+          
           <ViewPicklistModal
             open={viewPicklistModalOpen}
             handleClose={() => setViewPicklistModalOpen(false)}
@@ -232,13 +325,17 @@ const AdminTourTemplates = () => {
               if (success) {
                 showSnackbar('Email Sent Successfully!', 'success');
                 setViewPicklistModalOpen(false);
-              }else{
+              } else {
                 showSnackbar('Error sending email!', 'error');
               }
             }}
           />
+
+
+          
         </CardContent>
       </Card>
+        
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
@@ -249,7 +346,43 @@ const AdminTourTemplates = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+      <Modal
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        closeAfterTransition
+        slots={{ backdrop: Backdrop }}
+        slotProps={{ backdrop: { timeout: 500 } }}
+      >
+        <Fade in={confirmOpen}>
+          <Box
+            sx={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              bgcolor: 'background.paper',
+              boxShadow: 24,
+              p: 4,
+              borderRadius: 3,
+              textAlign: 'center',
+              minWidth: 300,
+            }}
+          >
+            <CheckCircleOutlineIcon sx={{ fontSize: 70, color: '#ef972e' }} />
+            <Typography variant="h5" mt={2} mb={1}>
+              Are you sure you want to send the parking permits?
+            </Typography>
+            <Typography variant="body1">This action cannot be undone.</Typography>
+            <Box display="flex" justifyContent="center" gap={2} mt={3}>
+              <Button variant="contained" color="secondary"  onClick={() => setConfirmOpen(false)}>No</Button>
+              <Button variant="contained" color="primary" disabled={loading} onClick={handlePermit}>{loading ? 'Sending...' : 'Yes'}</Button>
+            </Box>
+          </Box>
+        </Fade>
+      </Modal>
+
     </Box>
+
   );
 };
 

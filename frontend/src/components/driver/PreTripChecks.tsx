@@ -1,8 +1,14 @@
-import { Button, Card, Stack, Typography } from "@mui/material";
-import React, { useEffect, useState } from "react";
+import { Box, Button, Card, Stack, Typography } from "@mui/material";
+import React, { useEffect, useMemo, useState } from "react";
 import CameraCapture from "../common/Camera_Capture";
 import { useDeliveryStore } from "../../store/useDeliveryStore";
 import { useTripLifecycle } from "../../hooks/useTripLifecycle";
+import {
+  NotificationSeverity,
+  useNotificationStore,
+} from "../../store/useNotificationStore";
+import CustomInputField from "../delivery/CustomInputField";
+import { ImageType } from "../../hooks/useCameraCapture";
 
 const useStyle = {
   cardHighlight: {
@@ -27,19 +33,28 @@ const useStyle = {
     },
   },
 };
+type ComponentCheckListItem = {
+  title: string;
+  description: string;
+  requiredInputValue?: boolean;
+  imageType: ImageType;
+};
+const componentCheckList: ComponentCheckListItem[] = [
+  {
+    title: "Load Cargo",
+    description: "Ensure all items are laoded on the truck and take a photo.",
+    imageType: ImageType.LoadCargo_TripStart,
+  },
+  {
+    title: "Order Shipping",
+    description: "Kilometers Driven and Fuel Guage photo from the odometer.",
+    requiredInputValue: true,
+    imageType: ImageType.Millage_TripStart,
+  },
+];
 
 const PreTripChecks = () => {
   const styles = useStyle;
-  const componentCheckList = [
-    {
-      title: "Load Cargo",
-      description: "Ensure all items are laoded on the truck and take a photo.",
-    },
-    {
-      title: "Order Shipping",
-      description: "Kilometers Driven and Fuel Guage photo from the odometer.",
-    },
-  ];
 
   const {startNewTrip} = useTripLifecycle();
   const { tripDetails, updateTripDetails } = useDeliveryStore();
@@ -51,6 +66,8 @@ const PreTripChecks = () => {
     new Array(componentCheckList.length).fill(false)
   );
 
+  const [millageInputValue, setMillageInputValue] = useState("");
+
   const handleImageUpload = (index: number, isImageUplaoded: boolean) => {
     setComponentStatus((prevState) => {
       const newState = [...prevState];
@@ -61,8 +78,26 @@ const PreTripChecks = () => {
 
   const handleStartTripButton = () => {
     startNewTrip();
-    updateTripDetails({ isTripStarted: true });
+    updateTripDetails({
+      isTripStarted: true,
+      tripStartedAt: new Date().toUTCString(),
+    });
+    console.log("Compliances completed, Trip hass starts now.");
   };
+
+  const { showNotification } = useNotificationStore();
+
+  useEffect(() => {
+    if (
+      componentStatus.every((state) => state === false) &&
+      !tripDetails.isTripStarted
+    ) {
+      showNotification({
+        message: "New Trip Started!",
+        severity: NotificationSeverity.Info,
+      });
+    }
+  }, [componentStatus, tripDetails.isTripStarted, showNotification]);
 
   useEffect(() => {
     const isAllComplied = componentStatus.every((status) => status === true);
@@ -74,31 +109,82 @@ const PreTripChecks = () => {
       {componentCheckList.map(
         (item, index) =>
           componentStatus.lastIndexOf(true) + 1 === index && (
-            <CameraCapture
+            <Stack
               key={index}
-              title={item.title}
-              description={item.description}
-              buttonText={"Upload Image"}
-              showCameraIcon={true}
-              buttonDisabled={index !== 0 && !componentStatus[index - 1]}
-              onComplete={(result: boolean) => handleImageUpload(index, result)}
-              isMarkDone={componentStatus[index]}
-            />
+              spacing={4}
+              sx={{
+                p: 2,
+                borderWidth: "2px",
+                borderStyle: "solid",
+                borderColor: "primary.main",
+                borderRadius: 2,
+              }}
+            >
+              <Box display="flex" flexDirection={"column"} gap={1}>
+                <Typography variant="h5" fontWeight="bold">
+                  {item.title}
+                </Typography>
+                <Typography variant="body1" fontSize={"1.1rem"}>
+                  {item.description}
+                </Typography>
+              </Box>
+
+              {item.requiredInputValue && (
+                <CustomInputField
+                  label="Km's driven"
+                  placeholder="000000000"
+                  onChange={(value) => {
+                    setMillageInputValue(value);
+                    console.log(value);
+                  }}
+                />
+              )}
+
+              <CameraCapture
+                imageType={item.imageType}
+                millage={millageInputValue ?? null}
+                // title={item.title}
+                // description={item.description}
+                styleCard={false}
+                buttonText={"Upload Image"}
+                showCameraIcon={true}
+                buttonDisabled={
+                  index !== 0 && !componentStatus[index - 1]
+                  // !inputValue && !componentStatus[index - 1]
+                }
+                onComplete={(result: boolean) =>
+                  handleImageUpload(index, result)
+                }
+                isMarkDone={componentStatus[index]}
+              />
+            </Stack>
           )
       )}
 
       {isComplied &&
         componentCheckList.map((item, index) => (
           <Card key={index} variant="outlined" sx={styles.cardHighlight}>
-            <CameraCapture
-              styleCard={false}
-              title={
-                <Typography variant="h5" fontWeight="bold">
-                  {item.title}
-                </Typography>
-              }
-              isMarkDone={componentStatus[index]}
-            />
+            <Stack spacing={3}>
+              <CameraCapture
+                imageType={item.imageType}
+                styleCard={false}
+                title={
+                  <Typography variant="h5" fontWeight="bold">
+                    {item.title}
+                  </Typography>
+                }
+                isMarkDone={componentStatus[index]}
+              />
+
+              {item.requiredInputValue && (
+                <CustomInputField
+                  label="Km's driven"
+                  placeholder="000000000"
+                  value={millageInputValue}
+                  isDisabled={true}
+                />
+              )}
+            </Stack>
           </Card>
         ))}
 

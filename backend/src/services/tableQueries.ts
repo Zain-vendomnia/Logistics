@@ -1,5 +1,5 @@
 export const CREATE_DRIVER_DETAILS_TABLE = `
- CREATE TABLE driver_details (
+  CREATE TABLE IF NOT EXISTS driver_details (
     id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(45) NOT NULL,
     mob VARCHAR(20) NOT NULL,
@@ -11,12 +11,11 @@ export const CREATE_DRIVER_DETAILS_TABLE = `
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (warehouse_id) REFERENCES warehouse_details(warehouse_id) ON DELETE CASCADE
-);
+  );
 `;
 
-
 export const CREATE_DRIVER_LOCATIONS_TABLE = `
-  CREATE TABLE driver_locations (
+  CREATE TABLE IF NOT EXISTS driver_locations (
     id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     tour_id INT NOT NULL,
     driver_id INT NOT NULL,
@@ -32,7 +31,7 @@ export const CREATE_DRIVER_LOCATIONS_TABLE = `
 `;
 
 export const CREATE_TOUR_INFO_MASTER_TABLE = `
-  CREATE TABLE tourInfo_master (
+  CREATE TABLE IF NOT EXISTS tourInfo_master (
     id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     tour_name VARCHAR(45) NOT NULL,
     driver_id INT NOT NULL,
@@ -52,17 +51,16 @@ export const CREATE_TOUR_INFO_MASTER_TABLE = `
     tour_total_km VARCHAR(45) NOT NULL,
     tour_start_fuel_pic BLOB,
     route_color VARCHAR(7) NOT NULL,
+    notice VARCHAR(255) NOT NULL,
     graphhopper_route JSON,
     tour_status ENUM('pending', 'live', 'confirmed', 'completed') DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (driver_id) REFERENCES driver_details(id) ON DELETE CASCADE
+    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
   );
 `;
 
-
 export const CREATE_ROUTE_UPDATES_TABLE = `
-  CREATE TABLE route_updates (
+  CREATE TABLE IF NOT EXISTS route_updates (
     id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     tour_id INT NOT NULL,
     driver_id INT NOT NULL,
@@ -82,8 +80,9 @@ export const CREATE_ROUTE_UPDATES_TABLE = `
     FOREIGN KEY (segment_id) REFERENCES route_segments(id) ON DELETE CASCADE
   );
 `;
+
 export const CREATE_API_RESPONSE_LOG_TABLE = `
-  CREATE TABLE api_response_log (
+  CREATE TABLE IF NOT EXISTS api_response_log (
     id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     route_segment_id INT NOT NULL,
     api_response JSON NOT NULL,
@@ -92,8 +91,9 @@ export const CREATE_API_RESPONSE_LOG_TABLE = `
     FOREIGN KEY (route_segment_id) REFERENCES route_segments(id) ON DELETE CASCADE
   );
 `;
+
 export const CREATE_ROUTE_SEGMENTS_TABLE = `
-  CREATE TABLE route_segments (
+  CREATE TABLE IF NOT EXISTS route_segments (
     id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     tour_id INT NOT NULL,
     route_response JSON,
@@ -101,20 +101,20 @@ export const CREATE_ROUTE_SEGMENTS_TABLE = `
     doorstep_pic BLOB,
     delivered_item_pic BLOB,
     customer_signature BLOB,
+    parking_place VARCHAR(255),
     neighbour_signature BLOB,
     delivered_pic_neighbour BLOB,
     order_id VARCHAR(45),
     comments VARCHAR(45),
     delivery_time TIMESTAMP,
     FOREIGN KEY (tour_id) REFERENCES tourInfo_master(id) ON DELETE CASCADE,
-    FOREIGN KEY (order_id) REFERENCES logistic_order(order_id) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
   );
 `;
 
 export const CREATE_WAREHOUSE_DETAILS_TABLE = `
-  CREATE TABLE warehouse_details (
+  CREATE TABLE IF NOT EXISTS warehouse_details (
     warehouse_id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     warehouse_name VARCHAR(45) NOT NULL,
     clerk_name VARCHAR(45) NOT NULL,
@@ -125,33 +125,34 @@ export const CREATE_WAREHOUSE_DETAILS_TABLE = `
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
   );
 `;
+
 export const LOGIC_ORDER_TABLE = `
-   CREATE TABLE logistic_order (
-      order_id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
-      order_number VARCHAR(45) NOT NULL,
-      customer_id VARCHAR(45) NOT NULL,
-      invoice_amount VARCHAR(45) NOT NULL,
-      payment_id INT NOT NULL,
-      warehouse_id INT NOT NULL,
-      order_time DATETIME NOT NULL,
-      expected_delivery_time DATETIME NOT NULL,
-      customer_number VARCHAR(45) NOT NULL,
-      firstname VARCHAR(45) NOT NULL,
-      lastname VARCHAR(45) NOT NULL,
-      email VARCHAR(45) NOT NULL,
-      street VARCHAR(45) NOT NULL,
-      zipcode VARCHAR(10) NOT NULL,
-      city VARCHAR(45) NOT NULL,
-      phone VARCHAR(45) NOT NULL,
-      lattitude 	decimal(10,7),
-      longitude	decimal(10,7),
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
-    );
+  CREATE TABLE IF NOT EXISTS logistic_order (
+    order_id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+    order_number VARCHAR(45) NOT NULL,
+    customer_id VARCHAR(45) NOT NULL,
+    invoice_amount VARCHAR(45) NOT NULL,
+    payment_id INT NOT NULL,
+    warehouse_id INT NOT NULL,
+    order_time DATETIME NOT NULL,
+    expected_delivery_time DATETIME NOT NULL,
+    customer_number VARCHAR(45) NOT NULL,
+    firstname VARCHAR(45) NOT NULL,
+    lastname VARCHAR(45) NOT NULL,
+    email VARCHAR(45) NOT NULL,
+    street VARCHAR(45) NOT NULL,
+    zipcode VARCHAR(10) NOT NULL,
+    city VARCHAR(45) NOT NULL,
+    phone VARCHAR(45) NOT NULL,
+    lattitude DECIMAL(10,7),
+    longitude DECIMAL(10,7),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
+  );
 `;
 
 export const LOGIC_ORDER_ITEMS_TABLE = `
-   CREATE TABLE logistic_order_items (
+  CREATE TABLE IF NOT EXISTS logistic_order_items (
     id INT AUTO_INCREMENT PRIMARY KEY,
     order_id INT NOT NULL,
     order_number VARCHAR(50) NOT NULL,
@@ -164,15 +165,17 @@ export const LOGIC_ORDER_ITEMS_TABLE = `
     FOREIGN KEY (order_id) REFERENCES logistic_order(order_id) ON DELETE CASCADE,
     INDEX (order_number),
     INDEX (slmdl_articleordernumber)
-);
+  );
 `;
+
 export const LOGIC_PAYMENT_TABLE = `
-   CREATE TABLE logistic_payment (
-          id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
-          name VARCHAR(100) NOT NULL,
-          description VARCHAR(255) NOT NULL
-    );
+  CREATE TABLE IF NOT EXISTS logistic_payment (
+    id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    description VARCHAR(255) NOT NULL
+  );
 `;
+
 export const WMS_ORDER = `
   CREATE TABLE IF NOT EXISTS wms_orders (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -195,16 +198,16 @@ export const WMS_ORDER_ARTICLES = `
   );
 `;
 
-
 export const USERS_TABLE = `
-   CREATE TABLE IF NOT EXISTS users(
-        user_id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
-        username VARCHAR(20) NOT NULL UNIQUE,
-        email VARCHAR(30) NOT NULL UNIQUE,
-        password VARCHAR(100) NOT NULL,
-        role VARCHAR(20) NOT NULL DEFAULT 'user',  -- Adding role field with default 'user'
-        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-      );
+  CREATE TABLE IF NOT EXISTS users (
+    user_id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+    username VARCHAR(20) NOT NULL UNIQUE,
+    email VARCHAR(30) NOT NULL UNIQUE,
+    password VARCHAR(100) NOT NULL,
+    role VARCHAR(20) NOT NULL DEFAULT 'user',
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
 `;
 
 export const TOUR_DRIVER = `
@@ -215,8 +218,17 @@ export const TOUR_DRIVER = `
     tour_date DATE NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (tour_id) REFERENCES tourInfo_master(id) ON DELETE CASCADE,
-    FOREIGN KEY (driver_id) REFERENCES driver_details(id) ON DELETE CASCADE
+    FOREIGN KEY (tour_id) REFERENCES tourInfo_master(id) ON DELETE CASCADE
   );
 `;
 
+export const CREATE_SOLARMODULES_ITEMS_TABLE = `
+  CREATE TABLE IF NOT EXISTS solarmodules_items (
+    id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+    module_name VARCHAR(100) NOT NULL,
+    weight DECIMAL(10,2) NOT NULL,
+    updated_by VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
+  );
+`;

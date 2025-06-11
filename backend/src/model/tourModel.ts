@@ -15,34 +15,96 @@ interface Tour {
 
 // Function to insert a tour into the database
 export const createTour = async (tour: Tour) => {
-  const sql = `
-    INSERT INTO tourinfo_master (
-      tour_name, comments, start_time, end_time, driver_id, route_color, tour_date, order_ids, warehouse_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  const checkPendingSql = `
+    SELECT COUNT(*) AS count FROM tourinfo_master
+    WHERE driver_id = ? AND tour_status IN ('pending', 'in-progress')
   `;
 
-  const values = [
-    tour.tourName,
-    tour.comments,
-    tour.startTime,
-    tour.endTime,
-    tour.driverid,
-    tour.routeColor,
-    tour.tourDate,
-    JSON.stringify(tour.orderIds),
-    tour.warehouseId,
-  ];
+  const checkDateSql = `
+    SELECT COUNT(*) AS count FROM tourinfo_master
+    WHERE driver_id = ? AND tour_date = ?
+  `;
+
+  const insertSql = `
+    INSERT INTO tourinfo_master (
+      tour_name, comments, start_time, driver_id, route_color, tour_date, order_ids, warehouse_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `;
 
   try {
+    // 1. Validate pending/in-progress
+    const [pendingRows]: any = await pool.query(checkPendingSql, [tour.driverid]);
+    if (pendingRows[0].count > 0) {
+      throw new Error(`Driver already has a pending or in-progress tour. Complete it before assigning a new one.`);
+    }
+
+    // 2. Check duplicate tour date
+    const [sameDateRows]: any = await pool.query(checkDateSql, [tour.driverid, tour.tourDate]);
+    if (sameDateRows[0].count > 0) {
+      throw new Error(`Driver already has a tour on ${tour.tourDate}`);
+    }
+
+    // 3. Fetch driver name
+    const [driverRows]: any = await pool.query(`SELECT name FROM driver_details WHERE id = ?`, [tour.driverid]);
+    if (!driverRows.length) throw new Error(`Driver not found with ID ${tour.driverid}`);
+    const driverName = driverRows[0].name.replace(/\s+/g, ''); // e.g., "John Doe" => "JohnDoe"
+
+    // 4. Fetch zip codes from order IDs
+    const orderPlaceholders = tour.orderIds.map(() => '?').join(',');
+    const [zipRows]: any = await pool.query(
+      `SELECT zipcode FROM logistic_order WHERE order_id IN (${orderPlaceholders})`,
+      tour.orderIds
+    );
+    if (!zipRows.length) throw new Error(`No valid orders found`);
+
+    const zipcodes = zipRows.map((r: any) => r.zipcode);
+    const firstZip = zipcodes[0];
+    const lastZip = zipcodes[zipcodes.length - 1];
+
+    const firstZipPrefix = firstZip.substring(0, 2);
+    const lastZipPrefix = lastZip.substring(0, 2);
+
+    const tourDateFormatted = new Date(tour.tourDate);
+
+    // Get weekday name (e.g., Monday)
+    const dayName = tourDateFormatted.toLocaleDateString('en-US', { weekday: 'long' });
+
+    // Format date as YYYY.MM.DD
+    const formattedDate = `${tourDateFormatted.getFullYear()}.${String(tourDateFormatted.getMonth() + 1).padStart(2, '0')}.${String(tourDateFormatted.getDate()).padStart(2, '0')}`;
+
+    // Final tour name
+    const tourName = `PLZ-${firstZipPrefix}-${lastZipPrefix}-${driverName}-${dayName}-${formattedDate}`;
+
+
+    // 7. Prepare final insert values
+    const values = [
+      tourName,
+      tour.comments || null,
+      tour.startTime,
+      tour.driverid,
+      tour.routeColor,
+      tour.tourDate,
+      JSON.stringify(tour.orderIds),
+      tour.warehouseId
+    ];
+
     console.log('[tourModel] Creating tour with values:', values);
-    const [result] = await pool.query(sql, values);
-    console.log('[tourModel] Tour created successfully');
+
+    // 8. Execute insert
+    const [result] = await pool.query(insertSql, values);
     return result;
+
   } catch (err) {
-    console.error('[tourModel] Error creating tour:', err);
-    throw err;
+    if (err instanceof Error) {
+      console.error('[tourModel] Error creating tour:', err.message);
+      throw err;
+    } else {
+      console.error('[tourModel] Unknown error:', err);
+      throw new Error('An unknown error occurred while creating the tour.');
+    }
   }
 };
+
 
 // Function to insert a tour_driver data into the database
 export const insertTourDriverData = async (tour: any) => {

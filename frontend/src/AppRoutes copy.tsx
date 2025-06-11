@@ -14,7 +14,7 @@ import Register from "./components/pages/Register";
 import Home from "./components/pages/Home";
 import Profile from "./components/pages/Profile";
 import BoardDriver from "./components/driver/BoardDriver";
-import BoardAdmin from "./components/BoardAdmin/BoardAdmin";
+
 import SuperAdmin from "./components/SuperAdmin";
 import AdminDashboard from "./components/Admin/Admin_dashboard";
 import ManageDrivers from "./components/Admin/ManageDrivers";
@@ -77,10 +77,7 @@ const AppRoutes = () => {
         path="/driver"
         element={<ProtectedRoute element={<BoardDriver />} allowedRoles={["driver"]} />}
       />
-      <Route
-        path="/admin"
-        element={<ProtectedRoute element={<BoardAdmin />} allowedRoles={["admin", "superadmin"]} />}
-      />
+     
       <Route
         path="/home"
         element={<ProtectedRoute element={<Home />} />}

@@ -12,7 +12,8 @@ import {
 } from "../../services/driverService";
 import DriverDialog from "./DriverDialog";
 import ConfirmDialog from "./ConfirmDialog"; 
-import theme from "../../theme";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import CancelIcon from "@mui/icons-material/Cancel";
 
 
 type Driver = {
@@ -22,9 +23,14 @@ type Driver = {
   address: string;
   email: string;
   warehouse_id: number;
+  status:number;
 };
 
-const initialFormState: Partial<Driver> = {};
+// const initialFormState: Partial<Driver> = {};
+const initialFormState: Partial<Driver> = {
+  mob: "+49",           // ← default mobile field value
+  status: 1             // ← default driver status: Active
+};
 
 const ManageDrivers: React.FC = () => {
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -67,7 +73,10 @@ const ManageDrivers: React.FC = () => {
     if (!formData.name?.trim()) newErrors.name = "Name is required";
     else if (/\d/.test(formData.name)) newErrors.name = "Name should not contain numbers";
 
-    if (!/^\+\d{7,15}$/.test(formData.mob || "")) newErrors.mob = "Mobile must start with '+' and be 7–15 digits";
+    // if (!/^\+\d{7,15}$/.test(formData.mob || "")) newErrors.mob = "Mobile must start with '+' and be 7–15 digits";
+    if (!/^\+49\d{10,12}$/.test(formData.mob || "")) {
+     newErrors.mob = "Mobile must be a valid German number starting with +49 and 11–13 digits total";
+    }
 
     if (!formData.address?.trim()) newErrors.address = "Address is required";
 
@@ -201,66 +210,87 @@ const ManageDrivers: React.FC = () => {
     XLSX.writeFile(wb, "drivers_export.xlsx");
   };
 
-  const columns: GridColDef[] = [
-    { field: "id", headerName: "ID", width: 80 },
-    { field: "name", headerName: "Name", flex: 1 },
-    { field: "mob", headerName: "Mobile", flex: 1 },
-    { field: "email", headerName: "Email", flex: 1 },
-    { field: "address", headerName: "Address", flex: 1 },
-    { field: "warehouse_id", headerName: "Warehouse ID", flex: 1 },
-    {
-      field: "actions",
-      headerName: "Actions",
-      width: 160,
-      sortable: false,
-      filterable: false,
-      renderCell: ({ row }) => (
-        <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
-          <Button
-            size="small"
-            variant="outlined"
-            color="primary"
-            onClick={() => handleDialogOpen(row)}
-            disabled={loading}
-            sx={(theme) => ({
-              mt: 2,
-              width: "36px",
-              minWidth: "36px",
-              height: "36px",
-              background: theme.palette.primary.gradient,
-              color: theme.palette.primary.contrastText,
-              "&:hover": {
-                background: theme.palette.primary.dark,
-                color: theme.palette.primary.contrastText,
-              }
-            })}
-          >
-            <Edit fontSize="small" />
-          </Button>
-          <Button
-            variant="outlined"
-            color="error"
-            onClick={() => confirmDeleteDriver(row.id)}
-            disabled={loading}
-            sx={{
-              mt: 2,
-              width: "36px",
-              minWidth: "36px",
-              height: "36px",
-              background: "red",
-              color: "white",
-              "&:hover": {
-                background: theme.palette.primary.dark,
-                color: theme.palette.primary.contrastText,
-              },
-            }}
-          >
-            <Delete fontSize="small" />
-          </Button>
-        </Stack>
-      ),
-    }
-  ];
+const columns: GridColDef[] = [
+  { field: "id", headerName: "ID", width: 80 },
+  { field: "name", headerName: "Name", flex: 1 },
+  { field: "mob", headerName: "Mobile", flex: 1 },
+  { field: "email", headerName: "Email", flex: 1 },
+  { field: "address", headerName: "Address", flex: 1 },
+  { field: "warehouse_id", headerName: "Warehouse ID", flex: 1 },
+  {
+    field: "status",
+    headerName: "Status",
+    flex: 1,
+    renderCell: ({ row }) => (
+      <Stack height="100%" direction="row" spacing={1} alignItems="center" justifyContent="center"> 
+        {row.status === 1 ? (
+          <>
+            <CheckCircleOutlineIcon color="success" />
+            <Typography variant="body2" color="success.main">Active</Typography>
+          </>
+        ) : (
+          <>
+            <CancelIcon color="error" />
+            <Typography variant="body2" color="error.main">Inactive</Typography>
+          </>
+        )}
+      </Stack>
+    ),
+  },
+  {
+    field: "actions",
+    headerName: "Actions",
+    width: 160,
+    headerAlign: "center", 
+    sortable: false,
+    filterable: false,
+    renderCell: ({ row }) => (
+      <Stack height="100%" direction="row" spacing={1} alignItems="center" justifyContent="center">
+        <Button
+          size="small"
+          variant="outlined"
+          color="primary"
+          onClick={() => handleDialogOpen(row)}
+          disabled={loading}
+          sx={(theme) => ({
+            mt: 2,
+            width: "36px",
+            minWidth: "36px",
+            height: "36px",
+            background: theme.palette.primary.gradient,
+            color: "#fff",
+            "&:hover": {
+              background: "#fff",
+              color: theme.palette.primary.dark,
+            }
+          })}
+        >
+          <Edit fontSize="small" />
+        </Button>
+        <Button
+          variant="outlined"
+          color="error"
+          onClick={() => confirmDeleteDriver(row.id)}
+          disabled={loading}
+          sx={{
+            mt: 2,
+            width: "36px",
+            minWidth: "36px",
+            height: "36px",
+            background: "red",
+            color: "white",
+            "&:hover": {
+              background: "#fff",
+              color: "red",
+            },
+          }}
+        >
+          <Delete fontSize="small" />
+        </Button>
+      </Stack>
+    ),
+  }
+];
 
   return (
     <Box sx={{ p: 3, minHeight: "100vh", backgroundColor: "#f4f4f4", borderRadius: 2 }}>

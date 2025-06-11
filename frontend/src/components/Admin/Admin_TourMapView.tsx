@@ -1,10 +1,10 @@
+
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import {
   MapContainer,
   TileLayer,
   Marker,
   Popup,
-  Polyline,
   useMap,
 } from 'react-leaflet';
 import {
@@ -12,20 +12,17 @@ import {
   Typography,
   List,
   ListItem,
-  ListItemText,
   Paper,
   Divider,
   IconButton,
   Avatar,
   Stack,
-  ListItemButton,
   Button,
   Chip,
+  ListItemIcon,
+  ListItemText,
 } from '@mui/material';
-import Inventory2Icon from '@mui/icons-material/Inventory2';
-import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import NoteAltIcon from '@mui/icons-material/NoteAlt';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
 import adminApiService from '../../services/adminApiService';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -34,7 +31,13 @@ import { useParams } from 'react-router-dom';
 import latestOrderServices from './AdminServices/latestOrderServices';
 import "./css/Admin_TourMapView.css";
 import 'leaflet-polylinedecorator';
-import { Tour } from '@mui/icons-material';
+import { AccessTime, Article, ProductionQuantityLimits } from '@mui/icons-material';
+import Tooltip from '@mui/material/Tooltip';
+import CustomerEditModal from './CustomerEditModal';
+import { Console } from 'console';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { useNavigate } from 'react-router-dom';
+
 type Stop = {
   id: string;
   location_id: string;
@@ -44,6 +47,17 @@ type Stop = {
   type: string;
   name?: string;
   address?: string;
+};
+type Order = {
+  order_id: number;
+  // add other properties as needed (e.g., name, address, status, etc.)
+  [key: string]: any;
+};
+
+type Tours = {
+  id: number;
+  orders: Order[];
+  [key: string]: any;
 };
 
 const TourMapPage: React.FC = () => {
@@ -56,19 +70,29 @@ const TourMapPage: React.FC = () => {
   const mapRef = useRef<L.Map>(null);
   const [routeDistance, setRouteDistance] = useState<number>(0);
   const [routeTime, setRouteTime] = useState<number>(0);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [lastEdited, setLastEdited] = useState<number | null>(null);
+  const navigate = useNavigate();
   useEffect(() => {
+    // const instance = latestOrderServices.getInstance();
     const fetchData = async () => {
+      const now = Date.now();
+      // If edited in the last 5 seconds, skip this fetch
       const instance = latestOrderServices.getInstance();
       const toursdata = await instance.getTours();
       const tour = toursdata.find((tour: any) => tour.id === Number(tour_id));
-      setSelectedTour(tour);
-    };
 
+      // Optional: Only update if tour has changed
+      if (JSON.stringify(tour) !== JSON.stringify(selectedTour)) {
+        setSelectedTour(tour);
+      }
+    };
     fetchData();
   }, [tour_id]);
 
   console.log(selectedTour);
-  console.log("stops" + JSON.stringify(stops));
+
   const fetchRouteData = async () => {
     try {
       if (parsedTourId !== null) {
@@ -114,6 +138,12 @@ const TourMapPage: React.FC = () => {
   useEffect(() => {
     fetchRouteData();
   }, [parsedTourId]);
+
+
+  const handleEditCustomer = (customer: any) => {
+    setSelectedCustomer(customer);
+    setEditModalOpen(true);
+  };
 
   const blink = {
     animation: 'blinker 1.5s linear infinite',
@@ -221,14 +251,12 @@ const TourMapPage: React.FC = () => {
 
   // Format the tour start time (remove trailing :00)
   const cleanStartTime = selectedTour.tour_startTime.replace(/:00$/, '');
- 
+
   const handleConfirm = async () => {
     setLoading(true);
-  
+
     try {
-     
-      const response = await adminApiService.update_tourstatus(selectedTour.id) ;
-        
+      const response = await adminApiService.update_tourstatus(selectedTour.id);
       if (response.status === 200) {
         setSelectedTour((prev: any) => ({ ...prev, tour_status: 'confirmed' }));
       } else {
@@ -242,10 +270,6 @@ const TourMapPage: React.FC = () => {
       setLoading(false);
     }
   };
-
-
-
-
 
   return (
     <Box sx={{ display: 'flex', height: '100vh' }}>
@@ -271,150 +295,352 @@ const TourMapPage: React.FC = () => {
 
         <Divider sx={{ my: 2 }} />
         <List disablePadding>
-          {stops.map((stop, index) => (
-            <ListItem
-              key={index}
-              sx={{
-                mb: 1,
-                borderBottom: '1px dashed #ccc',
-                pb: 1,
-                alignItems: 'flex-start',
-              }}
-              disableGutters
-            >
-              <ListItemButton onClick={() => zoomToStop(stop.lat, stop.lon)}>
-                <Avatar
-                  sx={{
-                    bgcolor: selectedTour?.tour_route_color,
-                    width: 28,
-                    height: 28,
-                    fontSize: 14,
-                    mt: 0.5
-                  }}
-                >
-                  {stop.type === 'start' ? 'S' : stop.type === 'end' ? 'E' : index}
-                </Avatar>
+          {stops.map((stop, index) => {
+            const isWarehouse = stop.location_id === "v1";
+            const matchedOrder = selectedTour?.orders?.find(
+              (order: any) => order.order_id === Number(stop.location_id)
+            );
+            console.log("matchedOrder" + JSON.stringify(matchedOrder));
 
-                <Box sx={{ ml: 2, flexGrow: 1 }}>
-                  {stop.location_id === "v1" ? (
-                    <Typography variant="body2" fontWeight="bold">
-                      {selectedTour.warehouseaddress}
-                    </Typography>
-                  ) : (
-                    <Typography fontWeight="bold" variant="body2">
-                      Order ID: {stop.location_id}
-                    </Typography>
-                  )}
-                  {/* ✅ Find the matching order */}
-                  {selectedTour?.orders && (() => {
-                    const matchedOrder = selectedTour.orders.find(
-                      (order: any) => order.order_id === Number(stop.location_id)
-                    );
-                    return matchedOrder ? (
-                      <>
-                        <Typography variant="caption" color="text.secondary">
-                          {matchedOrder.firstname} {matchedOrder.lastname}
+
+            // Skip rendering if not a warehouse and there's no matching order
+            if (!isWarehouse && !matchedOrder) return null;
+
+            return (
+
+              <ListItem
+                key={index}
+                disableGutters
+                sx={{
+                  mb: 1,
+                  borderBottom: '1px dashed #ccc',
+                  pb: 1,
+                  alignItems: 'flex-start',
+                  position: 'relative', // Enable absolute positioning inside
+                }}
+              >
+                {/* === Top-right Button Stack === */}
+                {!isWarehouse && matchedOrder && (
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      top: 8,
+                      right: 8,
+                      zIndex: 2,
+                    }}
+                  >
+                    <Stack
+                      direction="row"
+                      spacing={0.5}
+                      sx={{
+                        '& .MuiIconButton-root:hover': {
+                          backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                          transform: 'scale(1.05)',
+                          transition: 'all 0.2s ease',
+                        },
+                      }}
+                    >
+                      <Tooltip
+                        arrow
+                        placement="top"
+                        title={
+                          <Typography variant="caption">
+                            Total Qty:{' '}
+                            <strong>
+                              {matchedOrder.items.reduce(
+                                (total: number, item: any) => total + Number(item.quantity),
+                                0
+                              )}
+                            </strong>
+                          </Typography>
+                        }
+                      >
+                        <IconButton size="small" color="primary">
+                          <ProductionQuantityLimits fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+
+                      <Tooltip
+                        arrow
+                        placement="top"
+                        title={
+                          <ul style={{ margin: 0, padding: '4px 8px', listStyle: 'none' }}>
+                            {matchedOrder.items.map((item: any, i: number) => (
+                              <li key={i}>
+                                <Typography component="span" variant="caption">
+                                  <strong>{item.slmdl_articleordernumber}</strong>
+                                </Typography>
+                              </li>
+                            ))}
+                          </ul>
+                        }
+                      >
+                        <IconButton size="small" color="success">
+                          <Article fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+
+                      <Tooltip title="View Time Log" arrow placement="top">
+                        <IconButton size="small" color="warning">
+                          <AccessTime fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+
+                      <Tooltip title="Edit Customer" arrow placement="top">
+                        <IconButton
+                          size="small"
+                          color="info"
+                          onClick={() => handleEditCustomer(matchedOrder)}
+                        >
+                          <NoteAltIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Stack>
+                  </Box>
+                )}
+
+                {/* === Main Content === */}
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', width: '100%' }}>
+                  <Avatar
+                    sx={{
+                      bgcolor: selectedTour?.tour_route_color,
+                      width: 28,
+                      height: 28,
+                      fontSize: 14,
+                      mt: 0.5,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {stop.type === 'start' ? 'S' : stop.type === 'end' ? 'E' : index}
+                  </Avatar>
+                  <Box sx={{ ml: 2, flexGrow: 1, minWidth: 0 }}>
+                    {/* Order Info Box with zoom */}
+                    <Box
+                      onClick={() =>
+                        stop.type !== 'start' && stop.type !== 'end' && zoomToStop(stop.lat, stop.lon)
+                      }
+                      sx={{
+                        cursor: stop.type !== 'start' && stop.type !== 'end' ? 'pointer' : 'default',
+                        '&:hover': {
+                          backgroundColor:
+                            stop.type !== 'start' && stop.type !== 'end' ? 'action.hover' : 'transparent',
+                        },
+                        p: 1,
+                        borderRadius: 1,
+                      }}
+                    >
+                      {isWarehouse ? (
+                        <Typography variant="body2" fontWeight="bold">
+                          {selectedTour?.warehouseaddress || 'Warehouse Address Not Available'}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {matchedOrder.street}, {matchedOrder.city}, {matchedOrder.zipcode}
+                      ) : (
+                        <Typography fontWeight="bold" variant="body2">
+                          Order ID: {stop?.location_id || 'N/A'}
                         </Typography>
-                        <Typography variant="caption" display="block" fontWeight="bold" mt={0.5}>
-                          Order Number: {matchedOrder.order_number}
-                        </Typography>
-                      </>
-                    ) : (
-                      <Typography variant="caption" color="error">
-                        {stop.location_id === "v1" ? "" : "Order not found for this stop."}
+                      )}
+
+                      {matchedOrder && (
+                        <>
+                          <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
+                            <Box component="span" color="text.secondary">{matchedOrder.firstname}</Box>
+                          </Typography>
+                          <Typography variant="caption" display="block">
+                            <Box component="span" color="text.secondary">{matchedOrder.lastname}</Box>
+                          </Typography>
+                          <Typography variant="caption" display="block">
+                            <Box component="span" color="text.secondary">{matchedOrder.street}</Box>
+                          </Typography>
+                          <Typography variant="caption" display="block">
+                            <Box component="span" color="text.secondary">{matchedOrder.city}</Box>
+                          </Typography>
+                          <Typography variant="caption" display="block">
+                            <Box component="span" color="text.secondary">{matchedOrder.zipcode}</Box>
+                          </Typography>
+                          <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
+                            <Box component="span" fontWeight="bold">Order Number: </Box>
+                            <Box component="span" color="text.secondary">{matchedOrder.order_number}</Box>
+                          </Typography>
+                        </>
+                      )}
+
+                      <Typography variant="caption" display="block" mt={0.5}>
+                        <Box component="span" fontWeight="bold">Arrival Time: </Box>
+                        <Box component="span" color="text.secondary">
+                          {stop?.arrival
+                            ? new Date(stop.arrival).toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })
+                            : 'Time Not Set'}
+                        </Box>
                       </Typography>
-                    );
-                  })()}
-                  <Typography variant="caption" display="block" mt={0.5}>
-                    Arrival: {new Date(stop.arrival).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </Typography>
-                </Box>
-              </ListItemButton>
-            </ListItem>
-          ))}
-        </List>
-     
-        <Box display="flex" justifyContent="center" mt={2}>
-        {selectedTour.tour_status === 'pending' ? (
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={handleConfirm}
-            disabled={loading}
-            sx={(theme) => ({
-              padding: '8px 24px',
-              borderRadius: '4px',
-              textTransform: 'none',
-              fontWeight: '500',
-              background: theme.palette.warning.dark,
-              color: theme.palette.warning.contrastText,
-              borderColor: theme.palette.warning.main,
-              transition: 'all 0.3s ease',
-              ...blink,
-              '&:hover': {
-                background: theme.palette.warning.main,
-                color: theme.palette.warning.contrastText,
-                opacity: 1,
-              },
-            })}
-          >
-            {loading ? 'Confirming...' : 'Confirm'}
-          </Button>
-        ) : selectedTour.tour_status === 'live' ? (
-          <Button
-            variant="contained"
-            size="small"
-            disabled
-            sx={(theme) => ({
-              padding: '8px 24px',
-              borderRadius: '4px',
-              textTransform: 'none',
-              fontWeight: '500',
-              backgroundColor: theme.palette.info.main,
-              color: theme.palette.info.contrastText,
-              ...livePulse,
-            })}
-          >
-            Live
-          </Button>
-        ) : selectedTour.tour_status === 'completed' ? (
-          <Button
-            variant="contained"
-            size="small"
-            disabled
-            sx={(theme) => ({
-              padding: '8px 24px',
-              borderRadius: '4px',
-              textTransform: 'none',
-              fontWeight: '500',
-              backgroundColor: theme.palette.grey[700],
-              color: theme.palette.common.white,
-            })}
-          >
-            Completed
-          </Button>
-        ) : (
-          <Chip
-            label="✔ Confirmed"
-            color="success"
-            sx={{
-              fontWeight: 500,
-              fontSize: '0.875rem',
-              px: 2,
-              py: 1,
-              borderRadius: '4px',
-              backgroundColor: (theme) => theme.palette.success.main,
-              color: (theme) => theme.palette.success.contrastText,
-            }}
-          />
-        )}
-      </Box>
+                    </Box>
 
+                    {/* Status Log Box without zoom */}
+                    {stop.type !== 'start' && stop.type !== 'end' && (
+                      <Box sx={{ mt: 2 }}>
+                        <Divider sx={{ mb: 2 }} />
+
+                        <Typography variant="subtitle2" gutterBottom>
+                          Status Logs
+                        </Typography>
+
+                        <List dense disablePadding style={{ marginTop: '-5px' }}>
+                          <ListItem
+                            key="log-1"
+                            disableGutters
+                            component="div"
+                            onClick={() => navigate('/ProofdeliveryLiveloc')}
+                            sx={{
+                              alignItems: 'flex-start',
+                              pb: 0.5,
+                              borderBottom: '1px dashed #ddd',
+                              mb: 0.5,
+                              cursor: 'pointer',
+                              '&:hover': {
+                                backgroundColor: '#f5f5f5',
+                              },
+                            }}
+                          >
+                            <ListItemIcon sx={{ minWidth: 32, mt: 0.2 }}>
+                              <CheckCircleIcon color="success" fontSize="small" />
+                            </ListItemIcon>
+                            <ListItemText
+                              primary={
+                                <Typography variant="caption" color="text.secondary">
+                                  2025-06-04 08:00
+                                </Typography>
+                              }
+                              secondary={
+                                <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                                  Service successfully provided
+                                </Typography>
+                              }
+                            />
+                          </ListItem>
+
+                          <ListItem
+                            key="log-2"
+                            disableGutters
+                            component="div"
+                            onClick={() => navigate('/ProofdeliveryImage')}
+                            sx={{
+                              alignItems: 'flex-start',
+                              pb: 0.5,
+                              borderBottom: '1px dashed #ddd',
+                              mb: 0.5,
+                              cursor: 'pointer',
+                              '&:hover': {
+                                backgroundColor: '#f5f5f5',
+                              },
+                            }}
+                          >
+                            <ListItemIcon sx={{ minWidth: 32, mt: 0.2 }}>
+                              <CheckCircleIcon color="success" fontSize="small" />
+                            </ListItemIcon>
+                            <ListItemText
+                              primary={
+                                <Typography variant="caption" color="text.secondary">
+                                  2025-06-04 09:20
+                                </Typography>
+                              }
+                              secondary={
+                                <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                                  Delivered
+                                </Typography>
+                              }
+                            />
+                          </ListItem>
+                        </List>
+
+                      </Box>
+                    )}
+                  </Box>
+
+
+                </Box>
+              </ListItem>
+
+            );
+          })}
+        </List>
+        <Box display="flex" justifyContent="center" mt={2}>
+          {selectedTour.tour_status === 'pending' ? (
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={handleConfirm}
+              disabled={loading}
+              sx={(theme) => ({
+                padding: '8px 24px',
+                borderRadius: '4px',
+                textTransform: 'none',
+                fontWeight: '500',
+                background: theme.palette.warning.dark,
+                color: theme.palette.warning.contrastText,
+                borderColor: theme.palette.warning.main,
+                transition: 'all 0.3s ease',
+                ...blink,
+                '&:hover': {
+                  background: theme.palette.warning.main,
+                  color: theme.palette.warning.contrastText,
+                  opacity: 1,
+                },
+              })}
+            >
+              {loading ? 'Confirming...' : 'Confirm'}
+            </Button>
+          ) : selectedTour.tour_status === 'live' ? (
+            <Button
+              variant="contained"
+              size="small"
+              disabled
+              sx={(theme) => ({
+                padding: '8px 24px',
+                borderRadius: '4px',
+                textTransform: 'none',
+                fontWeight: '500',
+                backgroundColor: theme.palette.info.main,
+                color: theme.palette.info.contrastText,
+                ...livePulse,
+              })}
+            >
+              Live
+            </Button>
+          ) : selectedTour.tour_status === 'completed' ? (
+            <Button
+              variant="contained"
+              size="small"
+              disabled
+              sx={(theme) => ({
+                padding: '8px 24px',
+                borderRadius: '4px',
+                textTransform: 'none',
+                fontWeight: '500',
+                backgroundColor: theme.palette.grey[700],
+                color: theme.palette.common.white,
+              })}
+            >
+              Completed
+            </Button>
+          ) : (
+            <Chip
+              label="✔ Confirmed"
+              color="success"
+              sx={{
+                fontWeight: 500,
+                fontSize: '0.875rem',
+                px: 2,
+                py: 1,
+                borderRadius: '4px',
+                backgroundColor: (theme) => theme.palette.success.main,
+                color: (theme) => theme.palette.success.contrastText,
+              }}
+            />
+          )}
+        </Box>
       </Paper>
-         
+
       <Box sx={{ flex: 1 }}>
         <MapContainer
           center={[stops[0]?.lat || 51.191566, stops[0]?.lon || 10.00519]}
@@ -424,12 +650,12 @@ const TourMapPage: React.FC = () => {
         >
           {/* <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap contributors' detectRetina={true} /> */}
           <TileLayer
-  url={`https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoiemFpbi12ZW5kb21uaWEiLCJhIjoiY204ZmlramFxMGNzazJscHRjNGs5em80NyJ9.1nIfy1EdSPl2cYvwvxOEmA`}
-  attribution='&copy; <a href="https://www.mapbox.com/">Mapbox</a> &copy; OpenStreetMap contributors'
-  detectRetina={true}
-  tileSize={512}
-  zoomOffset={-1}
-/>
+            url={`https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoiemFpbi12ZW5kb21uaWEiLCJhIjoiY204ZmlramFxMGNzazJscHRjNGs5em80NyJ9.1nIfy1EdSPl2cYvwvxOEmA`}
+            attribution='&copy; <a href="https://www.mapbox.com/">Mapbox</a> &copy; OpenStreetMap contributors'
+            detectRetina={true}
+            tileSize={512}
+            zoomOffset={-1}
+          />
           {routePoints.length > 0 &&
             routePoints.map((route, index) => (
               <PolylineDecoratorComponent key={index} positions={route} />
@@ -534,7 +760,29 @@ const TourMapPage: React.FC = () => {
 
         </MapContainer>
       </Box>
+
+      <CustomerEditModal
+        open={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        customer={selectedCustomer}
+        notice={selectedCustomer?.route_segment_notice || ''}
+        tourId={tour_id}
+        color={selectedTour?.tour_route_color}
+        onSave={(updatedCustomer) => {
+          setSelectedTour((prev: Tours | null) => {
+            if (!prev) return prev;
+
+            const updatedOrders = prev.orders.map((order: Order) =>
+              order.order_id === updatedCustomer.order_id ? updatedCustomer : order
+            );
+
+            return { ...prev, orders: updatedOrders };
+          });
+          setLastEdited(Date.now());
+        }}
+      />
     </Box>
+
   );
 };
 

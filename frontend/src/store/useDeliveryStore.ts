@@ -31,16 +31,17 @@ const defaultActionsCompleted: DeliveryActionsCompleted = {
 
 export type TripDetails = {
   isTripStarted: boolean;
-  tripStartedAt: Date | null;
+  tripStartedAt: string;
+
   isTripCompleted: boolean;
-  tripCompletedAt: Date | null;
+  tripCompletedAt: string;
 };
 
 const defaultTripDetails: TripDetails = {
   isTripStarted: false,
-  tripStartedAt: null,
+  tripStartedAt: "",
   isTripCompleted: false,
-  tripCompletedAt: null,
+  tripCompletedAt: "",
 };
 
 export type DeliveryState = {
@@ -102,6 +103,7 @@ type DeliveryStore = {
 };
 
 export const defaultDeliveryStoreState = {
+  tripDetails: defaultTripDetails,
   deliveryInstanceKey: 0,
   deliveryId: "",
   scenarioKey: null,
@@ -246,6 +248,7 @@ export const useDeliveryStore = create<DeliveryStore>()(
     storage: createJSONStorage(() => localStorage),
     version: 1,
     partialize: (state) => ({
+      tripDetails: state.tripDetails,
       deliveryInstanceKey: state.deliveryInstanceKey,
       deliveryId: state.deliveryId,
       scenarioKey: state.scenarioKey,
@@ -254,7 +257,7 @@ export const useDeliveryStore = create<DeliveryStore>()(
       ordersDeliveredSuccessfully: state.ordersDeliveredSuccessfully,
       ordersReturnToWareHouse: state.ordersReturnToWareHouse,
       tripData: state.tripData,
-      actionsCompleted: state.actionsCompleted,
+      // actionsCompleted: state.actionsCompleted,
       // success: state.success,
     }),
   })
