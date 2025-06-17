@@ -50,21 +50,15 @@ const TripComplete = () => {
     new Array(imageChecklist.length).fill(false)
   );
   const [isAllComplied, setIsAllComplied] = useState(false);
-  const [isCameraDisabled, setIsCameraDisabled] = useState(false);
 
   useEffect(() => {
     const requiresInput = imageChecklist[currentIndex]?.requiredInputValue;
 
     if (requiresInput) {
       setShouldShowInputField(requiresInput);
-      setIsCameraDisabled(requiresInput);
       if (millageValue.length > 1) {
-        setIsCameraDisabled(false);
-      } else {
-        setIsCameraDisabled(true);
       }
     } else {
-      setIsCameraDisabled(false);
       setShouldShowInputField(false);
     }
 
@@ -133,74 +127,116 @@ const TripComplete = () => {
   const currentItem = imageChecklist[lastValidIndex];
 
   return (
-    <Grid2 container spacing={0} p={0} height={"100%"}>
-      <Grid2 height={"100%"} bgcolor={"#00695f"} size={{ sm: 8, md: 9, lg: 9 }}>
-        <Box
-          height="100%"
-          display={"flex"}
-          alignItems={"center"}
-          justifyContent={"center"}
+    <>
+      <Box
+        sx={{
+          width: "100vw",
+          height: "100vh",
+          overflow: "hidden", // 🔸 Remove scrollbars
+          display: "flex",
+        }}
+      >
+        {/* <Grid2 container spacing={0} p={0} height={"100%"}> */}
+        {/* <Grid2 height={"100%"} bgcolor={"#fff"} size={{ sm: 8, md: 9, lg: 9 }}> */}
+        <Grid2
+          container
+          sx={{
+            position: "relative",
+            // size: { sm: 8, md: 9, lg: 9 },
+            width: "77%",
+            height: "100%",
+            overflow: "hidden",
+          }}
         >
-          <Stack spacing={4} p={4} height={"100%"}>
-            {shouldShowInputField && (
-              <Box display={"flex"} width="100%">
-                <CustomInputField
-                  label="Km's driven"
-                  placeholder="000000000"
-                  blinkAlert={showInputFieldAlert}
-                  onChange={handleInputValue}
-                />
-              </Box>
-            )}
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 0,
+              backgroundImage: `url("/mapbg.png")`,
+              backgroundSize: "cover",
+              backgroundRepeat: "no-repeat",
+              backgroundPosition: "center",
+              filter: "blur(2px)",
+              opacity: 1,
+              zIndex: 0,
+            }}
+          />
+          <Box
+            sx={{
+              position: "relative",
+              zIndex: 1,
+              height: "100%",
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Stack spacing={4} p={4} height={"100%"} maxWidth={"600px"}>
+              {shouldShowInputField && (
+                <Box display={"flex"} width="100%">
+                  <CustomInputField
+                    label="Km's driven"
+                    placeholder="000000000"
+                    blinkAlert={showInputFieldAlert}
+                    onChange={handleInputValue}
+                  />
+                </Box>
+              )}
 
-            <Box height={"100%"} onClick={checkCameraEnable}>
-              <Box
-                sx={{
-                  height: "100%",
-                  pointerEvents: "auto",
-                  ...(shouldShowInputField &&
-                    !millageValue && {
-                      cursor: "not-allowed",
-                      pointerEvents: "none",
-                      opacity: 0.5,
-                    }),
-                }}
-              >
-                <Camera
-                  type={currentItem.imageType}
-                  millage={millageValue ?? null}
-                  buttonText={currentItem?.title ?? "Upload Image"}
-                  isComplied={isAllComplied}
-                  onImageUploaded={handleImageUploaded}
-                />
+              <Box height={"100%"} onClick={checkCameraEnable}>
+                <Box
+                  sx={{
+                    height: "100%",
+                    pointerEvents: "auto",
+                    ...(shouldShowInputField &&
+                      !millageValue && {
+                        cursor: "not-allowed",
+                        pointerEvents: "none",
+                        opacity: 0.5,
+                      }),
+                  }}
+                >
+                  <Camera
+                    type={currentItem.imageType}
+                    millage={millageValue ?? null}
+                    buttonText={currentItem?.title ?? "Upload Image"}
+                    isComplied={isAllComplied}
+                    onImageUploaded={handleImageUploaded}
+                  />
+                </Box>
               </Box>
-            </Box>
-          </Stack>
-        </Box>
-      </Grid2>
-      <Grid2 height={"100%"} bgcolor={"#009688"} size={{ sm: 4, md: 3, lg: 3 }}>
-        <Stack
-          display={"flex"}
-          alignItems={"center"}
-          justifyContent={"space-evenly"}
+            </Stack>
+          </Box>
+        </Grid2>
+        <Grid2
+          bgcolor={"primary.dark"}
+          color="#fff"
           height={"100%"}
-          py={4}
+          // size={{ sm: 4, md: 3, lg: 3 }}
+          width={"23%"}
+          borderRadius={2}
         >
-          {imageChecklist.map((item, index) => (
-            <Box
-              key={index}
-              display="flex"
-              flexDirection={"column"}
-              justifyContent={"center"}
-              alignItems={"center"}
-              gap={1}
-            >
-              <IconButton>
+          <Stack
+            alignItems={"center"}
+            justifyContent={"space-evenly"}
+            height={"100%"}
+            py={4}
+          >
+            {imageChecklist.map((item, index) => (
+              <Box
+                key={index}
+                display="flex"
+                flexDirection={"column"}
+                justifyContent={"center"}
+                alignItems={"center"}
+                gap={1}
+              >
                 <Box
                   sx={{
                     perspective: 1000,
-                    width: "6rem",
-                    height: "6rem",
+                    width: iconSize,
+                    height: iconSize,
                   }}
                 >
                   <Box
@@ -225,13 +261,14 @@ const TripComplete = () => {
                         alignItems: "center",
                         justifyContent: "center",
                         border: "1px solid",
-                        borderColor: "primary",
+                        borderColor: "#333",
                         borderRadius: "50%",
-                        // backgroundColor: "#00695f",
                         boxShadow: 3,
                       }}
                     >
-                      <PublishIcon sx={{ fontSize: iconSize }} />
+                      <IconButton>
+                        <PublishIcon sx={{ fontSize: iconSize }} />
+                      </IconButton>
                     </Box>
 
                     <Box
@@ -244,40 +281,41 @@ const TripComplete = () => {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        // border: "1px solid",
-                        // borderColor: "primary.main",
                         borderRadius: "50%",
-                        backgroundColor: "#00695f",
+                        backgroundColor: "primary.dark",
                         boxShadow: 3,
                       }}
                     >
-                      <CheckCircleIcon sx={{ fontSize: iconSize }} />
+                      <IconButton>
+                        <CheckCircleIcon sx={{ fontSize: iconSize }} />
+                      </IconButton>
                     </Box>
                   </Box>
                 </Box>
-              </IconButton>
-              <Typography variant="h5">{item.title}</Typography>
-            </Box>
-          ))}
+                <Typography variant="h5">{item.title}</Typography>
+              </Box>
+            ))}
 
-          <Button
-            disabled={!isAllComplied}
-            variant="contained"
-            onClick={handleTripComplete}
-            sx={{
-              padding: "6px 12px",
-              borderRadius: 2,
-              width: "12rem",
-              minWidth: 180,
-              maxWidth: 240,
-              height: "4rem",
-            }}
-          >
-            Complete
-          </Button>
-        </Stack>
-      </Grid2>
-    </Grid2>
+            <Button
+              disabled={!isAllComplied}
+              variant="contained"
+              onClick={handleTripComplete}
+              sx={{
+                padding: "6px 12px",
+                borderRadius: 2,
+                width: "12rem",
+                minWidth: 180,
+                maxWidth: 240,
+                height: "4rem",
+              }}
+            >
+              Complete
+            </Button>
+          </Stack>
+        </Grid2>
+        {/* </Grid2> */}
+      </Box>
+    </>
   );
 };
 
