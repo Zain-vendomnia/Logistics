@@ -63,9 +63,9 @@ export const useCameraCapture = ({ type, millage, onComplete }: Props) => {
         updateCameraState("uploading", false);
         updateCameraState("uploaded", true);
 
-        console.log("Image data: ", imageSrc);
-        console.log("Image type: ", type);
-        millage && console.log("Millage passed: ", millage);
+        // console.log("Image data: ", imageSrc);
+        // console.log("Image type: ", type);
+        // millage && console.log("Millage passed: ", millage);
 
         onComplete?.(true);
       }, 3000);
