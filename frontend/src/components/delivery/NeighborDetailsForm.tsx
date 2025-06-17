@@ -133,7 +133,7 @@ const NeighborDetailsForm = ({ onComplete }: Props) => {
           mx: "auto",
           display: "flex",
           flexDirection: "column",
-          pb: 2,
+          pb: 4,
           gap: 3,
           "& .MuiInputBase-input": {
             fontFamily: "'Roboto Mono', monospace",
@@ -145,7 +145,11 @@ const NeighborDetailsForm = ({ onComplete }: Props) => {
           },
         }}
       >
-        <motion.div animate={controls} initial={{ y: 0 }}>
+        <motion.div
+          animate={controls}
+          initial={{ y: 0 }}
+          style={{ marginBottom: 10 }}
+        >
           <motion.div key={key} animate={animation}>
             <Typography variant="h4" fontWeight="bold" textAlign="center">
               Neighbor Details
@@ -180,7 +184,7 @@ const NeighborDetailsForm = ({ onComplete }: Props) => {
           helperText={getHelperText(errors.address?.message)}
         />
 
-        <TextField
+        {/* <TextField
           label="Phone"
           type="tel"
           inputMode="tel"
@@ -226,9 +230,14 @@ const NeighborDetailsForm = ({ onComplete }: Props) => {
           // }}
           error={!!errors.email}
           helperText={getHelperText(errors.email?.message)}
-        />
+        /> */}
 
-        <Button type="submit" variant="contained" color="primary">
+        <Button
+          type="submit"
+          variant="contained"
+          color="primary"
+          sx={{ marginTop: 2 }}
+        >
           Submit
         </Button>
       </Box>

@@ -38,13 +38,15 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
     }));
 
     const duration = notification.duration ?? 6000;
-    setTimeout(
+    const timeout = setTimeout(
       () =>
         set((state) => ({
           notifications: state.notifications.filter((n) => n.id !== id),
         })),
       duration
     );
+
+    return () => timeout && clearTimeout(timeout);
   },
 
   removeNotification: (id) =>

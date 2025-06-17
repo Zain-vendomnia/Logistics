@@ -32,12 +32,17 @@ export const ModalWrapper = ({
     onClose();
   };
   return (
-    <Dialog open={showModal} maxWidth={size} fullWidth>
+    <Dialog
+      open={showModal}
+      maxWidth={size}
+      fullWidth
+      sx={{ zIndex: 1500, overflowY: "auto" }}
+    >
       <Box
         display={"flex"}
         alignItems={"flex-start"}
         justifyContent={"space-between"}
-        p={0}
+        p={1}
       >
         {title && (
           <DialogTitle variant="h5" fontWeight={"bold"} sx={{ padding: 4 }}>
@@ -48,8 +53,8 @@ export const ModalWrapper = ({
           <CloseIcon color="primary" />
         </IconButton>
       </Box>
-      <DialogContent>
-        <Box m={2}>{children}</Box>
+      <DialogContent sx={{ m: 0, p: 0, overflowY: "auto" }}>
+        <Box m={1}>{children}</Box>
       </DialogContent>
     </Dialog>
   );

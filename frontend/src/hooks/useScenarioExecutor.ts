@@ -46,10 +46,15 @@ export const useScenarioExecutor = ({
   };
 
   const handleStepComplete = useCallback(() => {
-    if (currentStep) {
-      markStepCompleted(currentStep);
-      advanceToNextStep();
-    }
+    if (!currentStep) return;
+
+    // if (currentStep === "returnToWarehouse") {
+    //   advanceToNextStep();
+    //   return;
+    // }
+
+    markStepCompleted(currentStep);
+    advanceToNextStep();
   }, [currentStep, markStepCompleted]);
 
   const resolveSteps = (

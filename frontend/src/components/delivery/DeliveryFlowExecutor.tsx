@@ -5,10 +5,8 @@ import { useDeliveryStore } from "../../store/useDeliveryStore";
 import { useTripLifecycle } from "../../hooks/useTripLifecycle";
 import { useScenarioExecutor } from "../../hooks/useScenarioExecutor";
 import { useEffect } from "react";
-import {
-  NotificationSeverity,
-  useNotificationStore,
-} from "../../store/useNotificationStore";
+import { useNotificationStore } from "../../store/useNotificationStore";
+import { DeliveryReturnReasons } from "./Return_To_Warehouse";
 
 const Style = {
   container: {
@@ -39,6 +37,7 @@ const externalSteps: DeliveryStep[] = [
   "waitForResponse",
   "getRating",
   "notifyForOrderReturn",
+  "scanQR",
 ];
 
 interface Props {
@@ -51,7 +50,7 @@ export const DeliveryFlowExecutor = ({
   completeButtonActivated,
 }: Props) => {
   const store = useDeliveryStore();
-  const { actionsCompleted, markStepCompleted } = store;
+  const { deliveryState, actionsCompleted, markStepCompleted } = store;
 
   const { handleOrderComplete, handleOrderReturn } = useTripLifecycle();
 
@@ -62,8 +61,6 @@ export const DeliveryFlowExecutor = ({
     currentStep,
     handleStepComplete,
   } = useScenarioExecutor({ scenarioKey, actionsCompleted, markStepCompleted });
-
-  const { showNotification } = useNotificationStore();
 
   useEffect(() => {
     if (orderCompleteButton === true) {
@@ -76,12 +73,41 @@ export const DeliveryFlowExecutor = ({
     return Style.container;
   };
 
+  const handleOrderDeliveryButton = () => {
+    if (
+      (currentStep === "returnToWarehouse" &&
+        actionsCompleted.returnToWarehouse === true) ||
+      scenarioKey === DeliveryScenario.damagedParcel
+    ) {
+      handleOrderReturn();
+    } else {
+      handleOrderComplete();
+    }
+  };
+
+  const getButtonText = (state: string | null) => {
+    switch (state) {
+      case DeliveryReturnReasons.customerNotFound:
+      case DeliveryReturnReasons.neighboursNotFound:
+      case DeliveryReturnReasons.neighborNotAccepts:
+      case DeliveryReturnReasons.deliveryReschedule:
+      case DeliveryReturnReasons.damagedParcel:
+        return "Complete";
+
+      case DeliveryReturnReasons.orderReturn:
+        return "Cancelled";
+
+      default:
+        return "Delivered";
+    }
+  };
+
   const isCompleteButtonDisabled =
     orderCompleteButton && currentIndex !== stepsToRender.length - 1;
 
   if (!stepsToRender.length) return null;
   return (
-    <Box height="100%" display="flex" flexDirection={"column"}>
+    <Box display="flex" height={"100%"} flexDirection={"column"}>
       <Box
         sx={{
           display: "flex",
@@ -110,8 +136,8 @@ export const DeliveryFlowExecutor = ({
         )}
       </Box>
 
-      <Box mt={"auto"} display={"flex"} justifyContent={"center"}>
-        {orderCompleteButton && (
+      {orderCompleteButton && (
+        <Box mt={"auto"} display={"flex"} justifyContent={"center"}>
           <Button
             variant="contained"
             sx={{
@@ -121,17 +147,13 @@ export const DeliveryFlowExecutor = ({
                 opacity: "50%",
               }),
             }}
-            onClick={
-              currentStep === "returnToWarehouse" &&
-              actionsCompleted.returnToWarehouse === true
-                ? handleOrderReturn
-                : handleOrderComplete
-            }
+            onClick={handleOrderDeliveryButton}
           >
-            Order {currentStep === "returnToWarehouse" ? "Return" : "Delivered"}
+            Order {getButtonText(deliveryState.deliveryReturnReason)}
+            {/* Order {getButtonText(currentStep)} */}
           </Button>
-        )}
-      </Box>
+        </Box>
+      )}
     </Box>
   );
 };

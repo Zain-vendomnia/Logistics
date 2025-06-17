@@ -33,7 +33,7 @@ const getLabel = (step: string) => {
     case "returnToWarehouse":
       return "Return To Warehouse";
     case "damagedParcelImage":
-      return "Upload Damaged Parcel";
+      return "Damaged Parcel Image";
     default:
       return "";
   }
@@ -109,15 +109,15 @@ export const DeliveryStepRenderer = ({ step, onComplete }: Props) => {
       );
     case "scanQR":
       return <QrProcessor onComplete={onComplete} />;
-    case "notifyForOrderReturn":
-      return (
-        <Notification
-          title={"Order Cancelled!"}
-          message={"Notification sent successfully."}
-          severity={NotificationSeverity.Warning}
-          onComplete={onComplete}
-        />
-      );
+    // case "notifyForOrderReturn":
+    //   return (
+    //     <Notification
+    //       title={"Order Cancelled!"}
+    //       message={"Notification sent successfully."}
+    //       severity={NotificationSeverity.Warning}
+    //       onComplete={onComplete}
+    //     />
+    //   );
     case "showFindNeighborNotification":
       return (
         <Notification

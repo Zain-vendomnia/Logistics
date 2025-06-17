@@ -1,24 +1,42 @@
-import { useEffect, useState, useCallback } from "react";
-import { Box, Stack } from "@mui/material";
+import { useEffect, useState } from "react";
+import { Box, Button, Divider, IconButton, Stack } from "@mui/material";
+import { grey } from "@mui/material/colors";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
 import ClientDetails from "../communications/Client_Details";
 import { useDeliveryStore } from "../../store/useDeliveryStore";
 import { DeliveryFlowExecutor } from "./DeliveryFlowExecutor";
-import { DeliveryScenario } from "./delieryScenarios";
-import FoundCustomer from "./Found_Customer";
-import CustomerResponded from "./Customer_Responded";
+import { DeliveryScenario, deliveryScenarios } from "./delieryScenarios";
+import {
+  NotificationSeverity,
+  useNotificationStore,
+} from "../../store/useNotificationStore";
+import ParkingPermitRequest from "./ParkingPermitRequest";
 
 const Delivery = () => {
-  const { scenarioKey, actionsCompleted } = useDeliveryStore();
+  const { showNotification } = useNotificationStore();
 
-  const [response, setResponse] = useState(false);
+  const { tripData, scenarioKey, actionsCompleted, deliveryId, setScenario } =
+    useDeliveryStore();
 
-  const [isCustomerResponded, setIsCustomerResponded] = useState<
-    boolean | null
-  >(null);
+  const [showDeliveryButtons, setShowDeliveryButtons] = useState<boolean>(true);
+
+  // const [response, setResponse] = useState(false);
+  // const [isCustomerResponded, setIsCustomerResponded] = useState<
+  //   boolean | null
+  // >(null);
 
   const [currentScenarioKey, setCurrentScenarioKey] =
     useState<DeliveryScenario | null>(scenarioKey ?? null);
+
+  useEffect(() => {
+    if (tripData?.hasPermit || scenarioKey === "noAcceptance") {
+      setShowDeliveryButtons(false);
+      return;
+    }
+
+    setShowDeliveryButtons(true);
+  }, [scenarioKey, tripData?.hasPermit]);
 
   useEffect(() => {
     console.log("Current Delivery Scenario : ", scenarioKey);
@@ -28,42 +46,115 @@ const Delivery = () => {
     }
   }, [scenarioKey]);
 
-  useEffect(() => {
-    if (isCustomerResponded === false) {
-      const timer = setTimeout(() => {
-        setResponse(true);
-      }, 3000);
+  // useEffect(() => {
+  //   if (isCustomerResponded === false) {
+  //     const timer = setTimeout(() => {
+  //       setResponse(true);
+  //     }, 3000);
 
-      return () => clearTimeout(timer);
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [isCustomerResponded]);
+
+  const deliveryComplete = () => {
+    setShowDeliveryButtons(false);
+  };
+
+  const handleScenarioSwitch = (req: string) => {
+    if (!actionsCompleted.captureDoorstepImage) {
+      showNotification({
+        message: `Upload Client's Doorstep Image before proceeding.`,
+        severity: NotificationSeverity.Warning,
+        duration: 3000,
+      });
+      return;
     }
-  }, [isCustomerResponded]);
-
-  const handleFoundCustomer = (result: any) => {
-    setIsCustomerResponded(result);
+    console.log("Switching scenario to:", req);
+    switch (req) {
+      case "neighborAccepts":
+        return setScenario(deliveryId, DeliveryScenario.neighborAccepts);
+      case "noAcceptance":
+        return setScenario(deliveryId, DeliveryScenario.noAcceptance);
+      case "foundCustomer":
+        return setScenario(deliveryId, DeliveryScenario.foundCustomer);
+      default:
+        return null;
+    }
   };
 
   return (
     <>
-      {isCustomerResponded === null && (
+      {/* {isCustomerResponded === null && (
         <FoundCustomer onComplete={handleFoundCustomer} />
-      )}
-      {response && isCustomerResponded === false && (
-        <CustomerResponded onComplete={handleFoundCustomer} />
-      )}
+      )} */}
+      {/* {response && isCustomerResponded === false && (
+      )} */}
+      {/* <CustomerResponded onComplete={handleFoundCustomer} /> */}
 
-      <Stack
-        spacing={6}
-        height={"100%"}
-        width={"100%"}
-        p={{ md: 1, lg: 2, xl: 3 }}
-      >
+      <Stack spacing={2} height={"100%"} width={"100%"}>
+        {scenarioKey === "noAcceptance" && (
+          <Box display="flex" alignItems={"flex-start"}>
+            <IconButton onClick={() => handleScenarioSwitch("foundCustomer")}>
+              <ArrowBackIcon />
+            </IconButton>
+          </Box>
+        )}
+
+        {scenarioKey !== DeliveryScenario.noAcceptance &&
+          scenarioKey !== DeliveryScenario.damagedParcel && (
+            <Box>
+              <ParkingPermitRequest />
+            </Box>
+          )}
+
         <ClientDetails />
 
-        <Box height={"100%"}>
+        {showDeliveryButtons && (
+          <Box display="flex" justifyContent="space-around" width="100%">
+            {scenarioKey === DeliveryScenario.neighborAccepts && (
+              <Button
+                variant="contained"
+                onClick={() =>
+                  handleScenarioSwitch(
+                    DeliveryScenario.foundCustomer.toString()
+                  )
+                }
+                disabled={!actionsCompleted.captureDoorstepImage}
+              >
+                Customer Found
+              </Button>
+            )}
+            {scenarioKey !== DeliveryScenario.neighborAccepts && (
+              <Button
+                variant="contained"
+                onClick={() => {
+                  handleScenarioSwitch(
+                    DeliveryScenario.neighborAccepts.toString()
+                  );
+                }}
+                disabled={!actionsCompleted.captureDoorstepImage}
+              >
+                Neighbor Accepts
+              </Button>
+            )}
+            <Button
+              variant="contained"
+              onClick={() =>
+                handleScenarioSwitch(DeliveryScenario.noAcceptance.toString())
+              }
+              color={"error"}
+              disabled={!actionsCompleted.captureDoorstepImage}
+            >
+              Cancel
+            </Button>
+          </Box>
+        )}
+
+        <Box sx={{ flexGrow: 1, minHeight: 0, overflowY: "auto" }}>
           {currentScenarioKey && (
             <DeliveryFlowExecutor
               scenarioKey={currentScenarioKey}
-              completeButtonActivated={() => setIsCustomerResponded(true)}
+              completeButtonActivated={deliveryComplete}
             />
           )}
         </Box>
