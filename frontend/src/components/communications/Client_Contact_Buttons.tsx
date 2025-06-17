@@ -35,7 +35,7 @@ interface Props {
   onMessageClicked: () => void;
 }
 
-const ContactIcons = ({ onMessageClicked }: Props) => {
+const ClientContactButtons = ({ onMessageClicked }: Props) => {
   const { isContactIconsBlinking, setContactIconsBlinking } =
     useDeliveryStore();
 
@@ -46,13 +46,13 @@ const ContactIcons = ({ onMessageClicked }: Props) => {
 
   return (
     <Box display={"flex"} gap={1} mx={0}>
-      <IconButton
+      {/* <IconButton
         onClick={() => handleIconClick(() => onMessageClicked())}
         color="primary"
         sx={getBlinkSx(isContactIconsBlinking)}
       >
         <CommentIcon fontSize="large" />
-      </IconButton>
+      </IconButton> */}
 
       <IconButton
         onClick={() => handleIconClick(() => {})}
@@ -65,4 +65,4 @@ const ContactIcons = ({ onMessageClicked }: Props) => {
   );
 };
 
-export default ContactIcons;
+export default ClientContactButtons;

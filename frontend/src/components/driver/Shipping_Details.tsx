@@ -5,8 +5,8 @@ import {
   Button,
   Stack,
   Typography,
-  CircularProgress,
   Container,
+  Avatar,
 } from "@mui/material";
 import { grey } from "@mui/material/colors";
 
@@ -17,9 +17,8 @@ import {
   NotificationSeverity,
   useNotificationStore,
 } from "../../store/useNotificationStore";
-import { motion } from "framer-motion";
 import { useShakeEvery } from "../base - ui/useShakeEvery";
-import ParkingPetmitRequest from "../delivery/ParkingPetmitRequest";
+import ParkingPermitRequest from "../delivery/ParkingPermitRequest";
 
 interface Props {
   tripData: TripData | null;
@@ -79,28 +78,49 @@ const ShippingDetails = ({
     onReachedToDestination(true);
   };
 
-  const { key, animation } = useShakeEvery(true);
-
   if (!tripData) return null;
   return (
-    <Stack width="100%" height="100%" p={{ md: 1, lg: 2, xl: 3 }}>
-      <Box display={"flex"} flexDirection={"column"} width="100%" height="100%">
-        <Typography variant={"h5"} fontWeight={"bold"} pb={1}>
-          Ongoing Delivery
-        </Typography>
+    <Stack width="100%" height="100%">
+      <Box
+        display={"flex"}
+        flexDirection={"column"}
+        width="100%"
+        height="100%"
+        gap={2}
+      >
+        {/* Driver Details */}
+        <Box display={"flex"} gap={3} alignItems={"center"}>
+          <Avatar
+            alt="client_image"
+            src="https://cdn.vectorstock.com/i/1000v/00/74/young-man-profile-vector-14770074.avif"
+            style={{
+              width: "86px",
+              height: "86px",
+            }}
+          />
+
+          <Stack spacing={0}>
+            <Typography variant="body1" fontWeight={"bold"} color={grey[800]}>
+              Hallo Fahrer!
+            </Typography>
+            {/* <Typography variant="body1" fontSize={"large"}>
+                {tripData?.client.name}
+              </Typography> */}
+          </Stack>
+        </Box>
         <Box
           display={"flex"}
           flexDirection={"column"}
-          gap={3}
+          gap={2}
           pt={1}
           height="100%"
         >
+          {/* Order Delivery */}
           <Box
             display={"flex"}
             alignItems={"flex-start"}
             justifyContent={"space-between"}
           >
-            {/* 1st Block */}
             <Box
               display={"flex"}
               flexDirection={"column"}
@@ -112,6 +132,8 @@ const ShippingDetails = ({
                 alignItems={"flex-start"}
                 justifyContent={"space-between"}
                 width="100%"
+                position="relative"
+                gap={2}
               >
                 <Container disableGutters>
                   <Typography variant="h5" fontWeight={"bold"}>
@@ -123,7 +145,14 @@ const ShippingDetails = ({
                   component="img"
                   src="/cargo.png"
                   alt="cargo"
-                  sx={{ width: 90, height: 60 }}
+                  sx={{
+                    position: "absolute",
+                    bottom: 0,
+                    right: 0,
+                    width: "8vw",
+                    height: "12vh",
+                    objectFit: "contain",
+                  }}
                 />
               </Box>
 
@@ -149,74 +178,21 @@ const ShippingDetails = ({
                 </Box>
               </Box>
 
-              <Typography
+              {/* <Typography
                 variant="body2"
                 color={grey[600]}
                 sx={{ textDecoration: "underline", textUnderlineOffset: "2px" }}
               >
-                Fragile Cargo
-              </Typography>
+                Solar Modules
+              </Typography> */}
             </Box>
           </Box>
+
           <Divider color={grey[100]} />
 
+          <ParkingPermitRequest />
+
           {isArrived && <ClientDetails />}
-
-          {!tripData.hasPermit && <ParkingPetmitRequest />}
-
-          {/* {notifyCustomer && (
-            <Box
-              display={"flex"}
-              flexDirection={"column"}
-              gap={2}
-              alignItems={"center"}
-              justifyContent={"center"}
-            >
-              <Button
-                variant="contained"
-                hidden={hideNotify}
-                onClick={notify}
-                className={styles.notifyButton}
-              >
-                {isLoading ? (
-                  <>
-                    <CircularProgress size={36} color="inherit" />
-                    <Typography
-                      sx={
-                        isLoading
-                          ? {
-                              position: "absolute",
-                              pointerEvents: "none",
-                              opacity: 0.5,
-                            }
-                          : {}
-                      }
-                    >
-                      {"Notify Customer"}
-                    </Typography>
-                  </>
-                ) : (
-                  <motion.h5 key={key} animate={animation}>
-                    Notify Customer
-                  </motion.h5>
-                )}
-              </Button>
-
-              <motion.div variants={fade} initial="hidden" animate="visible">
-                <motion.h2 variants={slideUp}>Animated Heading</motion.h2>
-                <motion.p variants={shake} initial='initial' animate='animate'>
-                  This paragraph shakes once on mount
-                </motion.p>
-              </motion.div>
-
-              <motion.div variants={bounce} initial="iniital" animate="animate">
-                🔁 Bounce
-              </motion.div>
-              <motion.div variants={pulse} animate="animate">
-                🔁 I'm pulsing
-              </motion.div>
-            </Box>
-          )} */}
         </Box>
 
         {/* {isOrderReached && !showOrderReached && ( */}
