@@ -144,7 +144,7 @@ const handleDriverChange = async (event: SelectChangeEvent<string | number>) => 
     return true;
   };
 
-const handleSave = async () => {
+/* const handleSave = async () => {
   if (!validateForm()) return;
 
   setLoading(true);
@@ -169,6 +169,45 @@ const handleSave = async () => {
         navigate('/Admin_TourTemplates');
       }, 500);
     }
+  } catch (error: any) {
+    console.error('Error saving tour:', error);
+    const message = error?.response?.data?.message || 'Failed to save the tour. Please try again.';
+    setSnackbar({ open: true, message, severity: 'error' });
+  } finally {
+    setLoading(false);
+  }
+}; */
+
+const handleSave = async () => {
+  if (!validateForm()) return;
+
+  setLoading(true);
+  setIsSuccess(false);
+
+  try {
+  /*   const response = await adminApiService.createtourHereApi({
+      comments,
+      startTime: `${startTime}:00`,
+      routeColor,
+      driverid: selectedDriver,
+      tourDate: `${tourDate} 00:00:00`,
+      orderIds,
+      warehouseId
+    }); */
+
+    setTimeout(() => {
+       navigate('/Admin_HereMap', { state: { orderIds } });
+      }, 500);
+
+
+  /*   if (response.status === 200) {
+      handleClose();
+      setSnackbar({ open: true, message: 'Tour created successfully!', severity: 'success' });
+      setIsSuccess(true);
+      setTimeout(() => {
+       navigate('/Admin_HereMap', { state: { orderIds } });
+      }, 500);
+    } */
   } catch (error: any) {
     console.error('Error saving tour:', error);
     const message = error?.response?.data?.message || 'Failed to save the tour. Please try again.';

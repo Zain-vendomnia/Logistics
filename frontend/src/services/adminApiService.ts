@@ -16,6 +16,10 @@ const fetchSpecifiedOrder = (order_number: string) => {
 const createTour = (tourData: Record<string, any>) => 
   axios.post(`${API_BaseUrl}createtour`, tourData, { headers: authHeader() });
 
+const createtourHereApi = (tourDatas: Record<string, any>) => 
+  axios.post(`${API_BaseUrl}createtourHereApi`, tourDatas, { headers: authHeader() });
+
+
 const getRouteResponse = (tour_id: number) => 
   axios.post(`${API_BaseUrl}getGraphhopperRoute`, { tour_id }, { headers: authHeader() });
 
@@ -81,6 +85,8 @@ const insertParkingPermit = (formData: any) => {
       headers: authHeader(),
     });
   };
+const plotheremap = () => axios.post(`${API_BaseUrl_Admin}dynamicTourController`, { headers: authHeader() });
+
 
 const adminApiService = {
   fetchRouteData,
@@ -102,6 +108,8 @@ const adminApiService = {
   checkDriverRest,
   updateCustomerInfo,
   insertParkingPermit,
+  plotheremap,
+  createtourHereApi,
 };
 
 export default adminApiService;

@@ -8,7 +8,7 @@ import pool from '../../database';
 
 export const createTourController = async (req: Request, res: Response) => {
   const { tourName, comments, startTime, endTime, driverid, routeColor, tourDate, orderIds, warehouseId } = req.body;
-console.log(tourName, comments, startTime, endTime, driverid, routeColor, tourDate, orderIds, warehouseId);
+  console.log(tourName, comments, startTime, endTime, driverid, routeColor, tourDate, orderIds, warehouseId);
   try {
     const result = await createTour({
       tourName,
@@ -43,6 +43,9 @@ console.log(tourName, comments, startTime, endTime, driverid, routeColor, tourDa
     }
   }
 };
+
+
+
 
   export const getTourcountcheck = async(_req: Request, res: Response) => {
     try {
