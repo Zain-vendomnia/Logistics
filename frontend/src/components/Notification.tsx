@@ -1,14 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 import {
   Alert,
-  AlertTitle,
   Box,
-  Collapse,
   IconButton,
   Slide,
   Snackbar,
-  Stack,
   Typography,
 } from "@mui/material";
 import {
@@ -81,7 +78,7 @@ export const NotificationManager = () => {
   const notifications = useNotificationStore((s) => s.notifications);
   const removeNotification = useNotificationStore((s) => s.removeNotification);
 
-  console.log("Notifications: ", notifications);
+  // console.log("Notifications: ", notifications);
 
   return (
     <Box
@@ -94,7 +91,7 @@ export const NotificationManager = () => {
     >
       {notifications.map((notify, index) => (
         <Snackbar
-          key={index}
+          key={notify.id}
           open={true}
           anchorOrigin={{ vertical: "top", horizontal: "right" }}
           slots={{ transition: slideTransition }}

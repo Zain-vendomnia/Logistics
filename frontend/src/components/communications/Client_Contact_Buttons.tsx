@@ -1,10 +1,19 @@
 import { useEffect, useState } from "react";
 
-import { alpha, Box, IconButton, keyframes } from "@mui/material";
+import { alpha, Box, IconButton, keyframes, Theme } from "@mui/material";
 import CallIcon from "@mui/icons-material/Call";
 import CommentIcon from "@mui/icons-material/Comment";
 import { useDeliveryStore } from "../../store/useDeliveryStore";
 import theme from "../../theme";
+
+const style = {
+  contactIcon: {
+    fontSize: "2.5rem",
+    borderRadius: "50%",
+    bgcolor: (theme: Theme) => alpha(theme.palette.primary.main, 0.1),
+    p: 0.8,
+  },
+};
 
 const blinkOverlay = keyframes`
   0% { opacity: 0.5; transform: scale(1); }
@@ -32,10 +41,14 @@ const getBlinkSx = (isBlinking: boolean | null) =>
     : {};
 
 interface Props {
+  setStyle?: boolean;
   onMessageClicked: () => void;
 }
 
-const ContactIcons = ({ onMessageClicked }: Props) => {
+const ClientContactButtons = ({
+  setStyle = false,
+  onMessageClicked,
+}: Props) => {
   const { isContactIconsBlinking, setContactIconsBlinking } =
     useDeliveryStore();
 
@@ -51,7 +64,10 @@ const ContactIcons = ({ onMessageClicked }: Props) => {
         color="primary"
         sx={getBlinkSx(isContactIconsBlinking)}
       >
-        <CommentIcon fontSize="large" />
+        <CommentIcon
+          fontSize="large"
+          sx={setStyle ? style.contactIcon : undefined}
+        />
       </IconButton>
 
       <IconButton
@@ -59,10 +75,13 @@ const ContactIcons = ({ onMessageClicked }: Props) => {
         color="primary"
         sx={getBlinkSx(isContactIconsBlinking)}
       >
-        <CallIcon fontSize="large" />
+        <CallIcon
+          fontSize="large"
+          sx={setStyle ? style.contactIcon : undefined}
+        />
       </IconButton>
     </Box>
   );
 };
 
-export default ContactIcons;
+export default ClientContactButtons;

@@ -10,6 +10,7 @@ import { ModalWrapper } from "../common/ModalWrapper";
 import StarRating from "../common/Star_Rating";
 import Notification from "../Notification";
 import { NotificationSeverity } from "../../store/useNotificationStore";
+import QrProcessor from "../common/QrProcessor";
 
 const getLabel = (step: string) => {
   switch (step) {
@@ -32,7 +33,7 @@ const getLabel = (step: string) => {
     case "returnToWarehouse":
       return "Return To Warehouse";
     case "damagedParcelImage":
-      return "Upload Damaged Parcel";
+      return "Damaged Parcel Image";
     default:
       return "";
   }
@@ -106,15 +107,17 @@ export const DeliveryStepRenderer = ({ step, onComplete }: Props) => {
           <StarRating onComplete={onComplete} />
         </ModalWrapper>
       );
-    case "notifyForOrderReturn":
-      return (
-        <Notification
-          title={"Order Cancelled!"}
-          message={"Notification sent successfully."}
-          severity={NotificationSeverity.Warning}
-          onComplete={onComplete}
-        />
-      );
+    case "scanQR":
+      return <QrProcessor onComplete={onComplete} />;
+    // case "notifyForOrderReturn":
+    //   return (
+    //     <Notification
+    //       title={"Order Cancelled!"}
+    //       message={"Notification sent successfully."}
+    //       severity={NotificationSeverity.Warning}
+    //       onComplete={onComplete}
+    //     />
+    //   );
     case "showFindNeighborNotification":
       return (
         <Notification

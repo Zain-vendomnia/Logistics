@@ -1,4 +1,4 @@
-import { useMemo, ReactNode } from "react";
+import { useMemo, ReactNode, useEffect } from "react";
 import Webcam from "react-webcam";
 
 import {
@@ -27,6 +27,7 @@ interface Props {
   showCameraIcon?: boolean;
   buttonDisabled?: boolean;
   onComplete?: (imageUploaded: boolean) => void;
+  onImageUploaded?: (imageSrc: string) => void;
   isMarkDone?: boolean;
 
   imageType: ImageType;
@@ -40,6 +41,7 @@ const CameraCapture = ({
   showCameraIcon = false,
   buttonDisabled,
   onComplete,
+  onImageUploaded,
   isMarkDone,
   imageType,
   millage,
@@ -72,19 +74,25 @@ const CameraCapture = ({
     !cameraState.uploading &&
     !cameraState.uploaded;
 
+  useEffect(() => {
+    if (cameraState.uploaded && cameraState.captured) {
+      onImageUploaded?.(cameraState.captured);
+    }
+  }, [cameraState.uploaded, onImageUploaded]);
+
   return (
     <Box
       display={"flex"}
       flexDirection={"column"}
       justifyContent={"center"}
       alignItems={"center"}
-      gap={3}
+      gap={2}
       height={"100%"}
       width={"100%"}
       sx={styleCard ? styles.container : undefined}
     >
       {title && (
-        <Stack spacing={1} width={"100%"}>
+        <Stack spacing={0} width={"100%"}>
           <Typography variant="h5" fontWeight="bold">
             {title}
           </Typography>
@@ -109,21 +117,21 @@ const CameraCapture = ({
           />
         ) : cameraState.uploaded && cameraState.captured ? (
           // if marked done and image captured, show image and check icon
-          <>
+          <Stack spacing={2} alignItems={"center"} justifyContent={"center"}>
             <Box
               component={"img"}
               src={cameraState.captured}
               alt="captured image"
               sx={{
                 width: "auto",
-                height: "50%",
+                height: "70%",
               }}
             />
             <CheckCircleIcon
               color={"success"}
               sx={{ fontSize: 48, margin: 0, padding: 0 }}
             />
-          </>
+          </Stack>
         ) : (
           <>
             {cameraState.active && !cameraState.captured && (

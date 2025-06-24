@@ -12,6 +12,7 @@ interface Props {
   buttonText: string;
   isComplied: boolean;
   onImageUploaded: (isDone: boolean) => void;
+  onImageSrc?: (imageSrc: string) => void;
 }
 
 const Camera = ({
@@ -20,6 +21,7 @@ const Camera = ({
   buttonText,
   isComplied,
   onImageUploaded,
+  onImageSrc,
 }: Props) => {
   const {
     webcamRef,
@@ -29,6 +31,12 @@ const Camera = ({
     retakeImage,
     clearCamera,
   } = useCameraCapture({ type, millage });
+
+  useEffect(() => {
+    if (!cameraState.captured) return;
+
+    onImageSrc?.(cameraState.captured);
+  }, [cameraState.captured]);
 
   useEffect(() => {
     console.log("isComplied: ", isComplied);
@@ -71,9 +79,10 @@ const Camera = ({
           flexDirection={"column"}
           alignItems={"center"}
           justifyContent={"center"}
+          onClick={handleButtonClick}
           sx={{
-            border: "2px solid",
-            borderColor: "primary.main",
+            border: "3px solid",
+            borderColor: "primary.dark",
             borderRadius: 2,
             height: "45vh",
             width: "45vw",
@@ -199,11 +208,6 @@ const Camera = ({
               position: "absolute",
               top: -10,
               right: -42,
-              // opacity: cameraState.active || cameraState.captured ? 1 : 0, // fade out when not active
-              // pointerEvents:
-              //   cameraState.active || cameraState.captured
-              //     ? "auto"
-              //     : "none", // avoid capturing clicks when invisible
               transition: "opacity 0.3s ease",
               zIndex: 1,
             }}

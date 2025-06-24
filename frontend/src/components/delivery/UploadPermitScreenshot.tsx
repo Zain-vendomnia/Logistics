@@ -12,13 +12,28 @@ import {
 } from "../../store/useNotificationStore";
 import { uploading, loadingPulse } from "../base-ui/motionPresets";
 
-const UploadPermitScreenshot = () => {
+interface Props {
+  onFileSrc?: (fileData: string) => void;
+}
+const UploadPermitScreenshot = ({ onFileSrc }: Props) => {
   const { showNotification } = useNotificationStore();
   const iconSize = "4rem";
   const fileRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isFileUploadedOnce, setIsFileUploadedOnce] = useState(false);
+
+  useEffect(() => {
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      onFileSrc?.(base64String);
+    };
+
+    reader.readAsDataURL(file);
+  }, [file]);
 
   const handleFileUplaod = () => {
     if (!file) return;

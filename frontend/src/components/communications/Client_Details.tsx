@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Avatar, Box, Divider, Stack, Typography } from "@mui/material";
 import { grey } from "@mui/material/colors";
 
-import ContactIcons from "./Contact_Icons";
+import ClientContactButtons from "./Client_Contact_Buttons";
 import MessageBox from "./Message_Box";
 import { useDeliveryStore } from "../../store/useDeliveryStore";
 import { motion } from "framer-motion";
@@ -16,7 +16,7 @@ const ClientDetails = () => {
   const [showMessageBox, setShowMessageBox] = useState(false);
 
   return (
-    <Stack spacing={2} width="100%">
+    <Stack spacing={2} width="100%" px={0}>
       <Box
         display={"flex"}
         alignItems={"center"}
@@ -51,15 +51,17 @@ const ClientDetails = () => {
         </Box>
 
         <motion.div variants={shake} initial="initial" animate="animate">
-          <ContactIcons
+          <ClientContactButtons
             onMessageClicked={() => setShowMessageBox(!showMessageBox)}
           />
         </motion.div>
       </Box>
       {showMessageBox && (
-        <MessageBox onClose={() => setShowMessageBox(false)} />
+        <MessageBox
+          deliveryId={store.deliveryId}
+          onClose={() => setShowMessageBox(false)}
+        />
       )}
-      <Divider color={grey[100]} />
 
       <Box>
         <Typography variant="h6" fontWeight={"bold"}>

@@ -3,31 +3,43 @@ import { useEffect, useState } from "react";
 import {
   Box,
   Button,
-  Checkbox,
   Divider,
+  FormControlLabel,
+  FormGroup,
   List,
-  Paper,
+  Radio,
   Stack,
   Typography,
 } from "@mui/material";
 import { grey } from "@mui/material/colors";
 
 import { useDeliveryStore } from "../../store/useDeliveryStore";
+import {
+  NotificationSeverity,
+  useNotificationStore,
+} from "../../store/useNotificationStore";
+import { DeliveryScenario } from "./delieryScenarios";
 
-const DeliveryReturnReasons = [
-  "Customer not found",
-  "Neighbors did not accept",
-  "Customer requested delivery rechedule",
-];
+export enum DeliveryReturnReasons {
+  customerNotFound = "Customer not found",
+  neighboursNotFound = "Neighbors not found",
+  neighborNotAccepts = "Neighbor not accepts",
+  deliveryReschedule = "Delivery reschedule",
+  damagedParcel = "Damaged Parcel",
+  orderReturn = "Order Return",
+}
+const deliveryReturnReasons = Object.values(DeliveryReturnReasons);
 
 interface Props {
   onComplete?: () => void;
 }
 
 const ReturnToWarehouse = ({ onComplete }: Props) => {
-  const { updateDeliveryState, deliveryState } = useDeliveryStore();
+  const { updateDeliveryState, deliveryState, deliveryId, setScenario } =
+    useDeliveryStore();
 
   const [returnReason, setReturnReason] = useState<string>("");
+  const [reasonSubmitted, setReasonSubmitted] = useState<boolean>(true);
 
   useEffect(() => {
     console.log("Delivery return Reason: ", returnReason);
@@ -40,72 +52,87 @@ const ReturnToWarehouse = ({ onComplete }: Props) => {
     }
   }, [deliveryState.deliveryReturnReason]);
 
-  const handleReasonSelection = (value: string) => {
+  const handleOrderReturn = () => {
     if (!returnReason) {
-      setReturnReason(value);
+      useNotificationStore.getState().showNotification({
+        message: "Select a return reason.",
+        severity: NotificationSeverity.Error,
+      });
+      return;
+    }
+    updateDeliveryState({ deliveryReturnReason: returnReason });
+    if (returnReason.includes("Damaged Parcel")) {
+      setScenario(deliveryId, DeliveryScenario.damagedParcel);
     } else {
-      let reasons = returnReason.split(",");
-      if (reasons.includes(value)) {
-        reasons = reasons.filter((reason) => reason !== value);
-        setReturnReason(reasons.join(","));
-      } else {
-        setReturnReason((prev) => (prev ? `${prev},${value}` : value));
-      }
+      setReasonSubmitted(true);
+      onComplete?.();
     }
   };
 
-  const handleOrderReturn = () => {
-    updateDeliveryState({ deliveryReturnReason: returnReason });
-
-    onComplete?.();
+  const handleReasonSelection = (value: string) => {
+    setReturnReason(value);
+    setReasonSubmitted(false);
+    // if (!returnReason) {
+    //   setReturnReason(value);
+    // } else {
+    //   let reasons = returnReason.split(",");
+    //   if (reasons.includes(value)) {
+    //     reasons = reasons.filter((reason) => reason !== value);
+    //     setReturnReason(reasons.join(","));
+    //   } else {
+    //     setReturnReason((prev) => (prev ? `${prev},${value}` : value));
+    //   }
+    // }
   };
 
   return (
-    <>
-      <Box display={"flex"} flexDirection={"column"} gap={2} height="100%">
-        <Paper elevation={1} sx={{ py: 2, px: 2, height: "100%" }}>
-          <Stack spacing={1}>
-            <Typography variant="h6" fontWeight={"bold"}>
-              Select Reason:
-            </Typography>
-            <Divider color={grey[100]} />
+    <Box width={"100%"}>
+      <Stack spacing={1} width={"100%"}>
+        <Typography variant="h6" fontWeight={"bold"}>
+          Select Reason:
+        </Typography>
+        <Divider color={grey[100]} />
 
-            <List>
-              {DeliveryReturnReasons.map((value, index) => {
-                return (
-                  <Box
-                    key={index}
-                    display={"flex"}
-                    alignItems={"center"}
-                    justifyContent={"flex-start"}
-                    gap={1}
-                    width="100%"
-                  >
-                    <Checkbox
-                      edge="start"
-                      onChange={() => handleReasonSelection(value)}
-                      checked={returnReason.split(",").includes(value)}
-                      sx={{
-                        p: 0.5,
-                        alignSelf: "start",
-                      }}
-                    />
-                    <Typography
-                      variant={"body1"}
-                      fontSize={"1.2rem"}
-                      lineHeight={1.5}
-                    >
-                      {value}
-                    </Typography>
-                  </Box>
-                );
-              })}
-            </List>
-          </Stack>
-        </Paper>
-        <Box display="flex" justifyContent={"center"} mt="auto">
+        <List>
+          {deliveryReturnReasons.map((value, index) => {
+            return (
+              <Box
+                key={index}
+                display={"flex"}
+                alignItems={"center"}
+                justifyContent={"flex-start"}
+                mt={0.5}
+                gap={1}
+                width="100%"
+              >
+                <FormGroup sx={{ p: 0, width: "100%" }}>
+                  <FormControlLabel
+                    value={value}
+                    control={
+                      <Radio
+                        checked={returnReason.split(",").includes(value)}
+                        onChange={() => handleReasonSelection(value)}
+                        sx={{ p: 0, pt: 0.3, pr: 0.5 }}
+                      />
+                    }
+                    label={value}
+                    sx={{
+                      width: "100%",
+                      alignItems: "flex-start",
+                      justifyContent: "flex-start",
+                      p: 0,
+                      m: 0,
+                      // fontSize: "1.2rem",
+                    }}
+                  />
+                </FormGroup>
+              </Box>
+            );
+          })}
+        </List>
+        <Box display="flex" justifyContent={"center"}>
           <Button
-            disabled={!returnReason}
+            hidden={reasonSubmitted}
             fullWidth
             variant="contained"
             onClick={handleOrderReturn}
@@ -114,14 +141,15 @@ const ReturnToWarehouse = ({ onComplete }: Props) => {
               borderRadius: 2,
               minWidth: 180,
               maxWidth: 240,
-              height: "9vh",
+              height: "70px",
+              // height: "9vh",
             }}
           >
-            Mark Order Return
+            Confirm
           </Button>
         </Box>
-      </Box>
-    </>
+      </Stack>
+    </Box>
   );
 };
 

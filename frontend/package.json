@@ -37,6 +37,7 @@
     "html-react-parser": "^5.2.3",
     "html2canvas": "^1.4.1",
     "html2pdf.js": "^0.10.3",
+    "html5-qrcode": "^2.3.8",
     "jspdf": "^3.0.1",
     "leaflet": "^1.9.4",
     "leaflet-polylinedecorator": "^1.6.0",

@@ -10,6 +10,7 @@ import {
 export const useTripLifecycle = () => {
   const store = useDeliveryStore();
   const {
+    deliveryState,
     tripData,
     deliveryCompleted,
     ordersDeliveredSuccessfully,
@@ -102,12 +103,7 @@ export const useTripLifecycle = () => {
       store.actionsCompleted.captureCustomerSignature ||
       store.actionsCompleted.captureNeighborSignature;
 
-    if (
-      scenarioKey === DeliveryScenario.hasPermit ||
-      scenarioKey === DeliveryScenario.damagedParcel ||
-      scenarioKey === DeliveryScenario.orderReturn ||
-      signatureCaptured
-    ) {
+    if (scenarioKey === DeliveryScenario.hasPermit || signatureCaptured) {
       addOrdersDeliveredSuccessfully(store.deliveryId);
       setDeliveryCompleted(true);
     }
@@ -121,6 +117,16 @@ export const useTripLifecycle = () => {
     // ) {
     // }
     console.log("handleOrderReturn Conditions fulfilled");
+
+    if (deliveryState.deliveryReturnReason.includes("Order Return")) {
+      showNotification({
+        title: "Order Cancelled!",
+        message: `Order Id ${store.deliveryId} marked cancelled.`,
+        severity: NotificationSeverity.Info,
+        duration: 3000,
+      });
+    }
+
     store.addOrdersReturnToWareHouse(store.deliveryId);
     store.setDeliveryCompleted(true);
   };

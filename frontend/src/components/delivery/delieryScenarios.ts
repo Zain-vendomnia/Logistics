@@ -23,10 +23,11 @@ const deliverySteps = [
   "showFindNeighborPromptAlert",
   "showFindNeighborNotification",
   "waitForResponse",
-  "getRating",
   "returnToWarehouse",
   "damagedParcelImage",
   "notifyForOrderReturn",
+  "getRating",
+  "scanQR",
 ] as const;
 export type DeliveryStep = (typeof deliverySteps)[number];
 
@@ -40,9 +41,9 @@ export type Step = DeliveryStep | ConditionalStep;
 export const deliveryScenarios: Record<DeliveryScenario, DeliveryStep[]> = {
   [DeliveryScenario.foundCustomer]: [
     "captureDoorstepImage",
+    "scanQR",
     "captureParcelImage",
     "captureCustomerSignature",
-    // "getRating",
   ],
   [DeliveryScenario.customerNotFound]: [
     "captureDoorstepImage",
@@ -52,7 +53,11 @@ export const deliveryScenarios: Record<DeliveryScenario, DeliveryStep[]> = {
     // "showFindNeighborPromptAlert",
     "findNeighbor",
   ],
-  [DeliveryScenario.hasPermit]: ["captureDoorstepImage", "captureParcelImage"],
+  [DeliveryScenario.hasPermit]: [
+    "captureDoorstepImage",
+    "scanQR",
+    "captureParcelImage",
+  ],
 
   [DeliveryScenario.customerResponded]: [
     "captureParcelImage",
@@ -68,6 +73,7 @@ export const deliveryScenarios: Record<DeliveryScenario, DeliveryStep[]> = {
     "captureDoorstepImage",
     "getNeighborDetails",
     "captureNeighborDoorstepImage",
+    "scanQR",
     "captureParcelImage",
     "captureNeighborSignature",
   ],
@@ -78,6 +84,7 @@ export const deliveryScenarios: Record<DeliveryScenario, DeliveryStep[]> = {
   ],
   [DeliveryScenario.damagedParcel]: [
     "captureDoorstepImage",
+    "scanQR",
     "damagedParcelImage",
   ],
   [DeliveryScenario.orderReturn]: [
