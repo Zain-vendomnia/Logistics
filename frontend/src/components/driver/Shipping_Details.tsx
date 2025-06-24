@@ -93,7 +93,7 @@ const ShippingDetails = ({
           <Avatar
             alt="client_image"
             src="https://cdn.vectorstock.com/i/1000v/00/74/young-man-profile-vector-14770074.avif"
-            style={{
+            sx={{
               width: "86px",
               height: "86px",
             }}
@@ -137,7 +137,7 @@ const ShippingDetails = ({
               >
                 <Container disableGutters>
                   <Typography variant="h5" fontWeight={"bold"}>
-                    Order number
+                    Delivery Id
                   </Typography>
                   <Typography variant="body1">{tripData?.orderId}</Typography>
                 </Container>

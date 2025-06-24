@@ -53,6 +53,9 @@ const Dashboard = () => {
 
   return (
     <Grid2 container spacing={0} height={"100%"} p={0}>
+      {/* {isDeliveryStarted && <DeliveryDrawer key={deliveryId} />} */}
+      <DeliveryDrawer key={deliveryId} />
+
       <Grid2
         size={{ xs: 4, md: 3, lg: 3 }}
         sx={styles.sideGrid}
@@ -61,7 +64,7 @@ const Dashboard = () => {
         <Box
           position={"relative"}
           height={"100%"}
-          // p={2}
+          p={{ md: 0.5, lg: 1, xl: 2 }}
           sx={{
             border: "1px solid #e0e0e0",
             borderRadius: 2,
@@ -118,9 +121,6 @@ const Dashboard = () => {
           {/* burj Khalifa: [25.1972, 55.2744] */}
         </Box>
       </Grid2>
-
-      {/* {isDeliveryStarted && <DeliveryDrawer key={deliveryId} />} */}
-      <DeliveryDrawer key={deliveryId} />
 
       {/* Dev helpers */}
       {/* {showActiveDeliveryScenario && (

@@ -155,9 +155,7 @@ const PreTripChecks = () => {
                 styleCard={false}
                 buttonText={"Upload Image"}
                 showCameraIcon={true}
-                buttonDisabled={
-                  index !== 0 && !componentStatus[index - 1]
-                }
+                buttonDisabled={index !== 0 && !componentStatus[index - 1]}
                 onImageUploaded={(result) => handleImageUpload(index, result)}
               />
             </Stack>
@@ -173,17 +171,21 @@ const PreTripChecks = () => {
                   {item.title}
                 </Typography>
 
-                <Box
-                  component="img"
-                  src={componentStatus[index].imgSrc}
-                  alt={item.title}
-                  sx={{
-                    width: "100%",
-                    height: "auto",
-                    borderRadius: 1,
-                    boxShadow: 2,
-                  }}
-                />
+                <Box display='flex' justifyContent= "center">
+                  
+                  <Box
+                    component="img"
+                    src={componentStatus[index].imgSrc}
+                    alt={item.title}
+                    sx={{
+                      // width: "100%",
+                      width: "80%",
+                      height: "80%",
+                      borderRadius: 1,
+                      boxShadow: 2,
+                    }}
+                  />
+                </Box>
 
                 {item.requiredInputValue && (
                   <Stack spacing={0}>

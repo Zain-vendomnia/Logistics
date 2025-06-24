@@ -126,25 +126,6 @@ const ReturnToWarehouse = ({ onComplete }: Props) => {
                     }}
                   />
                 </FormGroup>
-
-                {/* <Box>
-                      <Checkbox
-                        edge="start"
-                        onChange={() => handleReasonSelection(value)}
-                        checked={returnReason.split(",").includes(value)}
-                        sx={{
-                          p: 0.5,
-                          alignSelf: "start",
-                        }}
-                      />
-                      <Typography
-                        variant={"body1"}
-                        fontSize={"1.2rem"}
-                        lineHeight={1.5}
-                      >
-                        {value}
-                      </Typography>
-                    </Box> */}
               </Box>
             );
           })}

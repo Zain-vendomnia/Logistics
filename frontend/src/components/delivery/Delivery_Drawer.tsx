@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   Box,
@@ -10,16 +10,114 @@ import {
 } from "@mui/material";
 import MultipleStopIcon from "@mui/icons-material/MultipleStop";
 
-import ParkingPetmitRequest from "./ParkingPetmitRequest";
-import UploadPermitScreenshot from "./UploadPermitScreenshot";
-import ContactSupport from "./ContactSupport";
+import { grey } from "@mui/material/colors";
+import TripListItem from "../base - ui/TripListItem";
+import ScrollContainer from "../base - ui/ScrollContainer";
 
-import StarRating from "../common/Star_Rating";
+export enum DeliveryStatus {
+  PENDING = "Up Coming",
+  COMPLETED = "Completed",
+  DELIVERED = "Delivered",
+  CANCELLED = "Cancelled",
+  ACTIVE = "Active",
+}
+
+export type DeliveryItem = {
+  status: DeliveryStatus;
+  deliveryId: string;
+  address: string;
+  area: string;
+  clientName: string;
+};
+
+const deliveryList: DeliveryItem[] = [
+  {
+    status: DeliveryStatus.DELIVERED,
+    deliveryId: "SL-P1a0BA",
+    address: "Park Lane 30, West Zone",
+    area: "Lagos, FrankFurt",
+    clientName: "John Pack",
+  },
+  {
+    status: DeliveryStatus.COMPLETED,
+    deliveryId: "SL-P2a0BB",
+    address: "Park Lane 32, West Zone",
+    area: "Lagos, FrankFurt",
+    clientName: "Machron",
+  },
+  {
+    status: DeliveryStatus.CANCELLED,
+    deliveryId: "SL-P3a0BC",
+    address: "Park Lane 34, West Zone",
+    area: "Lagos, FrankFurt",
+    clientName: "John Pack Machron",
+  },
+  {
+    status: DeliveryStatus.ACTIVE,
+    deliveryId: "SL-T4BzR8",
+    address: "Park Lane 32, West Zone",
+    area: "Lagos, FrankFurt",
+    clientName: "Machron",
+  },
+  {
+    status: DeliveryStatus.PENDING,
+    deliveryId: "SL-P4a0BD",
+    address: "Park Lane 36, West Zone",
+    area: "Lagos, FrankFurt",
+    clientName: "John Pack",
+  },
+  {
+    status: DeliveryStatus.PENDING,
+    deliveryId: "SL-P5a0BE",
+    address: "Park Lane 38, West Zone",
+    area: "Lagos, FrankFurt",
+    clientName: "John Pack",
+  },
+  {
+    status: DeliveryStatus.PENDING,
+    deliveryId: "SL-P4a0BD",
+    address: "Park Lane 36, West Zone",
+    area: "Lagos, FrankFurt",
+    clientName: "John Pack",
+  },
+  {
+    status: DeliveryStatus.PENDING,
+    deliveryId: "SL-P5a0BE",
+    address: "Park Lane 38, West Zone",
+    area: "Lagos, FrankFurt",
+    clientName: "John Pack",
+  },
+  {
+    status: DeliveryStatus.PENDING,
+    deliveryId: "SL-P4a0BD",
+    address: "Park Lane 36, West Zone",
+    area: "Lagos, FrankFurt",
+    clientName: "John Pack",
+  },
+  {
+    status: DeliveryStatus.PENDING,
+    deliveryId: "SL-P5a0BE",
+    address: "Park Lane 38, West Zone",
+    area: "Lagos, FrankFurt",
+    clientName: "John Pack",
+  },
+];
 
 const DeliveryDrawer = () => {
-  const drawerSize = "25vw";
-
+  const drawerSize = { md: "31vw", lg: "27vw" };
   const [showDrawer, setShowDrawer] = useState(false);
+  const activeDeliveryRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (activeDeliveryRef.current) {
+      requestAnimationFrame(() => {
+        activeDeliveryRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+    }
+  }, [showDrawer]);
 
   return (
     <>
@@ -71,19 +169,34 @@ const DeliveryDrawer = () => {
             bgcolor="primary.main"
           >
             <Typography variant="h5" fontWeight="bold" color="#fff">
-              Options
+              Ongoing Trip
             </Typography>
           </Box>
 
-          <Stack spacing={2} p={2}>
-            <ParkingPetmitRequest />
-            <UploadPermitScreenshot />
-
-            <StarRating />
-          </Stack>
-
-          <Box mt="auto" p={2}>
-            <ContactSupport />
+          <Box
+            bgcolor={grey[200]}
+            flex={1}
+            pt={3}
+            pl={3}
+            pr={1}
+            overflow={"hidden"}
+          >
+            <ScrollContainer>
+              <Stack spacing={3} pb={2}>
+                {deliveryList.map((item, index) => (
+                  <Box
+                    // key={item.deliveryId}
+                    ref={
+                      item.status === DeliveryStatus.ACTIVE
+                        ? activeDeliveryRef
+                        : null
+                    }
+                  >
+                    <TripListItem deliveryItem={item} />
+                  </Box>
+                ))}
+              </Stack>
+            </ScrollContainer>
           </Box>
         </Box>
       </SwipeableDrawer>
