@@ -15,18 +15,17 @@ const geocode = async (address: string) => {
 
 export const dynamicTourController = async (_req: Request, res: Response) => {
   //const { tourName, comments, startTime, endTime, driverid, routeColor, tourDate, orderIds, warehouseId } = req.body;
-//  console.log(tourName, comments, startTime, endTime, driverid, routeColor, tourDate, orderIds, warehouseId);
+  //console.log(tourName, comments, startTime, endTime, driverid, routeColor, tourDate, orderIds, warehouseId);
 
   try {
-   /*  const placeholders = orderIds.map(() => '?').join(',');
+   /* const placeholders = orderIds.map(() => '?').join(',');
     const [rows] = await pool.query(
       `SELECT order_id, street, city, zipcode FROM logistic_order WHERE order_id IN (${placeholders})`,
       orderIds
     );
     console.log('Orders:', rows);
     const orders = rows as any[]; */
-
-   /*  const jobList = orders.map(order => {
+   /* const jobList = orders.map(order => {
       const address = `${order.street}, ${order.city}, ${order.zipcode}`;
       return {
         id: `job_${order.order_id}`,  // ✅ now order_id will exist
@@ -35,14 +34,13 @@ export const dynamicTourController = async (_req: Request, res: Response) => {
         //timeWindow: ['2025-07-11T10:00:00Z', '2025-07-11T12:00:00Z']
       };
     }); */
-
    // console.log("jobList" + JSON.stringify(jobList));
 
     const vehicle = {
       id: 'vehicle_1',
       startAddress: 'Honer Str. 49, 37269 Eschwege, Germany',
       endAddress: 'Honer Str. 49, 37269 Eschwege, Germany',
-      capacity: 15
+      capacity:15
     };
     
      const jobList = [
@@ -251,54 +249,54 @@ export const dynamicTourController = async (_req: Request, res: Response) => {
       plan: { jobs }
     };
 
-    console.log(JSON.stringify(problem, null, 2));
+    //console.log(JSON.stringify(problem, null, 2));
 
     const tourRes = await axios.post(
       `https://tourplanning.hereapi.com/v3/problems?apiKey=${HERE_API_KEY}`,
       problem,
       { headers: { 'Content-Type': 'application/json' } }
     );
+ 
 
-    const stops = tourRes.data.tours[0]?.stops || [];
-    if (tourRes.data.unassigned?.length > 0) {
-      console.warn("Some jobs could not be assigned:");
-      console.table(tourRes.data.unassigned.map((u: { id: any; reasons: any[]; }) => ({
-        jobId: u.id,
-        reasons: u.reasons?.join(', ')
-      })));
-    }
-    console.log('Tours:', JSON.stringify(tourRes.data.tours, null, 2));
-    console.log('Unassigned Jobs:', JSON.stringify(tourRes.data.unassigned, null, 2));
-    if (stops.length < 2) throw new Error('Not enough stops to route');
-    const origin = `${stops[0].location.lat},${stops[0].location.lng}`;
-    const destination = `${stops[stops.length - 1].location.lat},${stops[stops.length - 1].location.lng}`;
-    const vias = stops.slice(1, -1)
-      .map((stop: { location: { lat: number; lng: number } }) =>
-        `&via=${stop.location.lat},${stop.location.lng}!passThrough=true`
-      )
-      .join('');
-    const routingUrl = `https://router.hereapi.com/v8/routes?transportMode=car&origin=${origin}&destination=${destination}${vias}&return=polyline&apiKey=${HERE_API_KEY}`;
-    const routingRes = await axios.get(routingUrl);
-    if (!routingRes.data.routes || routingRes.data.routes.length === 0) {
-      throw new Error('Routing failed or returned no routes.');
-    }
+    const allDecodedRoutes = [];
 
-    const sections = routingRes.data.routes[0].sections;
-    //console.log("Response- " + JSON.stringify(routingRes.data));
+for (const tour of tourRes.data.tours) {
+  const stops = tour.stops || [];
+  if (stops.length < 2) continue;
 
-    const decodedSections = sections.map((section: any) => {
-      const decoded = decode(section.polyline).polyline;
-      return {
-        summary: section.summary,
-        coordinates: decoded.map(([lat, lng, z]) => ({
-          lat,
-          lng,
-          z: z || 0,
-        })),
-      };
-    });
-    res.json({ sections: decodedSections, stops });
-    //res.json({ stops, routePolyline: decoded });
+  const origin = `${stops[0].location.lat},${stops[0].location.lng}`;
+  const destination = `${stops[stops.length - 1].location.lat},${stops[stops.length - 1].location.lng}`;
+  const vias = stops.slice(1, -1)
+    .map((stop: { location: { lat: any; lng: any; }; }) => `&via=${stop.location.lat},${stop.location.lng}!passThrough=true`)
+    .join('');
+
+  const routingUrl = `https://router.hereapi.com/v8/routes?transportMode=car&origin=${origin}&destination=${destination}${vias}&return=polyline,summary&apiKey=${HERE_API_KEY}`;
+
+  const routingRes = await axios.get(routingUrl);
+  const sections = routingRes.data.routes?.[0]?.sections || [];
+
+  const decodedSections = sections.map((section: { polyline: string; summary: any; }) => {
+    const decoded = decode(section.polyline).polyline;
+    return {
+      summary: section.summary,
+      coordinates: decoded.map(([lat, lng, z]) => ({
+        lat,
+        lng,
+        z: z || 0,
+      })),
+    };
+  });
+
+  allDecodedRoutes.push({
+    vehicleId: tour.vehicleId,
+    sections: decodedSections,
+    stops,
+  });
+}
+
+res.json({ routes: allDecodedRoutes, unassigned: tourRes.data.unassigned });
+
+   // res.json( tourRes.data );
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Tour planning or routing failed.' });
