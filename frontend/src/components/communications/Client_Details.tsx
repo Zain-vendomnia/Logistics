@@ -57,7 +57,10 @@ const ClientDetails = () => {
         </motion.div>
       </Box>
       {showMessageBox && (
-        <MessageBox onClose={() => setShowMessageBox(false)} />
+        <MessageBox
+          deliveryId={store.deliveryId}
+          onClose={() => setShowMessageBox(false)}
+        />
       )}
 
       <Box>
