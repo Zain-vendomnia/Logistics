@@ -214,14 +214,15 @@ function splitRouteSegments(route: { activities: any[]; points: any[] }) {
 
 
 
+// Controller function
 export const updateTourController = async (req: Request, res: Response) => {
-  const { id, tourName, comments, startTime, endTime, driverid, routeColor, tourDate } = req.body;
+  const { id, tourName, comments, startTime, driverid, routeColor, tourDate } = req.body;
 
   if (!id) {
     return res.status(400).json({ message: 'Tour ID is required for update' });
   }
 
-  if (!tourName || !comments || !startTime || !endTime || !driverid || !routeColor || !tourDate) {
+  if (!tourName || !comments || !startTime || !driverid || !routeColor || !tourDate) {
     return res.status(400).json({ message: 'All fields are required for the update' });
   }
 
@@ -231,7 +232,6 @@ export const updateTourController = async (req: Request, res: Response) => {
       tourName,
       comments,
       startTime,
-      endTime,
       driverid,
       routeColor,
       tourDate,

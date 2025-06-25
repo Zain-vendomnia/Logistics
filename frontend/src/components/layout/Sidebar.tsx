@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useMemo, useState } from "react";
 import {
   Box,
   List,
@@ -21,43 +21,65 @@ import {
   Route as TourOutlinedIcon,
   DirectionsBusFilled,
   Warehouse,
-  AltRoute, Moving
+  AltRoute,
+  Leaderboard,
+  TrendingUp, // Icon for Driver Performance
 } from "@mui/icons-material";
+
 import { useAuth } from "../../providers/AuthProvider";
 import { useLocation, Link } from "react-router-dom";
-type sidebarMenuOption = { text: string; icon?: ReactNode; path: string };
+
+type SidebarMenuOption = {
+  text: string;
+  icon?: ReactNode;
+  path: string;
+};
 
 interface Props {
-  menuOptions?: sidebarMenuOption[];
+  menuOptions?: SidebarMenuOption[];
   onMenuItemClick?: (path: string) => void;
 }
+
+const DEFAULT_USER_IMAGE = "https://www.w3schools.com/howto/img_avatar.png";
 
 const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
   const location = useLocation();
   const { user, showDriverBoard, showAdminBoard, showSuperAdminBoard } = useAuth();
-  const userImage = "https://www.w3schools.com/howto/img_avatar.png";
 
   const [isOpen, setIsOpen] = useState(true);
-  const [menuItems, setMenuItems] = useState<sidebarMenuOption[]>(menuOptions || []);
-  const displayName = user?.username.split("@")[0] || user?.username;
-  const toggleSidebar = () => setIsOpen(!isOpen);
+  const toggleSidebar = () => setIsOpen((prev) => !prev);
 
-  useEffect(() => {
+  const displayName = useMemo(() => {
+    if (!user?.username) return "User";
+    return user.username.includes("@") ? user.username.split("@")[0] : user.username;
+  }, [user]);
+
+  const menuItems: SidebarMenuOption[] = useMemo(() => {
+    if (menuOptions) return menuOptions;
+
     if (showAdminBoard) {
-      setMenuItems([
+      return [
         { text: "Dashboard", icon: <DashboardIcon />, path: "/admin_dashboard" },
         { text: "Add Tour", icon: <TourIcon />, path: "/Admin_AddTour" },
         { text: "Tours", icon: <TourOutlinedIcon />, path: "/Admin_TourTemplates" },
         { text: "Completed Tour", icon: <AltRoute />, path: "/completed_tour" },
-        { text: "Live Tour", icon: <Moving />, path: "/live_tours" },
+        { text: "Live Tour", icon: <TrendingUp />, path: "/live_tours" },
         { text: "Manage Drivers", icon: <DirectionsBusFilled />, path: "/manage_drivers" },
         { text: "Manage Warehouse", icon: <Warehouse />, path: "/manage_warehouse" },
-      ]);
-    } else if (showSuperAdminBoard) {
-      setMenuItems([{ text: "Dashboard", icon: <DashboardIcon />, path: "/Admin_dashboard" }]);
+        { text: "Driver Performance", icon: <Leaderboard  />, path: "/driver_performance" },
+      ];
     }
-  }, [showAdminBoard, showSuperAdminBoard]);
 
+    if (showSuperAdminBoard) {
+      return [
+        { text: "Dashboard", icon: <DashboardIcon />, path: "/admin_dashboard" },
+      ];
+    }
+
+    return [];
+  }, [menuOptions, showAdminBoard, showSuperAdminBoard]);
+
+  // Hide sidebar for drivers
   if (!user || showDriverBoard) return null;
 
   return (
@@ -98,7 +120,9 @@ const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
           {isOpen && (
             <Stack spacing={1}>
               <Box display="flex" alignItems="center" gap={2}>
-                <Avatar src={userImage} sx={{ width: 48, height: 48 }} />
+                <Avatar src={DEFAULT_USER_IMAGE} sx={{ width: 48, height: 48 }}>
+                  {displayName[0]?.toUpperCase()}
+                </Avatar>
                 <Box>
                   <Typography fontWeight="bold" noWrap>
                     {displayName}
@@ -110,7 +134,11 @@ const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
               </Box>
             </Stack>
           )}
-          <IconButton size="small" onClick={toggleSidebar}>
+          <IconButton
+            size="small"
+            onClick={toggleSidebar}
+            aria-label={isOpen ? "Collapse sidebar" : "Expand sidebar"}
+          >
             {isOpen ? <NavigateBeforeIcon /> : <MenuIcon />}
           </IconButton>
         </Paper>
@@ -125,6 +153,7 @@ const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
                   component={Link}
                   to={item.path}
                   onClick={() => onMenuItemClick?.(item.path)}
+                  title={item.text}
                   sx={(theme) => ({
                     borderRadius: 2,
                     px: 2,
@@ -132,9 +161,7 @@ const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
                     my: 0.5,
                     background: selected ? theme.palette.primary.gradient : "transparent",
                     "&:hover": {
-                      background: selected
-                        ? theme.palette.primary.gradient
-                        : theme.palette.grey[100],
+                      background: selected ? theme.palette.primary.gradient : theme.palette.grey[100],
                     },
                   })}
                 >

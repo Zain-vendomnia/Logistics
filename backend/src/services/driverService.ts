@@ -1,5 +1,23 @@
 import pool from "../database";
 import bcrypt from "bcryptjs";
+interface DriverBasic {
+  id: number;
+  name: string;
+  mob: string;
+  address: string;
+  email: string;
+  warehouse_id: number;
+}
+
+interface UnavailableDriver {
+  driver: DriverBasic;
+  reason: string;
+}
+
+interface AvailabilityResult {
+  available: DriverBasic[];
+  unavailable: UnavailableDriver[];
+}
 
 export const getAllDrivers = async () => {
   const [rows] = await pool.query(`
@@ -19,6 +37,95 @@ export const getAllDrivers = async () => {
   return rows;
 };
 
+
+export const getAvailableDrivers = async (
+  tourDate: string,
+  warehouseId: number
+): Promise<AvailabilityResult> => {
+  const [allDriversRows]: any = await pool.query(
+    `
+      SELECT d.id, d.name, d.mob, d.address, d.email, d.warehouse_id
+      FROM driver_details d
+      JOIN users u ON d.user_id = u.user_id
+      WHERE d.warehouse_id = ? AND u.is_active = 1
+    `,
+    [warehouseId]
+  );
+  const allDrivers: DriverBasic[] = allDriversRows;
+
+  const available: DriverBasic[] = [];
+  const unavailable: UnavailableDriver[] = [];
+
+  // Compute start of the week for the given tour date
+  const tourDay = new Date(tourDate);
+  tourDay.setHours(0, 0, 0, 0);
+  const dow = tourDay.getDay(); // 0=Sun … 6=Sat
+  const diffToMon = dow === 0 ? 6 : dow - 1;
+  const weekStart = new Date(tourDay);
+  weekStart.setDate(tourDay.getDate() - diffToMon);
+  weekStart.setHours(0, 0, 0, 0);
+
+  for (const drv of allDrivers) {
+    // Same-day check
+    const [sameDay]: any = await pool.query(
+      `
+        SELECT 1
+        FROM tourInfo_master t
+        WHERE t.driver_id = ? AND DATE(t.tour_date) = ?
+        LIMIT 1
+      `,
+      [drv.id, tourDate]
+    );
+    if (sameDay.length > 0) {
+      unavailable.push({
+        driver: drv,
+        reason: "Driver already has a trip scheduled on that date."
+      });
+      continue;
+    }
+
+    // Weekly hours calculation
+    const [tours]: any = await pool.query(
+      `
+        SELECT
+          t.id AS tour_id,
+          t.tour_date,
+          t.start_time,
+          t.end_time,
+          TIMESTAMPDIFF(MINUTE,
+            CONCAT(DATE(t.tour_date),' ',t.start_time),
+            CONCAT(DATE(t.tour_date),' ',t.end_time)
+          ) AS duration_minutes
+        FROM tourInfo_master t
+        WHERE t.driver_id = ?
+          AND t.tour_date >= ?
+          AND t.tour_date < DATE_ADD(?, INTERVAL 1 DAY)
+        ORDER BY t.tour_date DESC, t.end_time DESC
+      `,
+      [drv.id, weekStart, tourDate]
+    );
+
+    let totalMinutes = 0;
+    tours.forEach((row: any) => {
+      if (row.duration_minutes != null) totalMinutes += row.duration_minutes;
+    });
+
+    const totalHours = Math.floor(totalMinutes / 60);
+    const remainingMin = totalMinutes % 60;
+
+    if (totalHours >= 40) {
+      unavailable.push({
+        driver: drv,
+        reason: `Worked ${totalHours}h ${remainingMin}m this week (≥ 40h).`
+      });
+      continue;
+    }
+
+    available.push(drv);
+  }
+
+  return { available, unavailable };
+};
 
 export const getDriverById = async (id: number) => {
   const [rows]: any = await pool.query("SELECT * FROM driver_details WHERE id = ?", [id]);
@@ -417,4 +524,130 @@ console.log(`[Step 1] Start of current week (Monday): ${monday.toLocaleString()}
       ? "Driver is eligible: has not worked 40 hours this week."
       : "Driver is not eligible: worked 40 or more hours this week."
   };
+};
+
+export const getDriverPerformanceData = async (startDate: string, endDate: string) => {
+  const [rows] = await pool.query(`
+    SELECT 
+      d.id,
+      d.name,
+      d.mob AS mobile,
+      d.email,
+      d.warehouse_id,
+      w.warehouse_name AS warehouse_name,
+      d.overall_rating AS rating,
+
+      COUNT(t.id) AS total,
+      SUM(CASE WHEN t.tour_status = 'completed' THEN 1 ELSE 0 END) AS completed,
+
+      -- KPI 1: Uploaded images (9 per completed tour expected)
+      SUM(
+        CASE WHEN t.tour_status = 'completed' THEN
+          (CASE WHEN t.secure_loading_photo IS NOT NULL AND OCTET_LENGTH(t.secure_loading_photo) > 0 THEN 1 ELSE 0 END) +
+          (CASE WHEN t.truck_loaded_photo IS NOT NULL AND OCTET_LENGTH(t.truck_loaded_photo) > 0 THEN 1 ELSE 0 END) +
+          (CASE WHEN t.start_fuel_gauge_photo IS NOT NULL AND OCTET_LENGTH(t.start_fuel_gauge_photo) > 0 THEN 1 ELSE 0 END) +
+          (CASE WHEN t.start_odometer_photo IS NOT NULL AND OCTET_LENGTH(t.start_odometer_photo) > 0 THEN 1 ELSE 0 END) +
+          (CASE WHEN t.start_truck_exterior_photo IS NOT NULL AND OCTET_LENGTH(t.start_truck_exterior_photo) > 0 THEN 1 ELSE 0 END) +
+          (CASE WHEN t.end_fuel_receipt_photo IS NOT NULL AND OCTET_LENGTH(t.end_fuel_receipt_photo) > 0 THEN 1 ELSE 0 END) +
+          (CASE WHEN t.end_fuel_gauge_photo IS NOT NULL AND OCTET_LENGTH(t.end_fuel_gauge_photo) > 0 THEN 1 ELSE 0 END) +
+          (CASE WHEN t.end_odometer_photo IS NOT NULL AND OCTET_LENGTH(t.end_odometer_photo) > 0 THEN 1 ELSE 0 END) +
+          (CASE WHEN t.undelivered_modules_photo IS NOT NULL AND OCTET_LENGTH(t.undelivered_modules_photo) > 0 THEN 1 ELSE 0 END)
+        ELSE 0 END
+      ) AS totalImagesUploaded,
+
+      -- KPI 2: Deliveries with status = delivered
+      SUM(CASE WHEN t.tour_status = 'completed' THEN rs.total_expected ELSE 0 END) AS totalExpectedDeliveries,
+      SUM(CASE WHEN t.tour_status = 'completed' THEN rs.total_actual ELSE 0 END) AS totalActualDeliveries,
+
+      -- KPI 3: POD (regardless of status)
+      SUM(CASE WHEN t.tour_status = 'completed' THEN rs.total_valid_pod ELSE 0 END) AS totalValidPODs
+
+    FROM driver_details d
+    LEFT JOIN tourinfo_master t 
+      ON d.id = t.driver_id AND t.tour_date BETWEEN ? AND ?
+    LEFT JOIN warehouse_details w 
+      ON d.warehouse_id = w.warehouse_id
+    LEFT JOIN (
+      SELECT 
+        tour_id,
+        GREATEST(COUNT(*) - 1, 0) AS total_expected,
+
+        -- KPI 2
+        SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) AS total_actual,
+
+        -- KPI 3: POD based on recipient type and signature + photo
+        SUM(
+          CASE 
+            WHEN recipient_type = 'customer' 
+              AND customer_signature IS NOT NULL AND OCTET_LENGTH(customer_signature) > 0
+              AND delivered_item_pic IS NOT NULL AND OCTET_LENGTH(delivered_item_pic) > 0
+            THEN 1
+            WHEN recipient_type = 'neighbour' 
+              AND neighbour_signature IS NOT NULL AND OCTET_LENGTH(neighbour_signature) > 0
+              AND delivered_pic_neighbour IS NOT NULL AND OCTET_LENGTH(delivered_pic_neighbour) > 0
+            THEN 1
+            ELSE 0
+          END
+        ) AS total_valid_pod
+      FROM route_segments
+      GROUP BY tour_id
+    ) rs ON rs.tour_id = t.id
+    GROUP BY d.id
+    ORDER BY d.id;
+  `, [startDate, endDate]);
+
+  const result = rows as any[];
+
+  return result.map((row) => {
+    const completedTours = Number(row.completed) || 0;
+    const totalImagesUploaded = Number(row.totalImagesUploaded) || 0;
+    const expectedDeliveries = Number(row.totalExpectedDeliveries) || 0;
+    const actualDeliveries = Number(row.totalActualDeliveries) || 0;
+    const validPODs = Number(row.totalValidPODs) || 0;
+
+    // KPI 1: Image upload score
+    const maxPossibleImages = completedTours * 9;
+    const kpi1ImageUploadScore = maxPossibleImages > 0
+      ? parseFloat(((totalImagesUploaded / maxPossibleImages) * 5).toFixed(2))
+      : 0;
+
+    // KPI 2: Delivery success score
+    const kpi2DeliveryScore = expectedDeliveries > 0
+      ? parseFloat(((actualDeliveries / expectedDeliveries) * 5).toFixed(2))
+      : 0;
+
+    // KPI 3: POD completion score (based on valid signatures + images)
+    const kpi3PODScore = expectedDeliveries > 0
+      ? parseFloat(((validPODs / expectedDeliveries) * 5).toFixed(2))
+      : 0;
+
+    const undeliveredCount = expectedDeliveries - actualDeliveries;
+
+    return {
+      id: row.id,
+      name: row.name,
+      email: row.email,
+      mobile: row.mobile,
+      avatarUrl: row.avatar_url || undefined,
+      rating: Number(row.rating) || 0,
+      warehouseId: row.warehouse_id,
+      warehouseName: row.warehouse_name || "Unknown",
+
+      completedTours,
+
+      // KPI 1
+      kpi1ImageUploadScore,
+      kpi1ImageCount: totalImagesUploaded,
+
+      // KPI 2
+      kpi2DeliveryScore,
+      totalExpectedDeliveries: expectedDeliveries,
+      totalActualDeliveries: actualDeliveries,
+      undeliveredCount,
+
+      // KPI 3
+      kpi3PODScore,
+      validPODs,
+    };
+  });
 };

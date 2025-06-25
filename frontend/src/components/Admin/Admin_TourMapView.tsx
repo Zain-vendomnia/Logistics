@@ -141,8 +141,9 @@ const TourMapPage: React.FC = () => {
 
 
   const handleEditCustomer = (customer: any) => {
-    setSelectedCustomer(customer);
-    setEditModalOpen(true);
+    
+    setSelectedCustomer(customer); 
+    setEditModalOpen(true);        
   };
 
   const blink = {
@@ -300,7 +301,7 @@ const TourMapPage: React.FC = () => {
             const matchedOrder = selectedTour?.orders?.find(
               (order: any) => order.order_id === Number(stop.location_id)
             );
-            console.log("matchedOrder" + JSON.stringify(matchedOrder));
+            // console.log("matchedOrder"+ JSON.stringify(matchedOrder));
 
 
             // Skip rendering if not a warehouse and there's no matching order
@@ -765,8 +766,9 @@ const TourMapPage: React.FC = () => {
         open={editModalOpen}
         onClose={() => setEditModalOpen(false)}
         customer={selectedCustomer}
-        notice={selectedCustomer?.route_segment_notice || ''}
-        tourId={tour_id}
+        allCustomers={selectedTour || []}
+        notice={selectedCustomer?.route_segment_notice || ''} 
+        tourId = {tour_id}
         color={selectedTour?.tour_route_color}
         onSave={(updatedCustomer) => {
           setSelectedTour((prev: Tours | null) => {

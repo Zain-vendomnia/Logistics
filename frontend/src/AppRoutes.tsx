@@ -20,6 +20,7 @@ import ParkingPermitForm from './components/parkingPermit/ParkingPermitForm';
 import AdminAddTour from "./components/Admin/Admin_AddTour";
 import CompletedTour from "./components/Admin/completed_tour";
 import LiveTours from "./components/Admin/live_tours";
+import DriverPerformance from "./components/Admin/DriverPerformance";
 import ProofdeliveryLiveloc from "./components/Admin/ProofdeliveryLiveloc";
 import ProofdeliveryImage from "./components/Admin/ProofdeliveryImage";
 
@@ -103,6 +104,7 @@ const AppRoutes = () => {
       <Route path = "/Admin_TourMapView/:tour_id"  element={<ProtectedRoute element={<Admin_TourMapView />} allowedRoles={["admin"]} />}/>
       <Route path = "/completed_tour" element={<ProtectedRoute element={<CompletedTour />} allowedRoles={["admin"]} />} />
       <Route path = "/live_tours" element={<ProtectedRoute element={<LiveTours />} allowedRoles={["admin"]} />} />
+      <Route path = "/driver_performance" element={<ProtectedRoute element={<DriverPerformance />} allowedRoles={["admin"]} />} />
       <Route path = "/ProofdeliveryLiveloc" element={<ProtectedRoute element={<ProofdeliveryLiveloc />} allowedRoles={["admin"]} />} />
       <Route path = "/ProofdeliveryImage" element={<ProtectedRoute element={<ProofdeliveryImage />} allowedRoles={["admin"]} />} />
       {/* <Route path="/Admin_PickList" element={<Admin_PickListPage />} />  */}

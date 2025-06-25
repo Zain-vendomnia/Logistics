@@ -13,43 +13,72 @@ interface Tour {
   warehouseId: number;
 }
 
-// Function to insert a tour into the database
 export const createTour = async (tour: Tour) => {
-  const checkPendingSql = `
-    SELECT COUNT(*) AS count FROM tourinfo_master
-    WHERE driver_id = ? AND tour_status IN ('pending', 'in-progress')
-  `;
+  // const checkPendingSql = `
+  //   SELECT COUNT(*) AS count FROM tourinfo_master
+  //   WHERE driver_id = ? AND tour_status IN ('pending', 'in-progress')
+  // `;
 
   const checkDateSql = `
     SELECT COUNT(*) AS count FROM tourinfo_master
     WHERE driver_id = ? AND tour_date = ?
   `;
 
+  const getUserIdFromDriver = `
+    SELECT user_id FROM driver_details
+    WHERE id = ?
+  `;
+
+  const checkUserStatusSql = `
+    SELECT is_active FROM users
+    WHERE user_id = ?
+  `;
+
   const insertSql = `
     INSERT INTO tourinfo_master (
-      tour_name, comments, start_time, driver_id, route_color, tour_date, order_ids, warehouse_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      tour_name, comments, start_time, driver_id, route_color, tour_date, order_ids, warehouse_id, expected_delivery_count
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   try {
     // 1. Validate pending/in-progress
-    const [pendingRows]: any = await pool.query(checkPendingSql, [tour.driverid]);
-    if (pendingRows[0].count > 0) {
-      throw new Error(`Driver already has a pending or in-progress tour. Complete it before assigning a new one.`);
+    // const [pendingRows]: any = await pool.query(checkPendingSql, [tour.driverid]);
+    // if (pendingRows[0].count > 0) {
+    //   throw new Error(`Driver already has a pending or in-progress tour. Complete it before assigning a new one.`);
+    // }
+
+    // 2. Get user_id from driver
+    const [driverUserRows]: any = await pool.query(getUserIdFromDriver, [tour.driverid]);
+    if (!driverUserRows.length) {
+      throw new Error(`Driver not found with ID ${tour.driverid}`);
+    }
+    const userId = driverUserRows[0].user_id;
+
+    // 3. Check user status from users table
+    const [userStatusRows]: any = await pool.query(checkUserStatusSql, [userId]);
+    if (!userStatusRows.length) {
+      throw new Error(`User not found with ID ${userId}`);
+    }
+    if (userStatusRows[0].is_active == 0) {
+      throw new Error(`Driver is inactive`);
     }
 
-    // 2. Check duplicate tour date
+    // 4. Check duplicate tour date
     const [sameDateRows]: any = await pool.query(checkDateSql, [tour.driverid, tour.tourDate]);
     if (sameDateRows[0].count > 0) {
       throw new Error(`Driver already has a tour on ${tour.tourDate}`);
     }
 
-    // 3. Fetch driver name
+    // 5. Fetch driver name
     const [driverRows]: any = await pool.query(`SELECT name FROM driver_details WHERE id = ?`, [tour.driverid]);
-    if (!driverRows.length) throw new Error(`Driver not found with ID ${tour.driverid}`);
-    const driverName = driverRows[0].name.replace(/\s+/g, ''); // e.g., "John Doe" => "JohnDoe"
+    const driverName = driverRows[0].name.replace(/\s+/g, '');
 
-    // 4. Fetch zip codes from order IDs
+    // 6. Validate order IDs
+    if (!Array.isArray(tour.orderIds) || tour.orderIds.length === 0) {
+      throw new Error('No order IDs provided for this tour.');
+    }
+
+    // 7. Fetch zip codes from order IDs
     const orderPlaceholders = tour.orderIds.map(() => '?').join(',');
     const [zipRows]: any = await pool.query(
       `SELECT zipcode FROM logistic_order WHERE order_id IN (${orderPlaceholders})`,
@@ -65,18 +94,11 @@ export const createTour = async (tour: Tour) => {
     const lastZipPrefix = lastZip.substring(0, 2);
 
     const tourDateFormatted = new Date(tour.tourDate);
-
-    // Get weekday name (e.g., Monday)
     const dayName = tourDateFormatted.toLocaleDateString('en-US', { weekday: 'long' });
-
-    // Format date as YYYY.MM.DD
     const formattedDate = `${tourDateFormatted.getFullYear()}.${String(tourDateFormatted.getMonth() + 1).padStart(2, '0')}.${String(tourDateFormatted.getDate()).padStart(2, '0')}`;
 
-    // Final tour name
     const tourName = `PLZ-${firstZipPrefix}-${lastZipPrefix}-${driverName}-${dayName}-${formattedDate}`;
 
-
-    // 7. Prepare final insert values
     const values = [
       tourName,
       tour.comments || null,
@@ -85,12 +107,12 @@ export const createTour = async (tour: Tour) => {
       tour.routeColor,
       tour.tourDate,
       JSON.stringify(tour.orderIds),
-      tour.warehouseId
+      tour.warehouseId,
+      tour.orderIds.length // 👈 this is your expected_delivery_count
     ];
 
     console.log('[tourModel] Creating tour with values:', values);
 
-    // 8. Execute insert
     const [result] = await pool.query(insertSql, values);
     return result;
 
@@ -104,7 +126,6 @@ export const createTour = async (tour: Tour) => {
     }
   }
 };
-
 
 // Function to insert a tour_driver data into the database
 export const insertTourDriverData = async (tour: any) => {
@@ -125,6 +146,7 @@ export const insertTourDriverData = async (tour: any) => {
     throw err;
   }
 };
+
 export const deleteTours = async (tourIds: number[]) => {
   const conn = await pool.getConnection();
 
@@ -168,48 +190,91 @@ export const deleteTours = async (tourIds: number[]) => {
   }
 };
 
-// Function to update a tour and its corresponding tour_driver data
+// Service function
 export const updateTour = async (tourData: any) => {
-  const { id, tourName, comments, startTime, endTime, driverid, routeColor, tourDate } = tourData;
+  const { id, tourName, comments, startTime, driverid, routeColor, tourDate } = tourData;
+
+  const checkPendingSql = `
+    SELECT COUNT(*) AS count FROM tourinfo_master
+    WHERE driver_id = ? AND tour_status IN ('pending', 'in-progress') AND id != ?
+  `;
+
+  const checkDateSql = `
+    SELECT COUNT(*) AS count FROM tourinfo_master
+    WHERE driver_id = ? AND tour_date = ? AND id != ?
+  `;
+
+  const getUserIdSql = `
+    SELECT user_id FROM driver_details WHERE id = ?
+  `;
+
+  const checkUserStatusSql = `
+    SELECT is_active FROM users WHERE user_id = ?
+  `;
 
   const connection = await pool.getConnection();
+
   try {
     await connection.beginTransaction();
 
-    // Update tourinfo_master
+    // 1. Check for existing pending/in-progress tours
+    const [pendingRows]: any = await connection.query(checkPendingSql, [driverid, id]);
+    if (pendingRows[0].count > 0) {
+      throw new Error(`Driver already has another pending or in-progress tour.`);
+    }
+
+    // 2. Check for another tour on the same date
+    const [dateRows]: any = await connection.query(checkDateSql, [driverid, tourDate, id]);
+    if (dateRows[0].count > 0) {
+      throw new Error(`Driver already has another tour on ${tourDate}.`);
+    }
+
+    // 3. Check driver status
+    const [userRows]: any = await connection.query(getUserIdSql, [driverid]);
+    if (!userRows.length) throw new Error(`Driver not found with ID ${driverid}`);
+
+    const userId = userRows[0].user_id;
+    const [statusRows]: any = await connection.query(checkUserStatusSql, [userId]);
+    if (!statusRows.length || statusRows[0].is_active === 0) {
+      throw new Error(`Driver is inactive.`);
+    }
+
+    // 4. Update tourinfo_master
     const updateTourinfoQuery = `
       UPDATE tourinfo_master 
-      SET tour_name = ?, comments = ?, start_time = ?, end_time = ?, driver_id = ?, route_color = ?, tour_date = ?
+      SET tour_name = ?, comments = ?, start_time = ?, driver_id = ?, route_color = ?, tour_date = ?
       WHERE id = ?
     `;
     const [tourinfoResult] = await connection.query(updateTourinfoQuery, [
       tourName,
       comments,
       startTime,
-      endTime,
       driverid,
       routeColor,
       tourDate,
       id,
     ]);
 
-    // Update tour_driver
+    // 5. Update tour_driver
     const updateDriverQuery = `
       UPDATE tour_driver 
       SET driver_id = ?, tour_date = ?
       WHERE tour_id = ?
     `;
-    await connection.query(updateDriverQuery, [
-      driverid,
-      tourDate,
-      id,
-    ]);
+    await connection.query(updateDriverQuery, [driverid, tourDate, id]);
 
     await connection.commit();
     return tourinfoResult;
-  } catch (error) {
+  } catch (error: unknown) {
     await connection.rollback();
-    throw error;
+
+    if (error instanceof Error) {
+      console.error('[updateTour] Error:', error.message);
+      throw error;
+    } else {
+      console.error('[updateTour] Unknown error:', error);
+      throw new Error('An unknown error occurred while updating the tour.');
+    }
   } finally {
     connection.release();
   }

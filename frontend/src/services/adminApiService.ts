@@ -74,6 +74,19 @@ const updateCustomerInfo = (customerData: Record<string, any>) =>
     headers: authHeader()
   });
 
+  const getLatLngFromAddress = async ({
+    street,
+    city,
+    zipcode,
+  }: { street: string; city: string; zipcode: string }) => {
+  const fullAddress = `${street}, ${zipcode} ${city}, Germany`;
+  return axios.get(`https://api.opencagedata.com/geocode/v1/json`, {
+    params: {
+      q: fullAddress,
+      key: process.env.REACT_APP_OPENCAGE_API_KEY,
+    }
+  });
+};
 
 const insertParkingPermit = (formData: any) => {
 
@@ -91,6 +104,7 @@ const adminApiService = {
   fetchSpecifiedOrder,
   createTour,
   getRouteResponse,
+  getLatLngFromAddress,
   deleteTours,
   exportTours,
   fetchRouteSegmentData,

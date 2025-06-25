@@ -8,14 +8,16 @@ export const updateCustomerInfoService = async (data: {
   phone: string;
   notice: string;
   tourId: number; 
-
+  latitude: number;
+  longitude: number;
 }) => {
-  const { order_id, street, zipcode, city, phone, notice , tourId } = data;
+  console.log("Updating customer info with data:", data);
+  const { order_id, street, zipcode, city, phone, notice , tourId, latitude, longitude } = data;
 
   try {
     const query = `
       UPDATE logistic_order 
-      SET street = ?, zipcode = ?, city = ?, phone = ?, updated_at = CURRENT_TIMESTAMP
+      SET street = ?, zipcode = ?, city = ?, phone = ?, lattitude = ?, longitude = ?, updated_at = CURRENT_TIMESTAMP
       WHERE order_id = ?
     `;
 
@@ -24,6 +26,8 @@ export const updateCustomerInfoService = async (data: {
       zipcode,
       city,
       phone,
+      latitude,
+      longitude,
       order_id,
       tourId
     ]);

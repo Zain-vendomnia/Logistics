@@ -16,15 +16,22 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import PhoneIcon from '@mui/icons-material/Phone';
 import adminApiService from '../../services/adminApiService';
-
+import ConfirmationDialog from './confirmationModal';
 interface Props {
   open: boolean;
   onClose: () => void;
   customer: any;
+  allCustomers: any;
   color: string;
   notice?: string;
   tourId: string | undefined; 
   onSave?: (updatedCustomer: any) => void;
+}
+interface ConfirmationRow {
+  from: string;
+  to: string;
+  distance: string;
+  isEditedCustomer: boolean;
 }
 const CustomInput = ({
   label,
@@ -32,7 +39,8 @@ const CustomInput = ({
   onChange,
   startAdornment = null,
   error = '',
-  helperText = ''
+  helperText = '',
+  inputProps
 }: {
   label: string;
   value: string;
@@ -40,6 +48,7 @@ const CustomInput = ({
   startAdornment?: React.ReactNode;
   error?: string;
   helperText?: string;
+  inputProps?: React.InputHTMLAttributes<HTMLInputElement>;
 }) => (
   <TextField
     label={label}
@@ -50,10 +59,9 @@ const CustomInput = ({
     helperText={error || helperText}
     InputProps={{
       startAdornment,
-      sx: {
-        borderRadius: 2,
-      }
+      sx: { borderRadius: 2 },
     }}
+    inputProps={inputProps} // Only applies if passed
     sx={{
       '& .MuiOutlinedInput-root': {
         borderRadius: '10px',
@@ -66,7 +74,7 @@ const CustomInput = ({
     }}
   />
 );
-const CustomerEditModal: React.FC<Props> = ({ open, onClose, customer, color,tourId, onSave }) => {
+const CustomerEditModal: React.FC<Props> = ({ open, onClose, customer,allCustomers, color,tourId, onSave }) => {
   const [formData, setFormData] = useState({
     street: '',
     city: '',
@@ -75,7 +83,13 @@ const CustomerEditModal: React.FC<Props> = ({ open, onClose, customer, color,tou
     notice: '',
     tourId: ''
   });
-  console.log("customer"+ JSON.stringify(formData));
+  const [confirmationOpen, setConfirmationOpen] = useState(false);
+  const [confirmationData, setConfirmationData] = useState<ConfirmationRow[]>([]);
+  const [newLat, setNewLat] = useState<number | null>(null);
+  const [newLng, setNewLng] = useState<number | null>(null);
+  // const [allCustomers, setAllCustomers] = useState<any[]>([]);
+
+  // console.log("customer"+ JSON.stringify(formData));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
@@ -87,8 +101,17 @@ const CustomerEditModal: React.FC<Props> = ({ open, onClose, customer, color,tou
     severity: 'success'
   });
 
+  const hasAddressChanged = () => {
+    return (
+      customer.street !== formData.street ||
+      customer.city !== formData.city ||
+      customer.zipcode !== formData.zipcode
+    );
+  };
+
   useEffect(() => {
     if (customer) {
+      console.log("Customer data:", customer);
       setFormData({
         street: customer.street || '',
         city: customer.city || '',
@@ -100,6 +123,8 @@ const CustomerEditModal: React.FC<Props> = ({ open, onClose, customer, color,tou
       });
       setErrors({});
     }
+    // setAllCustomers(allCustomers);
+    // console.log("all customers ----> ",allCustomers)
   }, [customer, open]);
 
   const handleChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -145,52 +170,211 @@ const CustomerEditModal: React.FC<Props> = ({ open, onClose, customer, color,tou
     return Object.keys(e).length === 0;
   };
 
-  const handleSave = async () => {
-    console.log("form submitting !.....")
-    if (!validate()) return;
+  const haversineDistance = (
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number => {
+        // console.log("=================================================================================")
+        // console.log("Calculating distance between:", lat1, lon1, lat2, lon2);
+        // console.log("=================================================================================")
+  const toRad = (value: number) => (value * Math.PI) / 180;
 
-    const updatedData = {
-      order_id: customer.order_id,
-      street: formData.street,
-      city: formData.city,
-      zipcode: formData.zipcode,
-      phone: formData.phone_number,
-      notice: formData.notice,
-      tourId: formData.tourId,
-      };
-     console.log("updatedData" + JSON.stringify(updatedData));
+  const R = 6371; // Earth radius in KM
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
+//  const handleSave = async () => {
+//   if (!validate()) return;
+
+//   let lat = null;
+//   let lng = null;
+
+//   if (hasAddressChanged()) {
+//     try {
+//       const locationResponse = await adminApiService.getLatLngFromAddress({
+//         street: formData.street,
+//         city: formData.city,
+//         zipcode: formData.zipcode
+//       });
+
+//       if (
+//         locationResponse?.data?.results?.[0]?.geometry?.lat &&
+//         locationResponse?.data?.results?.[0]?.geometry?.lng
+//       ) {
+//         lat = locationResponse.data.results[0].geometry.lat;
+//         lng = locationResponse.data.results[0].geometry.lng;
+//         console.log("=================================================================================")
+//         console.log("editing customer data", customer.lattitude, customer.longitude);
+//         console.log("all customers data", allCustomers);
+//         console.log("Fetched coordinates:", lat, lng);
+//         console.log("=================================================================================")
+//       } else {
+//         setSnackbar({
+//           open: true,
+//           message: "Unable to fetch coordinates for the updated address.",
+//           severity: 'error'
+//         });
+//         return;
+//       }
+//     } catch (err) {
+//       console.error("Geocoding error:", err);
+//       setSnackbar({
+//         open: true,
+//         message: "Error while fetching location coordinates.",
+//         severity: 'error'
+//       });
+//       return;
+//     }
+//   }
+
+//   const updatedData = {
+//     order_id: customer.order_id,
+//     street: formData.street,
+//     city: formData.city,
+//     zipcode: formData.zipcode,
+//     phone: formData.phone_number,
+//     notice: formData.notice,
+//     tourId: formData.tourId,
+//     ...(lat && lng && { latitude: lat, longitude: lng }) // Only include if fetched
+//   };
+
+//   try {
+//     const response = await adminApiService.updateCustomerInfo(updatedData);
+
+//     setSnackbar({
+//       open: true,
+//       message: "Customer info updated successfully",
+//       severity: 'success'
+//     });
+
+//     if (onSave) {
+//       const completeUpdatedCustomer = {
+//         ...customer,
+//         ...formData,
+//         phone: formData.phone_number,
+//         latitude: lat,
+//         longitude: lng
+//       };
+//       onSave(completeUpdatedCustomer);
+//     }
+
+//     onClose();
+//   } catch (error) {
+//     console.error('Error updating customer:', error);
+//     setSnackbar({ open: true, message: 'Failed to update customer info', severity: 'error' });
+//   }
+// };
+const performUpdate = async (lat: number | null, lng: number | null) => {
+  const updatedData = {
+    order_id: customer.order_id,
+    street: formData.street,
+    city: formData.city,
+    zipcode: formData.zipcode,
+    phone: formData.phone_number,
+    notice: formData.notice,
+    tourId: formData.tourId,
+    ...(lat && lng ? { latitude: lat, longitude: lng } : {})
+  };
+console.log("=================================================================================")
+  console.log("Performing update with data:", updatedData);
+  console.log("=================================================================================")
+  try {
+    await adminApiService.updateCustomerInfo(updatedData);
+
+    setSnackbar({
+      open: true,
+      message: "Customer info updated successfully",
+      severity: 'success'
+    });
+
+    if (onSave) {
+      onSave({
+        ...customer,
+        ...formData,
+        phone: formData.phone_number,
+        latitude: lat,
+        longitude: lng
+      });
+    }
+
+    onClose();
+  } catch (error) {
+    console.error('Error updating customer:', error);
+    setSnackbar({ open: true, message: 'Failed to update customer info', severity: 'error' });
+  }
+};
+const handleSave = async () => {
+  if (!validate()) return;
+
+  let lat: number | null = null;
+  let lng: number | null = null;
+
+  if (hasAddressChanged()) {
     try {
-      const response = await adminApiService.updateCustomerInfo(updatedData);
-      console.log("✅ Customer update success:", response.data);
-   
-      setSnackbar({
-        open: true,
-        message: "Customer info updated successfully",
-        severity: 'success'
+      const locationResponse = await adminApiService.getLatLngFromAddress({
+        street: formData.street,
+        city: formData.city,
+        zipcode: formData.zipcode
       });
 
-      if (onSave) {
-        // More explicit version - create the complete updated customer object
-        const completeUpdatedCustomer = {
-          ...customer,
-          street: formData.street,
-          city: formData.city,
-          zipcode: formData.zipcode,
-          phone: formData.phone_number,
-          notice: formData.notice,
-          tourId: formData.tourId,
-        };
-        onSave(completeUpdatedCustomer);
-        
+      const result = locationResponse?.data?.results?.[0]?.geometry;
+
+      if (result?.lat && result?.lng) {
+        lat = result.lat;
+        lng = result.lng;
+
+        setNewLat(lat);
+        setNewLng(lng);
+        // Build confirmation data
+        // console.log("=================================================================================")
+        // console.log("all customers data", allCustomers);
+        // console.log("=================================================================================")
+        const data: ConfirmationRow[] = allCustomers.orders.map((cust:any) => {
+        const distance = haversineDistance(cust.lattitude, cust.longitude, lat!, lng!);
+
+          return {
+            from: `${cust.order_id}${cust.order_id === customer.order_id ? ' (old location)' : ''}`,
+            to: `Order ID: ${customer.order_id}`,
+            distance: `${distance.toFixed(1)} km`,
+            isEditedCustomer: cust.order_id === customer.order_id
+          };
+        });
+
+        setConfirmationData(data);
+        setConfirmationOpen(true); // Trigger confirmation modal
+        return;
+      } else {
+        setSnackbar({
+          open: true,
+          message: "Unable to fetch coordinates for the updated address.",
+          severity: 'error'
+        });
+        return;
       }
-
-      onClose();
-    } catch (error) {
-      console.error('Error updating customer:', error);
-      setSnackbar({ open: true, message: 'Failed to update customer info', severity: 'error' });
+    } catch (err) {
+      console.error("Geocoding error:", err);
+      setSnackbar({
+        open: true,
+        message: "Error while fetching location coordinates.",
+        severity: 'error'
+      });
+      return;
     }
-  };
-
+  } else {
+    // Proceed directly if no location change
+    await performUpdate(customer.latitude, customer.longitude);
+  }
+};
   const handleSnackbarClose = () => {
     setSnackbar(prev => ({ ...prev, open: false }));
   };
@@ -303,6 +487,7 @@ const CustomerEditModal: React.FC<Props> = ({ open, onClose, customer, color,tou
                     value={formData.zipcode}
                     onChange={handleChange('zipcode')}
                     error={errors.zipcode}
+                    inputProps={{ inputMode: 'numeric', pattern: '[0-9]*', maxLength: 5 }}
                   />
                   <CustomInput
                     label="Notice"
@@ -315,6 +500,7 @@ const CustomerEditModal: React.FC<Props> = ({ open, onClose, customer, color,tou
                     value={formData.phone_number}
                     onChange={handleChange('phone_number')}
                     error={errors.phone_number}
+                    inputProps={{ inputMode: 'tel', maxLength: 15 }}
                     startAdornment={
                       <InputAdornment position="start">
                         <PhoneIcon sx={{ color: 'gray' }} />
@@ -351,6 +537,16 @@ const CustomerEditModal: React.FC<Props> = ({ open, onClose, customer, color,tou
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      <ConfirmationDialog
+        open={confirmationOpen}
+        data={confirmationData}
+        onCancel={() => setConfirmationOpen(false)}
+        onConfirm={() => {
+          setConfirmationOpen(false);
+          performUpdate(newLat, newLng);
+        }}
+      />
 
     </>
   );

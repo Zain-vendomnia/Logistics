@@ -24,38 +24,41 @@ export class LogisticOrder  {
   public created_at!: Date;
   public updated_at!: Date | null;
  
-  // Get all logistic orders with items information
-  static async getAll(): Promise<any[]> {
-    const [rows] = await pool.execute(`
-      SELECT 
-        lo.*, 
-        JSON_ARRAYAGG(
-          JSON_OBJECT(
-            'driver_id', dd.id,
-            'driver_name', dd.name,
-            'driver_mobile', dd.mob,
-            'driver_address', dd.address,
-            'warehouse_id', dd.warehouse_id
-          )
-        ) AS drivers,
-        (
-          SELECT GROUP_CONCAT(loi.slmdl_articleordernumber SEPARATOR ', ')
-          FROM logistic_order_items loi
-          WHERE loi.order_id = lo.order_id
-        ) AS article_order_numbers,
-        (
-          SELECT SUM(loi.quantity)
-          FROM logistic_order_items loi
-          WHERE loi.order_id = lo.order_id
-        ) AS total_quantity
-      FROM logistic_order lo
-      INNER JOIN driver_details dd 
-        ON lo.warehouse_id = dd.warehouse_id
-      GROUP BY lo.warehouse_id, lo.order_id
-    `);
-    return rows as any[];
-  }
-  
+ // Get all logistic orders with items information
+static async getAll(): Promise<any[]> {
+  const [rows] = await pool.execute(`
+    SELECT 
+      lo.*, 
+      wd.warehouse_name,
+      JSON_ARRAYAGG(
+        JSON_OBJECT(
+          'driver_id', dd.id,
+          'driver_name', dd.name,
+          'driver_mobile', dd.mob,
+          'driver_address', dd.address,
+          'warehouse_id', dd.warehouse_id
+        )
+      ) AS drivers,
+      (
+        SELECT GROUP_CONCAT(loi.slmdl_articleordernumber SEPARATOR ', ')
+        FROM logistic_order_items loi
+        WHERE loi.order_id = lo.order_id
+      ) AS article_order_numbers,
+      (
+        SELECT SUM(loi.quantity)
+        FROM logistic_order_items loi
+        WHERE loi.order_id = lo.order_id
+      ) AS total_quantity
+    FROM logistic_order lo
+    INNER JOIN driver_details dd 
+      ON lo.warehouse_id = dd.warehouse_id
+    INNER JOIN warehouse_details wd 
+      ON lo.warehouse_id = wd.warehouse_id
+    GROUP BY lo.order_id, lo.warehouse_id
+  `);
+  return rows as any[];
+}
+
   static async getOrder(order_number: string): Promise<any[]> {
   const [rows] = await pool.execute(
     `
