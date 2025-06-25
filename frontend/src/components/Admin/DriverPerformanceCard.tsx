@@ -3,14 +3,18 @@ import {
   Card, CardHeader, CardContent, CardActions, Avatar, Typography,
   Button, Box, Divider, Chip, Rating, useTheme, Tooltip
 } from '@mui/material';
+
 import {
   BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip as RechartsTooltip, Cell
 } from 'recharts';
+
 import {
   Visibility as VisibilityIcon, LocalShipping as LocalShippingIcon,
   CheckCircle as CheckCircleIcon, Pending as PendingIcon
 } from '@mui/icons-material';
-import confetti from 'canvas-confetti';
+
+
+const confetti = require('canvas-confetti');
 
 export interface DriverPerformanceCardProps {
   name: string;
@@ -66,62 +70,61 @@ const DriverPerformanceCard: React.FC<DriverPerformanceCardProps> = ({
       });
     }
   }, [rating, theme]);
-  
+
   useEffect(() => {
-  const card = cardRef.current;
-  if (!card) return;
+    const card = cardRef.current;
+    if (!card) return;
 
-  const createParticle = (x: number, y: number) => {
-    const particle = document.createElement('div');
-    particle.className = 'particle';
-    particle.style.left = `${x}px`;
-    particle.style.top = `${y}px`;
-    particle.style.background = `radial-gradient(circle, ${
-      ['#00f2fe', '#4facfe', '#43e97b', '#38f9d7'][Math.floor(Math.random() * 4)]
-    }, transparent)`;
-    card.appendChild(particle);
+    const createParticle = (x: number, y: number) => {
+      const particle = document.createElement('div');
+      particle.className = 'particle';
+      particle.style.left = `${x}px`;
+      particle.style.top = `${y}px`;
+      particle.style.background = `radial-gradient(circle, ${['#00f2fe', '#4facfe', '#43e97b', '#38f9d7'][Math.floor(Math.random() * 4)]
+        }, transparent)`;
+      card.appendChild(particle);
 
-    setTimeout(() => {
-      particle.remove();
-    }, 1000);
-  };
+      setTimeout(() => {
+        particle.remove();
+      }, 1000);
+    };
 
-  const handleMouseMove = (e: MouseEvent) => {
-    const rect = card.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    createParticle(x, y);
-  };
+    const handleMouseMove = (e: MouseEvent) => {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      createParticle(x, y);
+    };
 
-  card.addEventListener('mousemove', handleMouseMove);
-  return () => {
-    card.removeEventListener('mousemove', handleMouseMove);
-  };
-}, []);
+    card.addEventListener('mousemove', handleMouseMove);
+    return () => {
+      card.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, []);
 
   return (
- <Card
-  ref={cardRef}
-  sx={{
-    width: '100%',
-    maxWidth: 540,
-    borderRadius: 4,
-    px: 3,
-    py: 2,
-    boxShadow: '0 12px 24px rgba(0,0,0,0.12)',
-    border: `1px solid ${theme.palette.divider}`,
-    display: 'flex',
-    flexDirection: 'column',
-    background: `linear-gradient(145deg, ${theme.palette.background.paper}, ${theme.palette.grey[50]})`,
-    transition: 'transform 0.3s ease, box-shadow 0.3s ease, border 0.3s ease',
-    '&:hover': {
-      transform: 'scale(1.02)',
-      boxShadow: `0 16px 32px ${theme.palette.primary.main}44`,
-      border: `1px solid ${theme.palette.primary.main}`,
-      cursor: 'none',
-    },
-  }}
->
+    <Card
+      ref={cardRef}
+      sx={{
+        width: '100%',
+        maxWidth: 540,
+        borderRadius: 4,
+        px: 3,
+        py: 2,
+        boxShadow: '0 12px 24px rgba(0,0,0,0.12)',
+        border: `1px solid ${theme.palette.divider}`,
+        display: 'flex',
+        flexDirection: 'column',
+        background: `linear-gradient(145deg, ${theme.palette.background.paper}, ${theme.palette.grey[50]})`,
+        transition: 'transform 0.3s ease, box-shadow 0.3s ease, border 0.3s ease',
+        '&:hover': {
+          transform: 'scale(1.02)',
+          boxShadow: `0 16px 32px ${theme.palette.primary.main}44`,
+          border: `1px solid ${theme.palette.primary.main}`,
+          cursor: 'none',
+        },
+      }}
+    >
 
       <CardHeader
         avatar={
@@ -151,7 +154,7 @@ const DriverPerformanceCard: React.FC<DriverPerformanceCardProps> = ({
             label={`${completionRate}% Completion`}
             color={
               completionRate > 75 ? 'success' :
-              completionRate > 50 ? 'warning' : 'error'
+                completionRate > 50 ? 'warning' : 'error'
             }
             sx={{ mt: 1, fontWeight: 'bold', borderRadius: 3 }}
           />
@@ -191,21 +194,21 @@ const DriverPerformanceCard: React.FC<DriverPerformanceCardProps> = ({
             borderRadius: 3, boxShadow: `inset 0 0 12px ${theme.palette.secondary.light}`
           }}>
             <Typography variant="subtitle2" fontWeight="bold" color={theme.palette.secondary.dark}>Overall Rating</Typography>
-         <Rating
-          name="driver-rating"
-          value={rating}
-          precision={0.1}
-          readOnly
-          size="large"
-          sx={{
-            '& .MuiRating-iconEmpty': {
-              color: `${theme.palette.primary.main}`// or use a soft secondary/main shade
-            },
-            '& .MuiRating-iconFilled': {
-              color: theme.palette.warning.main, // or any accent color you prefer
-            }
-          }}
-        />
+            <Rating
+              name="driver-rating"
+              value={rating}
+              precision={0.1}
+              readOnly
+              size="large"
+              sx={{
+                '& .MuiRating-iconEmpty': {
+                  color: `${theme.palette.primary.main}`// or use a soft secondary/main shade
+                },
+                '& .MuiRating-iconFilled': {
+                  color: theme.palette.warning.main, // or any accent color you prefer
+                }
+              }}
+            />
             <Typography variant="body1" fontWeight={600}>{rating.toFixed(1)} / 5</Typography>
           </Box>
           <Box flex={1.4} px={2} py={1.5} sx={{
@@ -218,9 +221,16 @@ const DriverPerformanceCard: React.FC<DriverPerformanceCardProps> = ({
                 <XAxis type="number" hide />
                 <YAxis dataKey="label" type="category" axisLine={false} tickLine={false}
                   tick={{ fontSize: 13, fontWeight: 600, fill: theme.palette.text.primary }} width={80} />
-                <RechartsTooltip formatter={(v) => [`${v} jobs`]} contentStyle={{
-                  backgroundColor: theme.palette.background.paper, borderRadius: 8, boxShadow: theme.shadows[3]
-                }} />
+
+                <RechartsTooltip
+                  formatter={(v: number | string) => [`${v} jobs`]}
+                  contentStyle={{
+                    backgroundColor: theme.palette.background.paper,
+                    borderRadius: 8,
+                    boxShadow: theme.shadows[3]
+                  }}
+                />
+
                 <Bar dataKey="value" radius={[4, 10, 10, 4]} background={{ fill: theme.palette.grey[200] }}>
                   {barData.map((d, i) => <Cell key={i} fill={d.fill} />)}
                 </Bar>
@@ -232,47 +242,47 @@ const DriverPerformanceCard: React.FC<DriverPerformanceCardProps> = ({
         {/* Extra Stats */}
         {/* Extra Stats */}
         <Box display="flex" justifyContent="space-between" gap={2} mt={2}>
-  {[{
-    label: 'Total Hours', value: `${totalHours} hrs`, color: theme.palette.info.main
-  }, {
-    label: 'Early Completions', value: `${earlyCompletions} hrs`, color: theme.palette.success.main
-  }, {
-    label: 'Delayed Completions', value: `${delayedCompletions} hrs`, color: theme.palette.error.main
-  }].map(({ label, value, color }) => (
-    <Box
-      key={label}
-      flex={1}
-      sx={{
-        background: `linear-gradient(145deg, ${color}11, ${color}22)`,
-        borderRadius: 3,
-        p: 2,
-        textAlign: 'center',
-        border: `1px solid ${color}44`,
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: 72 // uniform height for all boxes
-      }}
-    >
-      <Typography
-        variant="caption"
-        fontWeight={600}
-        color="text.secondary"
-        sx={{ minHeight: 25, lineHeight: 1.4 }}
-      >
-        {label}
-      </Typography>
-      <Typography
-        variant="body2"
-        fontWeight={700}
-        sx={{ color, minHeight: 24, lineHeight: 1.5 }}
-      >
-        {value}
-      </Typography>
-    </Box>
-  ))}
-</Box>
+          {[{
+            label: 'Total Hours', value: `${totalHours} hrs`, color: theme.palette.info.main
+          }, {
+            label: 'Early Completions', value: `${earlyCompletions} hrs`, color: theme.palette.success.main
+          }, {
+            label: 'Delayed Completions', value: `${delayedCompletions} hrs`, color: theme.palette.error.main
+          }].map(({ label, value, color }) => (
+            <Box
+              key={label}
+              flex={1}
+              sx={{
+                background: `linear-gradient(145deg, ${color}11, ${color}22)`,
+                borderRadius: 3,
+                p: 2,
+                textAlign: 'center',
+                border: `1px solid ${color}44`,
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                minHeight: 72 // uniform height for all boxes
+              }}
+            >
+              <Typography
+                variant="caption"
+                fontWeight={600}
+                color="text.secondary"
+                sx={{ minHeight: 25, lineHeight: 1.4 }}
+              >
+                {label}
+              </Typography>
+              <Typography
+                variant="body2"
+                fontWeight={700}
+                sx={{ color, minHeight: 24, lineHeight: 1.5 }}
+              >
+                {value}
+              </Typography>
+            </Box>
+          ))}
+        </Box>
       </CardContent>
 
       <Divider sx={{ mt: 2 }} />

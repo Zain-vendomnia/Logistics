@@ -4,7 +4,7 @@ import nodemailer from 'nodemailer';
 // function to simulate sending an email
 export const picklistEmail = async (req: Request, res: Response) => {
   try {
-    const { to, subject, html, signatureData } = req.body;
+    const { to, subject, html, attachment,attachment_name } = req.body;
 
 
     // Configure nodemailer
@@ -27,11 +27,11 @@ export const picklistEmail = async (req: Request, res: Response) => {
     };
 
     // Conditionally add attachment if attachment is present
-    if (signatureData) {
+    if (attachment) {
       mailOptions.attachments = [
         {
-          filename: 'picklist.pdf',
-          content: signatureData.split(',')[1], // remove "data:image/png;base64,"
+          filename: attachment_name,
+          content: attachment.split(',')[1], // remove "data:image/png;base64,"
           encoding: 'base64',
           cid: 'signature_cid' // reference this in the HTML img src
         }

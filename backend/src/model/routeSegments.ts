@@ -18,7 +18,7 @@ export class route_segments {
     }
 
     static async insertSegment(_insertedTourId: number, segmentJson: string, order_id: string): Promise<void> {
-        console.log("order_id:", order_id);
+       // console.log("order_id:", order_id);
         await pool.execute(
           `INSERT INTO route_segments (tour_id, route_response, order_id) VALUES (?, ?, ?)`,
           [_insertedTourId, segmentJson, order_id]

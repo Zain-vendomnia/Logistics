@@ -204,15 +204,17 @@ const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({ open, handleClose
 
        const pdfBlob = await generatePdfFromElement(element);
 
-       const signatureData = await blobToBase64(pdfBlob); // use FileReader
+       const attachment = await blobToBase64(pdfBlob); // use FileReaderAdd commentMore actions
+       const attachment_name = 'picklist.pdf'; // use FileReader
        // Wait a bit in case it's just rendered
-
+      
 
       await adminApiService.picklistEmail({
         to: 'jishi.puthanpurayil@vendomnia.com', // Update with actual email
         subject: 'Picklist',
         html: fullEmailHtml,
-        signatureData
+        attachment,        
+        attachment_name
       });
 
       // On success

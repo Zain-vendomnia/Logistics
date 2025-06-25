@@ -26,10 +26,10 @@ export const getAvailableDriversByDateAndWarehouse = async (req: Request, res: R
     // Call your service method to get available drivers for given date & warehouse
     const availableDrivers = await driverService.getAvailableDrivers(tourDate as string, warehouseIdNum);
 
-    res.json(availableDrivers);
+   return res.json(availableDrivers);
   } catch (error) {
     console.error("Error fetching available drivers:", error);
-    res.status(500).json({ message: "Failed to fetch available drivers." });
+    return res.status(500).json({ message: "Failed to fetch available drivers." });
   }
 };
 
@@ -117,10 +117,10 @@ export const getDriverPerformanceData = async (req: Request, res: Response) => {
       String(endDate)
     );
 
-    res.json(performanceData);
+     return res.json(performanceData);
   } catch (err) {
     console.error("Error fetching driver performance data:", err);
-    res.status(500).json({ message: "Failed to fetch performance data." });
+     return  res.status(500).json({ message: "Failed to fetch performance data." });
   }
 };
 

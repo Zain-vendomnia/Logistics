@@ -94,8 +94,6 @@ const DeliveryPermitForm = () => {
 
 
   const decodedOrderNumber = decodeBase64(encodedOrderNumber);
-  // console.log(decodedOrderNumber)
-  // console.log(typeof decodedOrderNumber)
   const fetchPicklistData = async (orderId: string) => {
 
     try {
@@ -103,10 +101,8 @@ const DeliveryPermitForm = () => {
      if (orderId) {
 
        const instance = latestOrderServices.getInstance();
-       const orders = await instance.getOrder(decodedOrderNumber);
-
+       const orders = await instance.getOrders();
        const orderData = orders.find((order: any) => order.order_number === orderId);
-      //  const orderData = orders.find((order: any) => order.order_number === orderId);
 
        if (orderData) {
 
@@ -148,96 +144,86 @@ const DeliveryPermitForm = () => {
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.checked });
   };
-const handleSubmit = async () => {
-  // ❗ Make sure signatureData is always a string (never undefined)
-  const signatureData =
-    sigPad.current && !sigPad.current.isEmpty()
-      ? sigPad.current.toDataURL('image/png')
-      : ""; // <-- default to "" if sigPad.current is undefined or empty
 
-  // Build the error‐flags object
-  const newErrors = {
-    firstName:        !formData.firstName?.trim(),
-    lastName:         !formData.lastName?.trim(),
-    street:           !formData.street?.trim(),
-    postalCode:       !formData.postalCode?.trim(),
-    city:             !formData.city?.trim(),
-    orderNumber:      !formData.orderNumber?.trim(),
-    parkingLocation:  !formData.parkingLocation?.trim(),
-    email:            !formData.email?.trim(),
-    verificationCode: !codeVerified,
-    signature:        !signatureData,        // will be true if signatureData === ""
-    termsAgreed:      !formData.termsAgreed,
-    privacyAgreed:    !formData.privacyAgreed,
+  const handleSubmit = async () => {
+    const attachment = sigPad.current?.isEmpty() ? '' : sigPad.current?.toDataURL('image/png');
+
+    const newErrors = {
+      firstName:        !formData.firstName.trim(),
+      lastName:         !formData.lastName.trim(),
+      street:           !formData.street.trim(),
+      postalCode:       !formData.postalCode.trim(),
+      city:             !formData.city.trim(),
+      orderNumber:      !formData.orderNumber.trim(),
+      parkingLocation:  !formData.parkingLocation.trim(),
+      email:            !formData.email.trim(),
+      verificationCode: !codeVerified,
+      signature:        !attachment,
+      termsAgreed:      !formData.termsAgreed,
+      privacyAgreed:    !formData.privacyAgreed,
+    };
+
+    setErrors(newErrors);
+
+    // If any validation fails, stop submission
+    if (Object.values(newErrors).some(Boolean)) {
+      showSnackbar('Bitte füllen Sie alle Pflichtfelder aus.', 'error');
+      return;
+    }
+
+    try{
+      // ✅ Save data to backend
+      await adminApiService.insertParkingPermit({
+           orderNumber: formData.orderNumber,
+           customer_signature: attachment,
+           parkingLocation: formData.parkingLocation,
+         });
+    }catch{
+      console.log('error');
+    }
+    
+
+    
+    // Customer Greeting Text
+    const greetingText = '<p>Lieber '+formData.firstName+' '+formData.lastName+',</p><p>Die Parkberechtigung wurde erfolgreich übermittelt.</p><p>Ihr Auftrag wird wie gewünscht ausgeführt.</p>';
+    const subject = 'Formular zur Abgabegenehmigung - Bestellnummer #'+decodedOrderNumber;
+    
+
+    // Customer Email
+    handleEmail(formData.email,formData, attachment || '', greetingText, subject);
+
+    // Customer Care Text
+    const CCText = '<p><strong>Dear Customer Care,</strong></p><p>You have received a new Drop Off Permission Form submission. Below are the details submitted by the user:</p>';
+    const CCsubject = 'Drop Off Permission Form - Order ID '+decodedOrderNumber;
+    
+    // Customer Care Email
+    handleEmail('muhammad.jahanzaibbaloch@vendomnia.com',formData, attachment || '', CCText, CCsubject);
+
+
+      // On successful submission
+      setThankYouOpen(true);
+
+      // ✅ Reset form
+      setFormData({
+        salutation:       '',
+        firstName:        '',
+        lastName:         '',
+        street:           '',
+        postalCode:       '',
+        city:             '',
+        orderNumber:      '',
+        parkingLocation:  '',
+        email:            '',
+        verificationCode: '',
+        termsAgreed:      false,
+        privacyAgreed:    false,
+      });
+      setCodeVerified(false);
+      setGeneratedCode('');
+      setCodeSent(false);
+      sigPad.current?.clear();
+
   };
-
-  setErrors(newErrors);
-
-  // Stop submission if any field is invalid
-  if (Object.values(newErrors).some((flag) => flag)) {
-    showSnackbar("Bitte füllen Sie alle Pflichtfelder aus.", "error");
-    return;
-  }
-
-  try {
-    // 1) Save to backend
-    await adminApiService.insertParkingPermit({
-      orderNumber: formData.orderNumber!,
-      customer_signature: signatureData,
-      parkingLocation: formData.parkingLocation!,
-    });
-
-    // 2) Prepare and send “customer” email
-    const greetingText = `
-      <p>Lieber ${formData.firstName} ${formData.lastName},</p>
-      <p>Die Parkberechtigung wurde erfolgreich übermittelt.</p>
-      <p>Ihr Auftrag wird wie gewünscht ausgeführt.</p>
-    `;
-    const subject = `Formular zur Abgabegenehmigung - Bestellnummer #${decodedOrderNumber}`;
-
-    // ‼️ We assert formData.email! because we know it’s nonempty (we validated above)
-    handleEmail(formData.email!, formData, signatureData, greetingText, subject);
-
-    // 3) Prepare and send “customer care” email
-    const CCText = `
-      <p><strong>Dear Customer Care,</strong></p>
-      <p>You have received a new Drop Off Permission Form submission. Below are the details submitted by the user:</p>
-    `;
-    const CCsubject = `Drop Off Permission Form - Order ID ${decodedOrderNumber}`;
-
-    handleEmail(
-      "jishi.puthanpurayil@vendomnia.com",
-      formData,
-      signatureData,
-      CCText,
-      CCsubject
-    );
-
-    // 4) Show thank‐you and reset form
-    setThankYouOpen(true);
-    setFormData({
-      salutation:        "",
-      firstName:         "",
-      lastName:          "",
-      street:            "",
-      postalCode:        "",
-      city:              "",
-      orderNumber:       "",
-      parkingLocation:   "",
-      email:             "",
-      verificationCode:  "",
-      termsAgreed:       false,
-      privacyAgreed:     false,
-    });
-    setCodeVerified(false);
-    setGeneratedCode("");
-    setCodeSent(false);
-    sigPad.current?.clear();
-  } catch (error) {
-    console.error("insertParkingPermit error:", error);
-    showSnackbar("Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.", "error");
-  }
-};
 
   const handleSendVerificationCode = async () => {
     if (!formData.email.trim()) {
@@ -258,39 +244,35 @@ const handleSubmit = async () => {
     });
 
   };
-  
-const handleEmail = async (
-  to: string,
-  formData: any,
-  signatureData: string,
-  greetingText: string,
-  subject: string
-) => {
-  try {
-    // Build the HTML with “Ja”/“NEIN” for the checkboxes
-    const html = getParkingPermitEmailHTML(
-      {
-        ...formData,
-        termsAgreed:  formData.termsAgreed   ? "Ja" : "NEIN",
-        privacyAgreed: formData.privacyAgreed ? "Ja" : "NEIN",
-      },
-      signatureData,
-      greetingText
-    );
 
-    await adminApiService.picklistEmail({
-      to,
-      subject,
-      html,
-      signatureData,
-    });
+  const handleEmail = async (to: string, formData: any, attachment: string, greetingText: string, subject: string) => {
 
-    console.log("Email sent successfully!");
-  } catch (err) {
-    console.error("Email sending failed:", err);
-  }
-};
+   try {
+     const html = getParkingPermitEmailHTML(
+       {
+         ...formData,
+         termsAgreed: formData.termsAgreed ? 'Ja' : 'NEIN',
+         privacyAgreed: formData.privacyAgreed ? 'Ja' : 'NEIN',
+       },
+       attachment,
+       greetingText || ''
+     );
 
+     const attachment_name = 'signature.png';
+     await adminApiService.picklistEmail({
+       to: to,
+       subject: subject,
+       html,
+       attachment,
+       attachment_name
+     });
+
+     console.log('Email sent successfully!');
+   } catch (err) {
+     console.error('Email sending failed:', err);
+   }
+
+  };
 
   return (
     <Box className="delivery-container">

@@ -14,7 +14,6 @@ import {
 } from "../controller/Admin_Api/driverController";
 
 const router = express.Router();
-
 // Apply middleware to all driver routes
 router.use(validateToken, roleCheck(["admin"]));
 
