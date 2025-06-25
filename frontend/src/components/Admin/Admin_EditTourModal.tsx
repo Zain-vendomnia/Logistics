@@ -154,9 +154,7 @@ const EditTourModal: React.FC<EditTourModalProps> = ({
     try {
       setLoading(true);
       await adminApiService.updateTour(updatedTourData);
-      setSnackbarMessage('Tour updated successfully!');
-      setSnackbarSeverity('success');
-      setSnackbarOpen(true);
+      // Success message removed - handled by parent component
       onTourUpdated();
       handleClose();
     } catch (error: any) {

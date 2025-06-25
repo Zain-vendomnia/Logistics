@@ -1,5 +1,5 @@
 export const CREATE_DRIVER_DETAILS_TABLE = `
-  CREATE TABLE IF NOT EXISTS driver_details (
+ CREATE TABLE IF NOT EXISTS driver_details (
     id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(45) NOT NULL,
     mob VARCHAR(20) NOT NULL,
@@ -8,10 +8,12 @@ export const CREATE_DRIVER_DETAILS_TABLE = `
     email VARCHAR(100) NOT NULL UNIQUE,
     user_id INT DEFAULT NULL,
     warehouse_id INT NOT NULL,
+    overall_rating DECIMAL(3,2) DEFAULT 0.00,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (warehouse_id) REFERENCES warehouse_details(warehouse_id) ON DELETE CASCADE
-  );
+);
+
 `;
 
 export const CREATE_DRIVER_LOCATIONS_TABLE = `
@@ -43,14 +45,25 @@ export const CREATE_TOUR_INFO_MASTER_TABLE = `
     comments VARCHAR(255) NOT NULL,
     customer_ids VARCHAR(255) NOT NULL,
     item_total_qty_truck INT NOT NULL,
-    truck_loaded_img BLOB,
-    tour_end_truck_qty_pic BLOB,
-    tour_end_fuel_pic BLOB,
     tour_start_km INT NOT NULL,
     tour_end_km INT NOT NULL,
     tour_total_km VARCHAR(45) NOT NULL,
-    tour_start_fuel_pic BLOB,
+    
+    secure_loading_photo BLOB,
+    truck_loaded_photo BLOB,
+    start_fuel_gauge_photo BLOB,
+    start_odometer_photo BLOB,
+    start_truck_exterior_photo BLOB,
+
+    end_fuel_receipt_photo BLOB,
+    end_fuel_gauge_photo BLOB,
+    end_odometer_photo BLOB,
+    undelivered_modules_photo BLOB,
+
     route_color VARCHAR(7) NOT NULL,
+    hours_worked DECIMAL(5,2) DEFAULT 0.00,
+    completed_early_hrs DECIMAL(5,2) DEFAULT 0.00,
+    delayed_hrs DECIMAL(5,2) DEFAULT 0.00,
     notice VARCHAR(255) NOT NULL,
     graphhopper_route JSON,
     tour_status ENUM('pending', 'live', 'confirmed', 'completed') DEFAULT 'pending',

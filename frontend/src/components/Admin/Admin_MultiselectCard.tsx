@@ -61,41 +61,46 @@ const AdminMultiselectCard: React.FC<AdminMultiselectCardProps> = ({
     setSelectedWarehouses([]);
   };
 
-  useEffect(() => {
-    const fetchWarehouseData = async () => {
-      try {
-        const warehouses = await getAllWarehouses();
-        const warehousesData = warehouses as WarehouseApiResponse[];
+useEffect(() => {
+  const fetchWarehouseData = async () => {
+    try {
+      const warehouses = await getAllWarehouses();
+      const warehousesData = warehouses as WarehouseApiResponse[];
 
-        const uniqueWarehouses = Array.from(
-          new Map(
-            warehousesData.map((w) => [
-              w.warehouse_id,
-              { id: w.warehouse_id, name: `${w.warehouse_name} - ${w.warehouse_id}` },
-            ])
-          ).values()
-        );
+      const uniqueWarehouses = Array.from(
+        new Map(
+          warehousesData.map((w) => [
+            w.warehouse_id,
+            { id: w.warehouse_id, name: `${w.warehouse_name} - ${w.warehouse_id}` },
+          ])
+        ).values()
+      );
 
-        setWarehouseOptions(uniqueWarehouses);
+      setWarehouseOptions(uniqueWarehouses);
+    } catch (error) {
+      console.error('Error fetching warehouse data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        const validIds = new Set(uniqueWarehouses.map((w) => w.id));
-        const filteredSelected = selectedWarehouses.filter((id) =>
-          validIds.has(id)
-        );
+  fetchWarehouseData();
+  // only run once or if setSelectedWarehouses ref changes (rare)
+}, [setSelectedWarehouses]);
 
-        if (filteredSelected.length !== selectedWarehouses.length) {
-          setSelectedWarehouses(filteredSelected);
-        }
-      } catch (error) {
-        console.error('Error fetching warehouse data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+useEffect(() => {
+  // Filter selected warehouses after options are loaded
+  if (warehouseOptions.length > 0) {
+    const validIds = new Set(warehouseOptions.map((w) => w.id));
+    const filteredSelected = selectedWarehouses.filter((id) =>
+      validIds.has(id)
+    );
 
-    fetchWarehouseData();
-    // Only run once or when `setSelectedWarehouses` changes, not on every selectedWarehouses change
-  }, [setSelectedWarehouses, selectedWarehouses]);
+    if (filteredSelected.length !== selectedWarehouses.length) {
+      setSelectedWarehouses(filteredSelected);
+    }
+  }
+}, [warehouseOptions, selectedWarehouses, setSelectedWarehouses]);
 
   if (loading) {
     return (

@@ -19,6 +19,8 @@ import {
   Stack,
   Button,
   Chip,
+  ListItemIcon,
+  ListItemText,
 } from '@mui/material';
 import NoteAltIcon from '@mui/icons-material/NoteAlt';
 import adminApiService from '../../services/adminApiService';
@@ -33,6 +35,8 @@ import { AccessTime, Article, ProductionQuantityLimits } from '@mui/icons-materi
 import Tooltip from '@mui/material/Tooltip';
 import CustomerEditModal from './CustomerEditModal';
 import { Console } from 'console';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { useNavigate } from 'react-router-dom';
 
 type Stop = {
   id: string;
@@ -69,7 +73,7 @@ const TourMapPage: React.FC = () => {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [lastEdited, setLastEdited] = useState<number | null>(null);
-
+  const navigate = useNavigate();
   useEffect(() => {
     // const instance = latestOrderServices.getInstance();
     const fetchData = async () => {
@@ -304,103 +308,32 @@ const TourMapPage: React.FC = () => {
             if (!isWarehouse && !matchedOrder) return null;
 
             return (
+
               <ListItem
                 key={index}
+                disableGutters
                 sx={{
                   mb: 1,
                   borderBottom: '1px dashed #ccc',
                   pb: 1,
                   alignItems: 'flex-start',
+                  position: 'relative', // Enable absolute positioning inside
                 }}
-                disableGutters
               >
-                <Box sx={{ display: 'flex', alignItems: 'flex-start', width: '100%' }}>
-                  <Avatar
-                    sx={{
-                      bgcolor: selectedTour?.tour_route_color,
-                      width: 28,
-                      height: 28,
-                      fontSize: 14,
-                      mt: 0.5,
-                      flexShrink: 0,
-                    }}
-                  >
-                    {stop.type === 'start' ? 'S' : stop.type === 'end' ? 'E' : index}
-                  </Avatar>
-
+                {/* === Top-right Button Stack === */}
+                {!isWarehouse && matchedOrder && (
                   <Box
-                    onClick={() => zoomToStop(stop.lat, stop.lon)}
                     sx={{
-                      ml: 2,
-                      flexGrow: 1,
-                      minWidth: 0,
-                      cursor: 'pointer',
-                      '&:hover': {
-                        backgroundColor: 'action.hover',
-                      },
+                      position: 'absolute',
+                      top: 8,
+                      right: 8,
+                      zIndex: 2,
                     }}
                   >
-                    {isWarehouse ? (
-                      <Typography variant="body2" fontWeight="bold">
-                        {selectedTour?.warehouseaddress || 'Warehouse Address Not Available'}
-                      </Typography>
-                    ) : (
-                      <Typography fontWeight="bold" variant="body2">
-                        Order ID: {stop?.location_id || 'N/A'}
-                      </Typography>
-                    )}
-
-                    {matchedOrder && (
-                      <>
-                        <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
-                          <Box component="span" color="text.secondary">{matchedOrder.firstname}</Box>
-                        </Typography>
-
-                        <Typography variant="caption" display="block">
-                          <Box component="span" color="text.secondary">{matchedOrder.lastname}</Box>
-                        </Typography>
-
-                        <Typography variant="caption" display="block">
-                          <Box component="span" color="text.secondary">{matchedOrder.street}</Box>
-                        </Typography>
-
-                        <Typography variant="caption" display="block">
-                          <Box component="span" color="text.secondary">{matchedOrder.city}</Box>
-                        </Typography>
-
-                        <Typography variant="caption" display="block">
-                          <Box component="span" color="text.secondary">{matchedOrder.zipcode}</Box>
-                        </Typography>
-
-                        <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
-                          <Box component="span" fontWeight="bold" >Order Number : </Box>
-                          <Box component="span" color="text.secondary">{matchedOrder.order_number}</Box>
-                        </Typography>
-                      </>
-                    )}
-
-                    <Typography variant="caption" display="block" mt={0.5}>
-                      <Box component="span" fontWeight="bold" >Arrival Time : </Box>
-                      <Box component="span" color="text.secondary">
-                        {stop?.arrival
-                          ? new Date(stop.arrival).toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })
-                          : 'Time Not Set'
-                        }
-                      </Box>
-                    </Typography>
-                  </Box>
-                  {/* Right side buttons */}
-                  {!isWarehouse && matchedOrder && (
                     <Stack
                       direction="row"
                       spacing={0.5}
                       sx={{
-                        ml: 1.5,
-                        mt: 0.5,
-                        flexShrink: 0,
                         '& .MuiIconButton-root:hover': {
                           backgroundColor: 'rgba(0, 0, 0, 0.04)',
                           transform: 'scale(1.05)',
@@ -408,14 +341,13 @@ const TourMapPage: React.FC = () => {
                         },
                       }}
                     >
-                      {/* Quantity Tooltip */}
                       <Tooltip
                         arrow
                         placement="top"
                         title={
                           <Typography variant="caption">
                             Total Qty:{' '}
-                            <strong >
+                            <strong>
                               {matchedOrder.items.reduce(
                                 (total: number, item: any) => total + Number(item.quantity),
                                 0
@@ -429,7 +361,6 @@ const TourMapPage: React.FC = () => {
                         </IconButton>
                       </Tooltip>
 
-                      {/* Article Tooltip */}
                       <Tooltip
                         arrow
                         placement="top"
@@ -438,28 +369,24 @@ const TourMapPage: React.FC = () => {
                             {matchedOrder.items.map((item: any, i: number) => (
                               <li key={i}>
                                 <Typography component="span" variant="caption">
-                                  <strong >
-                                    {item.slmdl_articleordernumber}
-                                  </strong>
+                                  <strong>{item.slmdl_articleordernumber}</strong>
                                 </Typography>
                               </li>
                             ))}
                           </ul>
                         }
                       >
-                      <IconButton size="small" color="success">
+                        <IconButton size="small" color="success">
                           <Article fontSize="small" />
                         </IconButton>
                       </Tooltip>
 
-                      {/* Time Log */}
                       <Tooltip title="View Time Log" arrow placement="top">
                         <IconButton size="small" color="warning">
                           <AccessTime fontSize="small" />
                         </IconButton>
                       </Tooltip>
 
-                      {/* More Options */}
                       <Tooltip title="Edit Customer" arrow placement="top">
                         <IconButton
                           size="small"
@@ -470,9 +397,171 @@ const TourMapPage: React.FC = () => {
                         </IconButton>
                       </Tooltip>
                     </Stack>
-                  )}
+                  </Box>
+                )}
+
+                {/* === Main Content === */}
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', width: '100%' }}>
+                  <Avatar
+                    sx={{
+                      bgcolor: selectedTour?.tour_route_color,
+                      width: 28,
+                      height: 28,
+                      fontSize: 14,
+                      mt: 0.5,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {stop.type === 'start' ? 'S' : stop.type === 'end' ? 'E' : index}
+                  </Avatar>
+                  <Box sx={{ ml: 2, flexGrow: 1, minWidth: 0 }}>
+                    {/* Order Info Box with zoom */}
+                    <Box
+                      onClick={() =>
+                        stop.type !== 'start' && stop.type !== 'end' && zoomToStop(stop.lat, stop.lon)
+                      }
+                      sx={{
+                        cursor: stop.type !== 'start' && stop.type !== 'end' ? 'pointer' : 'default',
+                        '&:hover': {
+                          backgroundColor:
+                            stop.type !== 'start' && stop.type !== 'end' ? 'action.hover' : 'transparent',
+                        },
+                        p: 1,
+                        borderRadius: 1,
+                      }}
+                    >
+                      {isWarehouse ? (
+                        <Typography variant="body2" fontWeight="bold">
+                          {selectedTour?.warehouseaddress || 'Warehouse Address Not Available'}
+                        </Typography>
+                      ) : (
+                        <Typography fontWeight="bold" variant="body2">
+                          Order ID: {stop?.location_id || 'N/A'}
+                        </Typography>
+                      )}
+
+                      {matchedOrder && (
+                        <>
+                          <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
+                            <Box component="span" color="text.secondary">{matchedOrder.firstname}</Box>
+                          </Typography>
+                          <Typography variant="caption" display="block">
+                            <Box component="span" color="text.secondary">{matchedOrder.lastname}</Box>
+                          </Typography>
+                          <Typography variant="caption" display="block">
+                            <Box component="span" color="text.secondary">{matchedOrder.street}</Box>
+                          </Typography>
+                          <Typography variant="caption" display="block">
+                            <Box component="span" color="text.secondary">{matchedOrder.city}</Box>
+                          </Typography>
+                          <Typography variant="caption" display="block">
+                            <Box component="span" color="text.secondary">{matchedOrder.zipcode}</Box>
+                          </Typography>
+                          <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
+                            <Box component="span" fontWeight="bold">Order Number: </Box>
+                            <Box component="span" color="text.secondary">{matchedOrder.order_number}</Box>
+                          </Typography>
+                        </>
+                      )}
+
+                      <Typography variant="caption" display="block" mt={0.5}>
+                        <Box component="span" fontWeight="bold">Arrival Time: </Box>
+                        <Box component="span" color="text.secondary">
+                          {stop?.arrival
+                            ? new Date(stop.arrival).toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })
+                            : 'Time Not Set'}
+                        </Box>
+                      </Typography>
+                    </Box>
+
+                    {/* Status Log Box without zoom */}
+                    {stop.type !== 'start' && stop.type !== 'end' && (
+                      <Box sx={{ mt: 2 }}>
+                        <Divider sx={{ mb: 2 }} />
+
+                        <Typography variant="subtitle2" gutterBottom>
+                          Status Logs
+                        </Typography>
+
+                        <List dense disablePadding style={{ marginTop: '-5px' }}>
+                          <ListItem
+                            key="log-1"
+                            disableGutters
+                            component="div"
+                            onClick={() => navigate('/ProofdeliveryLiveloc')}
+                            sx={{
+                              alignItems: 'flex-start',
+                              pb: 0.5,
+                              borderBottom: '1px dashed #ddd',
+                              mb: 0.5,
+                              cursor: 'pointer',
+                              '&:hover': {
+                                backgroundColor: '#f5f5f5',
+                              },
+                            }}
+                          >
+                            <ListItemIcon sx={{ minWidth: 32, mt: 0.2 }}>
+                              <CheckCircleIcon color="success" fontSize="small" />
+                            </ListItemIcon>
+                            <ListItemText
+                              primary={
+                                <Typography variant="caption" color="text.secondary">
+                                  2025-06-04 08:00
+                                </Typography>
+                              }
+                              secondary={
+                                <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                                  Service successfully provided
+                                </Typography>
+                              }
+                            />
+                          </ListItem>
+
+                          <ListItem
+                            key="log-2"
+                            disableGutters
+                            component="div"
+                            onClick={() => navigate('/ProofdeliveryImage')}
+                            sx={{
+                              alignItems: 'flex-start',
+                              pb: 0.5,
+                              borderBottom: '1px dashed #ddd',
+                              mb: 0.5,
+                              cursor: 'pointer',
+                              '&:hover': {
+                                backgroundColor: '#f5f5f5',
+                              },
+                            }}
+                          >
+                            <ListItemIcon sx={{ minWidth: 32, mt: 0.2 }}>
+                              <CheckCircleIcon color="success" fontSize="small" />
+                            </ListItemIcon>
+                            <ListItemText
+                              primary={
+                                <Typography variant="caption" color="text.secondary">
+                                  2025-06-04 09:20
+                                </Typography>
+                              }
+                              secondary={
+                                <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                                  Delivered
+                                </Typography>
+                              }
+                            />
+                          </ListItem>
+                        </List>
+
+                      </Box>
+                    )}
+                  </Box>
+
+
                 </Box>
               </ListItem>
+
             );
           })}
         </List>

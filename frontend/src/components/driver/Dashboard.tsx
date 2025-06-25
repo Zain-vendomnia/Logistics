@@ -4,7 +4,7 @@ import {
   Box,
   Button,
   Fab,
-  Grid,
+  Grid2,
   IconButton,
   keyframes,
   Paper,
@@ -57,8 +57,8 @@ const Dashboard = () => {
   // );
 
   return (
-    <Grid container spacing={0} height={"100%"} p={0}>
-      <Grid
+    <Grid2 container spacing={0} height={"100%"} p={0}>
+      <Grid2
         size={{ xs: 4, md: 3, lg: 3 }}
         sx={styles.sideGrid}
         height={"100%"}
@@ -106,10 +106,10 @@ const Dashboard = () => {
             </Paper>
           )}
         </Box>
-      </Grid>
+      </Grid2>
 
       {/* Maps */}
-      <Grid
+      <Grid2
         display={"flex"}
         justifyContent={"center"}
         alignItems={"center"}
@@ -121,7 +121,7 @@ const Dashboard = () => {
         destination={tripData ? tripData.destinationCoordinates : null} routePath={[]} />
        
       </Box>
-      </Grid>
+      </Grid2>
 
       {isDeliveryStarted && <DeliveryDrawer key={deliveryId} />}
 
@@ -163,7 +163,7 @@ const Dashboard = () => {
           }}
         />
       </Fab> */}
-    </Grid>
+    </Grid2>
   );
 };
 

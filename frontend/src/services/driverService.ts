@@ -38,3 +38,10 @@ export const getAvailableDrivers = async (tourDate: string, warehouseId: number 
   });
   return response.data;
 };
+
+// --- New function to get driver performance data ---
+export const getDriverPerformanceData = async () => {
+  // Assuming your backend exposes a route like '/performance' to get driver stats
+  const response = await axios.get(`${API_BASE}/performance`, { headers: authHeader() });
+  return response.data;
+};

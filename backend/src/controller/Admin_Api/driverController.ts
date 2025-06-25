@@ -100,3 +100,28 @@ export const checkDriverEligibility = async (req: Request, res: Response) => {
     return res.status(200).json({ message: 'Internal server error' });
   }
 };
+// ✅ NEW: Get performance data for all drivers (with optional date filtering)
+export const getDriverPerformanceData = async (req: Request, res: Response) => {
+  try {
+    const { startDate, endDate } = req.query;
+
+    // Validate presence of both dates
+    if (!startDate || !endDate) {
+      return res.status(400).json({ message: "startDate and endDate are required." });
+    }
+
+    // Optional: Add date format validation here if needed
+
+    const performanceData = await driverService.getDriverPerformanceData(
+      String(startDate),
+      String(endDate)
+    );
+
+    res.json(performanceData);
+  } catch (err) {
+    console.error("Error fetching driver performance data:", err);
+    res.status(500).json({ message: "Failed to fetch performance data." });
+  }
+};
+
+

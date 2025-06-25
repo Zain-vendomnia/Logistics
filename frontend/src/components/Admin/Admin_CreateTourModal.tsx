@@ -1,13 +1,14 @@
 import React, { useState } from "react";
 import {
-  Modal, Box, TextField, Button, Typography, Grid, FormControl, InputLabel,
+  Modal, Box, TextField, Button, Typography, FormControl, InputLabel,
   Select, MenuItem, useTheme, Stack, Chip, Snackbar,
   Alert, CircularProgress
 } from '@mui/material';
 import { Palette, Schedule, Person } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import adminApiService from '../../services/adminApiService';
-import {getAvailableDrivers} from '../../services/driverService';
+import { getAvailableDrivers } from '../../services/driverService';
+
 interface CreateTourModalProps {
   open: boolean;
   handleClose: () => void;
@@ -46,7 +47,6 @@ const CreateTourModal: React.FC<CreateTourModalProps> = ({ open, handleClose, wa
   const fetchEligibleDrivers = async (date: string) => {
     try {
       const res = await getAvailableDrivers(date, warehouseId ?? 0);
-      console.log("Fetched eligible drivers:", res);
       setDrivers(res.available || []);
     } catch (err) {
       console.error("Failed to fetch eligible drivers:", err);
@@ -97,6 +97,14 @@ const CreateTourModal: React.FC<CreateTourModalProps> = ({ open, handleClose, wa
     }
   };
 
+  const handleTourDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setTourDate(value);
+    setSelectedDriver('');
+    setStartTime('');
+    fetchEligibleDrivers(value);
+  };
+
   const getButtonSx = (disabled = false) => ({
     px: 3,
     py: 1,
@@ -110,14 +118,6 @@ const CreateTourModal: React.FC<CreateTourModalProps> = ({ open, handleClose, wa
     }
   });
 
-  const handleTourDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setTourDate(value);
-    setSelectedDriver('');
-    setStartTime('');
-    fetchEligibleDrivers(value);
-  };
-
   return (
     <>
       <Modal open={open} onClose={handleClose}>
@@ -129,81 +129,78 @@ const CreateTourModal: React.FC<CreateTourModalProps> = ({ open, handleClose, wa
             <Schedule fontSize="small" /> Create New Tour
           </Typography>
 
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <TextField label="Comments" fullWidth multiline rows={2} value={comments} onChange={e => setComments(e.target.value)} />
-            </Grid>
+          <Stack spacing={2}>
+            <TextField
+              label="Comments"
+              fullWidth
+              multiline
+              rows={2}
+              value={comments}
+              onChange={e => setComments(e.target.value)}
+            />
 
-            <Grid item xs={12}>
-              <TextField
-                label="Tour Date *"
-                type="date"
-                fullWidth
+            <TextField
+              label="Tour Date *"
+              type="date"
+              fullWidth
+              required
+              InputLabelProps={{ shrink: true }}
+              value={tourDate}
+              onChange={handleTourDateChange}
+              InputProps={{ sx: { '& input': { py: 1.5, height: '2em' } } }}
+            />
+
+            <FormControl fullWidth disabled={disableInputs}>
+              <InputLabel><Person fontSize="small" /> Driver *</InputLabel>
+              <Select
+                value={selectedDriver}
+                onChange={(e) => setSelectedDriver(e.target.value)}
                 required
-                InputLabelProps={{ shrink: true }}
-                value={tourDate}
-                onChange={handleTourDateChange}
-                InputProps={{ sx: { '& input': { py: 1.5, height: '2em' } } }}
+              >
+                {drivers.map(driver => (
+                  <MenuItem key={driver.id} value={driver.id}>{driver.name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl fullWidth disabled={disableInputs}>
+              <InputLabel>Start Time *</InputLabel>
+              <Select
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                required
+              >
+                {generateTimeOptions().map(time => (
+                  <MenuItem key={time} value={time}>{time}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <Stack direction="row" alignItems="center" spacing={2}>
+              <Palette fontSize="small" color="action" />
+              <Typography variant="body2">Route Color:</Typography>
+              <Box
+                component="input"
+                type="color"
+                value={routeColor}
+                disabled={disableInputs}
+                onChange={(e) => setRouteColor(e.target.value)}
+                sx={{
+                  width: 40, height: 40, borderRadius: 1,
+                  border: `1px solid ${theme.palette.divider}`, cursor: 'pointer'
+                }}
               />
-            </Grid>
-
-            <Grid item xs={12}>
-              <FormControl fullWidth disabled={disableInputs}>
-                <InputLabel><Person fontSize="small" /> Driver *</InputLabel>
-                <Select
-                  value={selectedDriver}
-                  onChange={(e) => setSelectedDriver(e.target.value)}
-                  required
-                >
-                  {drivers.map(driver => (
-                    <MenuItem key={driver.id} value={driver.id}>{driver.name}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth disabled={disableInputs}>
-                <InputLabel>Start Time *</InputLabel>
-                <Select
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                  required
-                >
-                  {generateTimeOptions().map(time => (
-                    <MenuItem key={time} value={time}>{time}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-
-            <Grid item xs={12}>
-              <Stack direction="row" alignItems="center" spacing={2}>
-                <Palette fontSize="small" color="action" />
-                <Typography variant="body2">Route Color:</Typography>
-                <Box
-                  component="input"
-                  type="color"
-                  value={routeColor}
-                  disabled={disableInputs}
-                  onChange={(e) => setRouteColor(e.target.value)}
-                  sx={{
-                    width: 40, height: 40, borderRadius: 1,
-                    border: `1px solid ${theme.palette.divider}`, cursor: 'pointer'
-                  }}
-                />
-                <Chip
-                  label={routeColor.toUpperCase()}
-                  size="small"
-                  sx={{
-                    backgroundColor: routeColor,
-                    color: theme.palette.getContrastText(routeColor),
-                    minWidth: 80
-                  }}
-                />
-              </Stack>
-            </Grid>
-          </Grid>
+              <Chip
+                label={routeColor.toUpperCase()}
+                size="small"
+                sx={{
+                  backgroundColor: routeColor,
+                  color: theme.palette.getContrastText(routeColor),
+                  minWidth: 80
+                }}
+              />
+            </Stack>
+          </Stack>
 
           <Stack direction="row" spacing={2} justifyContent="flex-end" mt={4}>
             <Button onClick={handleClose} variant="outlined" sx={getButtonSx()}>Cancel</Button>

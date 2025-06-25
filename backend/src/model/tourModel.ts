@@ -36,8 +36,8 @@ export const createTour = async (tour: Tour) => {
 
   const insertSql = `
     INSERT INTO tourinfo_master (
-      tour_name, comments, start_time, driver_id, route_color, tour_date, order_ids, warehouse_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      tour_name, comments, start_time, driver_id, route_color, tour_date, order_ids, warehouse_id, expected_delivery_count
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   try {
@@ -107,7 +107,8 @@ export const createTour = async (tour: Tour) => {
       tour.routeColor,
       tour.tourDate,
       JSON.stringify(tour.orderIds),
-      tour.warehouseId
+      tour.warehouseId,
+      tour.orderIds.length // 👈 this is your expected_delivery_count
     ];
 
     console.log('[tourModel] Creating tour with values:', values);
