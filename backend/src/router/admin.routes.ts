@@ -35,9 +35,11 @@ import { getFilteredToursController } from "../controller/tourManagement.control
 import { updateCustomerInfoController } from "../controller/Admin_RouteOptimzation/updateCustomerInfo.controller";
 import { getAllTourhistory } from "../controller/Admin_RouteOptimzation/getAllTourhistory";
 import { insertParkingPermit } from '../controller/Admin_Api/insertParkingPermit.controller'; 
+import {runTourController} from '../controller/HERE_API/runTourController';
 
 import driverRoutes from "./driverRoutes";
 import warehouseRoutes from "./warehouseRoutes";
+import { dynamicTourController } from "../controller/HERE_API/dynamicTourController";
 
 const adminRouter = Router();
 
@@ -51,6 +53,8 @@ adminRouter.get("/scheduleWmsOrderInfo", scheduleWmsOrderController);
 adminRouter.post("/picklistEmail", picklistEmail);
 adminRouter.post("/routeoptimize/getOrder", getAllLogisticOrder);
 adminRouter.post("/insertParkingPermit", insertParkingPermit); 
+adminRouter.post("/Runtour", runTourController);
+adminRouter.post("/dynamicTourController", dynamicTourController);
 
 /**
  * Protected routes (each one applies validateToken + roleCheck)
@@ -89,6 +93,21 @@ adminRouter.post(
   roleCheck(["admin"]),
   createTourController
 );
+adminRouter.post(
+  "/routeoptimize/createtourHereApi",
+  validateToken,
+  roleCheck(["admin"]),
+  runTourController
+);
+
+adminRouter.post(
+  "/routeoptimize/dynamictourHereApi",
+  validateToken,
+  roleCheck(["admin"]),
+  dynamicTourController
+);
+
+
 
 adminRouter.get(
   "/routeoptimize/getAlltours",

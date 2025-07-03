@@ -32,8 +32,7 @@ const Admin_AddTour = () => {
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
   const [alertSeverity, setAlertSeverity] = useState<'warning' | 'error'>('warning');
-  
-    
+     
     const selectedOrdersData = ordersData.filter(order => 
       selectedOrders.includes(order.order_id)
     );
