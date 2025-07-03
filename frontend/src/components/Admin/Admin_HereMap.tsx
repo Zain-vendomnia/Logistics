@@ -9,7 +9,7 @@ import {
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import adminApiService from "../../services/adminApiService";
-import polyline from "@mapbox/polyline";
+
 import { useLocation } from "react-router-dom";
 
 interface Stop {
