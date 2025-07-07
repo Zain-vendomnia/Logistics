@@ -1,12 +1,5 @@
 import React from "react";
-import {
-  AppBar,
-  Box,
-  Button,
-  Stack,
-  Toolbar,
-  Typography,
-} from "@mui/material";
+import { AppBar, Box, Button, Stack, Toolbar, Typography } from "@mui/material";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../providers/AuthProvider";
 import EventBus from "../../common/EventBus";
@@ -33,18 +26,12 @@ const style = {
     },
   },
 };
-const NavBar: React.FC = () => {
-  const {
-    user,
-    showDriverBoard,
-    showAdminBoard,
-    showSuperAdminBoard,
-    logout,
-  } = useAuth();
+const NavBar = () => {
+  const { user, showDriverBoard, showAdminBoard, showSuperAdminBoard, logout } =
+    useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const logo = "/sunniva_white.svg";
- 
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -66,135 +53,110 @@ const NavBar: React.FC = () => {
     return () => cleanup();
   }, [logout, navigate]);
 
-const isParkingPermitFormPage = location.pathname === "/ParkingPermitForm";
-return (
-  <AppBar
-    position="sticky"
-    sx={(theme) => ({
-      background: theme.palette.primary.headerGradient,
-      height: 50,
-      boxShadow: "0px 2px 4px rgba(0,0,0,0.1)",
-    })}
-  >
-    <Toolbar sx={{ minHeight: "50px !important", px: 2 }}>
-      <Box display="flex" flexGrow={1} alignItems="center" gap={2}>
-        <Box
-          component="img"
-          src={logo}
-          alt="Logo"
-          sx={{ height: 36, width: "auto", cursor: "pointer" }}
-        />
-        {!isParkingPermitFormPage && (
-          <Typography
-            variant="h5"
-            component={Link}
-            to="/"
-            sx={{
-              mr: 2,
-              textTransform: "uppercase",
-              fontWeight: "bold",
-              color: "inherit",
-              letterSpacing: { sx: 0.5, md: 1, lg: 0 },
-              textDecoration: "none",
-              transition: "box-shadow 2.0s ease",
-              "&:hover, &:focus, &:active": {
-                boxShadow: "0px 0px 0px rgba(0,0,0,0.2)",
-                color: "inherit",
-                textDecoration: "none",
-              },
-            }}
-          >
-            {showDriverBoard
-              ? "Driver"
-              : showAdminBoard
-              ? "Admin"
-              : showSuperAdminBoard
-              ? "Super Admin"
-              : ""}
-          </Typography>
-        )}
-      </Box>
+  const isParkingPermitFormPage = location.pathname === "/ParkingPermitForm";
+  return (
+    <AppBar
+      position="sticky"
+      sx={(theme) => ({
+        background: theme.palette.primary.headerGradient,
+        height: 50,
+        boxShadow: "0px 2px 4px rgba(0,0,0,0.1)",
+      })}
+    >
+      <Toolbar sx={{ minHeight: "50px !important", px: 2 }}>
+        <Box display="flex" flexGrow={1} alignItems="center" gap={2}>
+          <Box
+            component="img"
+            src={logo}
+            alt="Logo"
+            sx={{ height: 36, width: "auto", cursor: "pointer" }}
+            onClick={() => navigate("/")}
+          />
+        </Box>
 
-      {/* Only show menu if not on ParkingPermitForm */}
-      {!isParkingPermitFormPage && user && (
-        <Stack direction="row" spacing={0} alignItems="center">
-          {showSuperAdminBoard && (
-            <>
-              <Button
-                component={Link}
-                to="/register"
-                color="inherit"
-                sx={getNavButtonStyles("/register")}
-              >
-                Employees
-              </Button>
-              <Button
-                component={Link}
-                to="/register"
-                color="inherit"
-                sx={getNavButtonStyles("/register")}
-              >
-                Drivers
-              </Button>
-            </>
-          )}
+        {/* Only show menu if not on ParkingPermitForm */}
+        {!isParkingPermitFormPage && user && (
+          <Stack direction="row" spacing={0} alignItems="center">
+            {showSuperAdminBoard && (
+              <>
+                <Button
+                  component={Link}
+                  to="/register"
+                  color="inherit"
+                  sx={getNavButtonStyles("/register")}
+                >
+                  Employees
+                </Button>
+                <Button
+                  component={Link}
+                  to="/register"
+                  color="inherit"
+                  sx={getNavButtonStyles("/register")}
+                >
+                  Drivers
+                </Button>
+              </>
+            )}
 
-          {showAdminBoard && (
-            <>
-              <Button
-                component={Link}
-                to="/admin-drivers"
-                color="inherit"
-                sx={getNavButtonStyles("/admin-drivers")}
-              >
-                Drivers
-              </Button>
-              <Button
-                component={Link}
-                to="/profile"
-                color="inherit"
-                sx={getNavButtonStyles("/profile")}
-              >
-                Profile
-              </Button>
-            </>
-          )}
+            {showAdminBoard && (
+              <>
+                <Button
+                  component={Link}
+                  to="/admin-drivers"
+                  color="inherit"
+                  sx={getNavButtonStyles("/admin-drivers")}
+                >
+                  Drivers
+                </Button>
+                <Button
+                  component={Link}
+                  to="/profile"
+                  color="inherit"
+                  sx={getNavButtonStyles("/profile")}
+                >
+                  Profile
+                </Button>
+              </>
+            )}
 
-          {showDriverBoard && (
+            {showDriverBoard && (
+              <>
+                {location.pathname !== "/driver" && (
+                  <Button sx={style.navButton} component={Link} to="/driver">
+                    <DashboardIcon sx={{ mr: 0.5 }} />
+                    Dashboard
+                  </Button>
+                )}
+                <Button sx={style.navButton} component={Link} to="/profile">
+                  <PersonIcon sx={{ mr: 0.5 }} />
+                  Profile
+                </Button>
+              </>
+            )}
             <Button
-              component={Link}
-              to="/profile"
-              color="inherit"
-              sx={getNavButtonStyles("/profile")}
+              sx={style.navButton}
+              onClick={() => {
+                EventBus.dispatch("logout");
+              }}
             >
-              <PersonIcon sx={{ mr: 0.5 }} />
-              Profile
+              Log Out
             </Button>
-          )}
-          <Button
-            sx={style.navButton}
-            onClick={() => {
-              EventBus.dispatch("logout");
-            }}
-          >
-            Log Out
-          </Button>
-        </Stack>
-      )}
+          </Stack>
+        )}
 
-      {!isParkingPermitFormPage && !user && (
-        <Button
-          component={Link}
-          to="/login"
-          color="inherit"
-          sx={getNavButtonStyles("/login")}
-        >
-          Login
-        </Button>
-      )}
-    </Toolbar>
-  </AppBar>
-);
+        {!isParkingPermitFormPage && !user && (
+          <Button
+            component={Link}
+            to="/login"
+            color="inherit"
+            sx={getNavButtonStyles("/login")}
+          >
+            Login
+          </Button>
+        )}
+      </Toolbar>
+    </AppBar>
+  );
 };
 
 export default NavBar;

@@ -133,7 +133,6 @@ const NeighborDetailsForm = ({ onComplete }: Props) => {
           mx: "auto",
           display: "flex",
           flexDirection: "column",
-          pb: 4,
           gap: 3,
           "& .MuiInputBase-input": {
             fontFamily: "'Roboto Mono', monospace",

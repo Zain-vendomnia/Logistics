@@ -61,10 +61,8 @@ const componentCheckList = [
 const PreTripChecks = () => {
   const styles = useStyle;
 
-  const {startNewTrip} = useTripLifecycle();
+  const { startNewTrip } = useTripLifecycle();
   const { tripDetails, updateTripDetails } = useDeliveryStore();
-
-
 
   const [isComplied, setIsComplied] = useState(false);
   const [componentStatus, setComponentStatus] = useState<
@@ -104,6 +102,7 @@ const PreTripChecks = () => {
 
   const handleStartTripButton = () => {
     startNewTrip();
+
     updateTripDetails({
       isTripStarted: true,
       tripStartedAt: new Date().toUTCString(),
@@ -172,8 +171,7 @@ const PreTripChecks = () => {
                   {item.title}
                 </Typography>
 
-                <Box display='flex' justifyContent= "center">
-                  
+                <Box display="flex" justifyContent="center">
                   <Box
                     component="img"
                     src={componentStatus[index].imgSrc}
