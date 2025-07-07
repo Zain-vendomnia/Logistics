@@ -36,3 +36,12 @@ export const getCurrentUser = () => {
 
   return null;
 };
+
+export const setProfileImage = (imgSrc: string): void => {
+  localStorage.setItem("profileImage", JSON.stringify(imgSrc));
+};
+
+export const getProfileImage = (): string => {
+  const imgSrc = localStorage.getItem("profileImage");
+  return imgSrc ? JSON.parse(imgSrc) : "./client_image.png";
+};

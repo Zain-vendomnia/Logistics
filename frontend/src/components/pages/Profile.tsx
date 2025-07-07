@@ -1,109 +1,151 @@
-import React from "react";
-import { 
-  Avatar,
-  Box,
-  Card,
-  CardContent,
-  Chip,
-  Container,
-  Divider,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Typography,
-  useTheme
-} from "@mui/material";
 import {
-  Email as EmailIcon,
-  Person as PersonIcon,
-  Security as SecurityIcon
-} from "@mui/icons-material";
+  alpha,
+  Box,
+  IconButton,
+  Stack,
+  Typography,
+  useTheme,
+} from "@mui/material";
+import { grey } from "@mui/material/colors";
+import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
+import AllInclusiveIcon from "@mui/icons-material/AllInclusive";
 
-import { getCurrentUser } from "../../services/auth.service";
+import DriverProfileDetails from "../driver/profile/DriverProfileDetails";
+import DriverProfileAllDeliveries from "../driver/profile/DriverProfileAllDeliveries";
+import ProgressGraph from "../driver/profile/ProgressGraph";
+import ApplyBreak from "../driver/profile/ApplyBreak";
+import DailyDelivery from "../driver/profile/DailyDelivery";
+import TotalDeliveries from "../driver/profile/TotalDeliveries";
+import DailyEstimatedTripTimeout from "../driver/profile/DailyEstimatedTripTimeout";
+import VehicleDetails from "../driver/profile/VehicleDetails";
 
+const style = {
+  box_layout: {
+    bgcolor: grey[200],
+    border: "2px solid",
+    borderColor: grey[500],
+    borderRadius: 4,
+    p: 2,
+  },
+};
 
-const Profile: React.FC = () => {
-  const currentUser = getCurrentUser();
+const Profile = () => {
+  const space = 1;
   const theme = useTheme();
 
   return (
-    <Container maxWidth="sm" sx={{ py: 4 }}>
-      <Card elevation={3} sx={{ borderRadius: 2 }}>
-        <CardContent sx={{ p: 4 }}>
-          {/* Profile Header */}
-          <Box sx={{ 
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            mb: 3
-          }}>
-            <Avatar
-              sx={{
-                width: 80,
-                height: 80,
-                bgcolor: theme.palette.primary.main,
-                fontSize: '2rem',
-                mb: 2
-              }}
+    <>
+      <Box
+        display="flex"
+        gap={space}
+        overflow={"hidden"}
+        bgcolor={grey[200]}
+        p={1}
+        height={"100%"}
+      >
+        <Stack
+          spacing={space}
+          sx={{
+            ...style.box_layout,
+            bgcolor: alpha(theme.palette.primary.main, 0.7),
+            // bgcolor: alpha(theme.palette.primary.light, 0.7),
+            width: { xs: "20%", md: "25%", lg: "25%" },
+            // width: { xs: "25%", md: "27%", lg: "30%" },
+          }}
+        >
+          <DriverProfileDetails />
+        </Stack>
+
+        {/* Content Section */}
+        <Box
+          display={"flex"}
+          flexDirection={"column"}
+          width={{ xs: "80%", md: "75%", lg: "75%" }}
+          height={"100%"}
+          gap={space}
+        >
+          {/* Options */}
+          <Stack spacing={space}>
+            <Box
+              display={"flex"}
+              alignItems={"center"}
+              justifyContent={"space-between"}
+              gap={space}
             >
-              {currentUser.username.charAt(0).toUpperCase()}
-            </Avatar>
-            <Typography variant="h5" component="h1" fontWeight="bold">
-              {currentUser.username}
-            </Typography>
-            <Chip
-              label={currentUser.role}
-              color="primary"
-              size="small"
-              sx={{ mt: 1, fontWeight: 600 }}
-            />
+              <Box
+                width={"50%"}
+                height={150}
+                sx={{ ...style.box_layout, bgcolor: "white" }}
+              >
+                <DailyDelivery />
+              </Box>
+              <Box
+                width={"50%"}
+                height={150}
+                sx={{ ...style.box_layout, bgcolor: "white" }}
+              >
+                <DailyEstimatedTripTimeout />
+              </Box>
+              <Box
+                width={"50%"}
+                height={150}
+                sx={{ ...style.box_layout, bgcolor: "white" }}
+              >
+                <ApplyBreak />
+              </Box>
+            </Box>
+            <Box
+              display={"flex"}
+              alignItems={"center"}
+              justifyContent={"space-between"}
+              gap={space}
+            >
+              <Box
+                width={"50%"}
+                height={150}
+                sx={{ ...style.box_layout, bgcolor: "white" }}
+              >
+                <TotalDeliveries />
+              </Box>
+              <Box
+                width={"50%"}
+                height={150}
+                sx={{ ...style.box_layout, bgcolor: "white" }}
+              >
+                <VehicleDetails />
+              </Box>
+              <Box
+                width={"50%"}
+                height={150}
+                sx={{ ...style.box_layout, bgcolor: "white" }}
+              >
+                <Box display={"flex"} alignItems={"flex-start"}>
+                  <Box
+                    sx={{
+                      bgcolor: grey[200],
+                      color: grey[900],
+                      p: 1,
+                      borderRadius: "50%",
+                    }}
+                  >
+                    <AllInclusiveIcon />
+                  </Box>
+                </Box>
+              </Box>
+            </Box>
+          </Stack>
+
+          {/* Graph */}
+          <Box height={"100%"}>
+            <Box sx={{ ...style.box_layout, bgcolor: "white" }}>
+              <Box height={"100%"}>
+                <ProgressGraph />
+              </Box>
+            </Box>
           </Box>
-
-          <Divider sx={{ my: 2 }} />
-
-          {/* User Details */}
-          <List>
-            <ListItem>
-              <ListItemIcon sx={{ minWidth: 40 }}>
-                <PersonIcon color="primary" />
-              </ListItemIcon>
-              <ListItemText 
-                primary="Username" 
-                secondary={currentUser.username} 
-              />
-            </ListItem>
-            
-            <ListItem>
-              <ListItemIcon sx={{ minWidth: 40 }}>
-                <EmailIcon color="primary" />
-              </ListItemIcon>
-              <ListItemText 
-                primary="Email" 
-                secondary={currentUser.email} 
-              />
-            </ListItem>
-            
-            <ListItem>
-              <ListItemIcon sx={{ minWidth: 40 }}>
-                <SecurityIcon color="primary" />
-              </ListItemIcon>
-              <ListItemText 
-                primary="Role" 
-                secondary={
-                  <Chip 
-                    label={currentUser.role} 
-                    size="small" 
-                    color="primary" 
-                    variant="outlined" 
-                  />
-                } 
-              />
-            </ListItem>
-          </List>
-        </CardContent>
-      </Card>
-    </Container>
+        </Box>
+      </Box>
+    </>
   );
 };
 
