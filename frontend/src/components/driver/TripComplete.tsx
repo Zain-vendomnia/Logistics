@@ -19,6 +19,7 @@ import {
 } from "../../store/useNotificationStore";
 import CustomInputField from "../delivery/CustomInputField";
 import { ImageType } from "../../hooks/useCameraCapture";
+import { useDriverBreakStore } from "../../store/useDriverBreakStore";
 
 type ImageChecklistItem = {
   title: string;
@@ -89,7 +90,11 @@ const TripComplete = () => {
     }
   };
 
+  const { resetBreakState } = useDriverBreakStore();
+
   const handleTripComplete = () => {
+    resetBreakState();
+
     setTimeout(() => {
       resetDeliveryStore();
     }, 2000);
@@ -124,7 +129,8 @@ const TripComplete = () => {
     Math.min(currentIndex, imageChecklist.length - 1)
   );
   const currentItem = imageChecklist[lastValidIndex];
-
+  const disableCamera =
+    (shouldShowInputField && !millageValue) || isAllComplied;
   return (
     <>
       <Box
@@ -188,19 +194,18 @@ const TripComplete = () => {
                   sx={{
                     height: "100%",
                     pointerEvents: "auto",
-                    ...(shouldShowInputField &&
-                      !millageValue && {
-                        cursor: "not-allowed",
-                        pointerEvents: "none",
-                        opacity: 0.5,
-                      }),
+                    ...(disableCamera && {
+                      cursor: "not-allowed",
+                      pointerEvents: "none",
+                      opacity: 0.5,
+                    }),
                   }}
                 >
                   <Camera
                     type={currentItem.imageType}
                     millage={millageValue ?? null}
                     buttonText={currentItem?.title ?? "Upload Image"}
-                    isComplied={isAllComplied}
+                    isComplied={disableCamera}
                     onImageUploaded={handleImageUploaded}
                   />
                 </Box>
