@@ -87,6 +87,13 @@ const insertParkingPermit = (formData: any) => {
   };
 const plotheremap = () => axios.post(`${API_BaseUrl_Admin}dynamicTourController`, { headers: authHeader() });
 
+export const uploadexcel = (formData: FormData) =>
+  axios.post(`${API_BaseUrl_Admin}uploadexcel`, formData, {
+    headers: {
+      ...authHeader(),
+      'Content-Type': 'multipart/form-data',
+    },
+  });
 
 const adminApiService = {
   fetchRouteData,
@@ -110,6 +117,7 @@ const adminApiService = {
   insertParkingPermit,
   plotheremap,
   createtourHereApi,
+  uploadexcel,
 };
 
 export default adminApiService;

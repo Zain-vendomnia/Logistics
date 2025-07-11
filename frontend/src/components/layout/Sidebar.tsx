@@ -49,11 +49,10 @@ const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
         { text: "Add Tour", icon: <TourIcon />, path: "/Admin_AddTour" },
         { text: "Tours", icon: <TourOutlinedIcon />, path: "/Admin_TourTemplates" },
         { text: "Completed Tour", icon: <AltRoute />, path: "/completed_tour" },
-        { text: "Live Tour", icon: <Moving />, path: "/live_tours" },
-        { text: "Here Map",  icon: <Moving />, path: "/Admin_HereMap"},
         { text: "Manage Drivers", icon: <DirectionsBusFilled />, path: "/manage_drivers" },
         { text: "Manage Warehouse", icon: <Warehouse />, path: "/manage_warehouse" },
-        { text: "HereMap Dynamic", icon:<Moving/>, path:"/Admin_dynamicHereMap"}
+        { text: "UploadJobFile", icon:<Moving/>, path:"/UploadJobFile"}
+       
       ]);
     } else if (showSuperAdminBoard) {
       setMenuItems([{ text: "Dashboard", icon: <DashboardIcon />, path: "/Admin_dashboard" }]);

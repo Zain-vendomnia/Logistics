@@ -33,26 +33,34 @@ interface VehicleTour {
 
 const Dashboard: React.FC = () => {
   const [vehicleTours, setVehicleTours] = useState<VehicleTour[]>([]);
-
+  const [file, setFile] = useState<File | null>(null);
+  const [response, setResponse] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   useEffect(() => {
     const fetchTours = async () => {
-   try {
-          const res = await adminApiService.plotheremap();
-          const rawData = res.data.routes;
-          console.log("rawData" + JSON.stringify(rawData));
+      try {
+        const res = await adminApiService.plotheremap();
+        const rawData = res.data.routes;
+       
         const tours: VehicleTour[] = rawData.map((vehicle: any) => ({
-            vehicleId: vehicle.vehicleId,
-            sections: vehicle.sections.map((section: any) => ({
-              summary: section.summary,
-              coordinates: section.coordinates.map((pt: any) => [pt.lat, pt.lng]),
-            })),
-            stops: vehicle.stops,
-          }));
-
-          setVehicleTours(tours); 
-        } catch (err) {
-          console.error("API call failed", err);
-        } 
+          vehicleId: vehicle.vehicleId,
+          sections: vehicle.sections.map((section: any) => ({
+            summary: section.summary,
+            coordinates: section.coordinates.map((pt: any) => [pt.lat, pt.lng]),
+          })),
+          stops: vehicle.stops,
+        }));
+       tours.forEach((tour) => {
+      console.log(`Vehicle ID: ${tour.vehicleId}`);
+      tour.sections.forEach((section, index) => {
+        console.log(`  Section ${index + 1} Summary:`, section.summary);
+        });
+       });
+        setVehicleTours(tours);
+      } catch (err) {
+        console.error("API call failed", err);
+      }
     };
 
     fetchTours();
@@ -64,7 +72,7 @@ const Dashboard: React.FC = () => {
   ]);
 
   const colors = ["blue", "green", "red", "purple", "orange", "brown"];
-     
+
 
   // Marker Icons
   const defaultIcon = new L.Icon({
@@ -122,7 +130,7 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-   <Box display="flex" height="100vh">
+    <Box display="flex" height="100vh">
       {/* Left Fleet Panel */}
       <FleetPanel />
 
@@ -159,84 +167,84 @@ const Dashboard: React.FC = () => {
                   </React.Fragment>
                 ))}
 
-          {vehicle.stops.map((stop, sIdx) => {
-  const types = stop.activities.map((a: any) => a.type);
-  const isStartDepot = sIdx === 0 && types.includes("departure");
-   const isLastStop = sIdx === vehicle.stops.length - 1;
+                {vehicle.stops.map((stop, sIdx) => {
+                  const types = stop.activities.map((a: any) => a.type);
+                  const isStartDepot = sIdx === 0 && types.includes("departure");
+                  const isLastStop = sIdx === vehicle.stops.length - 1;
 
-  // ✅ Start depot → green icon only
-  if (isStartDepot) {
-    return (
-      <Marker
-        key={`stop-${vehicle.vehicleId}-${sIdx}`}
-        position={[stop.location.lat, stop.location.lng]}
-        icon={startIcon}
-      >
-        <Popup>
-          <strong>Start Depot</strong>
-          <br />
-          Vehicle: {vehicle.vehicleId}
-        </Popup>
-      </Marker>
-    );
-  }
- if (isLastStop) return null;
-  // ✅ All other stops → numbered icon (starting from 1)
-  const numberedIcon = L.divIcon({
-    className: "",
-    html: `
-      <div style="
-        background-color: #1976d2;
-        color: white;
-        border-radius: 50%;
-        width: 28px;
-        height: 28px;
-        line-height: 28px;
-        text-align: center;
-        font-weight: bold;
-        border: 2px solid white;
-        box-shadow: 0 0 2px rgba(0,0,0,0.4);
-      ">
-        ${sIdx}
-      </div>
-    `,
-    iconSize: [28, 28],
-    iconAnchor: [14, 28],
-    popupAnchor: [0, -28],
-  });
+                  // ✅ Start depot → green icon only
+                  if (isStartDepot) {
+                    return (
+                      <Marker
+                        key={`stop-${vehicle.vehicleId}-${sIdx}`}
+                        position={[stop.location.lat, stop.location.lng]}
+                        icon={startIcon}
+                      >
+                        <Popup>
+                          <strong>Start Depot</strong>
+                          <br />
+                          Vehicle: {vehicle.vehicleId}
+                        </Popup>
+                      </Marker>
+                    );
+                  }
+                  if (isLastStop) return null;
+                  // ✅ All other stops → numbered icon (starting from 1)
+                  const numberedIcon = L.divIcon({
+                    className: "",
+                    html: `
+                          <div style="
+                            background-color: #1976d2;
+                            color: white;
+                            border-radius: 50%;
+                            width: 28px;
+                            height: 28px;
+                            line-height: 28px;
+                            text-align: center;
+                            font-weight: bold;
+                            border: 2px solid white;
+                            box-shadow: 0 0 2px rgba(0,0,0,0.4);
+                          ">
+                            ${sIdx}
+                          </div>
+                        `,
+                    iconSize: [28, 28],
+                    iconAnchor: [14, 28],
+                    popupAnchor: [0, -28],
+                  });
 
-  return (
-    <Marker
-      key={`stop-${vehicle.vehicleId}-${sIdx}`}
-      position={[stop.location.lat, stop.location.lng]}
-      icon={numberedIcon}
-    >
-      <Popup>
-        <strong>Vehicle:</strong> {vehicle.vehicleId}
-        <br />
-        <strong>Stop ${sIdx}</strong>
-        <br />
-        {stop.activities?.[0]?.jobId && (
-          <>
-            Job: {stop.activities[0].jobId}
-            <br />
-          </>
-        )}
-        {stop.time?.arrival && (
-          <>
-            Arrival: {new Date(stop.time.arrival).toLocaleTimeString()}
-            <br />
-          </>
-        )}
-        {stop.time?.departure && (
-          <>
-            Departure: {new Date(stop.time.departure).toLocaleTimeString()}
-          </>
-        )}
-      </Popup>
-    </Marker>
-  );
-})}
+                  return (
+                    <Marker
+                      key={`stop-${vehicle.vehicleId}-${sIdx}`}
+                      position={[stop.location.lat, stop.location.lng]}
+                      icon={numberedIcon}
+                    >
+                      <Popup>
+                        <strong>Vehicle:</strong> {vehicle.vehicleId}
+                        <br />
+                        <strong>Stop ${sIdx}</strong>
+                        <br />
+                        {stop.activities?.[0]?.jobId && (
+                          <>
+                            Job: {stop.activities[0].jobId}
+                            <br />
+                          </>
+                        )}
+                        {stop.time?.arrival && (
+                          <>
+                            Arrival: {new Date(stop.time.arrival).toLocaleTimeString()}
+                            <br />
+                          </>
+                        )}
+                        {stop.time?.departure && (
+                          <>
+                            Departure: {new Date(stop.time.departure).toLocaleTimeString()}
+                          </>
+                        )}
+                      </Popup>
+                    </Marker>
+                  );
+                })}
 
 
 

@@ -41,6 +41,9 @@ import driverRoutes from "./driverRoutes";
 import warehouseRoutes from "./warehouseRoutes";
 import { dynamicTourController } from "../controller/HERE_API/dynamicTourController";
 
+import { upload } from "../middlewares/upload"
+import { parseExcelToJobs } from '../utils/parseExcel';
+
 const adminRouter = Router();
 
 /**
@@ -54,7 +57,22 @@ adminRouter.post("/picklistEmail", picklistEmail);
 adminRouter.post("/routeoptimize/getOrder", getAllLogisticOrder);
 adminRouter.post("/insertParkingPermit", insertParkingPermit); 
 adminRouter.post("/Runtour", runTourController);
-adminRouter.post("/dynamicTourController", dynamicTourController);
+//adminRouter.post("/dynamicTourController", dynamicTourController);
+adminRouter.post('/uploadexcel', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Excel file is required.' });
+    }
+    //console.log("testing");
+    const jobList = parseExcelToJobs(req.file.path);
+
+    // Pass jobList to the controller
+    await dynamicTourController(req, res, jobList);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Failed to process uploaded Excel.', error: (err as Error).message });
+  }
+});
 
 /**
  * Protected routes (each one applies validateToken + roleCheck)
@@ -100,14 +118,19 @@ adminRouter.post(
   runTourController
 );
 
-adminRouter.post(
+/* adminRouter.post(
   "/routeoptimize/dynamictourHereApi",
   validateToken,
   roleCheck(["admin"]),
   dynamicTourController
-);
+); */
 
-
+/* adminRouter.post(
+  "/routeoptimize/dynamictourHereApi",
+  validateToken,
+  roleCheck(["admin"]),
+  dynamicTourController
+); */
 
 adminRouter.get(
   "/routeoptimize/getAlltours",
