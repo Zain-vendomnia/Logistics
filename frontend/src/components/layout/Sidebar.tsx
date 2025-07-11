@@ -23,7 +23,8 @@ import {
   Warehouse,
   AltRoute,
   Leaderboard,
-  TrendingUp, // Icon for Driver Performance
+  TrendingUp,
+  Moving, // Icon for Driver Performance
 } from "@mui/icons-material";
 
 import { useAuth } from "../../providers/AuthProvider";
@@ -67,6 +68,7 @@ const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
         { text: "Manage Drivers", icon: <DirectionsBusFilled />, path: "/manage_drivers" },
         { text: "Manage Warehouse", icon: <Warehouse />, path: "/manage_warehouse" },
         { text: "Driver Performance", icon: <Leaderboard  />, path: "/driver_performance" },
+          { text: "UploadJobFile", icon:<Moving/>, path:"/UploadJobFile"}
       ];
     }
 

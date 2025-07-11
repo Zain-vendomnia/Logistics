@@ -23,6 +23,9 @@ import LiveTours from "./components/Admin/live_tours";
 import DriverPerformance from "./components/Admin/DriverPerformance";
 import ProofdeliveryLiveloc from "./components/Admin/ProofdeliveryLiveloc";
 import ProofdeliveryImage from "./components/Admin/ProofdeliveryImage";
+import AdminHereMap from "./components/Admin/Admin_HereMap";
+import Admin_dynamicHereMap from "./components/Admin/Admin_dynamicHereMap";
+import UploadJobFile from "./components/UploadJobFile";
 
 // Role-based route guard
 const ProtectedRoute = ({
@@ -107,6 +110,13 @@ const AppRoutes = () => {
       <Route path = "/driver_performance" element={<ProtectedRoute element={<DriverPerformance />} allowedRoles={["admin"]} />} />
       <Route path = "/ProofdeliveryLiveloc" element={<ProtectedRoute element={<ProofdeliveryLiveloc />} allowedRoles={["admin"]} />} />
       <Route path = "/ProofdeliveryImage" element={<ProtectedRoute element={<ProofdeliveryImage />} allowedRoles={["admin"]} />} />
+
+
+      <Route path = "/Admin_HereMap" element={<ProtectedRoute element={<AdminHereMap />} allowedRoles={["admin"]} />} />
+      <Route path = "/Admin_dynamicHereMap" element={<ProtectedRoute element={<Admin_dynamicHereMap/>} allowedRoles={["admin"]}/>}/>
+      <Route path = "/UploadJobFile" element={<ProtectedRoute element={<UploadJobFile/>} allowedRoles={["admin"]}/>}/>
+    
+
       {/* <Route path="/Admin_PickList" element={<Admin_PickListPage />} />  */}
    </Routes>
 

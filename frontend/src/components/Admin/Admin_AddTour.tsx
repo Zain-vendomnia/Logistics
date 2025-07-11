@@ -31,32 +31,33 @@ const Admin_AddTour = () => {
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
   const [alertSeverity, setAlertSeverity] = useState<'warning' | 'error'>('warning');
+     
+    const selectedOrdersData = ordersData.filter(order => 
+      selectedOrders.includes(order.order_id)
+    );
+    
+    const firstWarehouseId = selectedOrdersData[0]?.warehouse_id;
+    const allSameWarehouse = selectedOrdersData.every(
+      order => order.warehouse_id === firstWarehouseId
+    );
+    const handleCreateTourClick = () => {
+      if (selectedOrders.length === 0) {
+        setAlertMessage('Please select orders before creating a tour.');
+        setAlertSeverity('warning');
+        setAlertOpen(true);
+        // setModalConfig({ open: true, warehouseId: firstWarehouseId });
+        return;
+      }
+      if (!allSameWarehouse) {
+        setAlertMessage('All selected orders must be from the same warehouse.');
+        setAlertSeverity('warning');
+        setAlertOpen(true);
+        return;
+      }
+      
+      console.log('Selected Orders:', selectedOrders);
+    setModalConfig({ open: true, warehouseId: firstWarehouseId , orderIds: selectedOrders });
 
-  const selectedOrdersData = ordersData.filter(order =>
-    selectedOrders.includes(order.order_id)
-  );
-
-  const firstWarehouseId = selectedOrdersData[0]?.warehouse_id;
-  const allSameWarehouse = selectedOrdersData.every(
-    order => order.warehouse_id === firstWarehouseId
-  );
-
-  const handleCreateTourClick = () => {
-    if (selectedOrders.length === 0) {
-      setAlertMessage('Please select orders before creating a tour.');
-      setAlertSeverity('warning');
-      setAlertOpen(true);
-      return;
-    }
-    if (!allSameWarehouse) {
-      setAlertMessage('All selected orders must be from the same warehouse.');
-      setAlertSeverity('warning');
-      setAlertOpen(true);
-      return;
-    }
-
-    console.log('Selected Orders:', selectedOrders);
-    setModalConfig({ open: true, warehouseId: firstWarehouseId, orderIds: selectedOrders });
   };
 
   return (

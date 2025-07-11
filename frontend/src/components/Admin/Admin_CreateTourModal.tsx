@@ -68,8 +68,8 @@ const CreateTourModal: React.FC<CreateTourModalProps> = ({ open, handleClose, wa
     return true;
   };
 
-  const handleSave = async () => {
-    if (!validateForm()) return;
+/* const handleSave = async () => {
+  if (!validateForm()) return;
 
     setLoading(true);
     try {
@@ -83,19 +83,61 @@ const CreateTourModal: React.FC<CreateTourModalProps> = ({ open, handleClose, wa
         warehouseId
       });
 
-      if (res.status === 200) {
-        handleClose();
-        setSnackbar({ open: true, message: 'Tour created successfully!', severity: 'success' });
-        setIsSuccess(true);
-        setTimeout(() => navigate('/Admin_TourTemplates'), 500);
-      }
-    } catch (err: any) {
-      const msg = err?.response?.data?.message || 'Failed to save the tour.';
-      setSnackbar({ open: true, message: msg, severity: 'error' });
-    } finally {
-      setLoading(false);
+    if (response.status === 200) {
+      handleClose();
+      setSnackbar({ open: true, message: 'Tour created successfully!', severity: 'success' });
+      setIsSuccess(true);
+      setTimeout(() => {
+        navigate('/Admin_TourTemplates');
+      }, 500);
     }
-  };
+  } catch (error: any) {
+    console.error('Error saving tour:', error);
+    const message = error?.response?.data?.message || 'Failed to save the tour. Please try again.';
+    setSnackbar({ open: true, message, severity: 'error' });
+  } finally {
+    setLoading(false);
+  }
+}; */
+
+const handleSave = async () => {
+  if (!validateForm()) return;
+
+  setLoading(true);
+  setIsSuccess(false);
+
+  try {
+  /*   const response = await adminApiService.createtourHereApi({
+      comments,
+      startTime: `${startTime}:00`,
+      routeColor,
+      driverid: selectedDriver,
+      tourDate: `${tourDate} 00:00:00`,
+      orderIds,
+      warehouseId
+    }); */
+
+    setTimeout(() => {
+       navigate('/Admin_HereMap', { state: { orderIds } });
+      }, 500);
+
+
+  /*   if (response.status === 200) {
+      handleClose();
+      setSnackbar({ open: true, message: 'Tour created successfully!', severity: 'success' });
+      setIsSuccess(true);
+      setTimeout(() => {
+       navigate('/Admin_HereMap', { state: { orderIds } });
+      }, 500);
+    } */
+  } catch (error: any) {
+    console.error('Error saving tour:', error);
+    const message = error?.response?.data?.message || 'Failed to save the tour. Please try again.';
+    setSnackbar({ open: true, message, severity: 'error' });
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleTourDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
