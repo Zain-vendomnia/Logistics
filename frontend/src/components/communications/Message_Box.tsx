@@ -174,7 +174,7 @@ const MessageBox = ({ inBox = false, deliveryId, onClose }: Props) => {
                 <Box display={"flex"} justifyContent={"flex-end"}>
                   <Typography
                     variant="subtitle2"
-                    ref={(el) => {
+                    ref={(el: HTMLSpanElement | null) => {
                       if (el) {
                         timestampRefs.current.set(key, el);
                       } else {

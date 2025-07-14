@@ -30,7 +30,7 @@ export const formatTime = (ms: number) => {
   const sec = Math.floor((ms % 60000) / 1000);
 
   if (sec === 0) {
-    return `${min}m`;
+    return `${min} Minutes`;
   } else {
     return `${min}m ${sec}s`;
   }

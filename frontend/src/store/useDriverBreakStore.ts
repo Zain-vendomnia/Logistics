@@ -5,9 +5,9 @@ import {
 } from "./useNotificationStore";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { formatTime } from "../utils/formatConverter";
+import { constant } from "lodash";
 
 type BreakState = {
-  BREAK_LIMIT: number;
   tripStartedAt: string | null;
   isBreakEligible: boolean;
   isBreakActive: boolean;
@@ -17,9 +17,13 @@ type BreakState = {
 
   initializeBreakEvaluator: (tripStartedAt: string) => void;
   handleToggleBreak: () => void;
-  cancelBreak: () => void;
+  handleCancelBreak: () => void;
   recoverBreakTimer: () => void;
   resetBreakState: () => void;
+
+  BREAK_LIMIT: number;
+  MAX_BREAK_SPLITS: number;
+  break_split_consumed: number;
 
   _breakTimer: NodeJS.Timeout | null;
   _eligibilityInterval: NodeJS.Timeout | null;
@@ -61,21 +65,14 @@ const createStore: StateCreator<BreakState> = (set, get) => {
   };
 
   const handleBreakInterval = () => {
-    if (get().isBreakCancelled) return;
-
     let { _breakTimer } = get();
 
+    const { isBreakCancelled, breakStartedAt, breakElapsed } = get();
+    let previous_elapsed = isBreakCancelled ? breakElapsed : 0;
+
     const timer = setInterval(() => {
-      const { isBreakCancelled, breakStartedAt } = get();
-
-      if (isBreakCancelled || !breakStartedAt) {
-        clearInterval(_breakTimer!);
-        console.log("Break timer cancelled, exiting interval.");
-        return;
-      }
-
       const now = Date.now();
-      const elapsed = now - breakStartedAt;
+      const elapsed = now - breakStartedAt!;
 
       if (elapsed >= BREAK_LIMIT) {
         clearInterval(_breakTimer!);
@@ -85,7 +82,7 @@ const createStore: StateCreator<BreakState> = (set, get) => {
           breakStartedAt: null,
         });
       } else {
-        set({ breakElapsed: elapsed });
+        set({ breakElapsed: previous_elapsed + elapsed });
       }
     }, 1000);
 
@@ -93,17 +90,18 @@ const createStore: StateCreator<BreakState> = (set, get) => {
   };
 
   const handleToggleBreak = () => {
-    const { isBreakActive, isBreakCancelled } = get();
+    const { isBreakActive, isBreakCancelled, _breakTimer } = get();
 
     if (isBreakActive) {
-      return;
-      // if (breakTimer) clearInterval(breakTimer);
+      // return;
+      handleCancelBreak();
+      // if (_breakTimer) clearInterval(_breakTimer);
       // set({
-      //   isBreakActive: true,
+      //   isBreakActive: false,
       //   // breakStartedAt: null,
       // });
     } else {
-      if (isBreakCancelled) return;
+      // if (isBreakCancelled) return;
 
       const startedAt = Date.now();
       set({ isBreakActive: true, breakStartedAt: startedAt });
@@ -145,7 +143,18 @@ const createStore: StateCreator<BreakState> = (set, get) => {
     return;
   };
 
-  const resetBreakState = () =>
+  const clearAllTimers = () => {
+    const eligibilityInterval = get()._eligibilityInterval;
+    const breakTimer = get()._breakTimer;
+
+    eligibilityInterval && clearInterval(eligibilityInterval);
+    breakTimer && clearInterval(breakTimer);
+
+    set({ _eligibilityInterval: null, _breakTimer: null });
+  };
+
+  const resetBreakState = () => {
+    clearAllTimers();
     set({
       tripStartedAt: null,
       isBreakEligible: false,
@@ -154,8 +163,16 @@ const createStore: StateCreator<BreakState> = (set, get) => {
       breakElapsed: 0,
       isBreakCancelled: false,
     });
+  };
 
   const cancelBreak = () => {
+    let breakSplit = 1;
+    const { break_split_consumed, MAX_BREAK_SPLITS } = get();
+
+    if (break_split_consumed < MAX_BREAK_SPLITS) {
+      breakSplit = break_split_consumed + 1;
+    }
+
     const _eligibilityInterval = get()._eligibilityInterval;
     const _breakTimer = get()._breakTimer;
 
@@ -164,61 +181,59 @@ const createStore: StateCreator<BreakState> = (set, get) => {
 
     const elapsed = get().breakElapsed;
 
-    // set({
-    //   tripStartedAt: null,
-    //   isBreakEligible: false,
-    //   isBreakActive: false,
-    //   breakStartedAt: null,
-    //   breakElapsed: 0,
-    //   isBreakCancelled: true,
-    //   _breakTimer: null,
-    //   _eligibilityInterval: null,
-    // });
-    // set({ breakElapsed: elapsed });
-
+    clearAllTimers();
     const newState = {
-      tripStartedAt: null,
-      isBreakEligible: false,
+      isBreakEligible: break_split_consumed < MAX_BREAK_SPLITS ? true : false,
       isBreakActive: false,
       isBreakCancelled: true,
       breakStartedAt: null,
       breakElapsed: elapsed,
-      _breakTimer: null,
-      _eligibilityInterval: null,
+
+      break_split_consumed: breakSplit,
     };
     set(newState);
+  };
 
-    useNotificationStore.getState().showNotification({
-      title: "Break Cancelled",
-      message: "Your break has been cancelled.",
-      severity: NotificationSeverity.Warning,
-      duration: 8000,
-    });
+  const handleCancelBreak = () => {
+    cancelBreak();
 
-    console.log("Cancel break state called | New state: ", get());
-    console.log("Break timer cleared:", _breakTimer === null);
-    console.log("eligibilityInterval cleared:", _eligibilityInterval === null);
+    const { break_split_consumed: _break_split_consumed, MAX_BREAK_SPLITS } =
+      get();
 
-    // breakTimer = null;
-    // localStorage.setItem(
-    //   "break-store",
-    //   JSON.stringify({ state: get(), version: 1 })
-    // );
+    if (_break_split_consumed < MAX_BREAK_SPLITS) {
+      useNotificationStore.getState().showNotification({
+        title: "Break Terminated",
+        message: `You can take ${MAX_BREAK_SPLITS - _break_split_consumed} more Break split(s).`,
+        severity: NotificationSeverity.Warning,
+        duration: 8000,
+      });
+    } else {
+      useNotificationStore.getState().showNotification({
+        message: "Break Completed!",
+        severity: NotificationSeverity.Warning,
+        duration: 8000,
+      });
+    }
   };
 
   return {
-    isBreakCancelled: false,
     BREAK_LIMIT,
+    MAX_BREAK_SPLITS: 2, // Maximum number of break splits allowed
+    break_split_consumed: 0, // Initialize break_split_consumed
+
+    isBreakCancelled: false,
     tripStartedAt: null,
     isBreakEligible: false,
     isBreakActive: false,
     breakStartedAt: null,
     breakElapsed: 0,
+
     initializeBreakEvaluator,
     handleToggleBreak,
     recoverBreakTimer,
     resetBreakState,
-    cancelBreak,
+    handleCancelBreak,
+
     _breakTimer: null,
     _eligibilityInterval: null,
   };
@@ -236,6 +251,7 @@ export const useDriverBreakStore = create<BreakState>()(
       breakStartedAt: state.breakStartedAt,
       breakElapsed: state.breakElapsed,
       isBreakCancelled: state.isBreakCancelled,
+      break_split_consumed: state.break_split_consumed,
     }),
     onRehydrateStorage: () => (state, error) => {
       if (error) {

@@ -41,20 +41,22 @@ const StyledSwitch = styled(Switch)(({ theme }) => ({
 
 const ApplyBreak = () => {
   const {
-    isBreakCancelled,
     isBreakEligible,
     isBreakActive,
     breakElapsed,
     handleToggleBreak,
     BREAK_LIMIT,
+    MAX_BREAK_SPLITS,
+    break_split_consumed,
   } = useDriverBreakStore();
 
   const disableButton =
-    isBreakCancelled || !isBreakEligible || breakElapsed >= BREAK_LIMIT;
+    break_split_consumed >= MAX_BREAK_SPLITS && isBreakEligible;
+  //  && (isBreakCancelled || !isBreakEligible || breakElapsed >= BREAK_LIMIT);
 
   return (
     <Box display={"flex"} flexDirection={"column"} height={"100%"}>
-      {isBreakActive && <BreakTimer />}
+      {/* {isBreakActive && <BreakTimer />} */}
 
       <Box
         display={"flex"}

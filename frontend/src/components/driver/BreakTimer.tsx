@@ -12,7 +12,8 @@ const normalizedRadius = radius - stroke * 0.5;
 const circumference = normalizedRadius * 2 * Math.PI;
 
 export const BreakTimer = () => {
-  const { breakElapsed, BREAK_LIMIT, cancelBreak } = useDriverBreakStore();
+  const { breakElapsed, BREAK_LIMIT, handleCancelBreak } =
+    useDriverBreakStore();
 
   const percentage = Math.min(breakElapsed / BREAK_LIMIT, 1);
   const progress = circumference - percentage * circumference;
@@ -25,7 +26,7 @@ export const BreakTimer = () => {
   }, [progress]);
 
   const handleFinishBreak = () => {
-    cancelBreak();
+    handleCancelBreak();
     setShowModal(false);
   };
 

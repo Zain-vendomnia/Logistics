@@ -1,17 +1,8 @@
-import {
-  alpha,
-  Box,
-  IconButton,
-  Stack,
-  Typography,
-  useTheme,
-} from "@mui/material";
+import { alpha, Box, Stack, useTheme } from "@mui/material";
 import { grey } from "@mui/material/colors";
-import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import AllInclusiveIcon from "@mui/icons-material/AllInclusive";
 
 import DriverProfileDetails from "../driver/profile/DriverProfileDetails";
-import DriverProfileAllDeliveries from "../driver/profile/DriverProfileAllDeliveries";
 import ProgressGraph from "../driver/profile/ProgressGraph";
 import ApplyBreak from "../driver/profile/ApplyBreak";
 import DailyDelivery from "../driver/profile/DailyDelivery";
