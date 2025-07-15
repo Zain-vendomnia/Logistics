@@ -98,7 +98,7 @@ const insertParkingPermit = (formData: any) => {
       headers: authHeader(),
     });
   };
-const plotheremap = () => axios.post(`${API_BaseUrl_Admin}dynamicTourController`, { headers: authHeader() });
+const plotheremap = () => axios.post(`${API_BaseUrl_Admin}hereMapController`, { headers: authHeader() });
 
 export const uploadexcel = (formData: FormData) =>
   axios.post(`${API_BaseUrl_Admin}uploadexcel`, formData, {

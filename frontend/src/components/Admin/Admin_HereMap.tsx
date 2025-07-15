@@ -31,49 +31,41 @@ const Dashboard: React.FC = () => {
   console.log('Received orderIds:', orderIds);
 
 
-    useEffect(() => {
-        const fetchTour = async () => {
-            try {
+ useEffect(() => {
+  const fetchTour = async () => {
+    try {
+      const res = await adminApiService.createtourHereApi({ orderIds });
+      const rawData = res.data;
 
-                 const res = await adminApiService.createtourHereApi({
-                                    //comments,
-                                   // startTime: `${startTime}:00`,
-                                  //  routeColor,
-                                    //driverid: selectedDriver,
-                                   // tourDate: `${tourDate} 00:00:00`,
-                                    orderIds,
-                                  //  warehouseId
-                                    });
+      console.log("✅ Full API Response:", rawData);
 
-               // const res = await adminApiService.plotheremap();
-                const rawData = res.data;
+      const firstRoute = rawData.routes?.[0];
 
-                //Flatten coordinates from all sections into a single array
-                const allCoordinates = rawData.sections.flatMap((section: any) =>
-                    section.coordinates.map((coord: any) => [coord.lat, coord.lng])
-                );
-                const polylineCoords: [number, number][] = rawData.sections.flatMap(
-                    (section: any) =>
-                        section.coordinates.map((point: any) => [point.lat, point.lng])
-                );
+      if (!firstRoute || !Array.isArray(firstRoute.sections)) {
+        console.error("❌ 'sections' not found in first route:", firstRoute);
+        return;
+      }
 
-                 const tour: TourData = {
-                   routePolyline: allCoordinates, // already [lat, lng]
-                   stops: [], // optional: if you plan to return stops too
-                 };
-                const stops: Stop[] = rawData.stops;
-                setTourData({
-                    routePolyline: polylineCoords,
-                    stops,
-                });
-                //  setTourData(tour);
-            } catch (err) {
-                console.error("API call failed", err);
-            }
-        };
+      const polylineCoords: [number, number][] = firstRoute.sections.flatMap(
+        (section: any) =>
+          section.coordinates.map((point: any) => [point.lat, point.lng])
+      );
 
-        fetchTour();
-    }, []);
+      const stops: Stop[] = firstRoute.stops || [];
+
+      setTourData({
+        routePolyline: polylineCoords,
+        stops,
+      });
+
+    } catch (err) {
+      console.error("API call failed", err);
+    }
+  };
+
+  fetchTour();
+}, []);
+
 
     return (
         <div>

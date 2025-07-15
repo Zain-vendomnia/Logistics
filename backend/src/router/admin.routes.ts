@@ -40,6 +40,7 @@ import {runTourController} from '../controller/HERE_API/runTourController';
 import driverRoutes from "./driverRoutes";
 import warehouseRoutes from "./warehouseRoutes";
 import { dynamicTourController } from "../controller/HERE_API/dynamicTourController";
+import { hereMapController } from "../controller/HERE_API/hereMapController";
 
 import { upload } from "../middlewares/upload"
 import { parseExcelToJobs } from '../utils/parseExcel';
@@ -57,7 +58,8 @@ adminRouter.post("/picklistEmail", picklistEmail);
 adminRouter.post("/routeoptimize/getOrder", getAllLogisticOrder);
 adminRouter.post("/insertParkingPermit", insertParkingPermit); 
 adminRouter.post("/Runtour", runTourController);
-//adminRouter.post("/dynamicTourController", dynamicTourController);
+adminRouter.post("/dynamicTourController", hereMapController);
+
 adminRouter.post('/uploadexcel', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
@@ -117,6 +119,8 @@ adminRouter.post(
   roleCheck(["admin"]),
   runTourController
 );
+
+
 
 /* adminRouter.post(
   "/routeoptimize/dynamictourHereApi",
@@ -236,7 +240,6 @@ adminRouter.use(
   roleCheck(["admin"]),
   driverRoutes
 );
-
 adminRouter.use(
   "/warehouses",
   validateToken,

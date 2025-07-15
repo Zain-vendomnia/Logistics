@@ -54,7 +54,7 @@ const Dashboard: React.FC = () => {
        tours.forEach((tour) => {
       console.log(`Vehicle ID: ${tour.vehicleId}`);
       tour.sections.forEach((section, index) => {
-        console.log(`  Section ${index + 1} Summary:`, section.summary);
+        console.log(`Section ${index + 1} Summary:`, section.summary);
         });
        });
         setVehicleTours(tours);
