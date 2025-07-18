@@ -21,6 +21,7 @@ import {
   getProfileImage,
   setProfileImage,
 } from "../../../services/auth.service";
+import createFormBuilder from "../../../fn/createFormBuilder";
 
 type UploadState = "idle" | "show_options" | "file_upload" | "camera_upload";
 type Events = "click" | "file_upload";
@@ -146,8 +147,22 @@ const DriverProfileDetails = () => {
     };
   }, [showOptions]);
 
+  const fields = [
+    { name: "username", label: "User Name", type: "text" },
+    { name: "password", label: "Password", type: "password" },
+    { name: "remember", label: "Remember", type: "radio" },
+  ];
+  const loginForm = createFormBuilder(fields);
+  const handleFormSubmit = (data: any) => {
+    console.log(data);
+  };
+
   return (
     <>
+      {/* <ModalWrapper onClose={() => {}}>
+        {React.createElement(loginForm, { onSubmit: handleFormSubmit })}
+      </ModalWrapper> */}
+
       <input
         type="file"
         accept="image/*"

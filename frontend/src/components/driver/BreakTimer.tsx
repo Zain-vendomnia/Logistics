@@ -2,7 +2,7 @@ import { Box, Button, Stack, Typography } from "@mui/material";
 import { grey } from "@mui/material/colors";
 import { motion, useAnimation } from "framer-motion";
 import { useEffect, useState } from "react";
-import { formatTime_ms } from "../../utils/formatConverter";
+import { formatTime_mins } from "../../utils/formatConverter";
 import { useDriverBreakStore } from "../../store/useDriverBreakStore";
 import { ModalWrapper } from "../common/ModalWrapper";
 
@@ -85,7 +85,7 @@ export const BreakTimer = () => {
               sx={{ transform: "translate(-50%, -50%)" }}
             >
               <Typography variant="h5" fontWeight="bold">
-                {formatTime_ms(breakElapsed)}
+                {formatTime_mins(breakElapsed)}
               </Typography>
             </Box>
           </Box>
