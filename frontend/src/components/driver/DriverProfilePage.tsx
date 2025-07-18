@@ -2,13 +2,13 @@ import { alpha, Box, Stack, useTheme } from "@mui/material";
 import { grey } from "@mui/material/colors";
 import AllInclusiveIcon from "@mui/icons-material/AllInclusive";
 
-import DriverProfileDetails from "./profile/DriverProfileDetails";
-import ProgressGraph from "./profile/ProgressGraph";
-import ApplyBreak from "./profile/ApplyBreak";
-import DailyDelivery from "./profile/DailyDelivery";
-import TotalDeliveries from "./profile/TotalDeliveries";
-import DailyEstimatedTripTimeout from "./profile/DailyEstimatedTripTimeout";
-import VehicleDetails from "./profile/VehicleDetails";
+import DriverProfileDetails from "./driverProfile/DriverProfileDetails";
+import ProgressGraph from "./driverProfile/ProgressGraph";
+import DailyDelivery from "./driverProfile/DailyDelivery";
+import TotalDeliveries from "./driverProfile/TotalDeliveries";
+import DailyEstimatedTripTimeout from "./driverProfile/DailyEstimatedTripTimeout";
+import VehicleDetails from "./driverProfile/VehicleDetails";
+import ApplyBreak from "./driverProfile/ApplyBreak";
 
 const style = {
   box_layout: {
