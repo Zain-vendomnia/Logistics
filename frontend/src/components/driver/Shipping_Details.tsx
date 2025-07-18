@@ -11,14 +11,13 @@ import {
 import { grey } from "@mui/material/colors";
 
 import { TripData } from "../../services/trip_Service";
-import useStyles from "./Shipping_Details_styles";
 import ClientDetails from "../communications/Client_Details";
 import {
   NotificationSeverity,
   useNotificationStore,
 } from "../../store/useNotificationStore";
-import { useShakeEvery } from "../base-ui/useShakeEvery";
 import ParkingPermitRequest from "../delivery/ParkingPermitRequest";
+import { getCurrentUser, getProfileImage } from "../../services/auth.service";
 
 interface Props {
   tripData: TripData | null;
@@ -37,12 +36,18 @@ const ShippingDetails = ({
   isOrderReached = false,
   onReachedToDestination,
 }: Props) => {
-  const styles = useStyles();
+  const profileImgSrc = getProfileImage();
   const { showNotification } = useNotificationStore();
 
   const [isLoading, setIsLoading] = useState(false);
   const [hideNotify, setHideNotify] = useState(false);
-  // const [showOrderReached, setShowOrderReached] = useState(false);
+
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const currentUser = getCurrentUser();
+    setUser(currentUser);
+  }, []);
 
   useEffect(() => {
     if (!hideNotify) return;
@@ -92,7 +97,7 @@ const ShippingDetails = ({
         <Box display={"flex"} gap={3} alignItems={"center"}>
           <Avatar
             alt="client_image"
-            src="https://cdn.vectorstock.com/i/1000v/00/74/young-man-profile-vector-14770074.avif"
+            src={profileImgSrc}
             sx={{
               width: "86px",
               height: "86px",
@@ -101,7 +106,7 @@ const ShippingDetails = ({
 
           <Stack spacing={0}>
             <Typography variant="body1" fontWeight={"bold"} color={grey[800]}>
-              Hallo Fahrer!
+              Hallo {user?.username}!
             </Typography>
             {/* <Typography variant="body1" fontSize={"large"}>
                 {tripData?.client.name}

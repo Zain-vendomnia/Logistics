@@ -4,9 +4,10 @@ import { DeliveryStepRenderer } from "./DeliveryStepRenderer";
 import { useDeliveryStore } from "../../store/useDeliveryStore";
 import { useTripLifecycle } from "../../hooks/useTripLifecycle";
 import { useScenarioExecutor } from "../../hooks/useScenarioExecutor";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNotificationStore } from "../../store/useNotificationStore";
 import { DeliveryReturnReasons } from "./Return_To_Warehouse";
+import DeliveryComplete from "./DeliveryComplete";
 
 const Style = {
   container: {
@@ -64,9 +65,21 @@ export const DeliveryFlowExecutor = ({
 
   useEffect(() => {
     if (orderCompleteButton === true) {
+      setShowDeliveryComplete(true);
       completeButtonActivated(true);
     }
   }, [orderCompleteButton]);
+
+  const [showDeliveryComplete, setShowDeliveryComplete] = useState(false);
+  useEffect(() => {
+    if (showDeliveryComplete) {
+      const timeout = setTimeout(() => {
+        setShowDeliveryComplete(false);
+      }, 6000);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [showDeliveryComplete]);
 
   const getContainerStyle = (currentStep: DeliveryStep | null) => {
     if (!currentStep || externalSteps.includes(currentStep)) return {};
@@ -108,6 +121,7 @@ export const DeliveryFlowExecutor = ({
   if (!stepsToRender.length) return null;
   return (
     <Box display="flex" height={"100%"} flexDirection={"column"}>
+      {showDeliveryComplete && <DeliveryComplete />}
       <Box
         sx={{
           display: "flex",

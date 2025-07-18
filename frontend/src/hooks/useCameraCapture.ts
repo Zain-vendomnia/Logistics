@@ -16,6 +16,7 @@ export enum ImageType {
   Customer_Signature = "customerSignature",
   Neighbor_Signature = "neighborSignature",
   PermitScreenshot = "permitScreenshot",
+  Profile_Image = "profileImage",
 }
 
 export type CameraState = {

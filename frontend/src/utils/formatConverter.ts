@@ -24,3 +24,21 @@ export function base64ToImage(base64: string): Promise<HTMLImageElement> {
     img.onerror = (err) => reject(err);
   });
 }
+
+export const formatTime_mins = (ms: number) => {
+  const min = Math.floor(ms / 60000);
+  const sec = Math.floor((ms % 60000) / 1000);
+
+  if (sec === 0) {
+    return `${min} Minutes`;
+  } else {
+    return `${min}m ${sec}s`;
+  }
+};
+
+export const formatTime_hrs = (ms: number): string => {
+  const totalMinutes = Math.floor(ms / 1000 / 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+};

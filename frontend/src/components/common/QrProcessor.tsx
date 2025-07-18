@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
 
-import QrScanner from "./QrScanner";
-import { Box, Modal, Stack, Typography } from "@mui/material";
+import { Box, IconButton, Modal, Stack, Typography } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
+
 import { motion } from "framer-motion";
 import { useShakeEvery } from "../base-ui/useShakeEvery";
+import QrScanner from "./QrScanner";
 
 const style = {
   position: "absolute",
@@ -19,8 +21,6 @@ const style = {
   boxShadow: 24,
   p: 4,
 };
-
-const solarModels = ["SLMDL425P", "SLMDL260N"];
 
 interface Props {
   onComplete?: () => void;
@@ -38,7 +38,7 @@ const QrProcessor = ({ onComplete }: Props) => {
     setScannedData(decodedText);
   };
 
-  const solarModels = ["SLMDL425P", "SLMDL260N"];
+  const solarModels = ["SLMDL500N", "SLMDL460N"];
 
   useEffect(() => {
     if (!scannedData) return;
@@ -64,10 +64,30 @@ const QrProcessor = ({ onComplete }: Props) => {
     }
   }, [scannedData, onComplete]);
 
+  useEffect(() => {
+    if (!showModal && !scannedData) {
+      const timeout = setTimeout(() => {
+        setShowModal(true);
+      }, 2000);
+
+      return clearTimeout(timeout);
+    }
+
+    return;
+  }, [showModal, scannedData]);
+
   return (
     <>
       <Modal open={showModal}>
         <Box sx={style}>
+          <IconButton
+            onClick={() => {
+              setShowModal(false);
+            }}
+            sx={{ position: "absolute", top: 10, right: 10 }}
+          >
+            <CloseIcon />
+          </IconButton>
           <Stack spacing={3}>
             <Typography variant="h5" fontWeight={"bold"} align={"center"}>
               Scan QR Code

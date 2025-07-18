@@ -38,7 +38,8 @@ export function AuthProvider({ children }: Props) {
   const [currentUser, setCurrentUser] = useState<IUser | null>(null);
   const [showDriverBoard, setShowDriverBoard] = useState<boolean>(false);
   const [showAdminBoard, setShowAdminBoard] = useState<boolean>(false);
-  const [showSuperAdminBoard, setShowSuperAdminBoard] = useState<boolean>(false);
+  const [showSuperAdminBoard, setShowSuperAdminBoard] =
+    useState<boolean>(false);
 
   // ✅ Call token validation at the top level — safe even if currentUser is null
   useTokenValidation(currentUser);

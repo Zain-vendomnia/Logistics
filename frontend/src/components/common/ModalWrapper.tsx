@@ -27,7 +27,6 @@ export const ModalWrapper = ({
   const [showModal, setShowModal] = useState(open);
 
   const handleModalClose = () => {
-    console.log("handleModalClose clicked: ");
     setShowModal(false);
     onClose();
   };
@@ -44,16 +43,21 @@ export const ModalWrapper = ({
         justifyContent={"space-between"}
         p={1}
       >
-        {title && (
-          <DialogTitle variant="h5" fontWeight={"bold"} sx={{ padding: 4 }}>
+        {title ? (
+          <DialogTitle variant="h5" fontWeight={"bold"}>
             {title}
           </DialogTitle>
+        ) : (
+          <Box mt={3}> </Box>
         )}
-        <IconButton onClick={handleModalClose} sx={{ ml: "auto" }}>
+        <IconButton
+          onClick={handleModalClose}
+          sx={{ position: "absolute", top: 10, right: 10 }}
+        >
           <CloseIcon color="primary" />
         </IconButton>
       </Box>
-      <DialogContent sx={{ m: 0, p: 0, overflowY: "auto" }}>
+      <DialogContent sx={{ m: 0, mb: 5, p: 0, overflowY: "auto" }}>
         <Box m={1}>{children}</Box>
       </DialogContent>
     </Dialog>

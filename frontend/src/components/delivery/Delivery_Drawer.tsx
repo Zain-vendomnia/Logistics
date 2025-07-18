@@ -13,6 +13,7 @@ import MultipleStopIcon from "@mui/icons-material/MultipleStop";
 import { grey } from "@mui/material/colors";
 import TripListItem from "../base-ui/TripListItem";
 import ScrollContainer from "../base-ui/ScrollContainer";
+import { useDeliveryStore } from "../../store/useDeliveryStore";
 
 export enum DeliveryStatus {
   PENDING = "Up Coming",
@@ -30,80 +31,81 @@ export type DeliveryItem = {
   clientName: string;
 };
 
-const deliveryList: DeliveryItem[] = [
-  {
-    status: DeliveryStatus.DELIVERED,
-    deliveryId: "SL-P1a0BA",
-    address: "Park Lane 30, West Zone",
-    area: "Lagos, FrankFurt",
-    clientName: "John Pack",
-  },
-  {
-    status: DeliveryStatus.COMPLETED,
-    deliveryId: "SL-P2a0BB",
-    address: "Park Lane 32, West Zone",
-    area: "Lagos, FrankFurt",
-    clientName: "Machron",
-  },
-  {
-    status: DeliveryStatus.CANCELLED,
-    deliveryId: "SL-P3a0BC",
-    address: "Park Lane 34, West Zone",
-    area: "Lagos, FrankFurt",
-    clientName: "John Pack Machron",
-  },
-  {
-    status: DeliveryStatus.ACTIVE,
-    deliveryId: "SL-T4BzR8",
-    address: "Park Lane 32, West Zone",
-    area: "Lagos, FrankFurt",
-    clientName: "Machron",
-  },
-  {
-    status: DeliveryStatus.PENDING,
-    deliveryId: "SL-P4a0BD",
-    address: "Park Lane 36, West Zone",
-    area: "Lagos, FrankFurt",
-    clientName: "John Pack",
-  },
-  {
-    status: DeliveryStatus.PENDING,
-    deliveryId: "SL-P5a0BE",
-    address: "Park Lane 38, West Zone",
-    area: "Lagos, FrankFurt",
-    clientName: "John Pack",
-  },
-  {
-    status: DeliveryStatus.PENDING,
-    deliveryId: "SL-P4a0BD",
-    address: "Park Lane 36, West Zone",
-    area: "Lagos, FrankFurt",
-    clientName: "John Pack",
-  },
-  {
-    status: DeliveryStatus.PENDING,
-    deliveryId: "SL-P5a0BE",
-    address: "Park Lane 38, West Zone",
-    area: "Lagos, FrankFurt",
-    clientName: "John Pack",
-  },
-  {
-    status: DeliveryStatus.PENDING,
-    deliveryId: "SL-P4a0BD",
-    address: "Park Lane 36, West Zone",
-    area: "Lagos, FrankFurt",
-    clientName: "John Pack",
-  },
-  {
-    status: DeliveryStatus.PENDING,
-    deliveryId: "SL-P5a0BE",
-    address: "Park Lane 38, West Zone",
-    area: "Lagos, FrankFurt",
-    clientName: "John Pack",
-  },
-];
-
 const DeliveryDrawer = () => {
+  const store = useDeliveryStore();
+  const deliveryList: DeliveryItem[] = [
+    {
+      status: DeliveryStatus.DELIVERED,
+      deliveryId: "SL-P1a0BA",
+      address: "Park Lane 30, West Zone",
+      area: "Lagos, FrankFurt",
+      clientName: "John Pack",
+    },
+    {
+      status: DeliveryStatus.COMPLETED,
+      deliveryId: "SL-P2a0BB",
+      address: "Park Lane 32, West Zone",
+      area: "Lagos, FrankFurt",
+      clientName: "Machron",
+    },
+    {
+      status: DeliveryStatus.CANCELLED,
+      deliveryId: "SL-P3a0BC",
+      address: "Park Lane 34, West Zone",
+      area: "Lagos, FrankFurt",
+      clientName: "John Pack Machron",
+    },
+    {
+      status: DeliveryStatus.ACTIVE,
+      deliveryId: store.deliveryId,
+      address: "Park Lane 32, West Zone",
+      area: "Lagos, FrankFurt",
+      clientName: "Machron",
+    },
+    {
+      status: DeliveryStatus.PENDING,
+      deliveryId: "SL-P4a0BD",
+      address: "Park Lane 36, West Zone",
+      area: "Lagos, FrankFurt",
+      clientName: "John Pack",
+    },
+    {
+      status: DeliveryStatus.PENDING,
+      deliveryId: "SL-P5a0BE",
+      address: "Park Lane 38, West Zone",
+      area: "Lagos, FrankFurt",
+      clientName: "John Pack",
+    },
+    {
+      status: DeliveryStatus.PENDING,
+      deliveryId: "SL-P4a0BD",
+      address: "Park Lane 36, West Zone",
+      area: "Lagos, FrankFurt",
+      clientName: "John Pack",
+    },
+    {
+      status: DeliveryStatus.PENDING,
+      deliveryId: "SL-P5a0BE",
+      address: "Park Lane 38, West Zone",
+      area: "Lagos, FrankFurt",
+      clientName: "John Pack",
+    },
+    {
+      status: DeliveryStatus.PENDING,
+      deliveryId: "SL-P4a0BD",
+      address: "Park Lane 36, West Zone",
+      area: "Lagos, FrankFurt",
+      clientName: "John Pack",
+    },
+    {
+      status: DeliveryStatus.PENDING,
+      deliveryId: "SL-P5a0BE",
+      address: "Park Lane 38, West Zone",
+      area: "Lagos, FrankFurt",
+      clientName: "John Pack",
+    },
+  ];
+
   const drawerSize = { md: "31vw", lg: "27vw" };
   const [showDrawer, setShowDrawer] = useState(false);
   const activeDeliveryRef = useRef<HTMLDivElement>(null);
