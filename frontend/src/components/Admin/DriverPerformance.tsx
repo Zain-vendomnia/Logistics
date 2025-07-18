@@ -5,26 +5,38 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import DriverPerformanceCard from './DriverPerformanceCard';
-import {getDriverPerformanceData } from '../../services/driverService'; // Adjust the import path as necessary
-interface DriverStats {
-  total: number;
-  completed: number;
-  pending: number;
-  totalHours: number;
-  earlyCompletions: number;
-  delayedCompletions: number;
-}
+import { getDriverPerformanceData } from '../../services/driverService';
 
 interface Driver {
-  id: string;
+  id: number;
   name: string;
   email: string;
   mobile: string;
   avatarUrl?: string;
-  stats: DriverStats;
   rating: number;
-  warehouseId: string;
+  warehouseId: number;
   warehouseName: string;
+  completedTours: number;
+
+  // KPIs
+  kpi1ImageUploadScore: number;
+  kpi1ImageCount: number;
+  kpi2DeliveryScore: number;
+  totalExpectedDeliveries: number;
+  totalActualDeliveries: number;
+  undeliveredCount: number;
+  kpi3PODScore: number;
+  validPODs: number;
+  kpi4KmEfficiencyScore: number;
+  plannedKM: number;
+  actualKM: number;
+  kpi5TimeScore: number;
+  totalPlannedTimeMinutes: number;
+  totalActualTimeMinutes: number;
+  kpi6FuelEfficiencyScore: number;
+  expectedFuelLiters: number;
+  actualFuelLiters: number;
+  kpi7CustomerRating: number;
 }
 
 const DriverPerformance = () => {
@@ -40,111 +52,23 @@ const DriverPerformance = () => {
   }, [search]);
 
   useEffect(() => {
-  const fetchDriverPerformance = async () => {
-    try {
-      const response = await getDriverPerformanceData(); // This should return Driver[]
-      setDrivers(response);
-      console.log('Fetched driver performance data:', response);
-    } catch (error) {
-      console.error('Failed to fetch driver data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const fetchDriverPerformance = async () => {
+      try {
+        const response = await getDriverPerformanceData();
+        setDrivers(response);
+        console.log('Fetched driver performance data:', response);
+      } catch (error) {
+        console.error('Failed to fetch driver data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  fetchDriverPerformance();
-}, []);
-  // useEffect(() => {
-  //   const fetchDriverPerformance = async () => {
-  //     try {
-  //       const response = await new Promise<Driver[]>(resolve =>
-  //         setTimeout(() =>
-  //           resolve([
-  //             {
-  //               id: '1',
-  //               name: 'Alice Johnson',
-  //               email: 'alice@example.com',
-  //               mobile: '1234567890',
-  //               stats: {
-  //                 total: 40,
-  //                 completed: 35,
-  //                 pending: 5,
-  //                 totalHours: 160,
-  //                 earlyCompletions: 10,
-  //                 delayedCompletions: 2,
-  //               },
-  //               rating: 4.6,
-  //               warehouseId: 'w123',
-  //               warehouseName: 'North Logistics Hub',
-  //             },
-  //             {
-  //               id: '2',
-  //               name: 'Bob Smith',
-  //               email: 'bob@example.com',
-  //               mobile: '9876543210',
-  //               stats: {
-  //                 total: 30,
-  //                 completed: 28,
-  //                 pending: 2,
-  //                 totalHours: 135,
-  //                 earlyCompletions: 6,
-  //                 delayedCompletions: 1,
-  //               },
-  //               rating: 4.3,
-  //               warehouseId: 'w456',
-  //               warehouseName: 'South Depot',
-  //             },
-  //             {
-  //               id: '3',
-  //               name: 'Charlie Brown',
-  //               email: 'charlie@example.com',
-  //               mobile: '5555555555',
-  //               stats: {
-  //                 total: 50,
-  //                 completed: 45,
-  //                 pending: 5,
-  //                 totalHours: 200,
-  //                 earlyCompletions: 12,
-  //                 delayedCompletions: 3,
-  //               },
-  //               rating: 4.5,
-  //               warehouseId: 'w123',
-  //               warehouseName: 'North Logistics Hub',
-  //             },
-  //             {
-  //               id: '4',
-  //               name: 'David Wilson',
-  //               email: 'david@example.com',
-  //               mobile: '4444444444',
-  //               stats: {
-  //                 total: 60,
-  //                 completed: 55,
-  //                 pending: 5,
-  //                 totalHours: 245,
-  //                 earlyCompletions: 15,
-  //                 delayedCompletions: 5,
-  //               },
-  //               rating: 4.7,
-  //               warehouseId: 'w456',
-  //               warehouseName: 'South Depot',
-  //             },
-  //           ]),
-  //           1000
-  //         )
-  //       );
-  //       setDrivers(response);
-  //     } catch (error) {
-  //       console.error('Failed to fetch driver data:', error);
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-
-  //   fetchDriverPerformance();
-  // }, []);
+    fetchDriverPerformance();
+  }, []);
 
   const warehouseOptions = useMemo(() => {
-    const map = new Map<string, string>();
+    const map = new Map<number, string>();
     drivers.forEach(d => map.set(d.warehouseId, d.warehouseName));
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
   }, [drivers]);
@@ -158,7 +82,7 @@ const DriverPerformance = () => {
         driver.mobile.includes(searchLower);
 
       const matchesWarehouse =
-        selectedWarehouse === 'all' || driver.warehouseId === selectedWarehouse;
+        selectedWarehouse === 'all' || driver.warehouseId.toString() === selectedWarehouse;
 
       return matchesSearch && matchesWarehouse;
     });
@@ -212,7 +136,7 @@ const DriverPerformance = () => {
           >
             <MenuItem value="all">All Warehouses</MenuItem>
             {warehouseOptions.map(({ id, name }) => (
-              <MenuItem key={id} value={id}>{name}-{id}</MenuItem>
+              <MenuItem key={id} value={id.toString()}>{name} - {id}</MenuItem>
             ))}
           </TextField>
         </Box>
@@ -229,16 +153,29 @@ const DriverPerformance = () => {
                 email={driver.email}
                 mobile={driver.mobile}
                 avatarUrl={driver.avatarUrl}
-                stats={driver.stats}
                 rating={driver.rating}
-                warehouseId={driver.warehouseId}
+                warehouseId={driver.warehouseId.toString()}
                 warehouseName={driver.warehouseName}
-                totalHours={driver.stats.totalHours}
-                earlyCompletions={driver.stats.earlyCompletions}
-                delayedCompletions={driver.stats.delayedCompletions}
-                onViewDetail={() => {
-                  console.log(`Viewing details for ${driver.name}`);
-                }}
+                completedTours={driver.completedTours}
+                kpi1ImageUploadScore={driver.kpi1ImageUploadScore}
+                kpi1ImageCount={driver.kpi1ImageCount}
+                kpi2DeliveryScore={driver.kpi2DeliveryScore}
+                totalExpectedDeliveries={driver.totalExpectedDeliveries}
+                totalActualDeliveries={driver.totalActualDeliveries}
+                undeliveredCount={driver.undeliveredCount}
+                kpi3PODScore={driver.kpi3PODScore}
+                validPODs={driver.validPODs}
+                kpi4KmEfficiencyScore={driver.kpi4KmEfficiencyScore}
+                plannedKM={driver.plannedKM}
+                actualKM={driver.actualKM}
+                kpi5TimeScore={driver.kpi5TimeScore}
+                totalPlannedTimeMinutes={driver.totalPlannedTimeMinutes}
+                totalActualTimeMinutes={driver.totalActualTimeMinutes}
+                kpi6FuelEfficiencyScore={driver.kpi6FuelEfficiencyScore}
+                expectedFuelLiters={driver.expectedFuelLiters}
+                actualFuelLiters={driver.actualFuelLiters}
+                kpi7CustomerRating={driver.kpi7CustomerRating}
+                onViewDetail={() => console.log(`Viewing details for ${driver.name}`)}
               />
             </Grid>
           ))}
