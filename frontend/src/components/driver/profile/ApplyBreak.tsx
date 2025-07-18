@@ -3,8 +3,7 @@ import { grey } from "@mui/material/colors";
 import FreeBreakfastIcon from "@mui/icons-material/FreeBreakfast";
 
 import { useDriverBreakStore } from "../../../store/useDriverBreakStore";
-import { formatTime } from "../../../utils/formatConverter";
-import { BreakTimer } from "../BreakTimer";
+import { formatTime_mins as formatTime } from "../../../utils/formatConverter";
 
 const StyledSwitch = styled(Switch)(({ theme }) => ({
   padding: 8,

@@ -121,7 +121,6 @@ export const DeliveryFlowExecutor = ({
   if (!stepsToRender.length) return null;
   return (
     <Box display="flex" height={"100%"} flexDirection={"column"}>
-      <DeliveryComplete />
       {showDeliveryComplete && <DeliveryComplete />}
       <Box
         sx={{

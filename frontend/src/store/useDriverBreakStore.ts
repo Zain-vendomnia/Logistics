@@ -4,8 +4,6 @@ import {
   useNotificationStore,
 } from "./useNotificationStore";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { formatTime } from "../utils/formatConverter";
-import { constant } from "lodash";
 
 type BreakState = {
   tripStartedAt: string | null;

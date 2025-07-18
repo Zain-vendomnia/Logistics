@@ -25,7 +25,7 @@ export function base64ToImage(base64: string): Promise<HTMLImageElement> {
   });
 }
 
-export const formatTime = (ms: number) => {
+export const formatTime_mins = (ms: number) => {
   const min = Math.floor(ms / 60000);
   const sec = Math.floor((ms % 60000) / 1000);
 
@@ -36,9 +36,9 @@ export const formatTime = (ms: number) => {
   }
 };
 
-export const formatTime_ms = (ms: number): string => {
-  const totalSeconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+export const formatTime_hrs = (ms: number): string => {
+  const totalMinutes = Math.floor(ms / 1000 / 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 };

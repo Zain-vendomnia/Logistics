@@ -3,8 +3,11 @@ import React from "react";
 import { alpha, Box, Typography } from "@mui/material";
 import { grey } from "@mui/material/colors";
 import AllInclusiveIcon from "@mui/icons-material/AllInclusive";
+import { useDailyDelivery } from "../../../hooks/driver_Profile/useDailyDelivery";
 
 const DailyDelivery = () => {
+  const { data, loading, error } = useDailyDelivery();
+
   return (
     <Box display={"flex"} flexDirection={"column"} height={"100%"}>
       <Box
@@ -35,7 +38,7 @@ const DailyDelivery = () => {
           px={0.5}
         >
           <Typography>Completed: </Typography>
-          <Typography>8 hrs</Typography>
+          <Typography>{data?.completed}</Typography>
         </Box>
         <Box
           display={"flex"}
@@ -46,7 +49,7 @@ const DailyDelivery = () => {
           px={0.5}
         >
           <Typography>Due Deliveries: </Typography>
-          <Typography>24 hrs</Typography>
+          <Typography>{data?.due}</Typography>
         </Box>
       </Box>
     </Box>
