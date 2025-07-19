@@ -1,0 +1,81 @@
+import { makeStyles } from "@mui/styles";
+import { alpha, Theme } from "@mui/material";
+
+const useStyles = makeStyles((theme: Theme) => ({
+  chip: {
+    minWidth: "100px",
+    height: "38px",
+    margin: theme.spacing(0.5),
+    fontSize: "18px",
+    fontWeight: "bold",
+    color: theme.palette.primary.dark,
+    borderColor: theme.palette.primary.dark,
+    borderRadius: "16px",
+  },
+  chip_sm: {
+    minWidth: "90px",
+    height: "38px",
+    margin: theme.spacing(0.35),
+    fontSize: "17px",
+    fontWeight: "bold",
+    color: theme.palette.primary.dark,
+    borderColor: theme.palette.primary.dark,
+    borderRadius: "16px",
+  },
+  messageBox_bg_inBox: {
+    display: "flex",
+    flexDirection: "column",
+    height: "auto",
+    maxHeight: "450px",
+    padding: theme.spacing(1),
+    backgroundColor: theme.palette.grey[300],
+    border: "1px solid",
+    borderColor: theme.palette.grey[400],
+    borderRadius: theme.shape.borderRadius,
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  messageBox_bg: {
+    position: "fixed",
+    bottom: 20,
+    right: 20,
+    width: "28vw",
+    height: "75vh",
+    maxHeight: "75vh",
+    backgroundColor: "white",
+    border: "1px solid",
+    borderColor: theme.palette.grey[400],
+    borderRadius: "10px",
+    display: "flex",
+    flexDirection: "column",
+    zIndex: 900,
+    paddingBottom: 8,
+  },
+
+  messageBox_header: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderTopLeftRadius: "10px",
+    borderTopRightRadius: "10px",
+    backgroundColor: theme.palette.primary.main,
+    padding: 8,
+    paddingRight: 0,
+  },
+  iconBlinks: {
+    position: "relative",
+    overflow: "hidden",
+    "&:before": {
+      content: '""',
+      position: "absolute",
+      top: 0,
+      left: 0,
+      width: "100%",
+      height: "100%",
+      background: alpha(theme.palette.primary.dark, 0.5),
+      borderRadius: "50%",
+    },
+  },
+}));
+
+export default useStyles;

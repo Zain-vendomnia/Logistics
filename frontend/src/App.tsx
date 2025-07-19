@@ -1,0 +1,51 @@
+import React from "react";
+import { useLocation } from "react-router-dom";
+import "bootstrap/dist/css/bootstrap.min.css";
+// import useTokenValidation from "./utility/validateToken";
+import "./App.css";
+import GlobalChecksProvider from "./providers/GlobalChecksProvider";
+import { AuthProvider } from "./providers/AuthProvider";
+import AppRoutes from "./AppRoutes";
+import NavBar from "./components/layout/NavBar";
+import Sidebar from "./components/layout/Sidebar";
+import { Box } from "@mui/material";
+import { NotificationManager } from "./components/Notification";
+import '@fontsource/raleway'; // Defaults to weight 400
+
+const App: React.FC = () => {
+  const location = useLocation();
+  
+  const hideSidebar = ["/login"].includes(location.pathname.toLowerCase());
+  // useTokenValidation();
+
+  return (
+    <>
+      <NotificationManager />
+      <GlobalChecksProvider>
+        <AuthProvider>
+          <Box
+            display={"flex"}
+            flexDirection={"column"}
+            overflow={"hidden"}
+            height={"100%"}
+          >
+            <NavBar />
+            <Box
+              display={"flex"}
+              overflow={"hidden"}
+              flexGrow={1}
+              bgcolor={"grey.100"}
+            >
+              {!hideSidebar && <Sidebar />}
+              <Box flexGrow={1} p={0} overflow={"auto"}>
+                <AppRoutes />
+              </Box>
+            </Box>
+          </Box>
+        </AuthProvider>
+      </GlobalChecksProvider>
+    </>
+  );
+};
+
+export default App;
