@@ -117,10 +117,17 @@ export const getDriverPerformanceData = async (req: Request, res: Response) => {
       String(endDate)
     );
 
+<<<<<<< HEAD
      return res.json(performanceData);
   } catch (err) {
     console.error("Error fetching driver performance data:", err);
      return  res.status(500).json({ message: "Failed to fetch performance data." });
+=======
+   return res.json(performanceData);
+  } catch (err) {
+    console.error("Error fetching driver performance data:", err);
+    return res.status(500).json({ message: "Failed to fetch performance data." });
+>>>>>>> recovered-admin-branch
   }
 };
 

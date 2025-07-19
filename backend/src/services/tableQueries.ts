@@ -11,7 +11,11 @@ export const CREATE_DRIVER_DETAILS_TABLE = `
     overall_rating DECIMAL(3,2) DEFAULT 0.00,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+<<<<<<< HEAD
     FOREIGN KEY (warehouse_id) REFERENCES warehouse_details(warehouse_id) ON DELETE CASCADE
+=======
+    FOREIGN KEY (warehouse_id) REFERENCES warehouse_details(warehouse_id) ON DELETE CASCADE,
+>>>>>>> recovered-admin-branch
 );
 
 `;
@@ -122,7 +126,12 @@ export const CREATE_ROUTE_SEGMENTS_TABLE = `
     delivery_time TIMESTAMP,
     FOREIGN KEY (tour_id) REFERENCES tourInfo_master(id) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+<<<<<<< HEAD
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
+=======
+    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+    recipient_type ENUM('customer', 'neighbour') DEFAULT 'customer'
+>>>>>>> recovered-admin-branch
   );
 `;
 
