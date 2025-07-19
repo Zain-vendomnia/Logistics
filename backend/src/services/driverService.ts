@@ -526,18 +526,6 @@ console.log(`[Step 1] Start of current week (Monday): ${monday.toLocaleString()}
   };
 };
 
-<<<<<<< HEAD
-export const getDriverPerformanceData = async (startDate: string, endDate: string) => {
-  const [rows] = await pool.query(`
-    SELECT 
-      d.id,
-      d.name,
-      d.mob AS mobile,
-      d.email,
-      d.warehouse_id,
-      w.warehouse_name AS warehouse_name,
-      d.overall_rating AS rating,
-=======
 
 /* 1.  Weightage table  (edit here if priorities change) */
 const KPI_WEIGHT = {
@@ -570,62 +558,10 @@ export const getDriverPerformanceData = async (
       d.warehouse_id,
       w.warehouse_name   AS warehouse_name,
       d.overall_rating   AS db_rating,
->>>>>>> recovered-admin-branch
 
       COUNT(t.id) AS total,
       SUM(CASE WHEN t.tour_status = 'completed' THEN 1 ELSE 0 END) AS completed,
 
-<<<<<<< HEAD
-      -- KPI 1: Uploaded images (9 per completed tour expected)
-      SUM(
-        CASE WHEN t.tour_status = 'completed' THEN
-          (CASE WHEN t.secure_loading_photo IS NOT NULL AND OCTET_LENGTH(t.secure_loading_photo) > 0 THEN 1 ELSE 0 END) +
-          (CASE WHEN t.truck_loaded_photo IS NOT NULL AND OCTET_LENGTH(t.truck_loaded_photo) > 0 THEN 1 ELSE 0 END) +
-          (CASE WHEN t.start_fuel_gauge_photo IS NOT NULL AND OCTET_LENGTH(t.start_fuel_gauge_photo) > 0 THEN 1 ELSE 0 END) +
-          (CASE WHEN t.start_odometer_photo IS NOT NULL AND OCTET_LENGTH(t.start_odometer_photo) > 0 THEN 1 ELSE 0 END) +
-          (CASE WHEN t.start_truck_exterior_photo IS NOT NULL AND OCTET_LENGTH(t.start_truck_exterior_photo) > 0 THEN 1 ELSE 0 END) +
-          (CASE WHEN t.end_fuel_receipt_photo IS NOT NULL AND OCTET_LENGTH(t.end_fuel_receipt_photo) > 0 THEN 1 ELSE 0 END) +
-          (CASE WHEN t.end_fuel_gauge_photo IS NOT NULL AND OCTET_LENGTH(t.end_fuel_gauge_photo) > 0 THEN 1 ELSE 0 END) +
-          (CASE WHEN t.end_odometer_photo IS NOT NULL AND OCTET_LENGTH(t.end_odometer_photo) > 0 THEN 1 ELSE 0 END) +
-          (CASE WHEN t.undelivered_modules_photo IS NOT NULL AND OCTET_LENGTH(t.undelivered_modules_photo) > 0 THEN 1 ELSE 0 END)
-        ELSE 0 END
-      ) AS totalImagesUploaded,
-
-      -- KPI 2: Deliveries with status = delivered
-      SUM(CASE WHEN t.tour_status = 'completed' THEN rs.total_expected ELSE 0 END) AS totalExpectedDeliveries,
-      SUM(CASE WHEN t.tour_status = 'completed' THEN rs.total_actual ELSE 0 END) AS totalActualDeliveries,
-
-      -- KPI 3: POD (regardless of status)
-      SUM(CASE WHEN t.tour_status = 'completed' THEN rs.total_valid_pod ELSE 0 END) AS totalValidPODs
-
-    FROM driver_details d
-    LEFT JOIN tourinfo_master t 
-      ON d.id = t.driver_id AND t.tour_date BETWEEN ? AND ?
-    LEFT JOIN warehouse_details w 
-      ON d.warehouse_id = w.warehouse_id
-    LEFT JOIN (
-      SELECT 
-        tour_id,
-        GREATEST(COUNT(*) - 1, 0) AS total_expected,
-
-        -- KPI 2
-        SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) AS total_actual,
-
-        -- KPI 3: POD based on recipient type and signature + photo
-        SUM(
-          CASE 
-            WHEN recipient_type = 'customer' 
-              AND customer_signature IS NOT NULL AND OCTET_LENGTH(customer_signature) > 0
-              AND delivered_item_pic IS NOT NULL AND OCTET_LENGTH(delivered_item_pic) > 0
-            THEN 1
-            WHEN recipient_type = 'neighbour' 
-              AND neighbour_signature IS NOT NULL AND OCTET_LENGTH(neighbour_signature) > 0
-              AND delivered_pic_neighbour IS NOT NULL AND OCTET_LENGTH(delivered_pic_neighbour) > 0
-            THEN 1
-            ELSE 0
-          END
-        ) AS total_valid_pod
-=======
       /* KPI-1  image uploads -------------------------------------------- */
       SUM(
         CASE WHEN t.tour_status = 'completed' THEN
@@ -692,27 +628,11 @@ export const getDriverPerformanceData = async (
                  ELSE 0
                END
              ) AS total_valid_pod
->>>>>>> recovered-admin-branch
       FROM route_segments
       GROUP BY tour_id
     ) rs ON rs.tour_id = t.id
     GROUP BY d.id
     ORDER BY d.id;
-<<<<<<< HEAD
-  `, [startDate, endDate]);
-
-  const result = rows as any[];
-
-  return result.map((row) => {
-    const completedTours = Number(row.completed) || 0;
-    const totalImagesUploaded = Number(row.totalImagesUploaded) || 0;
-    const expectedDeliveries = Number(row.totalExpectedDeliveries) || 0;
-    const actualDeliveries = Number(row.totalActualDeliveries) || 0;
-    const validPODs = Number(row.totalValidPODs) || 0;
-
-    // KPI 1: Image upload score
-    const maxPossibleImages = completedTours * 9;
-=======
     `,
     [startDate, endDate]
   );
@@ -735,61 +655,20 @@ export const getDriverPerformanceData = async (
 
     /* KPI-1  Image upload score (0-5) ---------------------------------- */
     const maxPossibleImages   = completedTours * 9;
->>>>>>> recovered-admin-branch
     const kpi1ImageUploadScore = maxPossibleImages > 0
       ? parseFloat(((totalImagesUploaded / maxPossibleImages) * 5).toFixed(2))
       : 0;
 
-<<<<<<< HEAD
-    // KPI 2: Delivery success score
-=======
     /* KPI-2  Delivery accuracy (0-5) ----------------------------------- */
->>>>>>> recovered-admin-branch
     const kpi2DeliveryScore = expectedDeliveries > 0
       ? parseFloat(((actualDeliveries / expectedDeliveries) * 5).toFixed(2))
       : 0;
 
-<<<<<<< HEAD
-    // KPI 3: POD completion score (based on valid signatures + images)
-=======
     /* KPI-3  POD score (0-5) ------------------------------------------- */
->>>>>>> recovered-admin-branch
     const kpi3PODScore = expectedDeliveries > 0
       ? parseFloat(((validPODs / expectedDeliveries) * 5).toFixed(2))
       : 0;
 
-<<<<<<< HEAD
-    const undeliveredCount = expectedDeliveries - actualDeliveries;
-
-    return {
-      id: row.id,
-      name: row.name,
-      email: row.email,
-      mobile: row.mobile,
-      avatarUrl: row.avatar_url || undefined,
-      rating: Number(row.rating) || 0,
-      warehouseId: row.warehouse_id,
-      warehouseName: row.warehouse_name || "Unknown",
-
-      completedTours,
-
-      // KPI 1
-      kpi1ImageUploadScore,
-      kpi1ImageCount: totalImagesUploaded,
-
-      // KPI 2
-      kpi2DeliveryScore,
-      totalExpectedDeliveries: expectedDeliveries,
-      totalActualDeliveries: actualDeliveries,
-      undeliveredCount,
-
-      // KPI 3
-      kpi3PODScore,
-      validPODs,
-    };
-  });
-};
-=======
     /* KPI-4  KM efficiency (0-5) --------------------------------------- */
     let kpi4KmEfficiencyScore = 0;
     if (plannedKM > 0) {
@@ -908,4 +787,3 @@ export const getDriverPerformanceData = async (
     };
   });
 };
->>>>>>> recovered-admin-branch
