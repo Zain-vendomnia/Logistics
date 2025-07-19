@@ -1,11 +1,17 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from "react";
 import {
-  Grid, CircularProgress, Box, Typography, TextField,
-  InputAdornment, MenuItem, Paper
-} from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
-import DriverPerformanceCard from './DriverPerformanceCard';
-import { getDriverPerformanceData } from '../../services/driverService';
+  Grid,
+  CircularProgress,
+  Box,
+  Typography,
+  TextField,
+  InputAdornment,
+  MenuItem,
+  Paper,
+} from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
+import DriverPerformanceCard from "./DriverPerformanceCard";
+import { getDriverPerformanceData } from "../../services/driverService";
 
 interface Driver {
   id: number;
@@ -42,9 +48,9 @@ interface Driver {
 const DriverPerformance = () => {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [selectedWarehouse, setSelectedWarehouse] = useState('all');
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [selectedWarehouse, setSelectedWarehouse] = useState("all");
 
   useEffect(() => {
     const handler = setTimeout(() => setDebouncedSearch(search), 300);
@@ -56,9 +62,10 @@ const DriverPerformance = () => {
       try {
         const response = await getDriverPerformanceData();
         setDrivers(response);
-        console.log('Fetched driver performance data:', response);
+        console.log("Fetched driver performance data:", response);
       } catch (error) {
-        console.error('Failed to fetch driver data:', error);
+        console.error("Failed to fetch driver data:", error);
+        console.log("error fetching data: ", error);
       } finally {
         setLoading(false);
       }
@@ -69,20 +76,21 @@ const DriverPerformance = () => {
 
   const warehouseOptions = useMemo(() => {
     const map = new Map<number, string>();
-    drivers.forEach(d => map.set(d.warehouseId, d.warehouseName));
+    drivers.forEach((d) => map.set(d.warehouseId, d.warehouseName));
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
   }, [drivers]);
 
   const filteredDrivers = useMemo(() => {
     const searchLower = debouncedSearch.toLowerCase();
-    return drivers.filter(driver => {
+    return drivers.filter((driver) => {
       const matchesSearch =
         driver.name.toLowerCase().includes(searchLower) ||
         driver.email.toLowerCase().includes(searchLower) ||
         driver.mobile.includes(searchLower);
 
       const matchesWarehouse =
-        selectedWarehouse === 'all' || driver.warehouseId.toString() === selectedWarehouse;
+        selectedWarehouse === "all" ||
+        driver.warehouseId.toString() === selectedWarehouse;
 
       return matchesSearch && matchesWarehouse;
     });
@@ -90,7 +98,12 @@ const DriverPerformance = () => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="50vh"
+      >
         <CircularProgress />
       </Box>
     );
@@ -103,7 +116,13 @@ const DriverPerformance = () => {
       </Typography>
 
       <Paper sx={{ p: 2, mb: 3 }}>
-        <Box display="flex" gap={2} flexWrap="wrap" justifyContent="center" mb={3}>
+        <Box
+          display="flex"
+          gap={2}
+          flexWrap="wrap"
+          justifyContent="center"
+          mb={3}
+        >
           <TextField
             label="Search by name, email or phone"
             value={search}
@@ -115,7 +134,7 @@ const DriverPerformance = () => {
                   <SearchIcon />
                 </InputAdornment>
               ),
-              sx: { height: '100%' },
+              sx: { height: "100%" },
             }}
             sx={{ minWidth: 280 }}
           />
@@ -127,26 +146,30 @@ const DriverPerformance = () => {
             onChange={(e) => setSelectedWarehouse(e.target.value)}
             sx={{
               minWidth: 220,
-              '.MuiSelect-select': {
+              ".MuiSelect-select": {
                 height: 35,
-                display: 'flex',
-                alignItems: 'center',
+                display: "flex",
+                alignItems: "center",
               },
             }}
           >
             <MenuItem value="all">All Warehouses</MenuItem>
             {warehouseOptions.map(({ id, name }) => (
-              <MenuItem key={id} value={id.toString()}>{name} - {id}</MenuItem>
+              <MenuItem key={id} value={id.toString()}>
+                {name} - {id}
+              </MenuItem>
             ))}
           </TextField>
         </Box>
       </Paper>
 
       {filteredDrivers.length === 0 ? (
-        <Typography align="center" color="text.secondary">No drivers match the criteria.</Typography>
+        <Typography align="center" color="text.secondary">
+          No drivers match the criteria.
+        </Typography>
       ) : (
         <Grid container spacing={2}>
-          {filteredDrivers.map(driver => (
+          {filteredDrivers.map((driver) => (
             <Grid item xs={12} sm={6} md={4} key={driver.id}>
               <DriverPerformanceCard
                 name={driver.name}
@@ -175,7 +198,9 @@ const DriverPerformance = () => {
                 expectedFuelLiters={driver.expectedFuelLiters}
                 actualFuelLiters={driver.actualFuelLiters}
                 kpi7CustomerRating={driver.kpi7CustomerRating}
-                onViewDetail={() => console.log(`Viewing details for ${driver.name}`)}
+                onViewDetail={() =>
+                  console.log(`Viewing details for ${driver.name}`)
+                }
               />
             </Grid>
           ))}
