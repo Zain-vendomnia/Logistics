@@ -106,6 +106,7 @@ const Dashboard = () => {
         </Grid2>
 
         <OrientationOverlay />
+        <Dev_Helper />
       </Grid2>
     </>
   );
