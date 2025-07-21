@@ -251,12 +251,12 @@ export const useDriverBreakStore = create<BreakState>()(
       isBreakCancelled: state.isBreakCancelled,
       break_split_consumed: state.break_split_consumed,
     }),
-    onRehydrateStorage: () => (state, error) => {
-      if (error) {
-        console.warn("Rehydrate error:", error);
-      } else {
-        console.log("✅ BreakStore rehydrated with:", state);
-      }
-    },
+    // onRehydrateStorage: () => (state, error) => {
+    //   if (error) {
+    //     console.warn("Rehydrate error:", error);
+    //   } else {
+    //     console.log("✅ BreakStore rehydrated with:", state);
+    //   }
+    // },
   })
 );

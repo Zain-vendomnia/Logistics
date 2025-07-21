@@ -1,10 +1,11 @@
-import React from "react";
+import { useEffect } from "react";
 import { AppBar, Box, Button, Stack, Toolbar, Typography } from "@mui/material";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../providers/AuthProvider";
 import EventBus from "../../common/EventBus";
 import PersonIcon from "@mui/icons-material/Person";
 import DashboardIcon from "@mui/icons-material/Dashboard";
+import { useLayoutNavigator } from "../../hooks/useLayoutNavigator";
 
 const style = {
   navButton: {
@@ -45,13 +46,20 @@ const NavBar = () => {
     },
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     const cleanup = EventBus.on("logout", () => {
       logout();
       navigate("/login");
     });
     return () => cleanup();
   }, [logout, navigate]);
+
+  const { clearSessionStack } = useLayoutNavigator();
+
+  const handleLogout = () => {
+    clearSessionStack();
+    EventBus.dispatch("logout");
+  };
 
   const isParkingPermitFormPage = location.pathname === "/ParkingPermitForm";
   return (
@@ -133,12 +141,7 @@ const NavBar = () => {
                 </Button>
               </>
             )}
-            <Button
-              sx={style.navButton}
-              onClick={() => {
-                EventBus.dispatch("logout");
-              }}
-            >
+            <Button sx={style.navButton} onClick={handleLogout}>
               Log Out
             </Button>
           </Stack>
