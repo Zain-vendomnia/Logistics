@@ -1,23 +1,15 @@
 import React from "react";
-import { useLocation } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
-// import useTokenValidation from "./utility/validateToken";
 import "./App.css";
 import GlobalChecksProvider from "./providers/GlobalChecksProvider";
 import { AuthProvider } from "./providers/AuthProvider";
-import AppRoutes from "./AppRoutes";
 import NavBar from "./components/layout/NavBar";
-import Sidebar from "./components/layout/Sidebar";
 import { Box } from "@mui/material";
 import { NotificationManager } from "./components/Notification";
-import '@fontsource/raleway'; // Defaults to weight 400
+import "@fontsource/raleway"; // Defaults to weight 400
+import Layout from "./components/layout/Layout";
 
 const App: React.FC = () => {
-  const location = useLocation();
-  
-  const hideSidebar = ["/login"].includes(location.pathname.toLowerCase());
-  // useTokenValidation();
-
   return (
     <>
       <NotificationManager />
@@ -30,17 +22,7 @@ const App: React.FC = () => {
             height={"100%"}
           >
             <NavBar />
-            <Box
-              display={"flex"}
-              overflow={"hidden"}
-              flexGrow={1}
-              bgcolor={"grey.100"}
-            >
-              {!hideSidebar && <Sidebar />}
-              <Box flexGrow={1} p={0} overflow={"auto"}>
-                <AppRoutes />
-              </Box>
-            </Box>
+            <Layout />
           </Box>
         </AuthProvider>
       </GlobalChecksProvider>

@@ -1,4 +1,10 @@
-import { ReactNode, useMemo, useState } from "react";
+import {
+  ReactNode,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   Box,
   List,
@@ -28,7 +34,8 @@ import {
 } from "@mui/icons-material";
 
 import { useAuth } from "../../providers/AuthProvider";
-import { useLocation, Link } from "react-router-dom";
+import { useLocation, Link, useNavigate } from "react-router-dom";
+import { useLayoutNavigator } from "../../hooks/useLayoutNavigator";
 
 type SidebarMenuOption = {
   text: string;
@@ -45,38 +52,76 @@ const DEFAULT_USER_IMAGE = "https://www.w3schools.com/howto/img_avatar.png";
 
 const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
   const location = useLocation();
-  const { user, showDriverBoard, showAdminBoard, showSuperAdminBoard } = useAuth();
+  const navigate = useNavigate();
 
-  const [isOpen, setIsOpen] = useState(true);
-  const toggleSidebar = () => setIsOpen((prev) => !prev);
+  const { isOpen, toggleSidebar, updateActivePath } = useLayoutNavigator();
+
+  console.log("isOpen", isOpen);
+
+  const { user, showDriverBoard, showAdminBoard, showSuperAdminBoard } =
+    useAuth();
+
+  const handlePageChange = (path: string) => {
+    if (path !== location.pathname) {
+      updateActivePath(path);
+      navigate(path);
+    }
+
+    onMenuItemClick?.(path);
+  };
 
   const displayName = useMemo(() => {
     if (!user?.username) return "User";
-    return user.username.includes("@") ? user.username.split("@")[0] : user.username;
+    return user.username.includes("@")
+      ? user.username.split("@")[0]
+      : user.username;
   }, [user]);
-
   const menuItems: SidebarMenuOption[] = useMemo(() => {
     if (menuOptions) return menuOptions;
 
     if (showAdminBoard) {
       return [
-        { text: "Dashboard", icon: <DashboardIcon />, path: "/admin_dashboard" },
+        {
+          text: "Dashboard",
+          icon: <DashboardIcon />,
+          path: "/admin_dashboard",
+        },
         { text: "Add Tour", icon: <TourIcon />, path: "/Admin_AddTour" },
-        { text: "Tours", icon: <TourOutlinedIcon />, path: "/Admin_TourTemplates" },
+        {
+          text: "Tours",
+          icon: <TourOutlinedIcon />,
+          path: "/Admin_TourTemplates",
+        },
         { text: "Completed Tour", icon: <AltRoute />, path: "/completed_tour" },
         { text: "Live Tour", icon: <TrendingUp />, path: "/live_tours" },
-        { text: "Manage Drivers", icon: <DirectionsBusFilled />, path: "/manage_drivers" },
-        { text: "Manage Warehouse", icon: <Warehouse />, path: "/manage_warehouse" },
-        { text: "Driver Performance", icon: <Leaderboard  />, path: "/driver_performance" },
-       
-          //{ text: "HereMap Dynamic", icon:<Moving/>, path:"/Admin_dynamicHereMap"},  // direct api call to HERE api, so avoid this 
-          { text: "UploadJobFile", icon:<Moving/>, path:"/UploadJobFile"}
+        {
+          text: "Manage Drivers",
+          icon: <DirectionsBusFilled />,
+          path: "/manage_drivers",
+        },
+        {
+          text: "Manage Warehouse",
+          icon: <Warehouse />,
+          path: "/manage_warehouse",
+        },
+        {
+          text: "Driver Performance",
+          icon: <Leaderboard />,
+          path: "/driver_performance",
+        },
+
+        //{ text: "HereMap Dynamic", icon:<Moving/>, path:"/Admin_dynamicHereMap"},  // direct api call to HERE api, so avoid this
+        { text: "UploadJobFile", icon: <Moving />, path: "/UploadJobFile" },
       ];
     }
 
     if (showSuperAdminBoard) {
       return [
-        { text: "Dashboard", icon: <DashboardIcon />, path: "/admin_dashboard" },
+        {
+          text: "Dashboard",
+          icon: <DashboardIcon />,
+          path: "/admin_dashboard",
+        },
       ];
     }
 
@@ -141,7 +186,7 @@ const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
           <IconButton
             size="small"
             onClick={toggleSidebar}
-            aria-label={isOpen ? "Collapse sidebar" : "Expand sidebar"}
+            aria-label={isOpen ? "Expand sidebar" : "Collapse sidebar"}
           >
             {isOpen ? <NavigateBeforeIcon /> : <MenuIcon />}
           </IconButton>
@@ -156,16 +201,20 @@ const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
                 <ListItemButton
                   component={Link}
                   to={item.path}
-                  onClick={() => onMenuItemClick?.(item.path)}
+                  onClick={() => handlePageChange(item.path)}
                   title={item.text}
                   sx={(theme) => ({
                     borderRadius: 2,
                     px: 2,
                     py: 1.5,
                     my: 0.5,
-                    background: selected ? theme.palette.primary.gradient : "transparent",
+                    background: selected
+                      ? theme.palette.primary.gradient
+                      : "transparent",
                     "&:hover": {
-                      background: selected ? theme.palette.primary.gradient : theme.palette.grey[100],
+                      background: selected
+                        ? theme.palette.primary.gradient
+                        : theme.palette.grey[100],
                     },
                   })}
                 >

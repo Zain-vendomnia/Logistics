@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { NavigateFunction, useNavigate } from 'react-router-dom';
+import { NavigateFunction, useNavigate } from "react-router-dom";
 import { Formik, Field, Form, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import * as AuthService from "../../services/auth.service";
@@ -19,9 +19,9 @@ import {
 
 import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
-import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 
-type Props = {}
+type Props = {};
 
 const Login: React.FC<Props> = () => {
   const navigate: NavigateFunction = useNavigate();
@@ -34,7 +34,9 @@ const Login: React.FC<Props> = () => {
   };
 
   const validationSchema = Yup.object().shape({
-    email: Yup.string().email("Invalid email format").required("This field is required!"),
+    email: Yup.string()
+      .email("Invalid email format")
+      .required("This field is required!"),
     password: Yup.string().required("This field is required!"),
   });
 
@@ -49,20 +51,19 @@ const Login: React.FC<Props> = () => {
         const user = AuthService.getCurrentUser();
         localStorage.setItem("user", JSON.stringify(user));
 
-        if (user.role === "admin") {
-          navigate("/Admin_dashboard");
-        } else if (user.role === "driver") {
-          navigate("/driver");
-        } else if (user.role === "super_admin") {
-          navigate("/super_admin");
-        }
+        // if (user.role === "admin") {
+        //   navigate("/Admin_dashboard");
+        // } else if (user.role === "driver") {
+        //   navigate("/driver");
+        // } else if (user.role === "super_admin") {
+        //   navigate("/super_admin");
+        // }
+        navigate("/");
         window.location.reload();
       },
       (error) => {
         const resMessage =
-          (error.response?.data?.message) ||
-          error.message ||
-          error.toString();
+          error.response?.data?.message || error.message || error.toString();
         setLoading(false);
         setMessage(resMessage);
       }
