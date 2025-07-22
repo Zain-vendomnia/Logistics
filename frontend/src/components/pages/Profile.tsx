@@ -3,7 +3,7 @@ import { isDriver } from "../../types/user.type";
 import { Box, Skeleton } from "@mui/material";
 import { useAuth } from "../../providers/AuthProvider";
 
-const DriverProfile = React.lazy(() => import("../driver/DriverProfilePage"));
+const DriverProfile = React.lazy(() => import("../driver/DriverProfile"));
 const AdminProfile = React.lazy(() => import("../Admin/AdminProfile"));
 
 const ProfileSkeleton = () => {
@@ -26,9 +26,9 @@ const Profile = () => {
 
   return (
     <Box height="100%">
-      <React.Suspense fallback={<ProfileSkeleton />}>
-        {isDriver(user) ? <DriverProfile /> : <AdminProfile />}
-      </React.Suspense>
+      {/* <React.Suspense fallback={<ProfileSkeleton />}>
+      </React.Suspense> */}
+      {isDriver(user) ? <DriverProfile /> : <AdminProfile />}
     </Box>
   );
 };

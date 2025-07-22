@@ -1,9 +1,12 @@
+import React from "react";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useLayoutNavigator } from "../../hooks/useLayoutNavigator";
+
 import { Box } from "@mui/material";
-import React, { useEffect, useState } from "react";
+
 import AppRoutes from "../../AppRoutes";
 import Sidebar from "./Sidebar";
-import { useLocation, useNavigate } from "react-router-dom";
-import { useLayoutNavigator } from "../../hooks/useLayoutNavigator";
 
 const Layout = () => {
   const { activePath, hideSidebar } = useLayoutNavigator();
@@ -18,7 +21,9 @@ const Layout = () => {
     <Box display={"flex"} overflow={"hidden"} flexGrow={1} bgcolor={"grey.100"}>
       {!hideSidebar && <Sidebar />}
       <Box flexGrow={1} p={0} overflow={"auto"}>
-        <AppRoutes />
+        <React.Suspense fallback={<div>Loading...</div>}>
+          <AppRoutes />
+        </React.Suspense>
       </Box>
     </Box>
   );

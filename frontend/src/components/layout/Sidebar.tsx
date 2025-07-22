@@ -56,8 +56,6 @@ const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
 
   const { isOpen, toggleSidebar, updateActivePath } = useLayoutNavigator();
 
-  console.log("isOpen", isOpen);
-
   const { user, showDriverBoard, showAdminBoard, showSuperAdminBoard } =
     useAuth();
 
