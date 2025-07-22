@@ -1,4 +1,4 @@
-import { alpha, Box, Stack, useTheme } from "@mui/material";
+import { alpha, Box, Button, Stack, useTheme } from "@mui/material";
 import { grey } from "@mui/material/colors";
 import AllInclusiveIcon from "@mui/icons-material/AllInclusive";
 
@@ -9,6 +9,10 @@ import TotalDeliveries from "./driverProfile/TotalDeliveries";
 import DailyEstimatedTripTimeout from "./driverProfile/DailyEstimatedTripTimeout";
 import VehicleDetails from "./driverProfile/VehicleDetails";
 import ApplyBreak from "./driverProfile/ApplyBreak";
+import TestCrashRender from "../pages/TestCrashRender";
+import TestRuntimeError from "../pages/TestRuntimeError";
+import TestUnhandledPromise from "../pages/TestUnhandledPromise";
+import { ErrorBoundary } from "../ErrorBoundary";
 
 const style = {
   box_layout: {
@@ -121,6 +125,26 @@ const DriverProfile = () => {
                   >
                     <AllInclusiveIcon />
                   </Box>
+                  {/* <ErrorBoundary
+                    fallback={
+                      <Box
+                        display="flex"
+                        flexDirection="column"
+                        alignItems="start"
+                      >
+                        <span style={{ color: "red" }}>
+                          ⚠️ Failed to load section.
+                        </span>
+                        <Button onClick={() => window.location.reload()}>
+                          Retry
+                        </Button>
+                      </Box>
+                    }
+                  >
+                    <TestCrashRender />
+                  </ErrorBoundary> */}
+                  {/* <TestRuntimeError /> */}
+                  {/* <TestUnhandledPromise /> */}
                 </Box>
               </Box>
             </Box>
@@ -139,3 +163,5 @@ const DriverProfile = () => {
 };
 
 export default DriverProfile;
+
+const tryIt = () => <TestCrashRender />;
