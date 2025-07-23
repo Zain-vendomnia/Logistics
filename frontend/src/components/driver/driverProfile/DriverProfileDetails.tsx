@@ -23,6 +23,8 @@ import {
 } from "../../../services/auth.service";
 import createFormBuilder from "../../../fn/createFormBuilder";
 
+import { count } from "../../../signals/counter";
+
 type UploadState = "idle" | "show_options" | "file_upload" | "camera_upload";
 type Events = "click" | "file_upload";
 
@@ -259,6 +261,11 @@ const DriverProfileDetails = () => {
             width: "14rem",
           }}
         />
+        <Typography>{count}</Typography>
+        <Box>
+          <Button onClick={() => count.value--}>➖</Button>
+          <Button onClick={() => count.value++}>➕</Button>
+        </Box>
       </Stack>
 
       {showCameraModal && (

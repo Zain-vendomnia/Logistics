@@ -4,6 +4,8 @@ import { alpha, Box, Typography } from "@mui/material";
 import { grey } from "@mui/material/colors";
 import AllInclusiveIcon from "@mui/icons-material/AllInclusive";
 
+import { count, double } from "../../../signals/counter";
+
 const TotalDeliveries = () => {
   return (
     <Box display={"flex"} flexDirection={"column"} height={"100%"}>
@@ -37,6 +39,11 @@ const TotalDeliveries = () => {
           <Typography>Completed: </Typography>
           <Typography>8</Typography>
         </Box> */}
+        <Box display="flex" gap={5}>
+          <Typography>{count}</Typography>
+          <Typography>{double}</Typography>
+        </Box>
+
         <Box
           display={"flex"}
           alignItems={"center"}

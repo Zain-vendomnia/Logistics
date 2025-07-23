@@ -1,4 +1,4 @@
-import { alpha, Box, Button, Stack, useTheme } from "@mui/material";
+import { alpha, Box, Button, Stack, Typography, useTheme } from "@mui/material";
 import { grey } from "@mui/material/colors";
 import AllInclusiveIcon from "@mui/icons-material/AllInclusive";
 
@@ -13,6 +13,8 @@ import TestCrashRender from "../pages/TestCrashRender";
 import TestRuntimeError from "../pages/TestRuntimeError";
 import TestUnhandledPromise from "../pages/TestUnhandledPromise";
 import { ErrorBoundary } from "../ErrorBoundary";
+
+import { count } from "../../signals/counter";
 
 const style = {
   box_layout: {
@@ -124,6 +126,20 @@ const DriverProfile = () => {
                     }}
                   >
                     <AllInclusiveIcon />
+                  </Box>
+
+                  <Box
+                    display={"flex"}
+                    flexDirection={"column"}
+                    gap={2}
+                    // justifyContent={"flex-end"}
+                    alignItems={"center"}
+                  >
+                    <Typography>{count}</Typography>
+                    <Box display={"flex"} gap={0}>
+                      <Button onClick={() => count.value--}>➖</Button>
+                      <Button onClick={() => count.value++}>➕</Button>
+                    </Box>
                   </Box>
                   {/* <ErrorBoundary
                     fallback={

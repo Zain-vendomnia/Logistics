@@ -16,6 +16,7 @@
     "@mui/x-charts": "^7.27.1",
     "@mui/x-data-grid": "^7.28.3",
     "@mui/x-date-pickers": "^7.28.3",
+    "@preact/signals-react": "^3.2.1",
     "@react-google-maps/api": "^2.20.6",
     "@testing-library/jest-dom": "^5.14.1",
     "@testing-library/react": "^13.0.0",
