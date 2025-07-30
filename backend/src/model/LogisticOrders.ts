@@ -1,6 +1,6 @@
-import pool from '../database';
+import pool from "../database";
 
-export class LogisticOrder  {
+export class LogisticOrder {
   public order_id!: number;
   public order_number!: string;
   public customer_id!: string;
@@ -23,10 +23,10 @@ export class LogisticOrder  {
   public longitude!: number | null;
   public created_at!: Date;
   public updated_at!: Date | null;
- 
- // Get all logistic orders with items information
-static async getAll(): Promise<any[]> {
-  const [rows] = await pool.execute(`
+
+  // Get all logistic orders with items information
+  static async getAll(): Promise<any[]> {
+    const [rows] = await pool.execute(`
     SELECT 
       lo.*, 
       wd.warehouse_name,
@@ -56,12 +56,12 @@ static async getAll(): Promise<any[]> {
       ON lo.warehouse_id = wd.warehouse_id
     GROUP BY lo.order_id, lo.warehouse_id
   `);
-  return rows as any[];
-}
+    return rows as any[];
+  }
 
   static async getOrder(order_number: string): Promise<any[]> {
-  const [rows] = await pool.execute(
-    `
+    const [rows] = await pool.execute(
+      `
     SELECT 
       lo.*, 
       JSON_ARRAYAGG(
@@ -89,44 +89,57 @@ static async getAll(): Promise<any[]> {
     WHERE lo.order_number = ?
     GROUP BY lo.order_id;
     `,
-    [order_number] // ✅ Provide the value for the placeholder
-  );
+      [order_number] // ✅ Provide the value for the placeholder
+    );
 
-  return rows as any[];
-}
+    return rows as any[];
+  }
 
   static async getWmsOrderNumbers(): Promise<string[]> {
     const [rows] = await pool.execute(`
       SELECT order_number FROM wms_orders
     `);
 
-    return (rows as any[]).map(row => row.order_number);
+    return (rows as any[]).map((row) => row.order_number);
   }
-  
+
   static async getAllCount(): Promise<LogisticOrder[]> {
-    const [rows] = await pool.execute('SELECT COUNT(*) AS count FROM logistic_order');
+    const [rows] = await pool.execute(
+      "SELECT COUNT(*) AS count FROM logistic_order"
+    );
     return rows as LogisticOrder[];
   }
 
   static async getAllcustomerAddress(): Promise<LogisticOrder[]> {
-    const [rows] = await pool.execute('SELECT * FROM `logistic_order`');  
+    const [rows] = await pool.execute("SELECT * FROM `logistic_order`");
     return rows as LogisticOrder[];
   }
 
   static async getlatlngNullcustomerAddress(): Promise<LogisticOrder[]> {
-    const [rows] = await pool.execute('SELECT * FROM `logistic_order` WHERE `lattitude` IS NULL AND `longitude` IS NULL');  
+    const [rows] = await pool.execute(
+      "SELECT * FROM `logistic_order` WHERE `lattitude` IS NULL AND `longitude` IS NULL"
+    );
     return rows as LogisticOrder[];
   }
 
   static async getOrdersByIds(orderIds: number[]): Promise<LogisticOrder[]> {
     if (orderIds.length === 0) return [];
-  
-    const placeholders = orderIds.map(() => '?').join(', ');
+
+    const placeholders = orderIds.map(() => "?").join(", ");
     const [rows] = await pool.execute(
       `SELECT * FROM logistic_order WHERE order_id IN (${placeholders})`,
       orderIds
     );
-  
+
     return rows as LogisticOrder[];
   }
+}
+
+export async function get_LogisticsOrdersAddress(orderIds: number[]) {
+  const placeholders = orderIds.map(() => "?").join(",");
+  const [orderRows] = await pool.query(
+    `SELECT order_id, street, city, zipcode FROM logistic_order WHERE order_id IN (${placeholders})`,
+    orderIds
+  );
+  return orderRows;
 }

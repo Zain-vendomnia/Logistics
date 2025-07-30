@@ -19,6 +19,7 @@ import {
   getSegmentRoutes,
   getTourstatus,
   updatetourstatus,
+  getTourDetails,
 } from "../controller/Admin_RouteOptimzation/tourController";
 import { ExportTourController } from "../controller/Admin_RouteOptimzation/exportTourController";
 import { getAllTourController } from "../controller/Admin_RouteOptimzation/getAllTourController";
@@ -34,16 +35,16 @@ import { picklistEmail } from "../controller/Admin_Api/picklistEmail.controller"
 import { getFilteredToursController } from "../controller/tourManagement.controller";
 import { updateCustomerInfoController } from "../controller/Admin_RouteOptimzation/updateCustomerInfo.controller";
 import { getAllTourhistory } from "../controller/Admin_RouteOptimzation/getAllTourhistory";
-import { insertParkingPermit } from '../controller/Admin_Api/insertParkingPermit.controller'; 
-import {runTourController} from '../controller/HERE_API/runTourController';
+import { insertParkingPermit } from "../controller/Admin_Api/insertParkingPermit.controller";
+import { runTourController } from "../controller/HERE_API/runTourController";
 
 import driverRoutes from "./driverRoutes";
 import warehouseRoutes from "./warehouseRoutes";
 import { dynamicTourController } from "../controller/HERE_API/dynamicTourController";
-import { hereMapController } from "../controller/HERE_API/hereMapController";
 
-import { upload } from "../middlewares/upload"
-import { parseExcelToJobs } from '../utils/parseExcel';
+import { upload } from "../middlewares/upload";
+import { parseExcelToJobs } from "../utils/parseExcel";
+import { hereMapController } from "../controller/HERE_API/HereMapController";
 
 const adminRouter = Router();
 
@@ -56,14 +57,14 @@ adminRouter.get("/scheduleOrderInfo", scheduleOrderInfoController);
 adminRouter.get("/scheduleWmsOrderInfo", scheduleWmsOrderController);
 adminRouter.post("/picklistEmail", picklistEmail);
 adminRouter.post("/routeoptimize/getOrder", getAllLogisticOrder);
-adminRouter.post("/insertParkingPermit", insertParkingPermit); 
+adminRouter.post("/insertParkingPermit", insertParkingPermit);
 adminRouter.post("/Runtour", runTourController);
 adminRouter.post("/dynamicTourController", hereMapController);
 
-adminRouter.post('/uploadexcel', upload.single('file'), async (req, res) => {
+adminRouter.post("/uploadexcel", upload.single("file"), async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ message: 'Excel file is required.' });
+      return res.status(400).json({ message: "Excel file is required." });
     }
     //console.log("testing");
     const jobList = parseExcelToJobs(req.file.path);
@@ -72,7 +73,10 @@ adminRouter.post('/uploadexcel', upload.single('file'), async (req, res) => {
     await dynamicTourController(req, res, jobList);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Failed to process uploaded Excel.', error: (err as Error).message });
+    res.status(500).json({
+      message: "Failed to process uploaded Excel.",
+      error: (err as Error).message,
+    });
   }
 });
 
@@ -113,14 +117,18 @@ adminRouter.post(
   roleCheck(["admin"]),
   createTourController
 );
+adminRouter.get(
+  "/routeoptimize/getTour",
+  validateToken,
+  roleCheck(["admin"]),
+  getTourDetails
+);
 adminRouter.post(
   "/routeoptimize/createtourHereApi",
   validateToken,
   roleCheck(["admin"]),
   runTourController
 );
-
-
 
 /* adminRouter.post(
   "/routeoptimize/dynamictourHereApi",
@@ -234,12 +242,7 @@ adminRouter.post(
   HandleOrderDelivery
 );
 
-adminRouter.use(
-  "/drivers",
-  validateToken,
-  roleCheck(["admin"]),
-  driverRoutes
-);
+adminRouter.use("/drivers", validateToken, roleCheck(["admin"]), driverRoutes);
 adminRouter.use(
   "/warehouses",
   validateToken,

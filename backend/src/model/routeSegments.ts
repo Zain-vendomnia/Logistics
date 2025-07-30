@@ -1,4 +1,5 @@
 import pool from "../database";
+import { LogisticsRoute } from "../types/tour.types";
 
 export class route_segments {
   public id!: number;
@@ -32,7 +33,7 @@ export class route_segments {
   static async getRoutesegmentRes(_tourId: number): Promise<any> {
     // Run the SQL query to get the graphhopper_route for the given tour_id
     const [rows] = await pool.execute(
-      `SELECT route_response FROM route_segments WHERE tour_id = ?`,
+      `SELECT route_response FROM route_segments WHERE tour_id = ? ORDER BY created_at ASC`,
       [_tourId]
     );
     // TypeScript type assertion to ensure we're dealing with RowDataPacket[]
@@ -42,5 +43,21 @@ export class route_segments {
     } else {
       throw new Error("Tour not found.");
     }
+  }
+
+  static async getAllRouteSegments_TourId(
+    _tourId: number
+  ): Promise<LogisticsRoute[]> {
+    const [rows] = await pool.execute(
+      `SELECT route_response FROM route_segments WHERE tour_id = ? ORDER BY created_at ASC`,
+      [_tourId]
+    );
+
+    if (!rows || (Array.isArray(rows) && rows.length === 0)) {
+      throw new Error("No route segments found for this tour.");
+    }
+
+    const routeSegments = (rows as any[]).map((res) => res.route_response);
+    return routeSegments as LogisticsRoute[];
   }
 }

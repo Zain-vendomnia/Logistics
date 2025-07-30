@@ -1,90 +1,61 @@
-import pool from '../database';
+import { ResultSetHeader } from "mysql2";
+import pool from "../database";
+import { CreateTour } from "../types/dto.types";
 
-interface Tour {
-  id?: number;
-  tourName: string;
-  comments: string;
-  startTime: string;
-  endTime: string;
-  driverid: number;
-  routeColor: string;
-  tourDate: Date;
-  orderIds: number[];
-  warehouseId: number;
-}
-export const createTour = async (tour: Tour) => {
-  // const checkPendingSql = `
-  //   SELECT COUNT(*) AS count FROM tourinfo_master
-  //   WHERE driver_id = ? AND tour_status IN ('pending', 'in-progress')
-  // `;
+// interface Tour {
+//   id?: number;
+//   tourName: string;
+//   comments: string;
+//   startTime: string;
+//   endTime: string;
+//   driverid: number;
+//   routeColor: string;
+//   tourDate: Date;
+//   orderIds: number[];
+//   warehouseId: number;
+// }
 
-  const checkDateSql = `
-    SELECT COUNT(*) AS count FROM tourinfo_master
-    WHERE driver_id = ? AND tour_date = ?
-  `;
-
-  const getUserIdFromDriver = `
-    SELECT user_id FROM driver_details
-    WHERE id = ?
-  `;
-
-  const checkUserStatusSql = `
-    SELECT is_active FROM users
-    WHERE user_id = ?
-  `;
-
-  const insertSql = `
-    INSERT INTO tourinfo_master (
-      tour_name, comments, start_time, driver_id, route_color, tour_date, order_ids, warehouse_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `;
+export const createTour = async (tour: CreateTour) => {
+  const connection = await pool.getConnection();
+  await connection.beginTransaction();
 
   try {
-    // 1. Validate pending/in-progress
-    // const [pendingRows]: any = await pool.query(checkPendingSql, [tour.driverid]);
-    // if (pendingRows[0].count > 0) {
-    //   throw new Error(`Driver already has a pending or in-progress tour. Complete it before assigning a new one.`);
-    // }
+    // 1. Get Driver: name, userId, active status
+    const [driverUserRows]: any = await connection.query(
+      `SELECT u.is_active, d.name
+      FROM driver_details d
+      JOIN users u ON d.user_id = u.user_id
+      WHERE d.id = ?`,
+      [tour.driverId]
+    );
 
-    // 2. Get user_id from driver
-    const [driverUserRows]: any = await pool.query(getUserIdFromDriver, [tour.driverid]);
-    if (!driverUserRows.length) {
-      throw new Error(`Driver not found with ID ${tour.driverid}`);
-    }
-    const userId = driverUserRows[0].user_id;
+    if (!driverUserRows.length)
+      throw new Error(`Driver not found with ID ${tour.driverId}`);
 
-    // 3. Check user status from users table
-    const [userStatusRows]: any = await pool.query(checkUserStatusSql, [userId]);
-    if (!userStatusRows.length) {
-      throw new Error(`User not found with ID ${userId}`);
-    }
-    if (userStatusRows[0].is_active == 0) {
-      throw new Error(`Driver is inactive`);
-    }
+    const { is_active, name } = driverUserRows[0];
+    if (is_active === 0) throw new Error("Driver is inactive");
 
-    // 4. Check duplicate tour date
-    const [sameDateRows]: any = await pool.query(checkDateSql, [tour.driverid, tour.tourDate]);
-    if (sameDateRows[0].count > 0) {
+    // 2. Check if drive ralso has a tour on same day
+    const [duplicateTourRows]: any = await connection.query(
+      `SELECT COUNT(*) AS count FROM tourinfo_master
+      WHERE driver_id = ? AND tour_data = ?`,
+      [tour.driverId, tour.tourDate]
+    );
+    if (duplicateTourRows[0].count > 0)
       throw new Error(`Driver already has a tour on ${tour.tourDate}`);
-    }
 
-    // 5. Fetch driver name
-    const [driverRows]: any = await pool.query(`SELECT name FROM driver_details WHERE id = ?`, [tour.driverid]);
-    const driverName = driverRows[0].name.replace(/\s+/g, '');
+    // 3. Validate order IDs
+    if (!Array.isArray(tour.orderIds) || tour.orderIds.length === 0)
+      throw new Error("No order IDs provided for this tour.");
 
-    // 6. Validate order IDs
-    if (!Array.isArray(tour.orderIds) || tour.orderIds.length === 0) {
-      throw new Error('No order IDs provided for this tour.');
-    }
-
-    // 7. Fetch zip codes from order IDs
-    const orderPlaceholders = tour.orderIds.map(() => '?').join(',');
-    const [zipRows]: any = await pool.query(
+    const orderPlaceholders = tour.orderIds.map(() => "?").join(",");
+    const [zipRows]: any = await connection.query(
       `SELECT zipcode FROM logistic_order WHERE order_id IN (${orderPlaceholders})`,
       tour.orderIds
     );
     if (!zipRows.length) throw new Error(`No valid orders found`);
 
+    // 4. Generate tour name
     const zipcodes = zipRows.map((r: any) => r.zipcode);
     const firstZip = zipcodes[0];
     const lastZip = zipcodes[zipcodes.length - 1];
@@ -93,35 +64,46 @@ export const createTour = async (tour: Tour) => {
     const lastZipPrefix = lastZip.substring(0, 2);
 
     const tourDateFormatted = new Date(tour.tourDate);
-    const dayName = tourDateFormatted.toLocaleDateString('en-US', { weekday: 'long' });
-    const formattedDate = `${tourDateFormatted.getFullYear()}.${String(tourDateFormatted.getMonth() + 1).padStart(2, '0')}.${String(tourDateFormatted.getDate()).padStart(2, '0')}`;
-
+    const dayName = tourDateFormatted.toLocaleDateString("en-US", {
+      weekday: "long",
+    });
+    const formattedDate = `${tourDateFormatted.getFullYear()}.${String(
+      tourDateFormatted.getMonth() + 1
+    ).padStart(2, "0")}.${String(tourDateFormatted.getDate()).padStart(
+      2,
+      "0"
+    )}`;
+    const driverName = name.replace(/\s+/g, "");
     const tourName = `PLZ-${firstZipPrefix}-${lastZipPrefix}-${driverName}-${dayName}-${formattedDate}`;
 
-    const values = [
+    // 5. Insert into tourinfo_master
+    const insertSql = `
+    INSERT INTO tourinfo_master (
+      tour_name, comments, start_time, driver_id, route_color, tour_date, order_ids, warehouse_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `;
+    const insertValues = [
       tourName,
       tour.comments || null,
       tour.startTime,
-      tour.driverid,
+      tour.driverId,
       tour.routeColor,
       tour.tourDate,
       JSON.stringify(tour.orderIds),
       tour.warehouseId,
     ];
 
-    console.log('[tourModel] Creating tour with values:', values);
+    console.log("[tourModel] Creating tour with values:", insertValues);
 
-    const [result] = await pool.query(insertSql, values);
-    return result;
-
+    const [result] = await connection.query(insertSql, insertValues);
+    await connection.commit();
+    return result as ResultSetHeader;
   } catch (err) {
-    if (err instanceof Error) {
-      console.error('[tourModel] Error creating tour:', err.message);
-      throw err;
-    } else {
-      console.error('[tourModel] Unknown error:', err);
-      throw new Error('An unknown error occurred while creating the tour.');
-    }
+    await connection.rollback();
+    console.error("[tourModel] Error creating tour:", err);
+    throw err;
+  } finally {
+    connection.release();
   }
 };
 
@@ -135,12 +117,12 @@ export const insertTourDriverData = async (tour: any) => {
   const values = [tour.tour_id, tour.driver_id, tour.tour_date];
 
   try {
-    console.log('[tour_driver] Creating tour_driver entry:', values);
+    console.log("[tour_driver] Creating tour_driver entry:", values);
     const [result] = await pool.query(sql, values);
-    console.log('[tour_driver] Entry created successfully');
+    console.log("[tour_driver] Entry created successfully");
     return result;
   } catch (err) {
-    console.error('[tour_driver] Error inserting tour_driver data:', err);
+    console.error("[tour_driver] Error inserting tour_driver data:", err);
     throw err;
   }
 };
@@ -149,7 +131,7 @@ export const deleteTours = async (tourIds: number[]) => {
   const conn = await pool.getConnection();
 
   try {
-    console.log('[tourModel] Deleting tours with IDs:', tourIds);
+    console.log("[tourModel] Deleting tours with IDs:", tourIds);
 
     await conn.beginTransaction();
 
@@ -177,11 +159,13 @@ export const deleteTours = async (tourIds: number[]) => {
 
     await conn.commit();
 
-    console.log('[tourModel] Tours,route and tour_driver segments deleted successfully');
+    console.log(
+      "[tourModel] Tours,route and tour_driver segments deleted successfully"
+    );
     return result;
   } catch (err) {
     await conn.rollback();
-    console.error('[tourModel] Error deleting tours:', err);
+    console.error("[tourModel] Error deleting tours:", err);
     throw err;
   } finally {
     conn.release();
@@ -190,7 +174,8 @@ export const deleteTours = async (tourIds: number[]) => {
 
 // Service function
 export const updateTour = async (tourData: any) => {
-  const { id, tourName, comments, startTime, driverid, routeColor, tourDate } = tourData;
+  const { id, tourName, comments, startTime, driverid, routeColor, tourDate } =
+    tourData;
 
   const checkPendingSql = `
     SELECT COUNT(*) AS count FROM tourinfo_master
@@ -216,23 +201,35 @@ export const updateTour = async (tourData: any) => {
     await connection.beginTransaction();
 
     // 1. Check for existing pending/in-progress tours
-    const [pendingRows]: any = await connection.query(checkPendingSql, [driverid, id]);
+    const [pendingRows]: any = await connection.query(checkPendingSql, [
+      driverid,
+      id,
+    ]);
     if (pendingRows[0].count > 0) {
-      throw new Error(`Driver already has another pending or in-progress tour.`);
+      throw new Error(
+        `Driver already has another pending or in-progress tour.`
+      );
     }
 
     // 2. Check for another tour on the same date
-    const [dateRows]: any = await connection.query(checkDateSql, [driverid, tourDate, id]);
+    const [dateRows]: any = await connection.query(checkDateSql, [
+      driverid,
+      tourDate,
+      id,
+    ]);
     if (dateRows[0].count > 0) {
       throw new Error(`Driver already has another tour on ${tourDate}.`);
     }
 
     // 3. Check driver status
     const [userRows]: any = await connection.query(getUserIdSql, [driverid]);
-    if (!userRows.length) throw new Error(`Driver not found with ID ${driverid}`);
+    if (!userRows.length)
+      throw new Error(`Driver not found with ID ${driverid}`);
 
     const userId = userRows[0].user_id;
-    const [statusRows]: any = await connection.query(checkUserStatusSql, [userId]);
+    const [statusRows]: any = await connection.query(checkUserStatusSql, [
+      userId,
+    ]);
     if (!statusRows.length || statusRows[0].is_active === 0) {
       throw new Error(`Driver is inactive.`);
     }
@@ -267,13 +264,54 @@ export const updateTour = async (tourData: any) => {
     await connection.rollback();
 
     if (error instanceof Error) {
-      console.error('[updateTour] Error:', error.message);
+      console.error("[updateTour] Error:", error.message);
       throw error;
     } else {
-      console.error('[updateTour] Unknown error:', error);
-      throw new Error('An unknown error occurred while updating the tour.');
+      console.error("[updateTour] Unknown error:", error);
+      throw new Error("An unknown error occurred while updating the tour.");
     }
   } finally {
     connection.release();
   }
+};
+
+export const removeUnassignedOrders = async (
+  tourId: number,
+  orderIdsToRemove: number[]
+) => {
+  const [rows]: any = await pool.query(
+    `SELECT order_ids FROM tourinfo_master WHERE id = ?`,
+    [tourId]
+  );
+
+  if (!rows.length) throw new Error(`Tour with id ${tourId} not found`);
+
+  console.log("Order_Ids from tourinfo_master");
+  const orderIds_row = rows[0].order_ids;
+  console.log(orderIds_row);
+
+  let currentOrderIds: number[];
+
+  try {
+    currentOrderIds = orderIds_row.map(Number);
+  } catch (error) {
+    console.log("Failed to parse order_ids:", orderIds_row, error);
+    throw error;
+  }
+
+  // Filter order Ids
+  const updatedOrderIds = currentOrderIds.filter(
+    (id) => !orderIdsToRemove.includes(id)
+  );
+
+  await pool.query(`UPDATE tourinfo_master SET order_ids = ? WHERE id = ?`, [
+    JSON.stringify(updatedOrderIds),
+    tourId,
+  ]);
+
+  console.log(
+    `
+    Removed ${orderIdsToRemove.length} order(s) from Tour ${tourId}. Remaing order: `,
+    updatedOrderIds
+  );
 };
