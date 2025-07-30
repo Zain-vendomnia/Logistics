@@ -108,8 +108,8 @@ const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
           path: "/driver_performance",
         },
 
-        //{ text: "HereMap Dynamic", icon:<Moving/>, path:"/Admin_dynamicHereMap"},  // direct api call to HERE api, so avoid this
-        { text: "UploadJobFile", icon: <Moving />, path: "/UploadJobFile" },
+        { text: "HereMap Dynamic", icon:<Moving/>, path:"/dynamicHereMap"},  // direct api call to HERE api, so avoid this
+        { text: "Upload Job File", icon: <Moving />, path: "/UploadJobFile" },
       ];
     }
 

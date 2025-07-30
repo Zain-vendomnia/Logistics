@@ -140,7 +140,7 @@ export const NotificationManager = () => {
                 )}
               </>
             ) : (
-              <Typography fontSize={"1.2rem"} variant="body1">
+              <Typography fontSize={"1rem"} variant="body1">
                 {notify.message}
               </Typography>
             )}

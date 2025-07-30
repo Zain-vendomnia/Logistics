@@ -26,7 +26,8 @@ import ProofdeliveryImage from "./components/Admin/ProofdeliveryImage";
 import TestCrashRender from "./components/pages/TestCrashRender";
 import TestUnhandledPromise from "./components/pages/TestUnhandledPromise";
 import TestRuntimeError from "./components/pages/TestRuntimeError";
-
+import Admin_dynamicHereMap from "./components/Admin/Admin_dynamicHereMap";
+import AdminHereMap from "./components/Admin/Admin_HereMap";
 // Role-based route guard
 const ProtectedRoute = ({
   element,
@@ -170,6 +171,15 @@ const AppRoutes = () => {
         }
       />
       <Route
+        path="/dynamicHereMap"
+        element={
+          <ProtectedRoute
+            element={<Admin_dynamicHereMap />}
+            allowedRoles={["admin"]}
+          />
+        }
+      />
+      <Route
         path="/profile"
         element={<ProtectedRoute element={<Profile />} />}
       />
@@ -236,6 +246,13 @@ const AppRoutes = () => {
         }
       />
       {/* <Route path="/Admin_PickList" element={<Admin_PickListPage />} />  */}
+
+      {/* <Route
+        path="/Admin_HereMap"
+        element={
+          <ProtectedRoute element={<AdminHereMap />} allowedRoles={["admin"]} />
+        }
+      /> */}
     </Routes>
   );
 };
