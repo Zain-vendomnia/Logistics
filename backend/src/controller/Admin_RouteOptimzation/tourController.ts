@@ -9,7 +9,7 @@ import { ResultSetHeader } from "mysql2";
 import {
   getTourDetailsById,
   getTourMapDataAsync,
-} from "../../services/TourService";
+} from "../../services/tourService";
 
 export const createTourController = async (req: Request, res: Response) => {
   const tour_payload: CreateTour = req.body;
@@ -21,7 +21,7 @@ export const createTourController = async (req: Request, res: Response) => {
       const result = await getTourMapDataAsync(tour_payload, tour.insertId);
 
       // arrange data to return
-      res.status(200).json({ result, message: "Tour saved successfully" });
+      res.status(200).json({ ...result, message: "Tour saved successfully" });
     } else {
       res.status(500).json({ message: "Failed to save the tour" });
     }
@@ -72,9 +72,7 @@ export const getSegmentRoutes = async (_req: Request, res: Response) => {
     return res.status(400).json({ message: "Tour ID is required." });
   }
   try {
-    const routeRes = await route_segments.getRoutesegmentRes(
-      parseInt(tour_id as string)
-    );
+    const routeRes = await route_segments.getRoutesegmentRes(Number(tour_id));
     res.status(200).json(routeRes);
   } catch (error) {
     console.error("Error fetching orders:", error);

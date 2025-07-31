@@ -1,4 +1,11 @@
-export type CreateTour = {
+export interface CreateTour_Res {
+  tour: string; // tourName
+  routes: LogisticsRoute[];
+  unassigned: string;
+  message: string;
+}
+
+export type CreateTour_Req = {
   tourDate: string;
   startTime: string;
   orderIds: number[];
@@ -96,9 +103,3 @@ export type Tour = {
   statistic: any;
   shiftIndex: number;
 };
-
-export interface TourResponse {
-  tour: Tour;
-  routes: LogisticsRoute[];
-  unassigned: string;
-}

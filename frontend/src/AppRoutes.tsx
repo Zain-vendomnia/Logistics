@@ -27,7 +27,7 @@ import TestCrashRender from "./components/pages/TestCrashRender";
 import TestUnhandledPromise from "./components/pages/TestUnhandledPromise";
 import TestRuntimeError from "./components/pages/TestRuntimeError";
 import Admin_dynamicHereMap from "./components/Admin/Admin_dynamicHereMap";
-import AdminHereMap from "./components/Admin/Admin_HereMap";
+import AdminHereMap from "./components/Admin/MapRoutesViewer";
 // Role-based route guard
 const ProtectedRoute = ({
   element,

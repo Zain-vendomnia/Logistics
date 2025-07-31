@@ -38,7 +38,7 @@ export const createTour = async (tour: CreateTour) => {
     // 2. Check if drive ralso has a tour on same day
     const [duplicateTourRows]: any = await connection.query(
       `SELECT COUNT(*) AS count FROM tourinfo_master
-      WHERE driver_id = ? AND tour_data = ?`,
+      WHERE driver_id = ? AND tour_date = ?`,
       [tour.driverId, tour.tourDate]
     );
     if (duplicateTourRows[0].count > 0)

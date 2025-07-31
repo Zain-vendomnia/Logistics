@@ -92,4 +92,17 @@ export class tourInfo_master {
       throw error;
     }
   }
+  static async getTourNameByIdAsync(tourId: number) {
+    try {
+      const [rows]: any = await pool.execute(
+        `SELECT tour_name FROM tourinfo_master WHERE id = ?`,
+        [tourId]
+      );
+
+      return rows[0];
+    } catch (error) {
+      console.error("Error fetching tour ID:", error);
+      throw error;
+    }
+  }
 }

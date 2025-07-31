@@ -1,11 +1,10 @@
-import React, { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Box,
   Button,
   Card,
   CardContent,
   Typography,
-  Alert,
   Stack,
   Divider,
   Paper,
@@ -20,13 +19,9 @@ import {
   NotificationSeverity,
   useNotificationStore,
 } from "../../store/useNotificationStore";
-import {
-  LogisticsRoute,
-  Stop,
-  TourData,
-  TourResponse,
-} from "../../types/tour.type";
-import Admin_HereMap from "./Admin_HereMap";
+import { Section, Stop, TourData, CreateTour_Res } from "../../types/tour.type";
+import MapRoutesViewer from "./MapRoutesViewer";
+import { ModalWrapper } from "../common/ModalWrapper";
 
 const Admin_AddTour = () => {
   const { showNotification } = useNotificationStore();
@@ -41,6 +36,7 @@ const Admin_AddTour = () => {
   }>({ open: false });
 
   const [tourData, setTourData] = useState<TourData | null>(null);
+  const [showMapViewer, setShowMapViewer] = useState(false);
 
   const selectedOrdersData = ordersData.filter((order) =>
     selectedOrders.includes(order.order_id)
@@ -50,6 +46,7 @@ const Admin_AddTour = () => {
   const allSameWarehouse = selectedOrdersData.every(
     (order) => order.warehouse_id === firstWarehouseId
   );
+
   const handleCreateTourClick = () => {
     if (!selectedOrders.length)
       return showNotification({
@@ -71,28 +68,57 @@ const Admin_AddTour = () => {
     });
   };
 
-  const handleTourData = (data: TourResponse) => {
-    console.log("Tour Data from parent component", data);
+  const handleTourData = (data: CreateTour_Res) => {
+    console.log("TourData", data);
 
-    const firstRoute: LogisticsRoute = data.routes?.[0];
-    const route_sections = firstRoute?.geometry.sections;
-    if (!firstRoute || !Array.isArray(route_sections)) {
-      console.error("❌ 'sections' not found in first route:", firstRoute);
-      return;
+    showNotification({
+      message: data.message || "Tour created successfully!",
+    });
+
+    if (data.unassigned) {
+      showNotification({
+        title: "Following orders not included in Tour!",
+        message: data.unassigned,
+        severity: NotificationSeverity.Error,
+        duration: 12000,
+      });
     }
 
-    const polylineCoords: [number, number][] = route_sections.flatMap(
+    const tour_data = createTourData(data);
+    if (!tour_data) return;
+
+    setTourData(tour_data);
+  };
+
+  const createTourData = (data: CreateTour_Res): TourData | null => {
+    // const firstRoute: LogisticsRoute = data.routes?.[0];
+    const route_segments: Section[] = data.routes.flatMap(
+      (route) => route.geometry.sections
+    );
+
+    if (!data.routes || !Array.isArray(route_segments)) {
+      console.error("❌ 'sections' not found in routes:", data.routes);
+      return null;
+    }
+
+    const polylineCoords: [number, number][] = route_segments.flatMap(
       (section: any) =>
         section.coordinates.map((point: any) => [point.lat, point.lng])
     );
 
-    const stops: Stop[] = firstRoute.geometry.stops || [];
+    const stops: Stop[] =
+      data.routes.flatMap((route) => route.geometry.stops[0]) || [];
 
-    setTourData({
+    return {
       routePolyline: polylineCoords,
       stops,
-    });
+    };
   };
+  useEffect(() => {
+    if (!tourData) return;
+
+    setShowMapViewer(true);
+  }, [tourData]);
 
   return (
     <Box
@@ -189,7 +215,18 @@ const Admin_AddTour = () => {
         />
       )}
 
-      {tourData && <Admin_HereMap tourData={tourData} />}
+      {showMapViewer && tourData && (
+        <ModalWrapper
+          title={"Tour Routes"}
+          size={"md"}
+          expandible
+          onClose={() => {
+            setShowMapViewer(false);
+          }}
+        >
+          <MapRoutesViewer tourData={tourData} />
+        </ModalWrapper>
+      )}
     </Box>
   );
 };

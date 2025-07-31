@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import * as db from "../../services/DatabaseService";
 
-import hereMapService from "../../services/HereMapService";
+import hereMapService from "../../services/hereMapService";
 import { CreateTour } from "../../types/dto.types";
 import { get_LogisticsOrdersAddress } from "../../model/LogisticOrders";
 import { LogisticOrder } from "../../types/database.types";

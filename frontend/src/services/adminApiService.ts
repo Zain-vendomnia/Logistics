@@ -1,7 +1,7 @@
 // adminApiService.ts
 import axios from "axios";
 import authHeader from "./auth-header";
-import { CreateTour } from "../types/tour.type";
+import { CreateTour_Req } from "../types/tour.type";
 
 const API_BaseUrl = "http://localhost:8080/api/admin/routeoptimize/";
 const API_BaseUrl_Admin = "http://localhost:8080/api/admin/";
@@ -26,10 +26,10 @@ const getTour = (tourId: number) =>
     params: { tourId },
   });
 
-const createTour = (tourData: CreateTour) =>
+const createTour = (tourData: CreateTour_Req) =>
   axios.post(`${API_BaseUrl}createtour`, tourData, { headers: authHeader() });
 
-const createtourHereApi = (tourDatas: CreateTour) => {
+const createtourHereApi = (tourDatas: CreateTour_Req) => {
   console.log("tourDatas Received:", tourDatas);
   return axios.post(`${API_BaseUrl}createtourHereApi`, tourDatas, {
     headers: authHeader(),

@@ -10,7 +10,7 @@ import {
 } from "../model/tourModel";
 import { CreateTour } from "../types/dto.types";
 import { Tour, LogisticsRoute } from "../types/tour.types";
-import hereMapService from "./HereMapService";
+import hereMapService from "./hereMapService";
 
 export async function getTourMapDataAsync(
   tour_payload: CreateTour,
@@ -72,8 +72,10 @@ export async function getTourMapDataAsync(
   const unassignedOrders = await LogisticOrder.getOrdersByIds(
     unassignedOrderIds
   );
+
+  const tourName = await tourInfo_master.getTourNameByIdAsync(tourId);
   return {
-    tour,
+    tour: tourName,
     routes: lg_routes,
     unassigned: unassignedOrders.map((o) => o.order_number).join(","),
   };
@@ -129,11 +131,10 @@ async function getRouteSegments_mapApi(tour: Tour): Promise<LogisticsRoute[]> {
 }
 
 export async function getTourDetailsById(tourId: number) {
-  const tour = await tourInfo_master.getTourByIdAsync(Number(tourId));
-
+  const tourObj = await tourInfo_master.getTourNameByIdAsync(tourId);
   const routes = await route_segments.getAllRouteSegments_TourId(tourId);
 
-  return { tour, routes, unassigned: "400098044,400098044" };
+  return { tour: tourObj.tour_name, routes, unassigned: "400098044,400098044" };
 }
 // async function UpdateRouteData(
 //   _orderIds: number[],
