@@ -162,9 +162,10 @@ export const LOGIC_ORDER_TABLE = `
     lattitude DECIMAL(10,7),
     longitude DECIMAL(10,7),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
-  );
-`;
+    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+    status ENUM('initial', 'unassigned', 'assigned', 'inTransit', 'delivered', 'rescheduled', 'canceled') NOT NULL DEFAULT 'initial'
+    );
+    `;
 
 export const LOGIC_ORDER_ITEMS_TABLE = `
   CREATE TABLE IF NOT EXISTS logistic_order_items (

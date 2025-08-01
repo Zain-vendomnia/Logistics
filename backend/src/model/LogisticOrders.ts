@@ -1,4 +1,15 @@
+import { ResultSetHeader } from "mysql2";
 import pool from "../database";
+
+export enum OrderStatus {
+  initial = "initial",
+  unassigned = "unassigned",
+  assigned = "assigned",
+  inTransit = "inTransit",
+  delivered = "delivered",
+  rescheduled = "rescheduled",
+  canceled = "canceled",
+}
 
 export class LogisticOrder {
   public order_id!: number;
@@ -23,6 +34,7 @@ export class LogisticOrder {
   public longitude!: number | null;
   public created_at!: Date;
   public updated_at!: Date | null;
+  public status: OrderStatus = OrderStatus.initial;
 
   // Get all logistic orders with items information
   static async getAll(): Promise<any[]> {
@@ -132,6 +144,34 @@ export class LogisticOrder {
     );
 
     return rows as LogisticOrder[];
+  }
+
+  static async getOrdersByStatus(
+    status: OrderStatus
+  ): Promise<LogisticOrder[]> {
+    if (!status) return [];
+
+    const [rows] = await pool.execute(
+      `SELECT * FROM logistic_order WHERE status = ?`,
+      status
+    );
+
+    return rows as LogisticOrder[];
+  }
+
+  static async updateOrdersStatus(
+    orderIds: number[],
+    status: OrderStatus
+  ): Promise<Boolean> {
+    if (!status) throw new Error("Invalis order status provided");
+
+    const placeholders = orderIds.map(() => "?").join(", ");
+    const [result] = await pool.execute(
+      `UPDATE logistic_order SET status = ?, updated_at = NOW() WHERE order_id IN (${placeholders})`,
+      [status, ...orderIds]
+    );
+
+    return (result as ResultSetHeader).affectedRows > 0;
   }
 }
 
