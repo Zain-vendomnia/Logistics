@@ -1,4 +1,3 @@
-
 import { createTheme, PaletteColor, ThemeOptions } from "@mui/material/styles";
 // import { PaletteOptions } from "@mui/material/styles/createPalette";
 // theme.ts
@@ -128,7 +127,6 @@ const themeOptions: ThemeOptions = {
             // 🛠 Very important: AFTER hover/focus/active, outlined must reset back to transparent
             "&:not(:hover):not(:focus):not(:active)": isOutlined
               ? {
-                  
                   color: palette.contrastText,
                   border: `1px solid ${palette.main}`,
                 }
