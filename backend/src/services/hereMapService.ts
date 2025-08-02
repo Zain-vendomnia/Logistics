@@ -18,12 +18,13 @@ const warehouseGroups = [
       "WeltZiel Logistic GmbH., Rudolf-Diesel-Straße 40 , Nufringen, 71154 ", // WeltZiel Logistic GmbH
     vehicleCount: 1,
     capacityPerVehicle: 300,
-  } /*,
-    {
-      warehouseAddress: 'Plischka und Schmeling,Fokkerstr. 8,Schkeuditz,04435', // Plischka und Schmeling
-      vehicleCount: 1,
-      capacityPerVehicle: 1800
-    },
+  },
+  {
+    warehouseAddress: "Plischka und Schmeling,Fokkerstr. 8,Schkeuditz,04435", // Plischka und Schmeling
+    vehicleCount: 1,
+    capacityPerVehicle: 1800,
+  },
+  /*,
     {
       warehouseAddress: 'Honer Str. 49,Eschwege,37269', // Sunniva GmbH
       vehicleCount: 1,
@@ -54,7 +55,7 @@ const warehouseGroups = [
     warehouseAddress: 'Recht Logistik Gruppe, Weetfelder Str., Bönen, 59199',
     vehicleCount: 1,
     capacityPerVehicle: 1800
- }*/,
+ }*/
 ];
 
 const HERE_API_KEY =
@@ -88,7 +89,7 @@ const createJobList = (orders: LogisticOrder[]): Job[] => {
   return jobList;
 };
 
-const buildJobs = async (jobList: Job[]) => {
+async function buildJobs(jobList: Job[]) {
   const deliveryJobs = jobList.map(async (job) => {
     const location = await geocode(job.address);
     return {
@@ -104,11 +105,11 @@ const buildJobs = async (jobList: Job[]) => {
     } as DeliveryJob;
   });
   return await Promise.all(deliveryJobs);
-};
+}
 
-const buildFleet = async (
+async function buildFleet(
   warehouseGroups: WarehouseGroup[]
-): Promise<FleetType[]> => {
+): Promise<FleetType[]> {
   const fleet: FleetType[] = [];
 
   for (const group of warehouseGroups) {
@@ -132,12 +133,12 @@ const buildFleet = async (
   }
 
   return fleet;
-};
+}
 
-const planTour = async (
+async function planTour(
   fleetTypes: FleetType[],
   jobs: DeliveryJob[]
-): Promise<{ tour: Tour; unassigned: Unassigned[] }> => {
+): Promise<{ tour: Tour; unassigned: Unassigned[] }> {
   const problem = {
     fleet: {
       types: fleetTypes,
@@ -167,9 +168,9 @@ const planTour = async (
     logApiError(error, "planTour");
     throw new Error("Failed to plan tour.");
   }
-};
+}
 
-const getRoutesForTour = async (tour: Tour): Promise<DecodedRoute | null> => {
+async function getRoutesForTour(tour: Tour): Promise<DecodedRoute | null> {
   if ((tour.stops?.length ?? 0) < 2)
     throw new Error("Tour stops are insufficient for rounte segmentation");
 
@@ -219,7 +220,7 @@ const getRoutesForTour = async (tour: Tour): Promise<DecodedRoute | null> => {
     logApiError(err, `getRoutesFromTours for vehicleId=${tour.vehicleId}`);
     return null;
   }
-};
+}
 
 // const getRoutesFromTours = async (tours: Tour | Tour[]): Promise<DecodedRoute[]> => {
 // const tourList =  Array.isArray(tours) ? tours : [tour];
