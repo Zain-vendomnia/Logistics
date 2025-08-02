@@ -1,86 +1,112 @@
 import {
-  get_LogisticsOrdersAddress,
   LogisticOrder,
+  OrderStatus,
+  get_LogisticsOrdersAddress,
 } from "../model/LogisticOrders";
 import { route_segments } from "../model/routeSegments";
 import { tourInfo_master } from "../model/TourinfoMaster";
 import {
+  createTour,
   insertTourDriverData,
   removeUnassignedOrders,
 } from "../model/tourModel";
 import { CreateTour } from "../types/dto.types";
+import { Unassigned } from "../types/hereMap.types";
 import { Tour, LogisticsRoute } from "../types/tour.types";
 import hereMapService from "./hereMapService";
 
-export async function getTourMapDataAsync(
-  tour_payload: CreateTour,
-  tourId: number
-) {
-  const orders = (await get_LogisticsOrdersAddress(
-    tour_payload.orderIds
-  )) as LogisticOrder[];
+export async function getTourMapDataAsync(tourPayload: CreateTour) {
+  try {
+    const newTour = await createTour(tourPayload);
 
-  const { tour, unassigned } = await hereMapService.createTourAsync(orders);
+    const tourId = newTour.insertId;
 
-  const hereMapResJson = JSON.stringify({ tour, unassigned });
-  await tourInfo_master.updateHereMapResponse(tourId, hereMapResJson);
+    const orders = (await get_LogisticsOrdersAddress(
+      tourPayload.orderIds
+    )) as LogisticOrder[];
 
-  let lg_routes: LogisticsRoute[] = [];
-  // handling Route Segments
+    const { tour, unassigned } = await hereMapService.createTourAsync(orders);
+
+    const hereMapResJson = JSON.stringify({ tour, unassigned });
+    await tourInfo_master.updateHereMapResponse(tourId, hereMapResJson);
+
+    const routes: LogisticsRoute[] = await saveRouteSegments(tourId, tour);
+
+    await saveTourDriverMapping(tourPayload, tourId);
+
+    const unassignedOrderIds: number[] = await extractUnassignedOrderIds(
+      unassigned
+    );
+
+    if (unassignedOrderIds.length > 0) {
+      console.log(
+        `Unassigned Orders: Removing ${tourPayload.orderIds.length} unassigned order(s)`
+      );
+
+      await removeUnassignedOrders(tourId, unassignedOrderIds);
+
+      const updated = await LogisticOrder.updateOrdersStatus(
+        tourPayload.orderIds,
+        OrderStatus.unassigned
+      );
+      console.log("Updated status for unassigned orders:", updated);
+    }
+
+    const assignedOrderIds = tourPayload.orderIds.filter(
+      (id) => !unassignedOrderIds.includes(id)
+    );
+
+    const assignedOrders_upadted = await LogisticOrder.updateOrdersStatus(
+      assignedOrderIds,
+      OrderStatus.assigned
+    );
+    console.log(`Update status assigned orders: `, assignedOrders_upadted);
+
+    // Prepare res
+    const unassignedOrders = await LogisticOrder.getOrdersByIds(
+      unassignedOrderIds
+    );
+    const tourName = await tourInfo_master.getTourNameByIdAsync(tourId);
+
+    return {
+      tour: tourName,
+      routes,
+      unassigned: unassignedOrders.map((o) => o.order_number).join(","),
+    };
+  } catch (error) {
+    console.error("Failed to create tour map data:", error);
+    throw new Error("Tour creation failed");
+  }
+}
+
+async function saveRouteSegments(
+  tourId: number,
+  tour: Tour
+): Promise<LogisticsRoute[]> {
   try {
     const routes = await getRouteSegments_mapApi(tour);
-    lg_routes = routes;
-    // setRouteSegments
+
+    // Save route segments
     for (const segment of routes) {
       const segmentJson = JSON.stringify(segment);
-      const ordrid = segment.order_id;
-      console.log(ordrid);
+      const orderId = segment.order_id;
+      console.log(orderId);
 
-      if (!ordrid)
+      if (!orderId)
         throw new Error(
           `Segment has invalid order_id: ${JSON.stringify(segment)}`
         );
 
-      await route_segments.insertSegment(tourId, segmentJson, ordrid);
+      await route_segments.insertSegment(tourId, segmentJson, orderId);
     }
     console.log(`Saved ${routes.length} segments to segmentTable.`);
+
+    return routes;
   } catch (error) {
-    console.error(
-      "Error updating Map response or inserting tour-driver data:",
-      error
-    );
+    console.error("Error saving route segments:", error);
+    return [];
   }
-
-  // Polulate tour-driver table
-  const data = {
-    tour_id: tourId,
-    driver_id: tour_payload.driverId,
-    tour_date: tour_payload.tourDate,
-  };
-  await insertTourDriverData(data);
-  console.log("Tour-driver mapping inserted successfully.");
-
-  // Handle ussigned orders
-  const unassignedOrderIds: number[] = unassigned
-    .map((e) => Number(e.jobId.split("_")[1]))
-    .filter((id) => !isNaN(id));
-  console.log(
-    `Unassigned Orders: Removing ${unassignedOrderIds.length} unassigned order(s)`
-  );
-  await removeUnassignedOrders(tourId, unassignedOrderIds);
-
-  const unassignedOrders = await LogisticOrder.getOrdersByIds(
-    unassignedOrderIds
-  );
-
-  const tourName = await tourInfo_master.getTourNameByIdAsync(tourId);
-  return {
-    tour: tourName,
-    routes: lg_routes,
-    unassigned: unassignedOrders.map((o) => o.order_number).join(","),
-  };
 }
-
 async function getRouteSegments_mapApi(tour: Tour): Promise<LogisticsRoute[]> {
   const segments: LogisticsRoute[] = [];
 
@@ -128,6 +154,22 @@ async function getRouteSegments_mapApi(tour: Tour): Promise<LogisticsRoute[]> {
   }
   console.log("segments.length: ", segments.length);
   return segments;
+}
+
+async function saveTourDriverMapping(tourPayload: CreateTour, tourId: number) {
+  const data = {
+    tour_id: tourId,
+    driver_id: tourPayload.driverId,
+    tour_date: tourPayload.tourDate,
+  };
+  await insertTourDriverData(data);
+  console.log("Tour-driver mapping inserted successfully");
+}
+
+async function extractUnassignedOrderIds(unassigned: Unassigned[]) {
+  return unassigned
+    .map((e) => Number(e.jobId.split("_")[1]))
+    .filter((id) => !isNaN(id));
 }
 
 export async function getTourDetailsById(tourId: number) {

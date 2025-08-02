@@ -77,7 +77,7 @@ const Admin_AddTour = () => {
 
     if (data.unassigned) {
       showNotification({
-        title: "Following orders not included in Tour!",
+        title: "Following order(s) not included in Tour!",
         message: data.unassigned,
         severity: NotificationSeverity.Error,
         duration: 12000,
@@ -114,6 +114,7 @@ const Admin_AddTour = () => {
       stops,
     };
   };
+  
   useEffect(() => {
     if (!tourData) return;
 

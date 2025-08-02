@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { createTour, deleteTours, updateTour } from "../../model/tourModel";
+import { deleteTours, updateTour } from "../../model/tourModel";
 import { tourInfo_master } from "../../model/TourinfoMaster";
 // import { createRoutedata } from "../../services/createRoutedata";
 import { route_segments } from "../../model/routeSegments";
@@ -15,16 +15,11 @@ export const createTourController = async (req: Request, res: Response) => {
   const tour_payload: CreateTour = req.body;
   console.log(tour_payload);
   try {
-    const tour = await createTour(tour_payload);
-
-    if (tour.affectedRows > 0) {
-      const result = await getTourMapDataAsync(tour_payload, tour.insertId);
-
-      // arrange data to return
-      res.status(200).json({ ...result, message: "Tour saved successfully" });
-    } else {
-      res.status(500).json({ message: "Failed to save the tour" });
+    const result = await getTourMapDataAsync(tour_payload);
+    if (!result) {
+      res.status(500).json({ message: "Failed to create the tour" });
     }
+    res.status(200).json({ ...result, message: "Tour saved successfully" });
   } catch (error) {
     console.error("Error saving tour:", error);
     if (error instanceof Error) {

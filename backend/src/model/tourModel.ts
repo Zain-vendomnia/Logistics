@@ -98,10 +98,11 @@ export const createTour = async (tour: CreateTour) => {
     const [result] = await connection.query(insertSql, insertValues);
     await connection.commit();
     return result as ResultSetHeader;
-  } catch (err) {
+  } catch (error) {
     await connection.rollback();
-    console.error("[tourModel] Error creating tour:", err);
-    throw err;
+
+    console.error("[tourModel] Error creating tour:", error);
+    throw new Error("[tourModel] error while creating new Tour");
   } finally {
     connection.release();
   }
