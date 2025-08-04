@@ -168,9 +168,9 @@ const DriverPerformance = () => {
           No drivers match the criteria.
         </Typography>
       ) : (
-        <Grid container spacing={2}>
+        <Grid container spacing={5} >
           {filteredDrivers.map((driver) => (
-            <Grid item xs={12} sm={6} md={4} key={driver.id}>
+            <Grid key={driver.id} item xs={12} sm={6} md={4} lg={4}>
               <DriverPerformanceCard
                 name={driver.name}
                 email={driver.email}
