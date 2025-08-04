@@ -44,7 +44,8 @@ import { dynamicTourController } from "../controller/HERE_API/dynamicTourControl
 
 import { upload } from "../middlewares/upload";
 import { parseExcelToJobs } from "../utils/parseExcel";
-import { hereMapController } from "../controller/HERE_API/HereMapController";
+import { hereMapController } from "../controller/HERE_API/hereMapController";
+import { getWarehouseById } from "../controller/Admin_Api/warehouseController";
 
 const adminRouter = Router();
 
@@ -122,6 +123,12 @@ adminRouter.get(
   validateToken,
   roleCheck(["admin"]),
   getTourDetails
+);
+adminRouter.get(
+  "/routeoptimize/getWarehouse/:id",
+  validateToken,
+  roleCheck(["admin"]),
+  getWarehouseById
 );
 adminRouter.post(
   "/routeoptimize/createtourHereApi",

@@ -10,10 +10,11 @@ import {
   insertTourDriverData,
   removeUnassignedOrders,
 } from "../model/tourModel";
-import { CreateTour } from "../types/dto.types";
+import { CreateTour, NotAssigned } from "../types/dto.types";
 import { Unassigned } from "../types/hereMap.types";
 import { Tour, LogisticsRoute } from "../types/tour.types";
 import hereMapService from "./hereMapService";
+import { getWarehouseWithVehiclesById } from "./warehouseService";
 
 export async function getTourMapDataAsync(tourPayload: CreateTour) {
   try {
@@ -25,7 +26,14 @@ export async function getTourMapDataAsync(tourPayload: CreateTour) {
       tourPayload.orderIds
     )) as LogisticOrder[];
 
-    const { tour, unassigned } = await hereMapService.createTourAsync(orders);
+    const warehouse = await getWarehouseWithVehiclesById(
+      tourPayload.warehouseId
+    );
+
+    const { tour, unassigned } = await hereMapService.createTourAsync(
+      orders,
+      warehouse
+    );
 
     const hereMapResJson = JSON.stringify({ tour, unassigned });
     await tourInfo_master.updateHereMapResponse(tourId, hereMapResJson);
@@ -66,11 +74,23 @@ export async function getTourMapDataAsync(tourPayload: CreateTour) {
     const unassignedOrders = await LogisticOrder.getOrdersByIds(
       unassignedOrderIds
     );
+    const notAssigned: NotAssigned[] = unassigned.map((u) => {
+      const id = u.jobId.split("_")[1];
+      const matchedOrder = unassignedOrders.find(
+        (order) => order.order_id === Number(id)
+      );
+      return {
+        id,
+        orderNumber: matchedOrder?.order_number || null,
+        reason: u.reasons,
+      };
+    });
     const tourName = await tourInfo_master.getTourNameByIdAsync(tourId);
 
     return {
       tour: tourName,
       routes,
+      notAssigned,
       unassigned: unassignedOrders.map((o) => o.order_number).join(","),
     };
   } catch (error) {

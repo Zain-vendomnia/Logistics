@@ -12,8 +12,16 @@ export const getAllWarehouses = async (_req: Request, res: Response) => {
 
 export const getWarehouseById = async (req: Request, res: Response) => {
   try {
-    const warehouse = await warehouseService.getWarehouseById(Number(req.params.id));
-    if (!warehouse) return res.status(404).json({ message: "Warehouse not found" });
+    const warehouse = await warehouseService.getWarehouseById(
+      Number(req.params.id)
+    );
+
+    if (!warehouse) {
+      return res.status(400).json({ message: "Warehouse not found" });
+    }
+
+    if (!warehouse)
+      return res.status(404).json({ message: "Warehouse not found" });
     res.json(warehouse);
   } catch (err) {
     res.status(500).json({ message: "Error fetching warehouse" });
@@ -31,8 +39,12 @@ export const createWarehouse = async (req: Request, res: Response) => {
 
 export const updateWarehouse = async (req: Request, res: Response) => {
   try {
-    const updated = await warehouseService.updateWarehouse(Number(req.params.id), req.body);
-    if (!updated) return res.status(404).json({ message: "Warehouse not found" });
+    const updated = await warehouseService.updateWarehouse(
+      Number(req.params.id),
+      req.body
+    );
+    if (!updated)
+      return res.status(404).json({ message: "Warehouse not found" });
     res.json({ message: "Warehouse updated" });
   } catch (err) {
     res.status(500).json({ message: "Error updating warehouse" });
@@ -41,8 +53,11 @@ export const updateWarehouse = async (req: Request, res: Response) => {
 
 export const deleteWarehouse = async (req: Request, res: Response) => {
   try {
-    const deleted = await warehouseService.deleteWarehouse(Number(req.params.id));
-    if (!deleted) return res.status(404).json({ message: "Warehouse not found" });
+    const deleted = await warehouseService.deleteWarehouse(
+      Number(req.params.id)
+    );
+    if (!deleted)
+      return res.status(404).json({ message: "Warehouse not found" });
     res.json({ message: "Warehouse deleted" });
   } catch (err) {
     res.status(500).json({ message: "Error deleting warehouse" });

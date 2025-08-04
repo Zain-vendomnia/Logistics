@@ -12,7 +12,9 @@ export const hereMapController = async (req: Request, res: Response) => {
       tour_payload.orderIds
     )) as LogisticOrder[];
 
-    const { tour, unassigned } = await hereMapService.createTourAsync(orders);
+    const warehouse: any = {};
+
+    const { tour, unassigned } = await hereMapService.createTourAsync(orders, warehouse);
 
     const decodedRoutes = await hereMapService.getRoutesForTour(tour || []);
     console.log("decodedRoutes: ", decodedRoutes);

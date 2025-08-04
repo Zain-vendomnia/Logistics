@@ -12,51 +12,50 @@ import {
 import { Tour } from "../types/tour.types";
 import { LogisticOrder } from "../types/database.types";
 
-const warehouseGroups = [
-  {
-    warehouseAddress:
-      "WeltZiel Logistic GmbH., Rudolf-Diesel-Straße 40 , Nufringen, 71154 ", // WeltZiel Logistic GmbH
-    vehicleCount: 1,
-    capacityPerVehicle: 300,
-  },
-  {
-    warehouseAddress: "Plischka und Schmeling,Fokkerstr. 8,Schkeuditz,04435", // Plischka und Schmeling
-    vehicleCount: 1,
-    capacityPerVehicle: 1800,
-  },
-  /*,
-    {
-      warehouseAddress: 'Honer Str. 49,Eschwege,37269', // Sunniva GmbH
-      vehicleCount: 1,
-      capacityPerVehicle: 1800
-    },
-     {
-      warehouseAddress: 'Geis Eurocargo GmbH, Ipsheimer Straße 19, Nürnberg , 90431',
-      vehicleCount: 1,
-      capacityPerVehicle: 1800
-    },
-  {
-    warehouseAddress: 'Zahn Logistics GmbH, Christof-Ruthof-Weg 7, Mainz-Kastel, 55252 ',
-    vehicleCount: 1,
-    capacityPerVehicle: 1800
-  }
-  {
-    warehouseAddress: 'ILB Transit & Logistik GmbH & Co. KG,Bonifatiusstraße 391, Rheine, 48432',
-    vehicleCount: 1,
-    capacityPerVehicle: 1800
-  }
-   {
-    warehouseAddress: 'AdL Logistic GmbH, Gerlinger Str. 34, Berlin, 12349',
-    vehicleCount: 1,
-    capacityPerVehicle: 1800
-   },
+// const warehouseGroups = [
+//   {
+//     warehouseAddress:
+//       "WeltZiel Logistic GmbH., Rudolf-Diesel-Straße 40 , Nufringen, 71154 ", // WeltZiel Logistic GmbH
+//     vehicleCount: 1,
+//     capacityPerVehicle: 300,
+//   },
+//   //     {
+//   //       warehouseAddress: "Plischka und Schmeling,Fokkerstr. 8,Schkeuditz,04435", // Plischka und Schmeling
+//   //       vehicleCount: 1,
+//   //       capacityPerVehicle: 1800,
+//   //     },
+//   //     {
+//   //       warehouseAddress: 'Honer Str. 49,Eschwege,37269', // Sunniva GmbH
+//   //       vehicleCount: 1,
+//   //       capacityPerVehicle: 1800
+//   //     },
+//   //      {
+//   //       warehouseAddress: 'Geis Eurocargo GmbH, Ipsheimer Straße 19, Nürnberg , 90431',
+//   //       vehicleCount: 1,
+//   //       capacityPerVehicle: 1800
+//   //     },
+//   //   {
+//   //     warehouseAddress: 'Zahn Logistics GmbH, Christof-Ruthof-Weg 7, Mainz-Kastel, 55252 ',
+//   //     vehicleCount: 1,
+//   //     capacityPerVehicle: 1800
+//   //   }
+//   //   {
+//   //     warehouseAddress: 'ILB Transit & Logistik GmbH & Co. KG,Bonifatiusstraße 391, Rheine, 48432',
+//   //     vehicleCount: 1,
+//   //     capacityPerVehicle: 1800
+//   //   }
+//   //    {
+//   //     warehouseAddress: 'AdL Logistic GmbH, Gerlinger Str. 34, Berlin, 12349',
+//   //     vehicleCount: 1,
+//   //     capacityPerVehicle: 1800
+//   //    },
 
- {
-    warehouseAddress: 'Recht Logistik Gruppe, Weetfelder Str., Bönen, 59199',
-    vehicleCount: 1,
-    capacityPerVehicle: 1800
- }*/
-];
+//   //  {
+//   //     warehouseAddress: 'Recht Logistik Gruppe, Weetfelder Str., Bönen, 59199',
+//   //     vehicleCount: 1,
+//   //     capacityPerVehicle: 1800
+//   //  }
+// ];
 
 const HERE_API_KEY =
   process.env.HERE_API_KEY || "2tJpOzfdl3mgNpwKiDt-KuAQlzgEbsFkbX8byW97t1k";
@@ -75,6 +74,20 @@ const geocode = async (address: string): Promise<Location> => {
     logApiError(error, "geocode");
     throw new Error("Error getting geocode.");
   }
+};
+
+export const prepareWarehouseDto = (warehouse: any) => {
+  console.log("Warehouse object reveived: ", warehouse);
+
+  const warehouseGroupObj: WarehouseGroup = {
+    warehouseAddress: warehouse.address,
+    vehicleCount: warehouse.vehicles.length,
+    capacityPerVehicle:
+      warehouse.vehicles.length > 0 ? warehouse.vehicles[0].capacity : 0,
+  };
+  console.log("warehouseDTO: ", warehouseGroupObj);
+
+  return warehouseGroupObj;
 };
 
 const createJobList = (orders: LogisticOrder[]): Job[] => {
@@ -107,29 +120,30 @@ async function buildJobs(jobList: Job[]) {
   return await Promise.all(deliveryJobs);
 }
 
-async function buildFleet(
-  warehouseGroups: WarehouseGroup[]
-): Promise<FleetType[]> {
+async function buildFleet(warehouse: any): Promise<FleetType[]> {
+  const warehouseGroupObj = prepareWarehouseDto(warehouse);
+
   const fleet: FleetType[] = [];
 
-  for (const group of warehouseGroups) {
-    const location = await geocode(group.warehouseAddress);
+  // for (const group of warehouseGroups) {
+  const location = await geocode(warehouseGroupObj.warehouseAddress);
 
-    for (let i = 0; i < group.vehicleCount; i++) {
-      fleet.push({
-        id: `${group.warehouseAddress.replace(/\W+/g, "_")}_vehicle_${i + 1}`,
-        profile: "truck",
-        costs: { fixed: 50, distance: 0.02, time: 0.0015 },
-        shifts: [
-          {
-            start: { time: "2025-06-23T07:30:00+04:00", location },
-            end: { time: "2025-06-23T19:30:00+04:00", location },
-          },
-        ],
-        capacity: [group.capacityPerVehicle],
-        amount: 1,
-      });
-    }
+  for (let i = 0; i < warehouseGroupObj.vehicleCount; i++) {
+    fleet.push({
+      id: `${warehouseGroupObj.warehouseAddress.replace(/\W+/g, "_")}_vehicle_${
+        i + 1
+      }`,
+      profile: "truck",
+      costs: { fixed: 50, distance: 0.02, time: 0.0015 },
+      shifts: [
+        {
+          start: { time: "2025-06-23T07:30:00+04:00", location },
+          end: { time: "2025-06-23T19:30:00+04:00", location },
+        },
+      ],
+      capacity: [warehouseGroupObj.capacityPerVehicle],
+      amount: 1,
+    });
   }
 
   return fleet;
@@ -299,10 +313,11 @@ function logApiError(error: Error | string | unknown, source: string): void {
   });
 }
 
-async function createTourAsync(orders: LogisticOrder[]) {
+async function createTourAsync(orders: LogisticOrder[], warehouse: any) {
   const jobList = createJobList(orders);
   const jobs = await buildJobs(jobList);
-  const fleetTypes = await buildFleet(warehouseGroups);
+
+  const fleetTypes = await buildFleet(warehouse);
   const { tour, unassigned } = await planTour(fleetTypes, jobs);
 
   return { tour, unassigned };
