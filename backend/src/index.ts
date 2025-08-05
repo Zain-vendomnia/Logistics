@@ -14,11 +14,19 @@ import solarItemsSetup from "./initialDBSetup/solarmodulesItemsSetup";
 import routeSegmentsSetup from "./initialDBSetup/routeSegmentsSetup";
 import WMSOrderSetup from "./initialDBSetup/wms_orders";
 import WMSOrderArticlesSetup from "./initialDBSetup/wms_order_articles";
-import { syncOrderData } from "./orderSync";
-import { fetchScheduleOrderInfo,fetchScheduleWmsOrderInfo } from './services/scheduleFetching';
+import { shopwareOrderSync } from "./shopwareOrderSync";
+import cron from "node-cron";
+
+// Utility function for timestamped logs
+function logWithTime(message: string) {
+  console.log(`[${new Date().toISOString()}] ${message}`);
+}
 
 async function main() {
   try {
+    // 1. Run all DB setup scripts before starting the app
+    logWithTime("🚀 Running initial database setup...");
+
     await initialSetup();
     await logisticOrderSetup();
     await logisticPaymentSetup();
@@ -35,24 +43,41 @@ async function main() {
     await apiResponseLogSetup();
     await solarItemsSetup();
 
-    
-    app.listen(app.get("port"), async () => {
-      // Now fetch and insert order data only after tables exist
-      try {
-        await syncOrderData();
-        console.log("Order data synced successfully.");
-        // Call immediately after server start
-        fetchScheduleWmsOrderInfo();
+    logWithTime("✅ Database setup completed successfully.");
 
-        setInterval(fetchScheduleOrderInfo, 900000); // 900,000 ms = 15 minutes
-        setInterval(fetchScheduleWmsOrderInfo, 1800000); // 900,000 ms = 30 minutes
+    // 2. Start the API server
+    console.log("--------------------------------------------------------------------------------------------------------------------------");
+    app.listen(app.get("port"), async () => {
+      logWithTime(`🚀 Server is running on port ${app.get("port")}`);
+
+      // 3. Run the Shopware sync immediately on startup
+      try {
+        logWithTime("⏳ Running initial Shopware Order Sync...");
+        await shopwareOrderSync();
+        logWithTime("✅ Initial Shopware Order Sync completed.");
       } catch (error) {
-        console.error("Error syncing order data:", error);
+        logWithTime("❌ Initial Shopware Order Sync failed:");
+        console.error(error);
       }
+
+      // 4. Schedule Shopware sync every 15 minutes
+      cron.schedule("*/15 * * * *", async () => {
+        logWithTime("⏳ Cron triggered: Running Shopware Order Sync...");
+        try {
+          await shopwareOrderSync();
+          logWithTime("✅ Shopware Order Sync completed.");
+        } catch (err) {
+          logWithTime("❌ Shopware Order Sync failed:");
+          console.error(err);
+        }
+      });
+
+      console.log("--------------------------------------------------------------------------------------------------------------------------");
     });
 
   } catch (error) {
-    console.error("Error during database setup:", error);
+    logWithTime("❌ Error during database setup:");
+    console.error(error);
     process.exit(1); // Exit if setup fails
   }
 }

@@ -44,7 +44,7 @@ import { dynamicTourController } from "../controller/HERE_API/dynamicTourControl
 
 import { upload } from "../middlewares/upload";
 import { parseExcelToJobs } from "../utils/parseExcel";
-import { hereMapController } from "../controller/HERE_API/HereMapController";
+// import { hereMapController } from "../controller/HERE_API/HereMapController";
 
 const adminRouter = Router();
 
@@ -59,7 +59,7 @@ adminRouter.post("/picklistEmail", picklistEmail);
 adminRouter.post("/routeoptimize/getOrder", getAllLogisticOrder);
 adminRouter.post("/insertParkingPermit", insertParkingPermit);
 adminRouter.post("/Runtour", runTourController);
-adminRouter.post("/dynamicTourController", hereMapController);
+// adminRouter.post("/dynamicTourController", hereMapController);
 
 adminRouter.post("/uploadexcel", upload.single("file"), async (req, res) => {
   try {

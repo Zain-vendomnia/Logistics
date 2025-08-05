@@ -3,9 +3,9 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const API_URL = process.env.API_URL!;
+const SHOPWARE_API_URL = process.env.SHOPWARE_API_URL!;
 const AUTH_CREDENTIALS = Buffer.from(
-  `${process.env.API_USERNAME}:${process.env.API_PASSWORD}`
+  `${process.env.SHOPWARE_API_USERNAME}:${process.env.SHOPWARE_API_PASSWORD}`
 ).toString("base64");
 
 export const fetchOrders = async () => {
@@ -14,7 +14,7 @@ export const fetchOrders = async () => {
     const params: any = {};
 
     // Make the API request without any query parameters
-    const response = await axios.get(API_URL, {
+    const response = await axios.get(SHOPWARE_API_URL, {
       params,
       headers: {
         Authorization: `Basic ${AUTH_CREDENTIALS}`,
