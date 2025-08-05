@@ -15,6 +15,8 @@ import routeSegmentsSetup from "./initialDBSetup/routeSegmentsSetup";
 import WMSOrderSetup from "./initialDBSetup/wms_orders";
 import WMSOrderArticlesSetup from "./initialDBSetup/wms_order_articles";
 import { shopwareOrderSync } from "./shopwareOrderSync";
+import { fetchScheduleWmsOrderInfo } from './services/scheduleFetching';
+
 import cron from "node-cron";
 
 // Utility function for timestamped logs
@@ -55,6 +57,10 @@ async function main() {
         logWithTime("⏳ Running initial Shopware Order Sync...");
         await shopwareOrderSync();
         logWithTime("✅ Initial Shopware Order Sync completed.");
+        //  -----------------------------------------------------
+        await fetchScheduleWmsOrderInfo();
+        logWithTime("✅ Initial WMS Order Sync completed.");
+        
       } catch (error) {
         logWithTime("❌ Initial Shopware Order Sync failed:");
         console.error(error);
@@ -68,6 +74,17 @@ async function main() {
           logWithTime("✅ Shopware Order Sync completed.");
         } catch (err) {
           logWithTime("❌ Shopware Order Sync failed:");
+          console.error(err);
+        }
+      });
+
+      cron.schedule("*/30 * * * *", async () => {
+        logWithTime("⏳ Cron triggered: Running WMS Order Sync...");
+        try {
+          await fetchScheduleWmsOrderInfo();
+          logWithTime("✅ WMS Order Sync completed.");
+        } catch (err) {
+          logWithTime("❌ WMS Order Sync failed:");
           console.error(err);
         }
       });

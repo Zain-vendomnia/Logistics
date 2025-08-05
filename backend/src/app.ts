@@ -8,8 +8,6 @@ import config from "./config";
 import { setupSwagger } from './swagger';
 
 // Import the controller fucntion for the order info
-import { orderInfoController } from "./controller/Admin_Api/orderInfo.controller";
-import { scheduleOrderInfoController } from "./controller/Admin_Api/scheduleOrderInfo.controller";
 import { scheduleWmsOrderController } from "./controller/Admin_Api/scheduleWmsOrderInfo.controller";
 
 // import { addData,getImageById } from "./controller/Admin_Api/route_segments.controller";
@@ -56,8 +54,6 @@ app.use("/api/admin", adminRouter);
 // total order count
 app.get("/api/admin/orderCount", getOrderCount);
 // --------------------------------------------------------------------
-app.get("/api/admin/orderinfo", orderInfoController);
-app.get("/api/admin/scheduleOrderInfo", scheduleOrderInfoController);
 app.get("/api/admin/scheduleWmsOrderInfo", scheduleWmsOrderController);
 
 app.post("/upload_image", uploadImageController);

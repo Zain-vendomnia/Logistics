@@ -69,7 +69,9 @@ export const CREATE_TOUR_INFO_MASTER_TABLE = `
     heremap_route JSON,
     tour_status ENUM('pending', 'live', 'confirmed', 'completed') DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+    tour_total_estimate_time TIME,
+    overall_performance_rating DECIMAL(2,1) DEFAULT 0.00
   );
 `;
 
@@ -122,6 +124,7 @@ export const CREATE_ROUTE_SEGMENTS_TABLE = `
     comments VARCHAR(45) DEFAULT NULL,
     delivery_time TIMESTAMP,
     FOREIGN KEY (tour_id) REFERENCES tourInfo_master(id) ON DELETE CASCADE,
+    
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
     recipient_type ENUM('customer', 'neighbour') DEFAULT 'customer'
@@ -144,6 +147,7 @@ export const CREATE_WAREHOUSE_DETAILS_TABLE = `
 export const LOGIC_ORDER_TABLE = `
   CREATE TABLE IF NOT EXISTS logistic_order (
     order_id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+    shopware_order_id INT NOT NULL UNIQUE,
     order_number VARCHAR(45) NOT NULL,
     customer_id VARCHAR(45) NOT NULL,
     invoice_amount VARCHAR(45) NOT NULL,

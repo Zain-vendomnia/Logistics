@@ -1,9 +1,6 @@
 export const SHOPWARE_ORDERINFO_URL = `
     http://vendomnia.local.com/OrderInfo
 `;
-export const SCHEDULED_ORDERINFO_URL = `
-    http://localhost:8080/api/admin/scheduleOrderInfo
-`;
 export const SCHEDULED_WMS_ORDERINFO_URL = `
     http://localhost:8080/api/admin/scheduleWmsOrderInfo
 `;

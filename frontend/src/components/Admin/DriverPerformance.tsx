@@ -12,6 +12,9 @@ import {
 import SearchIcon from "@mui/icons-material/Search";
 import DriverPerformanceCard from "./DriverPerformanceCard";
 import { getDriverPerformanceData } from "../../services/driverService";
+import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import dayjs, { Dayjs } from "dayjs";
 
 interface Driver {
   id: number;
@@ -52,34 +55,66 @@ const DriverPerformance = () => {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedWarehouse, setSelectedWarehouse] = useState("all");
 
+  // New state for date filters
+  const [filterType, setFilterType] = useState("weekly");
+  const [fromDate, setFromDate] = useState<Dayjs>(
+    dayjs().startOf("week").add(1, "day") // Monday
+  );
+  const [toDate, setToDate] = useState<Dayjs>(
+    dayjs().startOf("week").add(5, "day") // Friday
+  );
+
+  // Debounce search
   useEffect(() => {
     const handler = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(handler);
   }, [search]);
 
+  // Fetch driver data based on selected filter
   useEffect(() => {
+    let start: Dayjs, end: Dayjs;
+
+    if (filterType === "weekly") {
+      start = dayjs().startOf("week").add(1, "day");
+      end = dayjs().startOf("week").add(5, "day");
+    } else if (filterType === "monthly") {
+      start = dayjs().startOf("month");
+      end = dayjs().endOf("month");
+    } else if (filterType === "overall") {
+      start = dayjs("2025-01-01");
+      end = dayjs();
+    } else {
+      start = fromDate;
+      end = toDate;
+    }
+
     const fetchDriverPerformance = async () => {
+      setLoading(true);
       try {
-        const response = await getDriverPerformanceData();
+        const response = await getDriverPerformanceData(
+          start.format("YYYY-MM-DD"),
+          end.format("YYYY-MM-DD")
+        );
         setDrivers(response);
         console.log("Fetched driver performance data:", response);
       } catch (error) {
         console.error("Failed to fetch driver data:", error);
-        console.log("error fetching data: ", error);
       } finally {
         setLoading(false);
       }
     };
 
     fetchDriverPerformance();
-  }, []);
+  }, [filterType, fromDate, toDate]);
 
+  // Warehouse options
   const warehouseOptions = useMemo(() => {
     const map = new Map<number, string>();
     drivers.forEach((d) => map.set(d.warehouseId, d.warehouseName));
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
   }, [drivers]);
 
+  // Filter drivers by search and warehouse
   const filteredDrivers = useMemo(() => {
     const searchLower = debouncedSearch.toLowerCase();
     return drivers.filter((driver) => {
@@ -123,6 +158,38 @@ const DriverPerformance = () => {
           justifyContent="center"
           mb={3}
         >
+          {/* Performance Period Filter */}
+          <TextField
+            select
+            label="Performance Period"
+            size="medium"
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            sx={{ minWidth: 200 }}
+          >
+            <MenuItem value="weekly">Weekly (Mon–Fri)</MenuItem>
+            <MenuItem value="monthly">Monthly</MenuItem>
+            <MenuItem value="custom">Custom Date Range</MenuItem>
+            <MenuItem value="overall">Overall</MenuItem>
+          </TextField>
+
+          {/* Show date pickers only for custom range */}
+          {filterType === "custom" && (
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <DatePicker
+                label="From"
+                value={fromDate}
+                onChange={(date) => date && setFromDate(date)}
+              />
+              <DatePicker
+                label="To"
+                value={toDate}
+                onChange={(date) => date && setToDate(date)}
+              />
+            </LocalizationProvider>
+          )}
+
+          {/* Search box */}
           <TextField
             label="Search by name, email or phone"
             value={search}
@@ -138,6 +205,8 @@ const DriverPerformance = () => {
             }}
             sx={{ minWidth: 280 }}
           />
+
+          {/* Warehouse filter */}
           <TextField
             select
             label="Filter by warehouse"
@@ -168,7 +237,7 @@ const DriverPerformance = () => {
           No drivers match the criteria.
         </Typography>
       ) : (
-        <Grid container spacing={5} >
+        <Grid container spacing={5}>
           {filteredDrivers.map((driver) => (
             <Grid key={driver.id} item xs={12} sm={6} md={4} lg={4}>
               <DriverPerformanceCard
