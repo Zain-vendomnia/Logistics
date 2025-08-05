@@ -9,6 +9,8 @@ import {
   getAllLogisticOrders,
   getAllLogisticOrder,
   getcountcheck,
+  getOrdersLastUpdated,
+  getCheckOrdersRecentUpdates,
 } from "../controller/Admin_RouteOptimzation/order.controller";
 import {
   createTourController,
@@ -110,6 +112,20 @@ adminRouter.get(
   validateToken,
   roleCheck(["admin"]),
   getcountcheck
+);
+
+adminRouter.get(
+  "/routeoptimize/ordersLastUpdated",
+  validateToken,
+  roleCheck(["admin"]),
+  getOrdersLastUpdated
+);
+
+adminRouter.get(
+  "/routeoptimize/checkordersrecentupdates",
+  validateToken,
+  roleCheck(["admin"]),
+  getCheckOrdersRecentUpdates
 );
 
 adminRouter.post(

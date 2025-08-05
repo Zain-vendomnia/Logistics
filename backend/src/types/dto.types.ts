@@ -24,3 +24,8 @@ export type NotAssigned = {
     description: string;
   }[];
 };
+
+export type CheckOrderCount = {
+  count: number;
+  lastUpdated: string;
+};
