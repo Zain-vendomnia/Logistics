@@ -100,6 +100,7 @@ const CreateTourModal = ({
       const res = await adminApiService.createTour(payload);
       // const res = await adminApiService.getTour(16);
 
+      console.log("warehouse:", res);
       const rawData: CreateTour_Res = res.data;
       setCreateTourRes(rawData);
     } catch (err) {
