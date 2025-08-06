@@ -62,6 +62,7 @@ adminRouter.post("/picklistEmail", picklistEmail);
 adminRouter.post("/routeoptimize/getOrder", getAllLogisticOrder);
 adminRouter.post("/insertParkingPermit", insertParkingPermit);
 adminRouter.post("/Runtour", runTourController);
+adminRouter.post("/hereMapController", hereMapController);
 adminRouter.post("/dynamicTourController", hereMapController);
 
 adminRouter.post("/uploadexcel", upload.single("file"), async (req, res) => {
