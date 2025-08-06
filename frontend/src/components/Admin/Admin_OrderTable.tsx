@@ -114,8 +114,8 @@ const columns: GridColDef[] = [
 
 interface AdminOrderTableProps {
   selectedWarehouses: number[];
-  setOrdersData: React.Dispatch<React.SetStateAction<LogisticOrder[]>>;
   setSelectedOrders: React.Dispatch<React.SetStateAction<number[]>>;
+  setOrdersData: React.Dispatch<React.SetStateAction<LogisticOrder[]>>;
 }
 
 const AdminOrderTable: React.FC<AdminOrderTableProps> = ({
@@ -136,6 +136,7 @@ const AdminOrderTable: React.FC<AdminOrderTableProps> = ({
 
   useEffect(() => {
     const fetchOrders = async () => {
+      setLoading(true);
       try {
         const orderService = latestOrderServices.getInstance();
         const data = await orderService.getOrders();

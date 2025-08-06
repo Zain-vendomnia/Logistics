@@ -1,6 +1,16 @@
+export type NotAssigned = {
+  id: string;
+  orderNumber: string | null;
+  reason: {
+    code: string;
+    description: string;
+  }[];
+};
+
 export interface CreateTour_Res {
   tour: string; // tourName
   routes: LogisticsRoute[];
+  notAssigned: NotAssigned[];
   unassigned: string;
   message: string;
 }

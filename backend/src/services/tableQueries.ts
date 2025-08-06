@@ -1,10 +1,36 @@
+export const CREATE_WAREHOUSE_DETAILS_TABLE = `
+  CREATE TABLE IF NOT EXISTS warehouse_details (
+    warehouse_id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+    warehouse_name VARCHAR(45) NOT NULL,
+    clerk_name VARCHAR(45) NOT NULL,
+    clerk_mob VARCHAR(20) NOT NULL,
+    address VARCHAR(225) NOT NULL,
+    email VARCHAR(45) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
+  );
+`;
+
+export const INSERT_WAREHOUSE_DETAILS_DATA = `
+INSERT INTO warehouse_details (warehouse_name, address)
+VALUES
+('WeltZiel Logistic GmbH', 'WeltZiel Logistic GmbH., Rudolf-Diesel-Straße 40 , Nufringen, 71154'),
+('Plischka und Schmeling', 'Plischka und Schmeling, Fokkerstr. 8, Schkeuditz, 04435'),
+('Sunniva GmbH', 'Honer Str. 49, Eschwege, 37269'),
+('Geis Eurocargo GmbH', 'Geis Eurocargo GmbH, Ipsheimer Straße 19, Nürnberg, 90431'),
+('Zahn Logistics GmbH', 'Zahn Logistics GmbH, Christof-Ruthof-Weg 7, Mainz-Kastel, 55252'),
+('ILB Transit & Logistik GmbH & Co. KG', 'ILB Transit & Logistik GmbH & Co. KG, Bonifatiusstraße 391, Rheine, 48432'),
+('AdL Logistic GmbH', 'AdL Logistic GmbH, Gerlinger Str. 34, Berlin, 12349'),
+('Recht Logistik Gruppe', 'Recht Logistik Gruppe, Weetfelder Str., Bönen, 59199');
+`;
+
 export const CREATE_DRIVER_DETAILS_TABLE = `
  CREATE TABLE IF NOT EXISTS driver_details (
     id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(45) NOT NULL,
     mob VARCHAR(20) NOT NULL,
     address VARCHAR(45) NOT NULL,
-    licenceplate VARCHAR(45) NOT NULL,
+    license_plate  VARCHAR(45) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
     user_id INT DEFAULT NULL,
     warehouse_id INT NOT NULL,
@@ -12,8 +38,36 @@ export const CREATE_DRIVER_DETAILS_TABLE = `
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (warehouse_id) REFERENCES warehouse_details(warehouse_id) ON DELETE CASCADE,
-);
+  );
+`;
 
+export const CREATE_VEHICLE_DETAILS_TABLE = `
+    CREATE TABLE IF NOT EXISTS vehicle_details (
+    vehicle_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    capacity INT NOT NULL DEFAULT 0,
+    license_plate  VARCHAR(45) NOT NULL,
+    miles_driven INT NOT NULL DEFAULT 0,
+    next_service TIMESTAMP NULL,
+    warehouse_id INT NOT NULL,
+    driver_id INT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (warehouse_id) REFERENCES warehouse_details(warehouse_id) ON DELETE CASCADE,
+    FOREIGN KEY (driver_id) REFERENCES driver_details(id) ON DELETE CASCADE
+  );
+`;
+
+export const INSERT_VEHICLE_DETAILS_DATA = `
+INSERT INTO vehicle_details (license_plate, capacity, warehouse_id)
+VALUES
+('ABC-001', 300, 1),
+('ABC-002', 1800, 2),
+('ABC-003', 1800, 3),
+('ABC-004', 1800, 4),
+('ABC-005', 1800, 5),
+('ABC-006', 1800, 6),
+('ABC-007', 1800, 7),
+('ABC-008', 1800, 8);
 `;
 
 export const CREATE_DRIVER_LOCATIONS_TABLE = `
@@ -128,19 +182,6 @@ export const CREATE_ROUTE_SEGMENTS_TABLE = `
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
     recipient_type ENUM('customer', 'neighbour') DEFAULT 'customer'
-  );
-`;
-
-export const CREATE_WAREHOUSE_DETAILS_TABLE = `
-  CREATE TABLE IF NOT EXISTS warehouse_details (
-    warehouse_id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
-    warehouse_name VARCHAR(45) NOT NULL,
-    clerk_name VARCHAR(45) NOT NULL,
-    clerk_mob VARCHAR(20) NOT NULL,
-    address VARCHAR(45) NOT NULL,
-    email VARCHAR(45) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
   );
 `;
 

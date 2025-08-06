@@ -9,6 +9,8 @@ import {
   getAllLogisticOrders,
   getAllLogisticOrder,
   getcountcheck,
+  getOrdersLastUpdated,
+  getCheckOrdersRecentUpdates,
 } from "../controller/Admin_RouteOptimzation/order.controller";
 import {
   createTourController,
@@ -42,7 +44,8 @@ import { dynamicTourController } from "../controller/HERE_API/dynamicTourControl
 
 import { upload } from "../middlewares/upload";
 import { parseExcelToJobs } from "../utils/parseExcel";
-// import { hereMapController } from "../controller/HERE_API/HereMapController";
+import { hereMapController } from "../controller/HERE_API/hereMapController";
+import { getWarehouseById } from "../controller/Admin_Api/warehouseController";
 
 const adminRouter = Router();
 
@@ -55,7 +58,8 @@ adminRouter.post("/picklistEmail", picklistEmail);
 adminRouter.post("/routeoptimize/getOrder", getAllLogisticOrder);
 adminRouter.post("/insertParkingPermit", insertParkingPermit);
 adminRouter.post("/Runtour", runTourController);
-// adminRouter.post("/dynamicTourController", hereMapController);
+adminRouter.post("/hereMapController", hereMapController);
+adminRouter.post("/dynamicTourController", hereMapController);
 
 adminRouter.post("/uploadexcel", upload.single("file"), async (req, res) => {
   try {
@@ -107,6 +111,20 @@ adminRouter.get(
   getcountcheck
 );
 
+adminRouter.get(
+  "/routeoptimize/ordersLastUpdated",
+  validateToken,
+  roleCheck(["admin"]),
+  getOrdersLastUpdated
+);
+
+adminRouter.get(
+  "/routeoptimize/checkordersrecentupdates",
+  validateToken,
+  roleCheck(["admin"]),
+  getCheckOrdersRecentUpdates
+);
+
 adminRouter.post(
   "/routeoptimize/createtour",
   validateToken,
@@ -118,6 +136,12 @@ adminRouter.get(
   validateToken,
   roleCheck(["admin"]),
   getTourDetails
+);
+adminRouter.get(
+  "/routeoptimize/getWarehouse/:id",
+  validateToken,
+  roleCheck(["admin"]),
+  getWarehouseById
 );
 adminRouter.post(
   "/routeoptimize/createtourHereApi",
