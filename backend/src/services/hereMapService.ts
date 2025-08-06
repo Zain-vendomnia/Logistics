@@ -120,39 +120,43 @@ async function buildJobs(jobList: Job[]) {
   return await Promise.all(deliveryJobs);
 }
 
-async function buildFleet(warehouse: any): Promise<FleetType[]> {
-  const warehouseGroupObj = prepareWarehouseDto(warehouse);
-
+async function buildFleet(warehouseGroups: any[]): Promise<FleetType[]> {
   const fleet: FleetType[] = [];
 
-  // for (const group of warehouseGroups) {
-  const location = await geocode(warehouseGroupObj.warehouseAddress);
+  for (const group of warehouseGroups) {
+    const warehouseGroupObj = prepareWarehouseDto(group);
+    const location = await geocode(warehouseGroupObj.warehouseAddress);
 
-  for (let i = 0; i < warehouseGroupObj.vehicleCount; i++) {
-    fleet.push({
-      id: `${warehouseGroupObj.warehouseAddress.replace(/\W+/g, "_")}_vehicle_${
-        i + 1
-      }`,
-      profile: "truck",
-      costs: { fixed: 50, distance: 0.02, time: 0.0015 },
-      shifts: [
-        {
-          start: { time: "2025-06-23T07:30:00+04:00", location },
-          end: { time: "2025-06-23T19:30:00+04:00", location },
-        },
-      ],
-      capacity: [warehouseGroupObj.capacityPerVehicle],
-      amount: 1,
-    });
+    for (let i = 0; i < warehouseGroupObj.vehicleCount; i++) {
+      fleet.push({
+        id: `${warehouseGroupObj.warehouseAddress.replace(
+          /\W+/g,
+          "_"
+        )}_vehicle_${i + 1}`,
+        profile: "truck",
+        costs: { fixed: 50, distance: 0.02, time: 0.0015 },
+        shifts: [
+          {
+            start: { time: "2025-06-23T07:30:00+04:00", location },
+            end: { time: "2025-06-23T19:30:00+04:00", location },
+          },
+        ],
+        capacity: [warehouseGroupObj.capacityPerVehicle],
+        amount: 1,
+      });
+    }
   }
 
   return fleet;
 }
 
-async function planTour(
-  fleetTypes: FleetType[],
-  jobs: DeliveryJob[]
-): Promise<{ tour: Tour; unassigned: Unassigned[] }> {
+// WarehouseGroup as DB object array
+async function PlanTour(orders: LogisticOrder[], warehouseGroup: any[]) {
+  const jobList = createJobList(orders);
+  const jobs = await buildJobs(jobList);
+
+  const fleetTypes = await buildFleet(warehouseGroup);
+
   const problem = {
     fleet: {
       types: fleetTypes,
@@ -178,8 +182,80 @@ async function planTour(
       tour,
       unassigned,
     };
+
+    // const decodedRoutes = await getRoutesFromTours((tours as Tour[]) || []);
+    // return { routes: decodedRoutes, unassigned: unassigned };
   } catch (error) {
-    logApiError(error, "planTour");
+    logApiError(error, "PlanTourAsync");
+    throw new Error("Failed to plan tour.");
+  }
+}
+
+// Mock testing functions
+async function buildFleet_Mock(warehouseGroups: any[]): Promise<FleetType[]> {
+  const fleet: FleetType[] = [];
+
+  for (const group of warehouseGroups) {
+    const warehouseGroupObj = group as WarehouseGroup;
+    const location = await geocode(warehouseGroupObj.warehouseAddress);
+
+    for (let i = 0; i < warehouseGroupObj.vehicleCount; i++) {
+      fleet.push({
+        id: `${warehouseGroupObj.warehouseAddress.replace(
+          /\W+/g,
+          "_"
+        )}_vehicle_${i + 1}`,
+        profile: "truck",
+        costs: { fixed: 50, distance: 0.02, time: 0.0015 },
+        shifts: [
+          {
+            start: { time: "2025-06-23T07:30:00+04:00", location },
+            end: { time: "2025-06-23T19:30:00+04:00", location },
+          },
+        ],
+        capacity: [warehouseGroupObj.capacityPerVehicle],
+        amount: 1,
+      });
+    }
+  }
+
+  return fleet;
+}
+async function PlanTourAsync_Mock(jobList: Job[], warehouseGroup: any[]) {
+  const jobs = await buildJobs(jobList);
+
+  const fleetTypes = await buildFleet_Mock(warehouseGroup);
+
+  const problem = {
+    fleet: {
+      types: fleetTypes,
+      profiles: [{ type: "truck", name: "truck" }],
+    },
+    plan: { jobs },
+  };
+
+  try {
+    const response = await axios.post(
+      `https://tourplanning.hereapi.com/v3/problems?apiKey=${HERE_API_KEY}`,
+      problem,
+      { headers: { "Content-Type": "application/json" } }
+    );
+
+    // unwrap safely with fallback or error
+    const tours = (response.data?.tours as Tour[]) || [];
+    const unassigned = (response.data.unassigned ?? []) as Unassigned[] | [];
+    if (!tours.length) {
+      throw new Error("No tour found in the response.");
+    }
+    return {
+      tours,
+      unassigned,
+    };
+
+    // const decodedRoutes = await getRoutesFromTours((tours as Tour[]) || []);
+    // return { routes: decodedRoutes, unassigned: unassigned };
+  } catch (error) {
+    logApiError(error, "PlanTourAsync");
     throw new Error("Failed to plan tour.");
   }
 }
@@ -234,6 +310,36 @@ async function getRoutesForTour(tour: Tour): Promise<DecodedRoute | null> {
     logApiError(err, `getRoutesFromTours for vehicleId=${tour.vehicleId}`);
     return null;
   }
+}
+
+const hereMapService = {
+  geocode,
+  getRoutesForTour,
+  PlanTour,
+  PlanTourAsync_Mock,
+};
+
+export default hereMapService;
+
+function logApiError(error: Error | string | unknown, source: string): void {
+  let message = "Unknown error";
+  let stack = "";
+  let statusCode = 0;
+
+  if (axios.isAxiosError(error)) {
+    message = error.message;
+    stack = error.stack ?? "";
+    statusCode = error.response?.status ?? 0;
+  } else if (error instanceof Error) {
+    message = error.message;
+    stack = error.stack ?? "";
+  }
+
+  console.error(`[HereMapService] API error in ${source}`, {
+    statusCode,
+    message,
+    stack,
+  });
 }
 
 // const getRoutesFromTours = async (tours: Tour | Tour[]): Promise<DecodedRoute[]> => {
@@ -291,45 +397,3 @@ async function getRoutesForTour(tour: Tour): Promise<DecodedRoute | null> {
 //   const results = await Promise.all(routePromises);
 //   return results.filter((route): route is DecodedRoute => route !== null);
 // };
-
-function logApiError(error: Error | string | unknown, source: string): void {
-  let message = "Unknown error";
-  let stack = "";
-  let statusCode = 0;
-
-  if (axios.isAxiosError(error)) {
-    message = error.message;
-    stack = error.stack ?? "";
-    statusCode = error.response?.status ?? 0;
-  } else if (error instanceof Error) {
-    message = error.message;
-    stack = error.stack ?? "";
-  }
-
-  console.error(`[HereMapService] API error in ${source}`, {
-    statusCode,
-    message,
-    stack,
-  });
-}
-
-async function createTourAsync(orders: LogisticOrder[], warehouse: any) {
-  const jobList = createJobList(orders);
-  const jobs = await buildJobs(jobList);
-
-  const fleetTypes = await buildFleet(warehouse);
-  const { tour, unassigned } = await planTour(fleetTypes, jobs);
-
-  return { tour, unassigned };
-
-  // const decodedRoutes = await getRoutesFromTours((tours as Tour[]) || []);
-  // return { routes: decodedRoutes, unassigned: unassigned };
-}
-
-const hereMapService = {
-  geocode,
-  createTourAsync,
-  getRoutesForTour,
-};
-
-export default hereMapService;

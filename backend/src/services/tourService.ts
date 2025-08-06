@@ -30,10 +30,9 @@ export async function getTourMapDataAsync(tourPayload: CreateTour) {
       tourPayload.warehouseId
     );
 
-    const { tour, unassigned } = await hereMapService.createTourAsync(
-      orders,
-      warehouse
-    );
+    const { tour, unassigned } = await hereMapService.PlanTour(orders, [
+      warehouse,
+    ]);
 
     const hereMapResJson = JSON.stringify({ tour, unassigned });
     await tourInfo_master.updateHereMapResponse(tourId, hereMapResJson);
