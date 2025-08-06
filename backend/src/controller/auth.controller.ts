@@ -59,7 +59,7 @@ export async function signup(req: Request, res: Response) {
 
     // 7. Create JWT token
     const token = jwt.sign({ user_id: userId, role }, config.SECRET, {
-      expiresIn: "1h",
+      expiresIn: "14h",
     });
 
     // 8. Return success response

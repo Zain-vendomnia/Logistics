@@ -27,8 +27,6 @@ import { ExportTourController } from "../controller/Admin_RouteOptimzation/expor
 import { getAllTourController } from "../controller/Admin_RouteOptimzation/getAllTourController";
 
 import { getOrderCount } from "../controller/Admin_Api/orderCount.controller";
-import { orderInfoController } from "../controller/Admin_Api/orderInfo.controller";
-import { scheduleOrderInfoController } from "../controller/Admin_Api/scheduleOrderInfo.controller";
 import { scheduleWmsOrderController } from "../controller/Admin_Api/scheduleWmsOrderInfo.controller";
 import { uploadImageController } from "../controller/Admin_Api/uploadImage.controller";
 import { HandleOrderDelivery } from "../controller/AdminDriverApi/HandleOrderDelivery";
@@ -55,8 +53,6 @@ const adminRouter = Router();
  * Public routes (no authentication required)
  */
 adminRouter.get("/customer/updatelatlng", updatelatlngController);
-adminRouter.get("/orderinfo", orderInfoController);
-adminRouter.get("/scheduleOrderInfo", scheduleOrderInfoController);
 adminRouter.get("/scheduleWmsOrderInfo", scheduleWmsOrderController);
 adminRouter.post("/picklistEmail", picklistEmail);
 adminRouter.post("/routeoptimize/getOrder", getAllLogisticOrder);

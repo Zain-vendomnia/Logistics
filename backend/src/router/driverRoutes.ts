@@ -19,7 +19,7 @@ router.use(validateToken, roleCheck(["admin"]));
 
 router.get("/", getAllDrivers);
 router.get("/available", getAvailableDriversByDateAndWarehouse);
-router.get("/performance", getDriverPerformanceData); // 👈 new route
+router.get("/performance", getDriverPerformanceData);
 router.get("/:id", getDriverById);
 router.post("/", createDriver);
 router.put("/:id", updateDriver);
