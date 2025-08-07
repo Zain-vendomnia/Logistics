@@ -14,6 +14,7 @@ import ViewPicklistModal from './Admin_ViewPicklistModal';
 import '../Admin/css/Admin_TourTemplate.css';
 import adminApiService from '../../services/adminApiService';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import { getOrderInitialEmailHTML } from '../../assets/templates/OrderInitialEmails';
 
 interface Tour {
   id: string;
@@ -102,7 +103,7 @@ const AdminTourTemplates = () => {
 
     const instance = latestOrderServices.getInstance();
     const toursdata = await instance.getTours();
-
+    console.log(toursdata);
     const idNumbers = permitTourIds.map(id => Number(id));  // Get the IDs of selected tours
     const matchedTours = toursdata.filter((tour: any) => idNumbers.includes(tour.id)); // Filter the tours based on the selected IDs
     const allOrders = matchedTours.flatMap((tour: any) => tour.orders);  // Extract all orders from matched tours
@@ -112,7 +113,7 @@ const AdminTourTemplates = () => {
       for (const order of allOrders) {
 
         const orderNumber = order.order_number;
-
+        console.log(order);
         // Use window.location.origin or env var
         const baseUrl = `${window.location.protocol}//${window.location.host}/ParkingPermitForm`;
 
@@ -120,19 +121,49 @@ const AdminTourTemplates = () => {
 
         const finalUrl = `${baseUrl}?o=${encodedOrderNumber}`;
 
+        const ApiData = await adminApiService.getShopOrder(order.order_number);
+        const orderData = ApiData.data.data;
+           console.log(orderData,'here teseting');
+        const trackingCode = orderData.trackingCode;
 
-          const html = `Dear ${order.firstname} ${order.lastname},\n \n 
-          Please use the following form and return it to us completed and signed.
-          Fill out the parking permit:\n
-          ${finalUrl} \n \n
-          Once submitted, we will automatically receive your permission and arrange delivery accordingly.`;
+        let html = '';
+        let condition = 0;
+        if (trackingCode && orderData.orderStatus.id != 10006 ) {
 
-        await adminApiService.picklistEmail({
-          // to: order.email,
-          to: 'jishi.puthanpurayil@vendomnia.com',
-          subject: 'Parking Permit - Order #'+order.order_number ,
-          html
-        });
+          condition = 1;
+          html = getOrderInitialEmailHTML(
+              orderData,
+              finalUrl,
+              condition
+          );
+
+        }else if( !trackingCode && orderData.orderStatus.id != 10006 ){
+         condition = 2;
+                html = getOrderInitialEmailHTML(
+                    orderData,
+                    finalUrl,
+                    condition
+                );
+        }else if(orderData.orderStatus.id == 10006){
+         condition = 3;
+                html = getOrderInitialEmailHTML(
+                    orderData,
+                    finalUrl,
+                    condition
+                );
+        }
+          // const html = `Dear ${order.firstname} ${order.lastname},\n \n 
+          // Please use the following form and return it to us completed and signed.
+          // Fill out the parking permit:\n
+          // ${finalUrl} \n \n
+          // Once submitted, we will automatically receive your permission and arrange delivery accordingly.`;
+
+        // await adminApiService.picklistEmail({
+        //   // to: order.email,
+        //   to: 'muhammad.jahanzaibbaloch@vendomnia.com',
+        //   subject: 'Parking Permit - Order #'+order.order_number ,
+        //   html
+        // });
       }
       showSnackbar('Emails sent successfully', 'success');
     } catch (error) {
@@ -145,6 +176,7 @@ const AdminTourTemplates = () => {
       setPermitTourIds([]);
     }
   };
+
 
 
   const handleAction = async (action: 'delete' | 'merge' | 'export'|'permit') => {
