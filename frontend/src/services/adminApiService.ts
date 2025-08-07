@@ -14,6 +14,12 @@ const fetchAllTours = () =>
   axios.get(`${API_BaseUrl}getAlltours`, { headers: authHeader() });
 const fetchOrderCount = () =>
   axios.get(`${API_BaseUrl}ordercount`, { headers: authHeader() });
+
+const checkOrdersRecentUpdates = async () =>
+  await axios.get(`${API_BaseUrl}checkordersrecentupdates`, {
+    headers: authHeader(),
+  });
+
 const fetchAllOrders = () =>
   axios.get(`${API_BaseUrl}orders`, { headers: authHeader() });
 const fetchSpecifiedOrder = (order_number: string) => {
@@ -24,6 +30,11 @@ const getTour = (tourId: number) =>
   axios.get(`${API_BaseUrl}getTour`, {
     headers: authHeader(),
     params: { tourId },
+  });
+
+const getWarehouse = (id: number) =>
+  axios.get(`${API_BaseUrl}getWarehouse/${id}`, {
+    headers: authHeader(),
   });
 
 const createTour = (tourData: CreateTour_Req) =>
@@ -167,6 +178,7 @@ const adminApiService = {
   fetchOrderTourCount,
   fetchAllTours,
   fetchOrderCount,
+  checkOrdersRecentUpdates,
   fetchAllOrders,
   fetchSpecifiedOrder,
   createTour,
@@ -188,6 +200,7 @@ const adminApiService = {
   createtourHereApi,
   uploadexcel,
   getShopOrder
+  getWarehouse,
 };
 
 export default adminApiService;

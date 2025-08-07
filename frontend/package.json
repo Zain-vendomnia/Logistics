@@ -31,6 +31,7 @@
     "axios": "^0.27.2",
     "bootstrap": "^4.6.2",
     "canvas-confetti": "^1.9.3",
+    "confetti": "^2.0.6",
     "dayjs": "^1.11.13",
     "exceljs": "^4.4.0",
     "file-saver": "^2.0.5",

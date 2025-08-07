@@ -13,11 +13,3 @@ export interface LogisticOrderItem {
   quantity: number;
   warehouse_id: string;
 }
-
-export interface WarehouseDetails {
-  id: number;
-  name: string;
-  address: string;
-  vehicleCount: number;
-  capacityPerVehicle: number;
-}

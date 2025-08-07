@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Box,
   Button,
@@ -15,19 +15,19 @@ import {
   Paper,
   Divider,
   FormControlLabel,
-  Switch
-} from '@mui/material';
-import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
-import CloseIcon from '@mui/icons-material/Close';
-import { FireTruckOutlined, FireTruckSharp } from '@mui/icons-material';
+  Switch,
+} from "@mui/material";
+import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
+import CloseIcon from "@mui/icons-material/Close";
+import { FireTruckOutlined, FireTruckSharp } from "@mui/icons-material";
 
-const steps = ['Fleet', 'Tours Overview'];
+const steps = ["Fleet", "Tours Overview"];
 
 const FleetPanel: React.FC = () => {
   const [activeStep, setActiveStep] = useState(0);
-  const [vehicleType, setVehicleType] = useState('Car');
-  const [endLocation, setEndLocation] = useState('Start');
-  const [schedule, setSchedule] = useState([7.30, 19.30]);
+  const [vehicleType, setVehicleType] = useState("Car");
+  const [endLocation, setEndLocation] = useState("Start");
+  const [schedule, setSchedule] = useState([7.3, 19.3]);
   const [maxDistanceEnabled, setMaxDistanceEnabled] = useState(false);
   const [maxShiftEnabled, setMaxShiftEnabled] = useState(false);
   const [maxDistance, setMaxDistance] = useState(100);
@@ -42,7 +42,6 @@ const FleetPanel: React.FC = () => {
     }
   };
 
-
   const handleEndLocationChange = (
     event: React.MouseEvent<HTMLElement>,
     newValue: string | null
@@ -55,7 +54,14 @@ const FleetPanel: React.FC = () => {
   return (
     <Paper
       elevation={3}
-      sx={{ width: 340, height: '100vh', display: 'flex', flexDirection: 'column', p: 2, overflowY: 'auto' }}
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        width: 360,
+        height: "100%",
+        overflow: "hidden",
+        p: 2,
+      }}
     >
       {/* Stepper */}
       <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 2 }}>
@@ -67,25 +73,28 @@ const FleetPanel: React.FC = () => {
       </Stepper>
 
       {/* Start Location */}
-      <Typography variant="h6" gutterBottom>Start Location</Typography>
+      <Typography variant="h6" gutterBottom>
+        Start Location
+      </Typography>
       <TextField
         fullWidth
         label="Where is your start location?"
-
         size="medium"
         sx={{ mb: 2 }}
       />
 
-
-
-      <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ mb: 2, display: "block" }}
+      >
         The tours will end at the start location
       </Typography>
 
-
-
       {/* Fleet */}
-      <Typography variant="h6" gutterBottom>Fleet</Typography>
+      <Typography variant="h6" gutterBottom>
+        Fleet
+      </Typography>
 
       <TextField
         select
@@ -103,8 +112,18 @@ const FleetPanel: React.FC = () => {
       </TextField>
 
       <Box display="flex" gap={1} sx={{ mb: 2 }}>
-        <TextField fullWidth label="No of Vehicles" defaultValue={1} size="medium" />
-        <TextField fullWidth label="Capacity per Vehicle" defaultValue={1800} size="medium" />
+        <TextField
+          fullWidth
+          label="No of Vehicles"
+          defaultValue={1}
+          size="medium"
+        />
+        <TextField
+          fullWidth
+          label="Capacity per Vehicle"
+          defaultValue={1800}
+          size="medium"
+        />
       </Box>
 
       <Box sx={{ mb: 2 }}>
@@ -155,11 +174,10 @@ const FleetPanel: React.FC = () => {
         </Box>
       </Box>
 
-
-
-
       {/* Driver's Schedule */}
-      <Typography variant="body2" sx={{ mb: 1 }}>Driver's Schedule</Typography>
+      <Typography variant="body2" sx={{ mb: 1 }}>
+        Driver's Schedule
+      </Typography>
       <Slider
         value={schedule}
         onChange={handleChange}
@@ -167,11 +185,11 @@ const FleetPanel: React.FC = () => {
         max={24}
         step={1}
         marks={[
-          { value: 0, label: '12 AM' },
-          { value: 7.30, label: '7.30 AM' },
-          { value: 12, label: '12 PM' },
-          { value: 19.30, label: '19.30 PM' },
-          { value: 24, label: '12 AM' }
+          { value: 0, label: "12 AM" },
+          { value: 7.3, label: "7.30 AM" },
+          { value: 12, label: "12 PM" },
+          { value: 19.3, label: "19.30 PM" },
+          { value: 24, label: "12 AM" },
         ]}
         valueLabelDisplay="auto"
         sx={{ mb: 3 }}
@@ -209,7 +227,10 @@ const FleetPanel: React.FC = () => {
       <Box flexGrow={1} />
 
       {/* Next Button */}
-      <Button variant="contained" sx={{ background: 'linear-gradient(to right, #3FC8C8, #68E3B7)' }}>
+      <Button
+        variant="contained"
+        sx={{ background: "linear-gradient(to right, #3FC8C8, #68E3B7)" }}
+      >
         Next
       </Button>
     </Paper>

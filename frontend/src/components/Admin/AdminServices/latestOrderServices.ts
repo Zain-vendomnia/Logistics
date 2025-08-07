@@ -1,5 +1,10 @@
 import adminApiService from "../../../services/adminApiService";
 
+export type CheckOrderCount = {
+  count: number;
+  lastUpdated: string;
+};
+
 export enum OrderStatus {
   initial = "initial",
   unassigned = "unassigned",
@@ -193,17 +198,19 @@ class latestOrderServices {
   }> {
     try {
       //const response = await fetch('http://localhost:8080/api/admin/routeoptimize/ordercount');
-      const response = adminApiService.fetchOrderCount();
+      // const response = adminApiService.fetchOrderCount();
 
-      const data = (await response).data[0];
-      // console.log("📦 Order count response:", data);
+      // Check order count and recent updates
+      const response = await adminApiService.checkOrdersRecentUpdates();
+
+      const data = response.data as CheckOrderCount;
 
       if (
         data &&
         typeof data.count === "number" &&
-        typeof data.last_updated === "string"
+        typeof data.lastUpdated === "string"
       ) {
-        return { count: data.count, lastUpdated: data.last_updated };
+        return { count: data.count, lastUpdated: data.lastUpdated };
       }
 
       // console.warn("⚠️ Invalid order count response format:", data);
@@ -223,7 +230,20 @@ class latestOrderServices {
   public async getOrders(): Promise<LogisticOrder[]> {
     const { count: currentCount, lastUpdated: currentLastUpdated } =
       await this.fetchOrderCount();
-    //  console.log("📊 currentOrderCount:", currentCount, "| cachedOrderCount:", this.cachedCount);
+
+    console.log(
+      "📊 Fresh Count:",
+      currentCount,
+      "| cachedOrderCount:",
+      this.cachedCount
+    );
+
+    console.log(
+      "Fresh lastUpdated:",
+      currentLastUpdated,
+      "| Cached lastUpdated:",
+      this.cachedOrderLastUpdated
+    );
 
     if (
       this.orders.length > 0 &&

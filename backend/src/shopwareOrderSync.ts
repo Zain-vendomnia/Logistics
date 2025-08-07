@@ -1,28 +1,61 @@
 import axios from "axios";
-import pool from "./database";
+import dotenv from "dotenv";
 import { RowDataPacket } from "mysql2";
-import { ONE_TIME_ORDERINFO_URL } from "./services/apiUrl";
-import { GeocodingService } from "./services/geocodingService";
+import pool from "./database"; // adjust if needed
 
-export async function syncOrderData() {
+dotenv.config();
 
+const API_URL = process.env.SHOPWARE_API_URL!;
+const AUTH_CREDENTIALS = Buffer.from(
+  `${process.env.SHOPWARE_API_USERNAME}:${process.env.SHOPWARE_API_PASSWORD}`
+).toString("base64");
+
+interface MaxOrderRow extends RowDataPacket {
+  maxOrderId: number | null;
+}
+
+export async function shopwareOrderSync() {
   try {
-    console.log("Fetching order data from API...");
-    const response = await axios.get(ONE_TIME_ORDERINFO_URL);
-    const ordersData = response.data.data || [];
+    console.log("🚚 Starting Shopware order sync...");
+
+    // Step 1: Determine sync parameters
+    const [rows] = await pool.execute<MaxOrderRow[]>(
+      "SELECT MAX(shopware_order_id) AS maxOrderId FROM logistic_order"
+    );
+
+    let params: any = {};
+
+    if (!rows.length || rows[0].maxOrderId === null) {
+      params = { from_date: "2025-03-19" }; // adjust as needed
+      console.log("Date condition is running...")
+    } else {
+      params = { last_order_id: rows[0].maxOrderId };
+      console.log("last order number condition is running... ", rows[0].maxOrderId);
+    }
+
+    // Step 2: Call Shopware API
+    const response = await axios.get(API_URL, {
+      params,
+      headers: {
+        Authorization: `Basic ${AUTH_CREDENTIALS}`,
+      },
+    });
+
+    const ordersData = response.data?.data;
 
     if (!Array.isArray(ordersData)) {
-      console.error("Error: Expected array of orders, got:", typeof ordersData);
+      console.error("❌ Invalid data format from API");
       return;
     }
 
-    console.log(`Received ${ordersData.length} order records. Processing...`);
+    console.log(`📦 Received ${ordersData.length} order records.`);
 
+    // Step 3: Group orders
     const ordersMap = new Map<string, any>();
     for (const item of ordersData) {
       if (!ordersMap.has(item.orderID)) {
         ordersMap.set(item.orderID, {
-          orderID: item.orderID,
+          shopware_order_id: item.orderID,
           ordernumber: item.ordernumber,
           invoice_amount: item.invoice_amount,
           paymentID: item.paymentID,
@@ -56,8 +89,9 @@ export async function syncOrderData() {
     }
 
     const orders = Array.from(ordersMap.values());
-    console.log(`Found ${orders.length} unique orders after grouping.`);
+    console.log(`🗃️ Found ${orders.length} unique orders.`);
 
+    // Step 4: Filter out existing orders
     const [existingOrders] = await pool.query<RowDataPacket[]>(
       "SELECT order_number FROM logistic_order"
     );
@@ -65,41 +99,39 @@ export async function syncOrderData() {
     const newOrders = orders.filter(order => !existingOrderNumbers.has(order.ordernumber));
 
     if (newOrders.length === 0) {
-      console.log("No new orders to insert.");
+      console.log("✔️ No new orders to insert.");
       return;
     }
 
-    console.log(`Inserting ${newOrders.length} new orders...`);
-
+    console.log(`🆕 Inserting ${newOrders.length} new orders...`);
     await pool.query("START TRANSACTION");
 
     try {
       for (const order of newOrders) {
         if (!order.OrderDetails || order.OrderDetails.length === 0) {
-          console.warn(`Skipping order ${order.ordernumber} due to missing OrderDetails.`);
+          console.warn(`⚠️ Skipping order ${order.ordernumber} due to missing OrderDetails.`);
           continue;
         }
 
         const warehouse_id = order.OrderDetails[0].warehouse_id ?? 0;
-
-        const orderDate = new Date(order.ordertime);
-        orderDate.setDate(orderDate.getDate() + 14);
-        const expectedDeliveryTime = orderDate.toISOString().slice(0, 19).replace("T", " ");
+        const expectedDelivery = new Date(order.ordertime);
+        expectedDelivery.setDate(expectedDelivery.getDate() + 14);
 
         const [result] = await pool.query(
           `INSERT INTO logistic_order (
-            order_number, customer_id, invoice_amount, payment_id, warehouse_id, order_time,
-            expected_delivery_time, customer_number, firstname, lastname,
-            email, street, zipcode, city, phone
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            shopware_order_id, order_number, customer_id, invoice_amount, payment_id,
+            warehouse_id, order_time, expected_delivery_time, customer_number,
+            firstname, lastname, email, street, zipcode, city, phone
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
+            order.shopware_order_id,
             order.ordernumber,
             order.user_id,
             order.invoice_amount,
             order.paymentID,
             warehouse_id,
             order.ordertime,
-            expectedDeliveryTime,
+            expectedDelivery.toISOString().slice(0, 19).replace("T", " "),
             order.customernumber,
             order.shipping_firstname || order.user_firstname,
             order.shipping_lastname || order.user_lastname,
@@ -130,44 +162,19 @@ export async function syncOrderData() {
           );
         }
 
-        console.log(`Inserted order ${order.ordernumber} with ${order.OrderDetails.length} items`);
-         // Process orders with missing coordinates
-      const [ordersWithMissingCoords] = await pool.query<RowDataPacket[]>(
-        'SELECT order_id, street, city, zipcode FROM logistic_order WHERE lattitude IS NULL OR longitude IS NULL'
-      );
-
-      for (const order of ordersWithMissingCoords) {
-        await checkAndUpdateLatLng(order.order_id, order.street, order.city, order.zipcode);
-      }
+        console.log(`✅ Inserted order ${order.ordernumber} with ${order.OrderDetails.length} items.`);
       }
 
       await pool.query("COMMIT");
-      console.log(`✅ Successfully inserted ${newOrders.length} orders with their items.`);
-    } catch (error) {
+      console.log(`🎉 Successfully inserted ${newOrders.length} new orders.`);
+    } catch (err) {
       await pool.query("ROLLBACK");
-      console.error("❌ Transaction rolled back due to error:", error instanceof Error ? error.message : String(error));
-      throw error;
+      console.error("❌ Rolled back transaction due to error:", err instanceof Error ? err.message : String(err));
+      throw err;
     }
-  } catch (error) {
-    console.error("🚨 Error in syncing order data:", error instanceof Error ? error.message : String(error));
-  } 
-  
-}
 
-const checkAndUpdateLatLng = async (order_id: number, street: string, city: string, zipcode: string) => {
-  try {
-    const serviceData = await GeocodingService.geocodeOrderUpdatedCustomer(
-      order_id, 
-      street, 
-      city, 
-      zipcode
-    );
-    if (serviceData) {
-      console.log(`Successfully updated lat/lng for order ID ${order_id}`);
-    } else {
-      console.warn(`Failed to update lat/lng for order ID ${order_id}`);
-    }
-  } catch (error) {
-    console.error(`Error while updating lat/lng for order ID ${order_id}:`, error);
+  } catch (error: any) {
+    console.error("❌ Error during Shopware order sync:", error?.response?.data || error.message);
+    return null;
   }
-};
+}

@@ -1,5 +1,6 @@
 import { ResultSetHeader } from "mysql2";
 import pool from "../database";
+import { CheckOrderCount } from "../types/dto.types";
 
 export enum OrderStatus {
   initial = "initial",
@@ -120,6 +121,36 @@ export class LogisticOrder {
       "SELECT COUNT(*) AS count FROM logistic_order"
     );
     return rows as LogisticOrder[];
+  }
+
+  static async getOrdersLastUpdatedAsync(): Promise<LogisticOrder[]> {
+    const [rows] = await pool.execute(
+      "SELECT * FROM logistic_order WHERE updated_at = (SELECT MAX(updated_at) FROM logistic_order) ORDER BY updated_at DESC LIMIT 1;"
+    );
+    return rows as LogisticOrder[];
+  }
+
+  static async checkOrdersRecentUpdatesAsync(): Promise<CheckOrderCount> {
+    const [rows]: any = await pool.execute(`
+    SELECT 
+      (SELECT COUNT(*) FROM logistic_order) AS total_orders,
+      lo.*
+    FROM logistic_order lo
+    where DATE(lo.updated_at) = CURDATE()
+    ORDER BY lo.updated_at DESC
+    LIMIT 1
+  `);
+
+    const result = rows[0];
+    console.log("Order Count Result: ", result);
+
+    const orderCount: CheckOrderCount = {
+      count: result.total_orders,
+      lastUpdated: result.updated_at,
+    };
+
+    console.log("Order Count: ", orderCount);
+    return orderCount;
   }
 
   static async getAllcustomerAddress(): Promise<LogisticOrder[]> {

@@ -28,6 +28,7 @@ const Admin_AddTour = () => {
   const [selectedWarehouses, setSelectedWarehouses] = useState<number[]>([]);
   const [selectedOrders, setSelectedOrders] = useState<number[]>([]);
   const [ordersData, setOrdersData] = useState<LogisticOrder[]>([]);
+  const [refreshOrderList, setRefreshOrderList] = useState(0);
 
   const [modalConfig, setModalConfig] = useState<{
     open: boolean;
@@ -83,7 +84,10 @@ const Admin_AddTour = () => {
         duration: 12000,
       });
     }
-
+    // Clear selected orders
+    // Triger fetch uplaod orderlist
+    setSelectedOrders([]);
+    setRefreshOrderList((prev) => prev + 1);
     const tour_data = createTourData(data);
     if (!tour_data) return;
 
@@ -114,7 +118,7 @@ const Admin_AddTour = () => {
       stops,
     };
   };
-  
+
   useEffect(() => {
     if (!tourData) return;
 
@@ -198,6 +202,7 @@ const Admin_AddTour = () => {
             <Divider sx={{ marginBottom: "24px" }} />
 
             <AdminOrderTable
+              key={refreshOrderList}
               selectedWarehouses={selectedWarehouses}
               setOrdersData={setOrdersData}
               setSelectedOrders={setSelectedOrders}
