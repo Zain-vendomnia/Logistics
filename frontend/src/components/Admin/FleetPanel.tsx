@@ -5,21 +5,14 @@ import {
   Typography,
   TextField,
   MenuItem,
-  IconButton,
-  ToggleButtonGroup,
-  ToggleButton,
   Slider,
   Stepper,
   Step,
   StepLabel,
-  Paper,
-  Divider,
   FormControlLabel,
   Switch,
 } from "@mui/material";
-import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
-import CloseIcon from "@mui/icons-material/Close";
-import { FireTruckOutlined, FireTruckSharp } from "@mui/icons-material";
+import { FireTruckOutlined } from "@mui/icons-material";
 
 const steps = ["Fleet", "Tours Overview"];
 
@@ -52,17 +45,7 @@ const FleetPanel: React.FC = () => {
   };
 
   return (
-    <Paper
-      elevation={3}
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        width: 360,
-        height: "100%",
-        overflow: "hidden",
-        p: 2,
-      }}
-    >
+    <Box>
       {/* Stepper */}
       <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 2 }}>
         {steps.map((label) => (
@@ -229,11 +212,12 @@ const FleetPanel: React.FC = () => {
       {/* Next Button */}
       <Button
         variant="contained"
+        fullWidth
         sx={{ background: "linear-gradient(to right, #3FC8C8, #68E3B7)" }}
       >
         Next
       </Button>
-    </Paper>
+    </Box>
   );
 };
 

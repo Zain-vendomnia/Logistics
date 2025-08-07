@@ -11,6 +11,7 @@ import {
   getcountcheck,
   getOrdersLastUpdated,
   getCheckOrdersRecentUpdates,
+  getPinboardOrders,
 } from "../controller/Admin_RouteOptimzation/order.controller";
 import {
   createTourController,
@@ -40,7 +41,10 @@ import { runTourController } from "../controller/HERE_API/runTourController";
 
 import driverRoutes from "./driverRoutes";
 import warehouseRoutes from "./warehouseRoutes";
-import { dynamicTourController } from "../controller/HERE_API/dynamicTourController";
+import {
+  create_dynamicTour,
+  getDynamicTours,
+} from "../controller/HERE_API/dynamicTour.controller";
 
 import { upload } from "../middlewares/upload";
 import { parseExcelToJobs } from "../utils/parseExcel";
@@ -58,8 +62,6 @@ adminRouter.post("/picklistEmail", picklistEmail);
 adminRouter.post("/routeoptimize/getOrder", getAllLogisticOrder);
 adminRouter.post("/insertParkingPermit", insertParkingPermit);
 adminRouter.post("/Runtour", runTourController);
-adminRouter.post("/hereMapController", hereMapController);
-adminRouter.post("/dynamicTourController", hereMapController);
 
 adminRouter.post("/uploadexcel", upload.single("file"), async (req, res) => {
   try {
@@ -70,7 +72,7 @@ adminRouter.post("/uploadexcel", upload.single("file"), async (req, res) => {
     const jobList = parseExcelToJobs(req.file.path);
 
     // Pass jobList to the controller
-    await dynamicTourController(req, res, jobList);
+    await create_dynamicTour(req, res, jobList);
   } catch (err) {
     console.error(err);
     res.status(500).json({
@@ -83,6 +85,30 @@ adminRouter.post("/uploadexcel", upload.single("file"), async (req, res) => {
 /**
  * Protected routes (each one applies validateToken + roleCheck)
  */
+adminRouter.post(
+  "/hereMapController",
+  validateToken,
+  roleCheck(["admin"]),
+  hereMapController
+);
+adminRouter.post(
+  "/dynamicTourController",
+  validateToken,
+  roleCheck(["admin"]),
+  hereMapController
+);
+adminRouter.get(
+  "/pinboardOrders",
+  validateToken,
+  roleCheck(["admin"]),
+  getPinboardOrders
+);
+adminRouter.get(
+  "/dynamicTours",
+  validateToken,
+  roleCheck(["admin"]),
+  getDynamicTours
+);
 adminRouter.get(
   "/tours",
   validateToken,

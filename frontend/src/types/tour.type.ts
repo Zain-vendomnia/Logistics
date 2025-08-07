@@ -80,7 +80,8 @@ export interface Coordinate {
 
 export interface Section {
   summary: SectionSummary;
-  coordinates: Coordinate[];
+  // coordinates: Coordinate[];
+  coordinates: [number, number][];
 }
 
 export interface Geometry {
@@ -112,4 +113,28 @@ export type Tour = {
   stops: Stop[];
   statistic: any;
   shiftIndex: number;
+};
+
+export interface DynamicTourPayload {
+  id?: number;
+  tour_number: string;
+  tour_route: Geometry[];
+  orderIds: string; // Comma-separated
+  warehouse_id: number;
+}
+
+export type pinboardOrder = {
+  id: number;
+  order_number: string;
+
+  order_time: string;
+  delivery_time: string;
+  amount: number;
+
+  city: string;
+  zipcode: string;
+  street: string;
+  
+  location: { lat: number; lng: number };
+  warehouse_id: number;
 };

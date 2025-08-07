@@ -15,7 +15,7 @@ import routeSegmentsSetup from "./initialDBSetup/routeSegmentsSetup";
 import WMSOrderSetup from "./initialDBSetup/wms_orders";
 import WMSOrderArticlesSetup from "./initialDBSetup/wms_order_articles";
 import { shopwareOrderSync } from "./shopwareOrderSync";
-import { fetchScheduleWmsOrderInfo } from './services/scheduleFetching';
+import { fetchScheduleWmsOrderInfo } from "./services/scheduleFetching";
 
 import cron from "node-cron";
 
@@ -48,7 +48,9 @@ async function main() {
     logWithTime("✅ Database setup completed successfully.");
 
     // 2. Start the API server
-    console.log("--------------------------------------------------------------------------------------------------------------------------");
+    console.log(
+      "--------------------------------------------------------------------------------------------------------------------------"
+    );
     app.listen(app.get("port"), async () => {
       logWithTime(`🚀 Server is running on port ${app.get("port")}`);
 
@@ -60,7 +62,6 @@ async function main() {
         //  -----------------------------------------------------
         await fetchScheduleWmsOrderInfo();
         logWithTime("✅ Initial WMS Order Sync completed.");
-        
       } catch (error) {
         logWithTime("❌ Initial Shopware Order Sync failed:");
         console.error(error);
@@ -89,9 +90,10 @@ async function main() {
         }
       });
 
-      console.log("--------------------------------------------------------------------------------------------------------------------------");
+      console.log(
+        "--------------------------------------------------------------------------------------------------------------------------"
+      );
     });
-
   } catch (error) {
     logWithTime("❌ Error during database setup:");
     console.error(error);

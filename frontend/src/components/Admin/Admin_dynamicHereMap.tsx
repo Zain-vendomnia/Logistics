@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 
-import { Box } from "@mui/material";
+import { Box, IconButton, Paper, Typography } from "@mui/material";
 import CircularProgress from "@mui/material/CircularProgress";
+import GpsFixedIcon from "@mui/icons-material/GpsFixed";
 
+import "leaflet/dist/leaflet.css";
 import {
   MapContainer,
   TileLayer,
@@ -13,30 +15,45 @@ import {
 import { useMap } from "react-leaflet";
 import L from "leaflet";
 
-import "leaflet/dist/leaflet.css";
-import FleetPanel from "./FleetPanel";
 import PolylineDecoratorWrapper from "./PolylineDecoratorWrapper";
 import adminApiService from "../../services/adminApiService";
+import DynamicToursTab from "./Admin_DynamicToursTab";
+import {
+  DynamicTourPayload,
+  Geometry,
+  pinboardOrder,
+  Stop,
+} from "../../types/tour.type";
+import useDynamicTourStore from "../../store/useDynamicTourStore";
 
-interface Stop {
-  location: { lat: number; lng: number };
-  time: { arrival: string; departure: string };
-  activities: { jobId: string; type: string }[];
-}
+// interface Stop {
+//   location: { lat: number; lng: number };
+//   time: { arrival: string; departure: string };
+//   activities: { jobId: string; type: string }[];
+// }
 
-interface RouteSection {
-  coordinates: [number, number][];
-  summary: any;
-}
+// interface RouteSection {
+//   coordinates: [number, number][];
+//   summary: any;
+// }
 
-interface VehicleTour {
-  vehicleId: string;
-  sections: RouteSection[];
-  stops: Stop[];
-}
+// interface VehicleTour {
+//   vehicleId: string;
+//   sections: RouteSection[];
+//   stops: Stop[];
+// }
+
+// interface DynamicTourPayload {
+//   id?: number;
+//   tour_number: string;
+//   tour_route: VehicleTour;
+//   orderIds: string; // Comma-separated
+//   warehouse_id: number;
+// }
 
 // functions
 // Marker Icons
+
 const defaultIcon = new L.Icon({
   iconUrl:
     "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png",
@@ -91,15 +108,25 @@ const getStopIcon = (stop: Stop) => {
   return defaultIcon;
 };
 
+const extract_Coords = (tours: Geometry[]): [number, number][] => {
+  const array = Array.isArray(tours) ? tours : [tours];
+
+  return array.flatMap((v) => [
+    ...v.sections.flatMap((s) => s.coordinates),
+    ...v.stops.map((s) => [s.location.lat, s.location.lng] as [number, number]),
+  ]);
+};
+
 const colors = ["blue", "green", "red", "purple", "orange", "brown"];
 
 const Dashboard: React.FC = () => {
   const mapRef = useRef<L.Map | null>(null);
 
-  const [vehicleTours, setVehicleTours] = useState<VehicleTour[]>([]);
-  const [file, setFile] = useState<File | null>(null);
-  const [response, setResponse] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { orderList, addOrders, selectedTour, setDynamicTours } =
+    useDynamicTourStore();
+
+  const [vehicleTours, setVehicleTours] = useState<Geometry[]>([]);
+
   const [isLoading, setIsLoading] = useState<boolean>(
     vehicleTours.length === 0
   );
@@ -109,144 +136,235 @@ const Dashboard: React.FC = () => {
     [50.110924, 8.682127],
   ];
 
+  let allCoords: [number, number][] = fallbackCoords;
+
+  const flyToBoundsOptions = {
+    padding: [50, 50],
+    maxZoom: 15,
+    duration: 1.5,
+  };
+
   useEffect(() => {
     const fetchTours = async () => {
       try {
-        const res = await adminApiService.plotheremap();
-        const rawData = res.data.routes;
-        console.log("Raw Tour Data:", res.data);
-        const tours: VehicleTour[] = rawData.map((vehicle: any) => ({
-          vehicleId: vehicle.vehicleId,
-          sections: vehicle.sections.map((section: any) => ({
-            summary: section.summary,
-            coordinates: section.coordinates.map((pt: any) => [pt.lat, pt.lng]),
-          })),
-          stops: vehicle.stops,
-        }));
-        tours.forEach((tour) => {
-          console.log(`Vehicle ID: ${tour.vehicleId}`);
-          tour.sections.forEach((section, index) => {
-            console.log(`Section ${index + 1} Summary:`, section.summary);
-          });
-        });
-        setVehicleTours(tours);
-        setIsLoading(false);
+        // const res = await adminApiService.plotheremap();
+        const res = await adminApiService.fetchDynamicTours();
+        const dynamic_tours = res.data || [];
+
+        const tours_route: Geometry[] = dynamic_tours.flatMap(
+          (tour: DynamicTourPayload) => tour.tour_route
+        );
+        // const tours: VehicleTour[] = routes.map((vehicle: any) => ({
+        //   vehicleId: vehicle.vehicleId,
+        //   sections: vehicle.sections.map((section: any) => ({
+        //     summary: section.summary,
+        //     coordinates: section.coordinates.map((pt: any) => [pt.lat, pt.lng]),
+        //   })),
+        //   stops: vehicle.stops,
+        // }));
+
+        setDynamicTours(dynamic_tours as DynamicTourPayload[]);
+        setVehicleTours(tours_route);
       } catch (err) {
         console.error("API call failed", err);
+      } finally {
+        setIsLoading(false);
       }
     };
-    setTimeout(() => {
-      fetchTours();
-    }, 5000);
+
+    fetchTours();
   }, []);
 
   useEffect(() => {
-    if (!isLoading && vehicleTours.length > 0 && mapRef.current) {
-      const allCoords: [number, number][] = vehicleTours.flatMap((v) => [
-        ...v.sections.flatMap((s) => s.coordinates),
-        ...v.stops.map(
-          (s) => [s.location.lat, s.location.lng] as [number, number]
-        ),
-      ]);
+    if (!mapRef.current) return;
+
+    if (!isLoading && vehicleTours.length > 0) {
+      allCoords = extract_Coords(vehicleTours);
 
       const bounds = L.latLngBounds(allCoords);
-      mapRef.current.flyToBounds(bounds, {
-        padding: [50, 50],
-        maxZoom: 10,
-        duration: 1.5,
-      });
+      mapRef.current.flyToBounds(bounds, flyToBoundsOptions as any);
     }
   }, [isLoading, vehicleTours]);
 
-  const allCoords: [number, number][] =
-    vehicleTours.length > 0
-      ? vehicleTours.flatMap((v) => [
-          ...v.sections.flatMap((s) => s.coordinates),
-          ...v.stops.map(
-            (s) => [s.location.lat, s.location.lng] as [number, number]
-          ),
-        ])
-      : fallbackCoords;
+  useEffect(() => {
+    if (!selectedTour || !mapRef.current) return;
+
+    allCoords = extract_Coords(selectedTour.tour_route);
+
+    const bounds = L.latLngBounds(allCoords);
+    mapRef.current.flyToBounds(bounds, flyToBoundsOptions as any);
+  }, [selectedTour]);
+
+  useEffect(() => {
+    try {
+      const fetchOrders = async () => {
+        const res = await adminApiService.fetchPinboardOrders();
+        const orders = (res.data as pinboardOrder[]) || [];
+
+        console.log("Fetched Orders:", orders);
+
+        addOrders(orders);
+      };
+      fetchOrders();
+    } catch (err) {
+      console.error("Failed to fetch new Orders", err);
+    }
+  }, []);
+
+  const handleReposition = () => {
+    if (mapRef.current) {
+      mapRef.current?.flyToBounds(
+        L.latLngBounds(allCoords),
+        flyToBoundsOptions as any
+      );
+    }
+  };
+
+  const pinTitle = (title: string) => {
+    return (
+      <Typography
+        fontWeight={"bold"}
+        variant="body2"
+        sx={{
+          m: 0,
+          p: 0,
+          lineHeight: 0.05,
+          display: "block",
+          color: "primary.main",
+        }}
+        gutterBottom={false}
+      >
+        {title}
+      </Typography>
+    );
+  };
 
   return (
-    <Box display="flex" height="100%" width="100%">
-      {/* Left Fleet Panel */}
-      <FleetPanel />
+    <>
+      <Box
+        position="absolute"
+        top={70}
+        right={30}
+        zIndex={1000}
+        display="flex"
+        gap={1}
+      >
+        <IconButton onClick={handleReposition}>
+          <GpsFixedIcon sx={{ color: "#333", fontSize: 55 }} />
+        </IconButton>
+      </Box>
 
-      {/* Right Map */}
-      <Box flexGrow={1} position="relative">
-        {isLoading && (
-          <Box
-            sx={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              color: "primary.main",
-              zIndex: 999,
-            }}
-          >
-            <CircularProgress size={60} thickness={5} disableShrink />
-          </Box>
-        )}
-        <MapContainer
-          bounds={L.latLngBounds(allCoords || undefined)}
-          zoom={12}
-          style={{ height: "100%", width: "100%" }}
+      <Box display="flex" height="100%" width="100%">
+        {/* Left Panel */}
+        <Paper
+          elevation={3}
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            width: 360,
+            height: "100%",
+            overflow: "hidden",
+            p: 2,
+          }}
         >
-          <MapReady
-            onMapReady={(mapInstance) => {
-              mapRef.current = mapInstance;
-            }}
-          />
+          <DynamicToursTab />
+        </Paper>
 
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution="&copy; OpenStreetMap contributors"
-          />
+        {/* Right Map */}
+        <Box flexGrow={1} position="relative">
+          {isLoading && (
+            <Box
+              sx={{
+                position: "absolute",
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                color: "primary.main",
+                zIndex: 999,
+              }}
+            >
+              <CircularProgress size={60} thickness={5} disableShrink />
+            </Box>
+          )}
+          <MapContainer
+            bounds={L.latLngBounds(allCoords)}
+            zoom={12}
+            style={{ height: "100%", width: "100%" }}
+          >
+            <MapReady
+              onMapReady={(mapInstance) => {
+                mapRef.current = mapInstance;
+              }}
+            />
 
-          {vehicleTours.map((vehicle, idx) => (
-            <React.Fragment key={vehicle.vehicleId}>
-              {vehicle.sections.map((section, secIdx) => (
-                <React.Fragment key={`${vehicle.vehicleId}-section-${secIdx}`}>
-                  <Polyline
-                    positions={section.coordinates}
-                    color={colors[idx % colors.length]}
-                    weight={4}
-                  />
-                  <PolylineDecoratorWrapper
-                    positions={section.coordinates}
-                    color={colors[idx % colors.length]}
-                  />
-                </React.Fragment>
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution="&copy; OpenStreetMap contributors"
+            />
+
+            {orderList &&
+              orderList.map((order) => (
+                <Marker
+                  key={order.id}
+                  position={[order.location.lat, order.location.lng]}
+                  icon={defaultIcon}
+                >
+                  <Popup>
+                    {pinTitle(order.order_number)}
+                    <strong>Placed at:</strong> {order.order_time}
+                    <br />
+                    <strong>Deliver:</strong> {order.delivery_time}
+                    <br />
+                    <strong>City:</strong> {order.city}
+                    <br />
+                    <strong>Zipcode:</strong> {order.zipcode}
+                    <br />
+                    <strong>Amount:</strong> {order.amount}
+                  </Popup>
+                </Marker>
               ))}
 
-              {vehicle.stops.map((stop, sIdx) => {
-                const types = stop.activities.map((a: any) => a.type);
-                const isStartDepot = sIdx === 0 && types.includes("departure");
-                const isLastStop = sIdx === vehicle.stops.length - 1;
+            {vehicleTours.map((vehicle, idx) => (
+              <React.Fragment key={vehicle.vehicleId}>
+                {vehicle.sections.map((section, secIdx) => (
+                  <React.Fragment
+                    key={`${vehicle.vehicleId}-section-${secIdx}`}
+                  >
+                    <Polyline
+                      positions={section.coordinates}
+                      color={colors[idx % colors.length]}
+                      weight={4}
+                    />
+                    <PolylineDecoratorWrapper
+                      positions={section.coordinates}
+                      color={colors[idx % colors.length]}
+                    />
+                  </React.Fragment>
+                ))}
 
-                // ✅ Start depot → green icon only
-                if (isStartDepot) {
-                  return (
-                    <Marker
-                      key={`stop-${vehicle.vehicleId}-${sIdx}`}
-                      position={[stop.location.lat, stop.location.lng]}
-                      icon={startIcon}
-                    >
-                      <Popup>
-                        <strong>Start Depot</strong>
-                        <br />
-                        Vehicle: {vehicle.vehicleId}
-                      </Popup>
-                    </Marker>
-                  );
-                }
-                if (isLastStop) return null;
-                // ✅ All other stops → numbered icon (starting from 1)
-                const numberedIcon = L.divIcon({
-                  className: "",
-                  html: `
+                {vehicle.stops.map((stop, sIdx) => {
+                  const types = stop.activities.map((a: any) => a.type);
+                  const isStartDepot =
+                    sIdx === 0 && types.includes("departure");
+                  const isLastStop = sIdx === vehicle.stops.length - 1;
+
+                  // ✅ Start depot → green icon only
+                  if (isStartDepot) {
+                    return (
+                      <Marker
+                        key={`stop-${vehicle.vehicleId}-${sIdx}`}
+                        position={[stop.location.lat, stop.location.lng]}
+                        icon={startIcon}
+                      >
+                        <Popup>{pinTitle("WMS")}</Popup>
+                      </Marker>
+                    );
+                  }
+                  if (isLastStop) return null;
+                  // ✅ All other stops → numbered icon (starting from 1)
+                  const numberedIcon = L.divIcon({
+                    className: "",
+                    html: `
                           <div style="
                             background-color: #063b70ff;
                             color: white;
@@ -262,50 +380,49 @@ const Dashboard: React.FC = () => {
                             ${sIdx}
                           </div>
                         `,
-                  iconSize: [28, 28],
-                  iconAnchor: [14, 28],
-                  popupAnchor: [0, -28],
-                });
+                    iconSize: [28, 28],
+                    iconAnchor: [14, 28],
+                    popupAnchor: [0, -28],
+                  });
 
-                return (
-                  <Marker
-                    key={`stop-${vehicle.vehicleId}-${sIdx}`}
-                    position={[stop.location.lat, stop.location.lng]}
-                    icon={numberedIcon}
-                  >
-                    <Popup>
-                      <strong>Vehicle:</strong> {vehicle.vehicleId}
-                      <br />
-                      <strong>Stop ${sIdx}</strong>
-                      <br />
-                      {stop.activities?.[0]?.jobId && (
-                        <>
-                          Job: {stop.activities[0].jobId}
-                          <br />
-                        </>
-                      )}
-                      {stop.time?.arrival && (
-                        <>
-                          Arrival:{" "}
-                          {new Date(stop.time.arrival).toLocaleTimeString()}
-                          <br />
-                        </>
-                      )}
-                      {stop.time?.departure && (
-                        <>
-                          Departure:{" "}
-                          {new Date(stop.time.departure).toLocaleTimeString()}
-                        </>
-                      )}
-                    </Popup>
-                  </Marker>
-                );
-              })}
-            </React.Fragment>
-          ))}
-        </MapContainer>
+                  return (
+                    <Marker
+                      key={`stop-${vehicle.vehicleId}-${sIdx}`}
+                      position={[stop.location.lat, stop.location.lng]}
+                      icon={numberedIcon}
+                    >
+                      <Popup>
+                        <strong>Stop # {sIdx}</strong>
+                        <br />
+                        {stop.activities?.[0]?.jobId && (
+                          <>
+                            Job: {stop.activities[0].jobId}
+                            <br />
+                          </>
+                        )}
+                        {stop.time?.arrival && (
+                          <>
+                            Arrival:{" "}
+                            {new Date(stop.time.arrival).toLocaleTimeString()}
+                            <br />
+                          </>
+                        )}
+                        {stop.time?.departure && (
+                          <>
+                            Departure:{" "}
+                            {new Date(stop.time.departure).toLocaleTimeString()}
+                          </>
+                        )}
+                      </Popup>
+                    </Marker>
+                  );
+                })}
+              </React.Fragment>
+            ))}
+          </MapContainer>
+        </Box>
       </Box>
-    </Box>
+    </>
   );
 };
 

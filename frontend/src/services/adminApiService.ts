@@ -155,6 +155,16 @@ const plotheremap = () =>
     headers: authHeader(),
   });
 
+const fetchPinboardOrders = () =>
+  axios.get(`${API_BaseUrl_Admin}pinboardOrders`, {
+    headers: authHeader(),
+  });
+
+const fetchDynamicTours = () =>
+  axios.get(`${API_BaseUrl_Admin}dynamicTours`, {
+    headers: authHeader(),
+  });
+
 export const uploadexcel = (formData: FormData) =>
   axios.post(`${API_BaseUrl_Admin}uploadexcel`, formData, {
     headers: {
@@ -187,7 +197,9 @@ const adminApiService = {
   updateCustomerInfo,
   insertParkingPermit,
   plotheremap,
+  fetchDynamicTours,
   createtourHereApi,
+  fetchPinboardOrders,
   uploadexcel,
   getWarehouse,
 };

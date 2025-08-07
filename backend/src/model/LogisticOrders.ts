@@ -1,6 +1,6 @@
 import { ResultSetHeader } from "mysql2";
 import pool from "../database";
-import { CheckOrderCount } from "../types/dto.types";
+import { CheckOrderCount, pinboardOrder } from "../types/dto.types";
 
 export enum OrderStatus {
   initial = "initial",
@@ -203,6 +203,34 @@ export class LogisticOrder {
     );
 
     return (result as ResultSetHeader).affectedRows > 0;
+  }
+
+  static async getPinboardOrdersAsync(): Promise<pinboardOrder[]> {
+    const [rows] = await pool.execute(`
+      SELECT 
+        order_id , order_number, order_time, expected_delivery_time, invoice_amount,
+        city, zipcode, street, lattitude, longitude, warehouse_id
+      FROM logistic_order
+      WHERE status IN ('initial', 'unassigned')
+      ORDER BY updated_at DESC, created_at DESC;
+    `);
+    const orders = (rows as any[]).map((raw: any) => ({
+      id: raw.order_id,
+      order_number: raw.order_number,
+      order_time: raw.order_time,
+      delivery_time: raw.expected_delivery_time,
+      amount: raw.invoice_amount,
+      city: raw.city,
+      zipcode: raw.zipcode,
+      street: raw.street,
+      location: {
+        lat: raw.lattitude || null,
+        lng: raw.longitude || null,
+      },
+      warehouse_id: raw.warehouse_id,
+    })) as pinboardOrder[];
+
+    return orders;
   }
 }
 
