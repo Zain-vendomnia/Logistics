@@ -39,7 +39,7 @@ import { getAllTourhistory } from "../controller/Admin_RouteOptimzation/getAllTo
 import { insertParkingPermit } from "../controller/Admin_Api/insertParkingPermit.controller";
 import { runTourController } from "../controller/HERE_API/runTourController";
 
-import driverRoutes from "./driverRoutes";
+import driverRoutes from "./driver.routes";
 import warehouseRoutes from "./warehouseRoutes";
 import {
   create_dynamicTour,
