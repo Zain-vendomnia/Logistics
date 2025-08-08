@@ -59,6 +59,8 @@ export async function shopwareOrderSync() {
           ordernumber: item.ordernumber,
           invoice_amount: item.invoice_amount,
           paymentID: item.paymentID,
+          trackingCode: item.trackingCode,
+          orderStatusID: item.orderStatusID,
           ordertime: item.ordertime,
           user_id: item.user_id,
           customernumber: item.customernumber,
@@ -120,15 +122,18 @@ export async function shopwareOrderSync() {
         const [result] = await pool.query(
           `INSERT INTO logistic_order (
             shopware_order_id, order_number, customer_id, invoice_amount, payment_id,
+            tracking_code,order_status_id,
             warehouse_id, order_time, expected_delivery_time, customer_number,
             firstname, lastname, email, street, zipcode, city, phone
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             order.shopware_order_id,
             order.ordernumber,
             order.user_id,
             order.invoice_amount,
             order.paymentID,
+            order.trackingCode,
+            order.orderStatusID,
             warehouse_id,
             order.ordertime,
             expectedDelivery.toISOString().slice(0, 19).replace("T", " "),

@@ -9,6 +9,7 @@ export const CREATE_WAREHOUSE_DETAILS_TABLE = `
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
   );
+  
 `;
 
 export const INSERT_WAREHOUSE_DETAILS_DATA = `
@@ -37,7 +38,7 @@ export const CREATE_DRIVER_DETAILS_TABLE = `
     overall_rating DECIMAL(3,2) DEFAULT 0.00,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (warehouse_id) REFERENCES warehouse_details(warehouse_id) ON DELETE CASCADE,
+    FOREIGN KEY (warehouse_id) REFERENCES warehouse_details(warehouse_id) ON DELETE CASCADE
   );
 `;
 
@@ -101,7 +102,7 @@ export const CREATE_TOUR_INFO_MASTER_TABLE = `
     item_total_qty_truck INT NOT NULL,
     tour_start_km INT NOT NULL,
     tour_end_km INT NOT NULL,
-    tour_total_km VARCHAR(45) NOT NULL,
+    excepted_tour_total_km VARCHAR(45) NOT NULL,
     
     secure_loading_photo BLOB,
     truck_loaded_photo BLOB,
@@ -184,7 +185,6 @@ export const CREATE_ROUTE_SEGMENTS_TABLE = `
     recipient_type ENUM('customer', 'neighbour') DEFAULT 'customer'
   );
 `;
-
 export const LOGIC_ORDER_TABLE = `
   CREATE TABLE IF NOT EXISTS logistic_order (
     order_id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
@@ -208,9 +208,12 @@ export const LOGIC_ORDER_TABLE = `
     longitude DECIMAL(10,7),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
-    status ENUM('initial', 'unassigned', 'assigned', 'inTransit', 'delivered', 'rescheduled', 'canceled') NOT NULL DEFAULT 'initial'
-    );
-    `;
+    status ENUM('initial', 'unassigned', 'assigned', 'inTransit', 'delivered', 'rescheduled', 'canceled') NOT NULL DEFAULT 'initial',
+    tracking_code    VARCHAR(100),
+    order_status_id  INT
+  );
+`;
+
 
 export const LOGIC_ORDER_ITEMS_TABLE = `
   CREATE TABLE IF NOT EXISTS logistic_order_items (

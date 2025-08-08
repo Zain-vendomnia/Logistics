@@ -7,6 +7,8 @@ export const getAllLogisticOrders = async (_req: Request, res: Response) => {
     const orders = await LogisticOrder.getAll(); // Shopware orders
     const wmsOrderNumbers = await LogisticOrder.getWmsOrderNumbers(); // WMS order numbers
 
+    console.log("shopware Orders:", orders);
+    console.log("WMS Order Numbers:", wmsOrderNumbers);
     // Filter Shopware orders where order_number exists in WMS
     const matchedOrders = orders.filter((order) =>
       wmsOrderNumbers.includes(order.order_number)
@@ -18,6 +20,7 @@ export const getAllLogisticOrders = async (_req: Request, res: Response) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
 export const getAllLogisticOrder = async (_req: Request, res: Response) => {
   const { order_number } = _req.body; // ✅ Correct destructuring
 

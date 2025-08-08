@@ -27,5 +27,5 @@ export type NotAssigned = {
 
 export type CheckOrderCount = {
   count: number;
-  lastUpdated: string;
+  lastUpdated?: string; // optional if not available
 };

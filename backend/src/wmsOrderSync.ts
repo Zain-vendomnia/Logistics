@@ -1,25 +1,73 @@
 import axios from "axios";
 import dotenv from "dotenv";
-import pool from "../database";
-import { RowDataPacket } from "mysql2/promise";
+import { RowDataPacket } from "mysql2";
+import pool from "./database"; // adjust if needed
 
 dotenv.config();
 
-const WMS_API_URL = process.env.WMS_API_URL!;
-
+const API_URL = process.env.WMS_API_URL!;
 const AUTH_CREDENTIALS = Buffer.from(
   `${process.env.WMS_API_USERNAME}:${process.env.WMS_API_PASSWORD}`
 ).toString("base64");
 
-export const fetchWmsOrder = async (from: string, to: string) => {
-  try {
-  
-    const params = { from, to }; // ✅ change keys here
+/**
+ * Format JS Date to 'YYYY-MM-DD HH:mm:ss'
+ */
+function formatDateTime(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return (
+    date.getFullYear() +
+    "-" +
+    pad(date.getMonth() + 1) +
+    "-" +
+    pad(date.getDate()) +
+    " " +
+    pad(date.getHours()) +
+    ":" +
+    pad(date.getMinutes()) +
+    ":" +
+    pad(date.getSeconds())
+  );
+}
 
-    const requestUrl = `${WMS_API_URL}?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+/**
+ * Sync WMS orders and articles from WMS API.
+ * @param from - Start date string (YYYY-MM-DD or YYYY-MM-DD HH:mm:ss)
+ */
+export async function wmsOrderSync(from: string) {
+  try {
+    // If only date is passed, make sure it's "YYYY-MM-DD 00:00:00"
+    let fromDateTime: string;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(from.trim())) {
+      fromDateTime = `${from.trim()} 00:00:00`;
+    } else {
+      fromDateTime = from.trim();
+    }
+
+    // 'to' is always today at 23:59:59
+    const now = new Date();
+    const toDateTime =
+      formatDateTime(
+        new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+          23,
+          59,
+          59
+        )
+      );
+
+    // Construct query params
+    const params = { from: fromDateTime, to: toDateTime };
+
+    // For debug: Show the actual URL with parameters
+    const requestUrl = `${API_URL}?from=${encodeURIComponent(
+      fromDateTime
+    )}&to=${encodeURIComponent(toDateTime)}`;
     console.log("🔗 WMS API Request URL:", requestUrl);
 
-    const response = await axios.get(WMS_API_URL, {
+    const response = await axios.get(API_URL, {
       params,
       headers: { Authorization: `Basic ${AUTH_CREDENTIALS}` },
     });
@@ -39,7 +87,9 @@ export const fetchWmsOrder = async (from: string, to: string) => {
     );
     const existingNumbers = new Set(existing.map((o) => o.order_number));
 
-    const newOrders = orders.filter((order) => !existingNumbers.has(order.order_number));
+    const newOrders = orders.filter(
+      (order: any) => !existingNumbers.has(order.order_number)
+    );
     console.log(`✅ New orders to insert: ${newOrders.length}`);
 
     if (newOrders.length === 0) {
@@ -52,7 +102,6 @@ export const fetchWmsOrder = async (from: string, to: string) => {
         `INSERT INTO wms_orders (order_id, order_number) VALUES (?, ?)`,
         [order.order_id, order.order_number]
       );
-
       const insertedOrderId = result.insertId;
 
       // Insert related articles
@@ -79,8 +128,11 @@ export const fetchWmsOrder = async (from: string, to: string) => {
       message: "WMS orders and articles inserted successfully.",
       insertedOrders: newOrders.length,
     };
-  } catch (error) {
-    console.error("❌ Error during WMS order fetch/insert:", error);
+  } catch (error: any) {
+    console.error(
+      "❌ Error during WMS order fetch/insert:",
+      error?.response?.data || error.message || error
+    );
     throw new Error("Failed to fetch/insert WMS order data.");
   }
-};
+}

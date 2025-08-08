@@ -13,6 +13,7 @@ import {
 
 export const createTourController = async (req: Request, res: Response) => {
   const tour_payload: CreateTour = req.body;
+  console.log("------------------------------------------------------------------------------------------");
   console.log(tour_payload);
   try {
     const result = await getTourMapDataAsync(tour_payload);
