@@ -103,7 +103,6 @@ const AdminTourTemplates = () => {
 
     const instance = latestOrderServices.getInstance();
     const toursdata = await instance.getTours();
-    console.log(toursdata);
     const idNumbers = permitTourIds.map(id => Number(id));  // Get the IDs of selected tours
     const matchedTours = toursdata.filter((tour: any) => idNumbers.includes(tour.id)); // Filter the tours based on the selected IDs
     const allOrders = matchedTours.flatMap((tour: any) => tour.orders);  // Extract all orders from matched tours
@@ -113,7 +112,7 @@ const AdminTourTemplates = () => {
       for (const order of allOrders) {
 
         const orderNumber = order.order_number;
-        console.log(order);
+        console.log(order, 'Order details');
         // Use window.location.origin or env var
         const baseUrl = `${window.location.protocol}//${window.location.host}/ParkingPermitForm`;
 
@@ -152,18 +151,25 @@ const AdminTourTemplates = () => {
                     condition
                 );
         }
+        
+       condition = 3;
+              html = getOrderInitialEmailHTML(
+                  orderData,
+                  finalUrl,
+                  condition
+              );
           // const html = `Dear ${order.firstname} ${order.lastname},\n \n 
           // Please use the following form and return it to us completed and signed.
           // Fill out the parking permit:\n
           // ${finalUrl} \n \n
           // Once submitted, we will automatically receive your permission and arrange delivery accordingly.`;
 
-        // await adminApiService.picklistEmail({
-        //   // to: order.email,
-        //   to: 'muhammad.jahanzaibbaloch@vendomnia.com',
-        //   subject: 'Parking Permit - Order #'+order.order_number ,
-        //   html
-        // });
+        await adminApiService.picklistEmail({
+          // to: order.email,
+          to: 'muhammad.jahanzaibbaloch@vendomnia.com',
+          subject: 'Parking Permit - Order #'+order.order_number ,
+          html
+        });
       }
       showSnackbar('Emails sent successfully', 'success');
     } catch (error) {

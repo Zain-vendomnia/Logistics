@@ -91,11 +91,9 @@ const getOrderCount = async (): Promise<number> => {
   }
 };
 const picklistEmail = (emailData: any) => {
+  return axios.post(API_BaseUrl_Admin + "picklistEmail", emailData);
+};
 
-    return axios.post(API_BaseUrl_Admin + "picklistEmail", emailData, {
-      headers: authHeader(),
-    });
-  };
 const fetchAlltourstatushistory = () =>
   axios.get(`${API_BaseUrl}gettourStatushistory`, { headers: authHeader() });
 const update_tourstatus = (tour_id: number) =>
@@ -165,13 +163,12 @@ export const uploadexcel = (formData: FormData) =>
     },
   });
 
-  // Proxy request to backend for orders
   const getShopOrder = (orderNumber: number) => {
-    return axios.get(`${API_BaseUrl_Admin}proxy/orders/${orderNumber}`, {
+    console.log(API_BaseUrl_Admin+`proxy/orders/${orderNumber}`);
+    return axios.get(API_BaseUrl_Admin+`proxy/orders/${orderNumber}`, {
       headers: authHeader(),
     });
   };
-
 
 const adminApiService = {
   fetchRouteData,
@@ -199,8 +196,8 @@ const adminApiService = {
   plotheremap,
   createtourHereApi,
   uploadexcel,
-  getShopOrder
   getWarehouse,
+  getShopOrder,
 };
 
 export default adminApiService;

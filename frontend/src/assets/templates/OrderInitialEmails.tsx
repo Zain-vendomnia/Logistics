@@ -31,7 +31,7 @@ const OrderInitialEmailTemplate1: React.FC<EmailProps> = ({
           auf dem Weg zu Ihnen!
         </h2>
 
-        <p>Hallo {orderData.customer.firstname} {orderData.customer.lastname},</p>
+        <p>Hallo {orderData.firstname} {orderData.lastname},</p>
 
         <p>
           Mein Name ist <strong>Felix Herrmann</strong>. Ich bin bei <strong>SUNNIVA</strong> im
@@ -105,7 +105,7 @@ const OrderInitialEmailTemplate2: React.FC<EmailProps> = ({
         Hurra! Ihre Bestellung - {orderData.number} wurde vollständig versandt! 🚚
       </h2>
 
-      <p>Hallo {orderData.customer.firstname} {orderData.customer.lastname},</p>
+      <p>Hallo {orderData.firstname} {orderData.lastname},</p>
 
       <p>
         Wir freuen uns, Ihnen mitteilen zu dürfen, dass wir Ihnen die Solarmodule am
@@ -202,7 +202,7 @@ const OrderInitialEmailTemplate3: React.FC<EmailProps> = ({
           // backgroundColor: "#f9f9f9",
     }}
   >
-    <p>Hallo {orderData.customer.firstname} {orderData.customer.lastname},</p>
+    <p>Hallo {orderData.firstname} {orderData.lastname},</p>
 
     <p>Gerne holen wir die Retoure bei Ihnen ab.</p>
 
