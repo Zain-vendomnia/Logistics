@@ -13,12 +13,12 @@ import apiResponseLogSetup from "./initialDBSetup/apiResponseLogSetup";
 import solarItemsSetup from "./initialDBSetup/solarmodulesItemsSetup";
 import routeSegmentsSetup from "./initialDBSetup/routeSegmentsSetup";
 import WMSOrderSetup from "./initialDBSetup/wms_orders";
+import  vehicleDetailsSetup from "./initialDBSetup/vechileDetails";
 import WMSOrderArticlesSetup from "./initialDBSetup/wms_order_articles";
 import { shopwareOrderSync } from "./shopwareOrderSync";
-import { fetchScheduleWmsOrderInfo } from './services/scheduleFetching';
+import { wmsOrderSync } from './wmsOrderSync';
 
 import cron from "node-cron";
-
 // Utility function for timestamped logs
 function logWithTime(message: string) {
   console.log(`[${new Date().toISOString()}] ${message}`);
@@ -34,6 +34,7 @@ async function main() {
     await logisticPaymentSetup();
     await warehouseDetailsSetup();
     await driverDetailsSetup();
+    await vehicleDetailsSetup();
     await tourInfoMasterSetup();
     await driverLocationsSetup();
     await routeSegmentsSetup();
@@ -48,9 +49,8 @@ async function main() {
     logWithTime("✅ Database setup completed successfully.");
 
     // 2. Start the API server
-    console.log("--------------------------------------------------------------------------------------------------------------------------");
     app.listen(app.get("port"), async () => {
-      logWithTime(`🚀 Server is running on port ${app.get("port")}`);
+      // logWithTime(`🚀 Server is running on port ${app.get("port")}`);
 
       // 3. Run the Shopware sync immediately on startup
       try {
@@ -58,7 +58,7 @@ async function main() {
         await shopwareOrderSync();
         logWithTime("✅ Initial Shopware Order Sync completed.");
         //  -----------------------------------------------------
-        await fetchScheduleWmsOrderInfo();
+        await wmsOrderSync('2024-06-29');
         logWithTime("✅ Initial WMS Order Sync completed.");
         
       } catch (error) {
@@ -81,7 +81,7 @@ async function main() {
       cron.schedule("*/30 * * * *", async () => {
         logWithTime("⏳ Cron triggered: Running WMS Order Sync...");
         try {
-          await fetchScheduleWmsOrderInfo();
+          await wmsOrderSync('2024-06-29');
           logWithTime("✅ WMS Order Sync completed.");
         } catch (err) {
           logWithTime("❌ WMS Order Sync failed:");

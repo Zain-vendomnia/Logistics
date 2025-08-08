@@ -20,7 +20,7 @@ export class tourInfo_master {
 
   public tour_start_km!: number;
   public tour_end_km!: number;
-  public tour_total_km!: number;
+  public excepted_tour_total_km!: number;
   public tour_start_fuel_pic!: Blob;
   public route_color!: string;
   public graphhopper_route!: JSON;

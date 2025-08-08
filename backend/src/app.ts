@@ -8,7 +8,6 @@ import config from "./config";
 import { setupSwagger } from './swagger';
 
 // Import the controller fucntion for the order info
-import { scheduleWmsOrderController } from "./controller/Admin_Api/scheduleWmsOrderInfo.controller";
 
 // import { addData,getImageById } from "./controller/Admin_Api/route_segments.controller";
 import { uploadImageController } from "./controller/Admin_Api/uploadImage.controller";
@@ -54,7 +53,6 @@ app.use("/api/admin", adminRouter);
 // total order count
 app.get("/api/admin/orderCount", getOrderCount);
 // --------------------------------------------------------------------
-app.get("/api/admin/scheduleWmsOrderInfo", scheduleWmsOrderController);
 
 app.post("/upload_image", uploadImageController);
 // ------------------ drivers routes ------------------

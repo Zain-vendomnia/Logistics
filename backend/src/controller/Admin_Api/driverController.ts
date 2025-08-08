@@ -9,10 +9,14 @@ export const getAllDrivers = async (_req: Request, res: Response) => {
     res.status(500).json({ message: "Error fetching drivers" });
   }
 };
+function logWithTime(message: string) {
+  console.log(`[${new Date().toISOString()}] ${message}`);
+}
 
 export const getAvailableDriversByDateAndWarehouse = async (req: Request, res: Response) => {
   try {
     const { tourDate, warehouseId } = req.query;
+    logWithTime(`Fetching available drivers for date: ${tourDate}, warehouseId: ${warehouseId}`);
     if (!tourDate || !warehouseId) {
       return res.status(400).json({ message: "tourDate and warehouseId are required query parameters." });
     }

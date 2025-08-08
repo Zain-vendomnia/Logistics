@@ -27,7 +27,6 @@ import { ExportTourController } from "../controller/Admin_RouteOptimzation/expor
 import { getAllTourController } from "../controller/Admin_RouteOptimzation/getAllTourController";
 
 import { getOrderCount } from "../controller/Admin_Api/orderCount.controller";
-import { scheduleWmsOrderController } from "../controller/Admin_Api/scheduleWmsOrderInfo.controller";
 import { uploadImageController } from "../controller/Admin_Api/uploadImage.controller";
 import { HandleOrderDelivery } from "../controller/AdminDriverApi/HandleOrderDelivery";
 import { picklistEmail } from "../controller/Admin_Api/picklistEmail.controller";
@@ -47,13 +46,15 @@ import { parseExcelToJobs } from "../utils/parseExcel";
 import { hereMapController } from "../controller/HERE_API/hereMapController";
 import { getWarehouseById } from "../controller/Admin_Api/warehouseController";
 
+import { orderSyncFromShopwareController } from "../controller/Admin_Api/orderSync.controller";
+import { shopwareAuth } from "../middlewares/shopwareAuth";
+
 const adminRouter = Router();
 
 /**
  * Public routes (no authentication required)
  */
 adminRouter.get("/customer/updatelatlng", updatelatlngController);
-adminRouter.get("/scheduleWmsOrderInfo", scheduleWmsOrderController);
 adminRouter.post("/picklistEmail", picklistEmail);
 adminRouter.post("/routeoptimize/getOrder", getAllLogisticOrder);
 adminRouter.post("/insertParkingPermit", insertParkingPermit);
@@ -83,6 +84,12 @@ adminRouter.post("/uploadexcel", upload.single("file"), async (req, res) => {
 /**
  * Protected routes (each one applies validateToken + roleCheck)
  */
+
+adminRouter.post(
+  "/order-sync",
+  shopwareAuth,
+  orderSyncFromShopwareController
+);
 adminRouter.get(
   "/tours",
   validateToken,

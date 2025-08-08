@@ -42,6 +42,7 @@ export const getAvailableDrivers = async (
   tourDate: string,
   warehouseId: number
 ): Promise<AvailabilityResult> => {
+  console.log(`Fetching available drivers for date: ${tourDate}, warehouseId: ${warehouseId}`);
   const [allDriversRows]: any = await pool.query(
     `
       SELECT d.id, d.name, d.mob, d.address, d.email, d.warehouse_id
@@ -585,7 +586,7 @@ export const getDriverPerformanceData = async (
       SUM(CASE WHEN t.tour_status = 'completed' THEN rs.total_valid_pod ELSE 0 END) AS totalValidPODs,
 
       /* KPI-4  KM efficiency -------------------------------------------- */
-      SUM(CASE WHEN t.tour_status = 'completed' THEN t.tour_total_km ELSE 0 END) AS totalPlannedKM,
+      SUM(CASE WHEN t.tour_status = 'completed' THEN t.excepted_tour_total_km ELSE 0 END) AS totalPlannedKM,
       SUM(CASE WHEN t.tour_status = 'completed' THEN 
         (CASE 
           WHEN t.tour_start_km IS NOT NULL AND t.tour_end_km IS NOT NULL 
