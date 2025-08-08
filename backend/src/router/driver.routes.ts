@@ -1,5 +1,5 @@
 import express from "express";
-import validateToken from "./validateToken";
+import validateToken from "../middlewares/validateToken";
 import roleCheck from "../middlewares/roleCheck";
 import {
   getAllDrivers,
@@ -10,7 +10,7 @@ import {
   deleteMultipleDrivers,
   checkDriverEligibility,
   getAvailableDriversByDateAndWarehouse,
-  getDriverPerformanceData 
+  getDriverPerformanceData,
 } from "../controller/Admin_Api/driverController";
 
 const router = express.Router();
@@ -26,6 +26,5 @@ router.put("/:id", updateDriver);
 router.delete("/:id", deleteDriver);
 router.post("/delete-multiple", deleteMultipleDrivers);
 router.get("/check-eligibility/:driverId", checkDriverEligibility);
-
 
 export default router;

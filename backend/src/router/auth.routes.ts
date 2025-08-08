@@ -1,35 +1,39 @@
 import { Router } from "express";
-import * as authCtrl from "../controller/auth.controller";
-import validateToken from "./validateToken";
-import * as userCtrl from "../controller/user.controller";
+import validateToken from "../middlewares/validateToken";
 import roleCheck from "../middlewares/roleCheck";
-import * as driverCtrl from "../controller/driver.controller"; // Import the driver controller
 
-const router = Router();
+import * as AuthCtrl from "../controller/auth.controller";
+import * as UserCtrl from "../controller/user.controller";
+import * as DriverCtrl from "../controller/driver.controller";
 
-// Route to get user details - only accessible if the token is valid
-router.get("/user", validateToken, userCtrl.getUserDetails);
+const authRouter = Router();
 
 // Route to sign up a new user - no role check needed, anyone can sign up
-router.post("/signup", authCtrl.signup);
+authRouter.post("/signup", AuthCtrl.signup);
 
 // Route to log in and get a JWT token - no role check needed, anyone can log in
-router.post("/login", authCtrl.login);
+authRouter.post("/login", AuthCtrl.login);
+
+// Route to get user details - only accessible if the token is valid
+authRouter.get("/user", validateToken, UserCtrl.getUserDetails);
 
 // Route to fetch all users (admin-only access)
 //router.get("/admin", validateToken, roleCheck(["admin"]), userCtrl.getAllUsers);
-router.get("/admin", validateToken, roleCheck(["admin"]), (_req, res) => {
-    // If authenticated and authorized, render the admin page
-    res.render("admin"); 
+authRouter.get("/admin", validateToken, roleCheck(["admin"]), (_req, res) => {
+  // If authenticated and authorized, render the admin page
+  res.render("admin");
 });
 
 // Route to get driver board, only accessible to drivers
-router.get("/test/driver", validateToken, roleCheck(["driver"]), driverCtrl.getDriverBoard);
+authRouter.get(
+  "/test/driver",
+  validateToken,
+  roleCheck(["driver"]),
+  DriverCtrl.getDriverBoard
+);
 
 // Validate token (used to check if user is still logged in)
-router.get("/auth/validate-token", validateToken, (_req, res) => {
+authRouter.get("/validate-token", validateToken, (_req, res) => {
   res.status(200).json({ message: "Token is valid" });
 });
-
-
-export default router;
+export default authRouter;
