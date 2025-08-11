@@ -11,6 +11,7 @@ import solarItemsSetup from "../../initialDBSetup/solarmodulesItemsSetup";
 import tourDriverSetup from "../../initialDBSetup/tourDriverSetup";
 import tourInfoMasterSetup from "../../initialDBSetup/tourInfoMasterSetup";
 import warehouseDetailsSetup from "../../initialDBSetup/warehouseDetailsSetup";
+import vahicleDetailsSetup from "../../initialDBSetup/warehouseDetailsSetup";
 import WMSOrderSetup from "../../initialDBSetup/wms_orders";
 import WMSOrderArticlesSetup from "../../initialDBSetup/wms_order_articles";
 
@@ -19,6 +20,7 @@ export async function runInitialDbSetup() {
   await logisticOrderSetup();
   await logisticPaymentSetup();
   await warehouseDetailsSetup();
+  await vahicleDetailsSetup();
   await driverDetailsSetup();
   await tourInfoMasterSetup();
   await driverLocationsSetup();
