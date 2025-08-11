@@ -18,8 +18,9 @@ import { uploadImageController } from "./controller/Admin_Api/uploadImage.contro
 // import { insertParkingPermit } from './controller/Admin_Api/insertParkingPermit.controller'; // Import the controller
 // total orders count controller 
 import { getOrderCount } from "./controller/Admin_Api/orderCount.controller";
-//  driver routes
+// drivers routes
 import driverRoutes from "./router/driverRoutes";
+
 //  warehouse routes
 import warehouseRoutes from "./router/warehouseRoutes";
 import { HandleOrderDelivery } from "./controller/AdminDriverApi/HandleOrderDelivery";
@@ -50,13 +51,14 @@ app.use("/api", authRouter);
 app.use("/api/test", authRouter);
 app.use("/api/admin", adminRouter);
 // --------------------------------------------------------------------
+// drivers routes
+app.use("/api/driver", driverRoutes);
+// --------------------------------------------------------------------
 // total order count
 app.get("/api/admin/orderCount", getOrderCount);
 // --------------------------------------------------------------------
 
 app.post("/upload_image", uploadImageController);
-// ------------------ drivers routes ------------------
-app.use("/api/admin/", driverRoutes);
 // ------------------ warehouse routes ------------------
 app.use("/api/admin/", warehouseRoutes);
 // Picklist Email Route

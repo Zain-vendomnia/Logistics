@@ -38,10 +38,14 @@ export class tourInfo_master {
     tourId: number,
     jsonData: string
   ): Promise<void> {
+      console.log("-------------------------------- STEP 5 UPDATING HERE MAP RESPONSE ----------------------------------------------------")
+
     await pool.execute(
       `UPDATE tourinfo_master SET heremap_route = ? WHERE id = ?`,
       [jsonData, tourId]
     );
+      console.log("-------------------------------------------------------------------------------------------------------------------")
+
   }
   static async updateGraphhopperResponse(
     tourId: number,

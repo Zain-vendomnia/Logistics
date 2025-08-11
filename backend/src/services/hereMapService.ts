@@ -152,10 +152,18 @@ async function buildFleet(warehouseGroups: any[]): Promise<FleetType[]> {
 
 // WarehouseGroup as DB object array
 async function PlanTour(orders: LogisticOrder[], warehouseGroup: any[]) {
-  const jobList = createJobList(orders);
-  const jobs = await buildJobs(jobList);
+    console.log("-------------------------------- STEP 4 PLAN TOUR ----------------------------------------------------")
 
-  const fleetTypes = await buildFleet(warehouseGroup);
+    console.log("-------------------------------- calling the createJobList ----------------------------------------------------")
+    const jobList = createJobList(orders);
+    console.log("Job list created: ", jobList);
+    console.log("-------------------------------- calling the buildJobs ----------------------------------------------------")
+    const jobs = await buildJobs(jobList);
+    console.log("Jobs Build created: ", jobs);
+    
+    console.log("-------------------------------- calling the buildFleet ----------------------------------------------------")
+    const fleetTypes = await buildFleet(warehouseGroup);
+    console.log("Fleet Types created: ", fleetTypes);
 
   const problem = {
     fleet: {
@@ -178,6 +186,8 @@ async function PlanTour(orders: LogisticOrder[], warehouseGroup: any[]) {
     if (!tour) {
       throw new Error("No tour found in the response.");
     }
+      console.log("-------------------------------------------------------------------------------------------------------------------")
+
     return {
       tour,
       unassigned,
