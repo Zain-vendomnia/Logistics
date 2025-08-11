@@ -1,5 +1,11 @@
 import Box from "@mui/material/Box/Box";
-import { List, ListItem, ListItemButton, ListItemText } from "@mui/material";
+import {
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
+  Typography,
+} from "@mui/material";
 
 import { DynamicTourPayload } from "../../types/tour.type";
 import useDynamicTourStore from "../../store/useDynamicTourStore";
@@ -35,6 +41,12 @@ const DynamicTourList = () => {
 
   return (
     <Box width={"100%"} height="100%" overflow="auto">
+      <Box display={"flex"} justifyContent={"center"} p={1} mb={1}>
+        <Typography variant="h5" color="primary">
+          Dynamic Tours
+        </Typography>
+      </Box>
+
       <List disablePadding>
         {dynamicTours.map((tour) => (
           <ListItem disablePadding key={tour.tour_number}>

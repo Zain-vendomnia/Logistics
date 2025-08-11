@@ -48,7 +48,7 @@ const DynamicToursTab = () => {
         <Tabs
           value={value}
           onChange={handleChange}
-          aria-label="basic tabs example"
+          aria-label="simple tabs"
         >
           <Tab label="Dynamic Tours" {...a11yProps(0)} />
           <Tab label="Fleet Control" {...a11yProps(1)} />

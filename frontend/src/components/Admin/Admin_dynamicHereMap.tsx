@@ -26,6 +26,7 @@ import {
 } from "../../types/tour.type";
 import useDynamicTourStore from "../../store/useDynamicTourStore";
 import useLiveOrderUpdates from "../../socket/useLiveOrderUpdates";
+import DynamicTourList from "./Admin_DynamicTourList";
 
 // interface Stop {
 //   location: { lat: number; lng: number };
@@ -270,13 +271,14 @@ const Dashboard: React.FC = () => {
           sx={{
             display: "flex",
             flexDirection: "column",
-            width: 360,
+            width: 290,
             height: "100%",
             overflow: "hidden",
             p: 2,
           }}
         >
-          <DynamicToursTab />
+          {/* <DynamicToursTab /> */}
+          <DynamicTourList />
         </Paper>
 
         {/* Right Map */}
