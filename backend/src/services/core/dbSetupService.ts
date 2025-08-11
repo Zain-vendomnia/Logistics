@@ -11,7 +11,7 @@ import solarItemsSetup from "../../initialDBSetup/solarmodulesItemsSetup";
 import tourDriverSetup from "../../initialDBSetup/tourDriverSetup";
 import tourInfoMasterSetup from "../../initialDBSetup/tourInfoMasterSetup";
 import warehouseDetailsSetup from "../../initialDBSetup/warehouseDetailsSetup";
-import vahicleDetailsSetup from "../../initialDBSetup/warehouseDetailsSetup";
+import vahicleDetailsSetup from "../../initialDBSetup/vehicleDetailsSetup";
 import WMSOrderSetup from "../../initialDBSetup/wms_orders";
 import WMSOrderArticlesSetup from "../../initialDBSetup/wms_order_articles";
 
