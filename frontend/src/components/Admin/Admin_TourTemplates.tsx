@@ -16,6 +16,8 @@ import adminApiService from '../../services/adminApiService';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { getOrderInitialEmailHTML } from '../../assets/templates/OrderInitialEmails';
 
+import { sendSMS, sendWhatsAppMessage, sendEmail } from '../../services/notification/notificationService';
+
 interface Tour {
   id: string;
   tour_name: string;
@@ -112,7 +114,7 @@ const AdminTourTemplates = () => {
       for (const order of allOrders) {
 
         const orderNumber = order.order_number;
-        console.log(order, 'Order details');
+
         // Use window.location.origin or env var
         const baseUrl = `${window.location.protocol}//${window.location.host}/ParkingPermitForm`;
 
@@ -120,44 +122,34 @@ const AdminTourTemplates = () => {
 
         const finalUrl = `${baseUrl}?o=${encodedOrderNumber}`;
 
-        const ApiData = await adminApiService.getShopOrder(order.order_number);
-        const orderData = ApiData.data.data;
-           console.log(orderData,'here teseting');
-        const trackingCode = orderData.trackingCode;
+        const trackingCode = order.tracking_code;
 
         let html = '';
         let condition = 0;
-        if (trackingCode && orderData.orderStatus.id != 10006 ) {
+
+       const formattedTime = formatDeliveryWindow(order.order_time);
+        order.order_time = formattedTime;
+
+
+        if (trackingCode && order.order_status_id != 10006 ) {
 
           condition = 1;
-          html = getOrderInitialEmailHTML(
-              orderData,
-              finalUrl,
-              condition
-          );
 
-        }else if( !trackingCode && orderData.orderStatus.id != 10006 ){
+        }else if( !trackingCode && order.order_status_id != 10006 ){
          condition = 2;
-                html = getOrderInitialEmailHTML(
-                    orderData,
-                    finalUrl,
-                    condition
-                );
-        }else if(orderData.orderStatus.id == 10006){
+
+        }else if(order.order_status_id == 10006){
          condition = 3;
-                html = getOrderInitialEmailHTML(
-                    orderData,
-                    finalUrl,
-                    condition
-                );
         }
-        
-       condition = 3;
-              html = getOrderInitialEmailHTML(
-                  orderData,
-                  finalUrl,
-                  condition
-              );
+
+
+        html = getOrderInitialEmailHTML(
+            order,
+            finalUrl,
+            condition
+        );
+        console.log('condition: ',condition);
+
           // const html = `Dear ${order.firstname} ${order.lastname},\n \n 
           // Please use the following form and return it to us completed and signed.
           // Fill out the parking permit:\n
@@ -167,7 +159,7 @@ const AdminTourTemplates = () => {
         await adminApiService.picklistEmail({
           // to: order.email,
           to: 'muhammad.jahanzaibbaloch@vendomnia.com',
-          subject: 'Parking Permit - Order #'+order.order_number ,
+          subject: 'Parking Permit - Order #'+orderNumber+' - Condition: '+condition,
           html
         });
       }
@@ -178,12 +170,46 @@ const AdminTourTemplates = () => {
     } finally {
       // Close the modal after sending the emails
       setLoading(false);
-      setConfirmOpen(false);
+      // setConfirmOpen(false);
       setPermitTourIds([]);
     }
   };
 
+  const formatDeliveryWindow = (isoString: string): string => {
+    const startDate = new Date(isoString);
+    const endDate = new Date(startDate.getTime() + 30 * 60000); // Add 30 minutes
 
+    // Format date
+    const day = String(startDate.getUTCDate()).padStart(2, '0');
+    const month = String(startDate.getUTCMonth() + 1).padStart(2, '0');
+    const year = startDate.getUTCFullYear();
+    const formattedDate = `${day}-${month}-${year}`;
+
+    // Format time helper
+    const formatTime = (date: Date): string => {
+      let hours = date.getUTCHours();
+      const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12 || 12;
+      return `${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
+    };
+
+    const startTime = formatTime(startDate);
+    const endTime = formatTime(endDate);
+
+    return  `${formattedDate} (${startTime}) zwischen ${endTime}`;
+  };
+
+
+
+  const handleSendEmail = async () => {
+    try {
+      const response = await sendEmail('muhammad.jahanzaibbaloch@vendomnia.com', 'Order Arrival', 'customer-notification', { name: 'Jahanzaib Baloch' });
+      alert(`Email Sent: ${response}`);
+    } catch (error) {
+      alert(`Failed to send email : ${error}`);
+    }
+  };
 
   const handleAction = async (action: 'delete' | 'merge' | 'export'|'permit') => {
     if (!selected.length) return showSnackbar('No tours selected', 'warning');
@@ -344,7 +370,8 @@ const AdminTourTemplates = () => {
             }}>Send Parking Permit</MenuItem>
              <Divider />
             <MenuItem sx={{ color: 'error.main' }} onClick={() => { if (currentTour) { handleDelete([currentTour.id]);  } setAnchorEl(null); }}>Delete</MenuItem>
-            
+             <Divider />
+             <button className="notification-button" onClick={handleSendEmail}>Send Email</button>
 
           </Menu>
 

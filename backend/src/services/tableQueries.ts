@@ -296,3 +296,15 @@ export const CREATE_SOLARMODULES_ITEMS_TABLE = `
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
   );
 `;
+
+
+export const CREATE_WHATSAPPCHATS_TABLE = `
+  CREATE TABLE IF NOT EXISTS whatsapp_chats (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    \`from\` VARCHAR(50) NOT NULL,
+    \`to\` VARCHAR(50) NOT NULL,
+    body TEXT NOT NULL,
+    direction ENUM('inbound', 'outbound') NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+`;

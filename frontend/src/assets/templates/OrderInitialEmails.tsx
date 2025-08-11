@@ -27,7 +27,7 @@ const OrderInitialEmailTemplate1: React.FC<EmailProps> = ({
         }}
       >
         <h2 style={{ color: "#007A4D" }}>
-          📢 Gute Nachrichten! 🎉 Der erste Teil Ihrer Bestellung (ID: {orderData.number}) ist
+          📢 Gute Nachrichten! 🎉 Der erste Teil Ihrer Bestellung (ID: {orderData.order_number}) ist
           auf dem Weg zu Ihnen!
         </h2>
 
@@ -49,7 +49,7 @@ const OrderInitialEmailTemplate1: React.FC<EmailProps> = ({
           Ihnen mit dem Paketdienst Hermes zusenden.
         </p>
         <p>
-          Die Sendungsnummer lautet <strong>{orderData.trackingCode}</strong> und kann über
+          Die Sendungsnummer lautet <strong>{orderData.tracking_code}</strong> und kann über
           folgenden Link online nachverfolgt werden:
         </p>
         <p>
@@ -102,7 +102,7 @@ const OrderInitialEmailTemplate2: React.FC<EmailProps> = ({
       }}
     >
       <h2 style={{ color: "#007A4D" }}>
-        Hurra! Ihre Bestellung - {orderData.number} wurde vollständig versandt! 🚚
+        Hurra! Ihre Bestellung - {orderData.order_number} wurde vollständig versandt! 🚚
       </h2>
 
       <p>Hallo {orderData.firstname} {orderData.lastname},</p>
@@ -118,7 +118,7 @@ const OrderInitialEmailTemplate2: React.FC<EmailProps> = ({
           margin: "12px 0",
         }}
       >
-        Liefertermin: (Delivery Time) zwischen (Delivery Time)
+        Liefertermin: {orderData.order_time}
       </p>
 
       <p>
@@ -215,7 +215,7 @@ const OrderInitialEmailTemplate3: React.FC<EmailProps> = ({
         margin: "12px 0",
       }}
     >
-      (Pickup Date) zwischen (Pickup Time)
+      {orderData.order_time}
     </p>
 
     <p>Sie können an diesem Termin nicht?</p>
