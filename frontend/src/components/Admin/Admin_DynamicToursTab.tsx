@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Box, Tabs, Tab } from "@mui/material";
 
 import FleetPanel from "./FleetPanel";
-import DynamicTours from "./Admin_DynamicTours";
+import DynamicTourList from "./Admin_DynamicTourList";
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -55,7 +55,7 @@ const DynamicToursTab = () => {
         </Tabs>
       </Box>
       <TabPanel value={value} index={0}>
-        <DynamicTours />
+        <DynamicTourList />
       </TabPanel>
       <TabPanel value={value} index={1}>
         <FleetPanel />

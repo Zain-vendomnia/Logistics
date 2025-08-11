@@ -1,4 +1,5 @@
 import app from "./app";
+import { initSocket } from "./socket";
 import { runInitialDbSetup } from "./services/core/dbSetupService";
 import { runInitialSyncs } from "./services/core/syncService";
 import { scheduleRecurringSyncs } from "./services/core/scheduleService";
@@ -10,7 +11,8 @@ async function main() {
     await runInitialDbSetup();
     logWithTime("Database setup completed.");
 
-    app.listen(app.get("port"), async () => {
+    const server = initSocket(app);
+    server.listen(app.get("port"), async () => {
       logWithTime(`Server is running on port ${app.get("port")}`);
 
       await runInitialSyncs();

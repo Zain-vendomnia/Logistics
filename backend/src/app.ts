@@ -9,7 +9,9 @@ import { notFoundHandler } from "./middlewares/notFoundHandler";
 import { errorHandler } from "./middlewares/errorHandler";
 
 const app = express();
-app.set("port", config.PORT);
+
+const PORT = config.PORT || 3001;
+app.set("port", PORT);
 
 //global middlewares
 registerMiddlewares(app);

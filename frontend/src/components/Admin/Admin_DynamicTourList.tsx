@@ -3,13 +3,35 @@ import { List, ListItem, ListItemButton, ListItemText } from "@mui/material";
 
 import { DynamicTourPayload } from "../../types/tour.type";
 import useDynamicTourStore from "../../store/useDynamicTourStore";
+import adminApiService from "../../services/adminApiService";
+import { useEffect, useState } from "react";
 
-const DynamicTours = () => {
+const DynamicTourList = () => {
   const { dynamicTours, selectedTour, setSelectedTour } = useDynamicTourStore();
 
   const handleTourSelect = (tour: DynamicTourPayload) => {
     setSelectedTour(tour);
   };
+
+  // const [count, setCount] = useState(11);
+  // useEffect(() => {
+  //   const addNewOrder = () => {
+  //     adminApiService.newShopOrder(count);
+  //     setCount((p) => p + 1);
+  //   };
+
+  //   let interval: ReturnType<typeof setInterval>;
+  //   const timeout = setTimeout(() => {
+  //     interval = setInterval(() => {
+  //       addNewOrder();
+  //     }, 5000);
+  //   }, 10000);
+
+  //   return () => {
+  //     clearTimeout(timeout);
+  //     clearInterval(interval);
+  //   };
+  // }, []);
 
   return (
     <Box width={"100%"} height="100%" overflow="auto">
@@ -37,4 +59,4 @@ const DynamicTours = () => {
   );
 };
 
-export default DynamicTours;
+export default DynamicTourList;

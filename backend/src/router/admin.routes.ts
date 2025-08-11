@@ -32,6 +32,7 @@ import { upload } from "../middlewares/upload";
 import { parseExcelToJobs } from "../utils/parseExcel";
 
 import { notFoundHandler } from "../middlewares/notFoundHandler";
+import * as shopware from "../controller/AdminDriverApi/shopwareOrderController";
 
 const adminRouter = Router();
 
@@ -122,6 +123,8 @@ adminRouter.post(
 );
 adminRouter.post("/upload_image", uploadImageController);
 adminRouter.post("/driver/tour/:tourId/order", HandleOrderDelivery);
+
+adminRouter.get("/newShopwareOrder", shopware.newShopOrder);
 
 adminRouter.use("/drivers", validateToken, roleCheck(["admin"]), driverRoutes);
 adminRouter.use("/warehouses", warehouseRoutes);

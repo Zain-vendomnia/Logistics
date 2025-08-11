@@ -1,5 +1,5 @@
 import cron from "node-cron";
-import { shopwareOrderSync } from "../../shopwareOrderSync";
+import { shopwareOrderSync } from "../shopwareOrderSync";
 import { fetchScheduleWmsOrderInfo } from "../scheduleFetching";
 import { logWithTime } from "../../utils/logging";
 

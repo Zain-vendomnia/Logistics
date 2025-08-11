@@ -1,6 +1,6 @@
-import { shopwareOrderSync } from "../../shopwareOrderSync";
 import { logWithTime } from "../../utils/logging";
 import { fetchScheduleWmsOrderInfo } from "../scheduleFetching";
+import { shopwareOrderSync } from "../shopwareOrderSync";
 
 export async function runInitialSyncs() {
   try {

@@ -15,6 +15,7 @@ type DynamicTourStore = {
 
 const createDynamicTourStore: StateCreator<DynamicTourStore> = (set, get) => ({
   orderList: [],
+
   addOrders: (orders) =>
     set((state) => ({
       orderList: [...state.orderList, ...orders],

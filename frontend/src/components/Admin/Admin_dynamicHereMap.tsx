@@ -25,6 +25,7 @@ import {
   Stop,
 } from "../../types/tour.type";
 import useDynamicTourStore from "../../store/useDynamicTourStore";
+import useLiveOrderUpdates from "../../socket/useLiveOrderUpdates";
 
 // interface Stop {
 //   location: { lat: number; lng: number };
@@ -125,6 +126,14 @@ const Dashboard: React.FC = () => {
   const { orderList, addOrders, selectedTour, setDynamicTours } =
     useDynamicTourStore();
 
+  useLiveOrderUpdates((new_order) => {
+    console.log(
+      `[${new Date().toLocaleTimeString()}] - New Shop Order`,
+      new_order
+    );
+    addOrders([new_order]);
+  });
+
   const [vehicleTours, setVehicleTours] = useState<Geometry[]>([]);
 
   const [isLoading, setIsLoading] = useState<boolean>(
@@ -201,7 +210,7 @@ const Dashboard: React.FC = () => {
         const res = await adminApiService.fetchPinboardOrders();
         const orders = (res.data as pinboardOrder[]) || [];
 
-        console.log("Fetched Orders:", orders);
+        console.log("Fetched Pinboard Orders:", orders);
 
         addOrders(orders);
       };

@@ -160,6 +160,17 @@ const fetchPinboardOrders = () =>
     headers: authHeader(),
   });
 
+const newShopOrder = (id: number) =>
+  axios.get(`${API_BaseUrl_Admin}newShopwareOrder`, {
+    headers: authHeader(),
+    params: { id },
+  });
+// const removeShopOrder = (id: any) =>
+//   axios.delete(`${API_BaseUrl_Admin}removeShopwareOrder`, {
+//     headers: authHeader(),
+//     params: { id },
+//   });
+
 const fetchDynamicTours = () =>
   axios.get(`${API_BaseUrl_Admin}dynamicTours`, {
     headers: authHeader(),
@@ -202,6 +213,7 @@ const adminApiService = {
   fetchPinboardOrders,
   uploadexcel,
   getWarehouse,
+  newShopOrder,
 };
 
 export default adminApiService;
