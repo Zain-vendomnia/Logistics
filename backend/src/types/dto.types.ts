@@ -29,3 +29,19 @@ export type CheckOrderCount = {
   count: number;
   lastUpdated?: string; // optional if not available
 };
+
+export type pinboardOrder = {
+  id: number;
+  order_number: string;
+
+  order_time: string;
+  delivery_time: string;
+  amount: number;
+
+  city: string;
+  zipcode: string;
+  street: string;
+  
+  location: { lat: number; lng: number };
+  warehouse_id: number;
+};

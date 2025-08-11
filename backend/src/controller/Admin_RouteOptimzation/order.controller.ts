@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { LogisticOrder } from "../../model/LogisticOrders";
-import { CheckOrderCount } from "../../types/dto.types";
+import { CheckOrderCount, pinboardOrder } from "../../types/dto.types";
 
 export const getAllLogisticOrders = async (_req: Request, res: Response) => {
   try {
@@ -64,6 +64,18 @@ export const getCheckOrdersRecentUpdates = async (
     res.status(200).json(orderCount);
   } catch (error) {
     console.error("Error fetching orders last updates:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const getPinboardOrders = async (_req: Request, res: Response) => {
+  try {
+    const orders: pinboardOrder[] =
+      await LogisticOrder.getPinboardOrdersAsync(); // Shopware orders
+
+    res.status(200).json(orders);
+  } catch (error) {
+    console.error("Error fetching orders:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };

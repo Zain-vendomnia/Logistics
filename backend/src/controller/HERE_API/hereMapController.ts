@@ -163,16 +163,28 @@ export const hereMapController = async (_req: Request, res: Response) => {
     console.log("Newly created Tours: ", { tours });
 
     const allDecodedRoutes: DecodedRoute[] = [];
+
     for (const tour of tours || []) {
       const routes = await hereMapService.getRoutesForTour(tour);
+
+      // await createDynamicTour({
+      //   tour_route: routes!,
+      //   orderIds: routes?.stops
+      //     .slice(1)
+      //     .map((stop) =>
+      //       stop.activities.map((activity: any) => activity.jobId.split("_")[1])
+      //     )
+      //     .join(",")!,
+      //   warehouse_id: count + 1,
+      // });
 
       allDecodedRoutes.push(routes!);
     }
 
-    console.log("All Tour - Route Data: ", {
-      routes: allDecodedRoutes,
-      unassigned,
-    });
+    // console.log("All Tour - Route Data: ", {
+    //   routes: allDecodedRoutes,
+    //   unassigned,
+    // });
 
     res.json({ routes: allDecodedRoutes, unassigned });
   } catch (err) {
