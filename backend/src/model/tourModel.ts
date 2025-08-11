@@ -16,6 +16,9 @@ import { CreateTour } from "../types/dto.types";
 // }
 
 export const createTour = async (tour: CreateTour) => {
+  console.log("-------------------------------- STEP 1 CREATING THE TOUR  ----------------------------------------------------")
+
+
   const connection = await pool.getConnection();
   await connection.beginTransaction();
 
@@ -97,6 +100,8 @@ export const createTour = async (tour: CreateTour) => {
 
     const [result] = await connection.query(insertSql, insertValues);
     await connection.commit();
+    console.log("-------------------------------------------------------------------------------------------------------------------")
+
     return result as ResultSetHeader;
   } catch (error) {
     await connection.rollback();

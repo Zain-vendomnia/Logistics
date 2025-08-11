@@ -224,7 +224,7 @@ const GlobalChecksProvider: React.FC<{ children: ReactNode }> = ({
         </Dialog>
       )}
 
-      {!cameraEnabled && (
+      {/* {!cameraEnabled && (
         <Dialog open={openCameraDialog}>
           <DialogTitle>Camara Not Functional!</DialogTitle>
           <DialogContent>
@@ -238,7 +238,7 @@ const GlobalChecksProvider: React.FC<{ children: ReactNode }> = ({
             </Button>
           </DialogActions>
         </Dialog>
-      )}
+      )} */}
     </GlobalChecksContext.Provider>
   );
 };

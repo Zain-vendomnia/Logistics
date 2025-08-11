@@ -250,10 +250,13 @@ export class LogisticOrder {
 }
 
 export async function get_LogisticsOrdersAddress(orderIds: number[]) {
+  console.log("-------------------------------- STEP 2 GETTING ORDER ADDRESS  ----------------------------------------------------")
   const placeholders = orderIds.map(() => "?").join(",");
   const [orderRows] = await pool.query(
     `SELECT order_id, street, city, zipcode FROM logistic_order WHERE order_id IN (${placeholders})`,
     orderIds
   );
+  console.log("Order Address:", orderRows);
+  console.log("-------------------------------------------------------------------------------------------------------------------")
   return orderRows;
 }

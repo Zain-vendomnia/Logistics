@@ -107,7 +107,7 @@ export const checkDriverEligibility = async (req: Request, res: Response) => {
 // ✅ NEW: Get performance data for all drivers (with optional date filtering)
 export const getDriverPerformanceData = async (req: Request, res: Response) => {
   try {
-    const { startDate, endDate } = req.query;
+    const { startDate, endDate , driver_id } = req.query;
 
     // Validate presence of both dates
     if (!startDate || !endDate) {
@@ -118,7 +118,31 @@ export const getDriverPerformanceData = async (req: Request, res: Response) => {
 
     const performanceData = await driverService.getDriverPerformanceData(
       String(startDate),
-      String(endDate)
+      String(endDate),
+      driver_id ? Number(driver_id) : undefined
+    );
+
+   return res.json(performanceData);
+  } catch (err) {
+    console.error("Error fetching driver performance data:", err);
+    return res.status(500).json({ message: "Failed to fetch performance data." });
+  }
+};
+export const weeklyDriverPerformanceData = async (req: Request, res: Response) => {
+  try {
+    const { startDate, endDate , driver_id } = req.query;
+
+    // Validate presence of both dates
+    if (!startDate || !endDate) {
+      return res.status(400).json({ message: "startDate and endDate are required." });
+    }
+
+    // Optional: Add date format validation here if needed
+
+    const performanceData = await driverService.getDriverPerformanceWeekDaily(
+      String(startDate),
+      String(endDate),
+      driver_id ? Number(driver_id) : undefined
     );
 
    return res.json(performanceData);

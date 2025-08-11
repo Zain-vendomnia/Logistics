@@ -112,13 +112,13 @@ export async function login(req: Request, res: Response) {
       { expiresIn: "1h" }
     );
 
-    // 5) If driver, fetch today’s tour
-    let todayTour: {
-      tour_id: number | null;
-      tour_date: string | null;
-      message?: string;
-    } | null = null;
+    // ✅ declare in outer scope so it’s available for the final response
+    let driverId: number | null = null;
+    let todayTour:
+      | { tour_id: number | null; tour_date: string | null; message?: string }
+      | null = null;
 
+    // 5) If driver, fetch today’s tour
     if (user.role === "driver") {
       const [drivers] = await pool.query<RowDataPacket[]>(
         "SELECT id FROM driver_details WHERE user_id = ?",
@@ -126,7 +126,7 @@ export async function login(req: Request, res: Response) {
       );
 
       if (drivers.length > 0) {
-        const driverId = drivers[0].id;
+        driverId = drivers[0].id as number;
 
         const [tours] = await pool.query<RowDataPacket[]>(
           `SELECT 
@@ -140,22 +140,14 @@ export async function login(req: Request, res: Response) {
 
         if (tours.length > 0) {
           todayTour = {
-            tour_id: tours[0].tour_id,
-            tour_date: tours[0].tour_date,
+            tour_id: tours[0].tour_id as number,
+            tour_date: tours[0].tour_date as string,
           };
         } else {
-          todayTour = {
-            tour_id: null,
-            tour_date: null,
-            message: "No tour assigned for today",
-          };
+          todayTour = { tour_id: null, tour_date: null, message: "No tour assigned for today" };
         }
       } else {
-        todayTour = {
-          tour_id: null,
-          tour_date: null,
-          message: "Driver profile not found",
-        };
+        todayTour = { tour_id: null, tour_date: null, message: "Driver profile not found" };
       }
     }
 
@@ -165,6 +157,7 @@ export async function login(req: Request, res: Response) {
       user_id: user.user_id,
       username: user.username,
       email: user.email,
+      driver_id: driverId,
       role: user.role,
       todayTour,
     });
