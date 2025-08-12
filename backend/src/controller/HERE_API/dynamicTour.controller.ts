@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import axios from "axios";
 import { decode } from "../../utils/flexiblePolylineDecoder";
 import pLimit from "p-limit";
+import { getUnapprovedDynamicTours } from "../../services/dynamicTour.service";
 
 const HERE_API_KEY =
   process.env.HERE_API_KEY || "2tJpOzfdl3mgNpwKiDt-KuAQlzgEbsFkbX8byW97t1k";
@@ -86,7 +87,7 @@ function chunkArray<T>(arr: T[], size: number): T[][] {
   return result;
 }
 
-export const dynamicTourController = async (
+export const create_dynamicTour = async (
   _req: Request,
   res: Response,
   jobList: Job[]
@@ -247,5 +248,21 @@ export const dynamicTourController = async (
         error: err instanceof Error ? err.message : String(err),
       });
     }
+  }
+};
+
+export const getDynamicTours = async (_req: Request, res: Response) => {
+  try {
+    const dynamic_tours = await getUnapprovedDynamicTours();
+
+    // console.log("Returning Dynamic Tours:", dynamic_tours);
+
+    res.status(200).json(dynamic_tours);
+  } catch (error) {
+    console.error("Error executing Dynamic Tours:", error);
+    res.status(500).json({
+      message: "Failed to get dynamic tours",
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 };

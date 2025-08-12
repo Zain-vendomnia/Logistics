@@ -1,10 +1,4 @@
-import {
-  ReactNode,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useState,
-} from "react";
+import { ReactNode, useMemo } from "react";
 import {
   Box,
   List,
@@ -93,22 +87,23 @@ const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
         { text: "Completed Tour", icon: <AltRoute />, path: "/completed_tour" },
         { text: "Live Tour", icon: <TrendingUp />, path: "/live_tours" },
         {
-          text: "Manage Drivers",
-          icon: <DirectionsBusFilled />,
-          path: "/manage_drivers",
-        },
-        {
-          text: "Manage Warehouse",
+          text: "Warehouse",
           icon: <Warehouse />,
           path: "/manage_warehouse",
         },
+        {
+          text: "Drivers",
+          icon: <DirectionsBusFilled />,
+          path: "/manage_drivers",
+        },
+
         {
           text: "Driver Performance",
           icon: <Leaderboard />,
           path: "/driver_performance",
         },
 
-        { text: "HereMap Dynamic", icon:<Moving/>, path:"/dynamicHereMap"},  // direct api call to HERE api, so avoid this
+        { text: "Dynamic Tours", icon: <Moving />, path: "/dynamicHereMap" }, // direct api call to HERE api, so avoid this
         { text: "Upload Job File", icon: <Moving />, path: "/UploadJobFile" },
       ];
     }

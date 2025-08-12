@@ -1,5 +1,5 @@
 import express from "express";
-import validateToken from "./validateToken";
+import validateToken from "../middlewares/validateToken";
 import roleCheck from "../middlewares/roleCheck";
 import {
   getAllWarehouses,

@@ -50,7 +50,7 @@ export interface DecodedRoute {
     summary: any;
     coordinates: Array<{ lat: number; lng: number; z: number }>;
   }>;
-  stops: any[];
+  stops: Stop[];
 }
 
 // planTour>tour

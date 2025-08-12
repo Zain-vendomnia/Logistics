@@ -1,14 +1,14 @@
 import { Request, Response } from "express";
 import { LogisticOrder } from "../../model/LogisticOrders";
-import { CheckOrderCount } from "../../types/dto.types";
+import { CheckOrderCount, pinboardOrder } from "../../types/dto.types";
 
 export const getAllLogisticOrders = async (_req: Request, res: Response) => {
   try {
     const orders = await LogisticOrder.getAll(); // Shopware orders
     const wmsOrderNumbers = await LogisticOrder.getWmsOrderNumbers(); // WMS order numbers
 
-    console.log("shopware Orders:", orders);
-    console.log("WMS Order Numbers:", wmsOrderNumbers);
+    // console.log("shopware Orders:", orders);
+    // console.log("WMS Order Numbers:", wmsOrderNumbers);
     // Filter Shopware orders where order_number exists in WMS
     const matchedOrders = orders.filter((order) =>
       wmsOrderNumbers.includes(order.order_number)
@@ -22,7 +22,7 @@ export const getAllLogisticOrders = async (_req: Request, res: Response) => {
 };
 
 export const getAllLogisticOrder = async (_req: Request, res: Response) => {
-  const { order_number } = _req.body; // ✅ Correct destructuring
+  const { order_number } = _req.body; // 
 
   try {
     const orderData = await LogisticOrder.getOrder(order_number); // Assuming this method exists and works
@@ -64,6 +64,18 @@ export const getCheckOrdersRecentUpdates = async (
     res.status(200).json(orderCount);
   } catch (error) {
     console.error("Error fetching orders last updates:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const getPinboardOrders = async (_req: Request, res: Response) => {
+  try {
+    const orders: pinboardOrder[] =
+      await LogisticOrder.getPinboardOrdersAsync(); // Shopware orders
+
+    res.status(200).json(orders);
+  } catch (error) {
+    console.error("Error fetching orders:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };

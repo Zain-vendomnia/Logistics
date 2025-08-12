@@ -546,8 +546,14 @@ const MAX_WEIGHT_SUM = TOTAL_WEIGHT * MAX_KPI_SCORE;
 /* 2.  Main function */
 export const getDriverPerformanceData = async (
   startDate: string,
-  endDate:   string
+  endDate:   string,
+  driver_id: number | undefined
 ) => {
+  console.log("------------------------------------------------------------------------------------------------------------");
+  console.log(`Fetching performance data from ${startDate} to ${endDate} for driver_id: ${driver_id}`);
+
+  const driverParam = driver_id ?? null;
+
   /* ---------- SQL ----------------- */
   const [rows] = await pool.query(
     `
@@ -632,11 +638,17 @@ export const getDriverPerformanceData = async (
       FROM route_segments
       GROUP BY tour_id
     ) rs ON rs.tour_id = t.id
+
+    /* Optional driver filter */
+    WHERE (? IS NULL OR d.id = ?)
+
     GROUP BY d.id
     ORDER BY d.id;
     `,
-    [startDate, endDate]
+    [startDate, endDate, driverParam, driverParam]
   );
+
+  console.log("------------------------------------------------------------------------------------------------------------");
 
   /* ---------- mapping & KPI calculations ------------------------------ */
   return (rows as any[]).map((row) => {
@@ -748,7 +760,6 @@ export const getDriverPerformanceData = async (
       name:           row.name,
       email:          row.email,
       mobile:         row.mobile,
-      avatarUrl:      row.avatar_url || undefined,
       warehouseId:    row.warehouse_id,
       warehouseName:  row.warehouse_name || "Unknown",
 
@@ -787,4 +798,193 @@ export const getDriverPerformanceData = async (
       rawDbRating: Number(row.db_rating) || 0
     };
   });
+};
+
+// NEW: returns per-day KPIs for the given driver in one call (Sun→Sat)
+export const getDriverPerformanceWeekDaily = async (
+  startDate: string, // YYYY-MM-DD (Sunday)
+  endDate: string,   // YYYY-MM-DD (Saturday)
+  driverId: number | undefined
+) => {
+  if (!driverId) return [];
+
+  // --- SQL: build 7 dates (Sun→Sat), aggregate tours by DATE, left-join so missing days become zeros
+  const sql = `
+    WITH RECURSIVE dates AS (
+      SELECT DATE(?) AS d
+      UNION ALL
+      SELECT DATE_ADD(d, INTERVAL 1 DAY) FROM dates WHERE d < DATE(?)
+    ),
+    per_day AS (
+      SELECT
+        DATE(t.tour_date)                                                 AS day,
+        /* counts & sums per completed tour */
+        SUM(CASE WHEN t.tour_status = 'completed' THEN 1 ELSE 0 END)     AS completedTours,
+
+        /* KPI-1 (kept here only for completeness; not used in final 4 bars) */
+        SUM(
+          CASE WHEN t.tour_status = 'completed' THEN
+            (CASE WHEN t.secure_loading_photo       IS NOT NULL AND OCTET_LENGTH(t.secure_loading_photo)       > 0 THEN 1 ELSE 0 END) +
+            (CASE WHEN t.truck_loaded_photo         IS NOT NULL AND OCTET_LENGTH(t.truck_loaded_photo)         > 0 THEN 1 ELSE 0 END) +
+            (CASE WHEN t.start_fuel_gauge_photo     IS NOT NULL AND OCTET_LENGTH(t.start_fuel_gauge_photo)     > 0 THEN 1 ELSE 0 END) +
+            (CASE WHEN t.start_odometer_photo       IS NOT NULL AND OCTET_LENGTH(t.start_odometer_photo)       > 0 THEN 1 ELSE 0 END) +
+            (CASE WHEN t.start_truck_exterior_photo IS NOT NULL AND OCTET_LENGTH(t.start_truck_exterior_photo) > 0 THEN 1 ELSE 0 END) +
+            (CASE WHEN t.end_fuel_receipt_photo     IS NOT NULL AND OCTET_LENGTH(t.end_fuel_receipt_photo)     > 0 THEN 1 ELSE 0 END) +
+            (CASE WHEN t.end_fuel_gauge_photo       IS NOT NULL AND OCTET_LENGTH(t.end_fuel_gauge_photo)       > 0 THEN 1 ELSE 0 END) +
+            (CASE WHEN t.end_odometer_photo         IS NOT NULL AND OCTET_LENGTH(t.end_odometer_photo)         > 0 THEN 1 ELSE 0 END) +
+            (CASE WHEN t.undelivered_modules_photo  IS NOT NULL AND OCTET_LENGTH(t.undelivered_modules_photo)  > 0 THEN 1 ELSE 0 END)
+          ELSE 0 END
+        )                                                                 AS totalImagesUploaded,
+
+        /* KPI-2/3 base numbers (deliveries & valid PODs) */
+        SUM(CASE WHEN t.tour_status = 'completed' THEN rs.total_expected ELSE 0 END) AS totalExpectedDeliveries,
+        SUM(CASE WHEN t.tour_status = 'completed' THEN rs.total_actual   ELSE 0 END) AS totalActualDeliveries,
+        SUM(CASE WHEN t.tour_status = 'completed' THEN rs.total_valid_pod ELSE 0 END) AS totalValidPODs,
+
+        /* KPI-4 base (KM) */
+        SUM(CASE WHEN t.tour_status = 'completed' THEN t.excepted_tour_total_km ELSE 0 END) AS totalPlannedKM,
+        SUM(
+          CASE WHEN t.tour_status = 'completed' THEN
+            (CASE WHEN t.tour_start_km IS NOT NULL AND t.tour_end_km IS NOT NULL
+                  THEN t.tour_end_km - t.tour_start_km ELSE 0 END)
+          ELSE 0 END
+        )                                                                 AS totalActualKM,
+
+        /* KPI-5 base (Time) */
+        SUM(CASE WHEN t.tour_status = 'completed' AND t.tour_total_estimate_time IS NOT NULL
+                 THEN TIME_TO_SEC(t.tour_total_estimate_time) ELSE 0 END) AS totalPlannedSeconds,
+        SUM(CASE WHEN t.tour_status = 'completed' AND t.start_time IS NOT NULL AND t.end_time IS NOT NULL
+                 THEN TIME_TO_SEC(TIMEDIFF(t.end_time, t.start_time)) ELSE 0 END) AS totalActualSeconds,
+
+        /* KPI-7 base (Customer rating) */
+        SUM(CASE WHEN t.tour_status = 'completed' AND t.overall_performance_rating IS NOT NULL
+                 THEN t.overall_performance_rating ELSE 0 END)             AS totalCustomerRating
+      FROM tourinfo_master t
+      LEFT JOIN (
+        SELECT
+          tour_id,
+          GREATEST(COUNT(*) - 1, 0) AS total_expected,
+          SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) AS total_actual,
+          SUM(
+            CASE
+              WHEN recipient_type = 'customer'
+                AND customer_signature      IS NOT NULL AND OCTET_LENGTH(customer_signature)      > 0
+                AND delivered_item_pic      IS NOT NULL AND OCTET_LENGTH(delivered_item_pic)      > 0
+              THEN 1
+              WHEN recipient_type = 'neighbour'
+                AND neighbour_signature     IS NOT NULL AND OCTET_LENGTH(neighbour_signature)     > 0
+                AND delivered_pic_neighbour IS NOT NULL AND OCTET_LENGTH(delivered_pic_neighbour) > 0
+              THEN 1
+              ELSE 0
+            END
+          ) AS total_valid_pod
+        FROM route_segments
+        GROUP BY tour_id
+      ) rs ON rs.tour_id = t.id
+      WHERE t.driver_id = ?
+        AND DATE(t.tour_date) BETWEEN DATE(?) AND DATE(?)
+      GROUP BY DATE(t.tour_date)
+    )
+    SELECT
+      DATE_FORMAT(dates.d, '%Y-%m-%d')                                  AS date,
+      COALESCE(pd.completedTours, 0)                                    AS completedTours,
+      COALESCE(pd.totalExpectedDeliveries, 0)                           AS totalExpectedDeliveries,
+      COALESCE(pd.totalActualDeliveries, 0)                             AS totalActualDeliveries,
+      COALESCE(pd.totalValidPODs, 0)                                    AS totalValidPODs,
+      COALESCE(pd.totalPlannedKM, 0)                                    AS totalPlannedKM,
+      COALESCE(pd.totalActualKM, 0)                                     AS totalActualKM,
+      COALESCE(pd.totalPlannedSeconds, 0)                               AS totalPlannedSeconds,
+      COALESCE(pd.totalActualSeconds, 0)                                AS totalActualSeconds,
+      COALESCE(pd.totalCustomerRating, 0)                               AS totalCustomerRating
+    FROM dates
+    LEFT JOIN per_day pd ON pd.day = dates.d
+    ORDER BY dates.d;
+  `;
+
+  const [dailyRows] = await pool.query(sql, [startDate, endDate, driverId, startDate, endDate]);
+
+  // --- Map each day to the 4 KPIs you want (0–5)
+  const results = (dailyRows as any[]).map((r) => {
+    const completedTours = Number(r.completedTours) || 0;
+
+    const expectedDeliveries = Number(r.totalExpectedDeliveries) || 0;
+    const actualDeliveries   = Number(r.totalActualDeliveries)   || 0;
+    const validPODs          = Number(r.totalValidPODs)          || 0;
+
+    const plannedKM          = Number(r.totalPlannedKM)          || 0;
+    const actualKM           = Number(r.totalActualKM)           || 0;
+
+    const plannedSeconds     = Number(r.totalPlannedSeconds)     || 0;
+    const actualSeconds      = Number(r.totalActualSeconds)      || 0;
+
+    const totalCustomerRating= Number(r.totalCustomerRating)     || 0;
+
+    // KPI-3 POD (0-5)
+    const kpi3PODScore = expectedDeliveries > 0
+      ? parseFloat(((validPODs / expectedDeliveries) * 5).toFixed(2))
+      : 0;
+
+    // KPI-6 Fuel Efficiency (0-5) — same thresholds as your aggregate
+    let kpi6FuelEfficiencyScore = 0;
+    if (plannedKM > 0 && actualKM > 0) {
+      const expectedFuel = plannedKM / 10; // your rule
+      const actualFuel   = actualKM / 10;
+      const fuelRatio    = actualFuel / expectedFuel;
+
+      if      (fuelRatio <= 1.00) kpi6FuelEfficiencyScore = 5;
+      else if (fuelRatio <= 1.01) kpi6FuelEfficiencyScore = 4.5;
+      else if (fuelRatio <= 1.02) kpi6FuelEfficiencyScore = 4;
+      else if (fuelRatio <= 1.03) kpi6FuelEfficiencyScore = 3.5;
+      else if (fuelRatio <= 1.04) kpi6FuelEfficiencyScore = 3;
+      else if (fuelRatio <= 1.05) kpi6FuelEfficiencyScore = 2.5;
+      else if (fuelRatio <= 1.06) kpi6FuelEfficiencyScore = 2;
+      else if (fuelRatio <= 1.07) kpi6FuelEfficiencyScore = 1.5;
+      else if (fuelRatio <= 1.08) kpi6FuelEfficiencyScore = 1;
+      else                        kpi6FuelEfficiencyScore = 0.5;
+    }
+
+    // KPI-5 Time Management (0-5)
+    let kpi5TimeScore = 0;
+    if (plannedSeconds > 0 && actualSeconds > 0) {
+      const ratio = actualSeconds / plannedSeconds;
+      if      (ratio <= 1.00) kpi5TimeScore = 5;
+      else if (ratio <= 1.01) kpi5TimeScore = 4.5;
+      else if (ratio <= 1.02) kpi5TimeScore = 4;
+      else if (ratio <= 1.03) kpi5TimeScore = 3.5;
+      else if (ratio <= 1.04) kpi5TimeScore = 3;
+      else if (ratio <= 1.05) kpi5TimeScore = 2.5;
+      else if (ratio <= 1.06) kpi5TimeScore = 2;
+      else if (ratio <= 1.07) kpi5TimeScore = 1.5;
+      else if (ratio <= 1.08) kpi5TimeScore = 1;
+      else                    kpi5TimeScore = 0.5;
+    }
+
+    // KPI-7 Customer Rating (0-5) — average of tour ratings for the day
+    const kpi7CustomerRating = completedTours > 0
+      ? parseFloat((totalCustomerRating / completedTours).toFixed(2))
+      : 0;
+
+    return {
+      date: r.date,                     // "YYYY-MM-DD"
+      kpi3PODScore,                    // Proof of Delivery
+      kpi6FuelEfficiencyScore,         // Fuel Efficiency
+      kpi5TimeScore,                   // Time Management
+      kpi7CustomerRating,              // Customer Rating
+
+      // (optional raw values if the UI needs tooltips)
+      _raw: {
+        completedTours,
+        expectedDeliveries,
+        actualDeliveries,
+        validPODs,
+        plannedKM,
+        actualKM,
+        plannedSeconds,
+        actualSeconds,
+        totalCustomerRating,
+      },
+    };
+  });
+
+  return results; // always 7 items (Sun→Sat), zeros where no data
 };

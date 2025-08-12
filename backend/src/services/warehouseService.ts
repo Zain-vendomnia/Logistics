@@ -14,6 +14,8 @@ export const getWarehouseById = async (id: number) => {
 };
 
 export const getWarehouseWithVehiclesById = async (id: number) => {
+    console.log("-------------------------------- STEP 3 GETTING WAREHOUSE WITH VEHICLES  ----------------------------------------------------")
+
   const [rows]: any = await pool.query(
     `SELECT
        wd.warehouse_id,
@@ -30,13 +32,14 @@ export const getWarehouseWithVehiclesById = async (id: number) => {
        vd.driver_id
      FROM warehouse_details wd
      LEFT JOIN vehicle_details vd
-       ON wd.warehouse_id = vd.warehouse_id
+     ON wd.warehouse_id = vd.warehouse_id
      WHERE wd.warehouse_id = ?`,
-    [id]
-  );
-
-  if (!rows.length) return null;
-
+     [id]
+    );
+    
+    if (!rows.length) return null;
+    console.log("warehouse found:", rows);
+    console.log("-------------------------------------------------------------------------------------------------------------------")
   return {
     warehouse_id: rows[0].warehouse_id,
     warehouse_name: rows[0].warehouse_name,
@@ -55,6 +58,7 @@ export const getWarehouseWithVehiclesById = async (id: number) => {
         driver_id: r.driver_id,
       })),
   };
+
 };
 
 export const createWarehouse = async (warehouse: {

@@ -2,7 +2,7 @@ import pool from "../database";
 import { RowDataPacket } from "mysql2";
 import { CREATE_WHATSAPPCHATS_TABLE } from "../services/tableQueries";
 
-const driverDetailsSetup = async () => {
+const WhatsappChatsSetup = async () => {
  
   try {
     console.log("Checking if 'whatsapp_chats' table exists...");
@@ -21,4 +21,4 @@ const driverDetailsSetup = async () => {
   } 
 };
 
-export default driverDetailsSetup;
+export default WhatsappChatsSetup;

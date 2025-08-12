@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-import * as db from "../../services/DatabaseService";
 
 import { CreateTour } from "../../types/dto.types";
 import { get_LogisticsOrdersAddress } from "../../model/LogisticOrders";
@@ -11,7 +10,7 @@ export const runTourController = async (req: Request, res: Response) => {
     const orders = await get_LogisticsOrdersAddress(tour_payload.orderIds);
     console.log("Order from DB - logistics WMS: ", orders);
 
-    const tour = await db.newTourInfoMaster(tour_payload);
+    const tour = {} as any; // Placeholder for the tour object
     console.log("Tour created:", tour);
 
     // const result = await hereMapService.createTourAsync(

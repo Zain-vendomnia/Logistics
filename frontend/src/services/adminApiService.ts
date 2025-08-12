@@ -155,6 +155,27 @@ const plotheremap = () =>
     headers: authHeader(),
   });
 
+const fetchPinboardOrders = () =>
+  axios.get(`${API_BaseUrl_Admin}pinboardOrders`, {
+    headers: authHeader(),
+  });
+
+const newShopOrder = (id: number) =>
+  axios.get(`${API_BaseUrl_Admin}newShopwareOrder`, {
+    headers: authHeader(),
+    params: { id },
+  });
+// const removeShopOrder = (id: any) =>
+//   axios.delete(`${API_BaseUrl_Admin}removeShopwareOrder`, {
+//     headers: authHeader(),
+//     params: { id },
+//   });
+
+const fetchDynamicTours = () =>
+  axios.get(`${API_BaseUrl_Admin}dynamicTours`, {
+    headers: authHeader(),
+  });
+
 export const uploadexcel = (formData: FormData) =>
   axios.post(`${API_BaseUrl_Admin}uploadexcel`, formData, {
     headers: {
@@ -194,10 +215,13 @@ const adminApiService = {
   updateCustomerInfo,
   insertParkingPermit,
   plotheremap,
+  fetchDynamicTours,
   createtourHereApi,
+  fetchPinboardOrders,
   uploadexcel,
   getWarehouse,
   getShopOrder,
+  newShopOrder,
 };
 
 export default adminApiService;
