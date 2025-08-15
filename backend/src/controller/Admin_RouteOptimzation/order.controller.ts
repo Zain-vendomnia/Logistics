@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { LogisticOrder } from "../../model/LogisticOrders";
 import { CheckOrderCount, pinboardOrder } from "../../types/dto.types";
+import { logWithTime } from "../../utils/logging";
 
 export const getAllLogisticOrders = async (_req: Request, res: Response) => {
   try {
@@ -21,12 +22,36 @@ export const getAllLogisticOrders = async (_req: Request, res: Response) => {
   }
 };
 
-export const getAllLogisticOrder = async (_req: Request, res: Response) => {
-  const { order_number } = _req.body; // 
+export const getLgsticOrderById = async (_req: Request, res: Response) => {
+  const { order_number } = _req.query;
 
   try {
-    const orderData = await LogisticOrder.getOrder(order_number); // Assuming this method exists and works
+    const orderData = await LogisticOrder.getOrder(order_number as string);
     res.status(200).json(orderData);
+  } catch (error) {
+    console.error("Error fetching order:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// Dynamic Map Board - DMB
+export const getOrdersWithItems = async (_req: Request, res: Response) => {
+  try {
+    const { order_numbers } = _req.query;
+    if (!order_numbers) {
+      return res.status(400).json({ message: "order numbers are required" });
+    }
+
+    const orderIds: number[] = String(order_numbers)
+      .split(",")
+      .map((id) => Number(id));
+
+    logWithTime(`[getOrdersWithItems]:  ${orderIds}`);
+
+    const ordersWithItems = await LogisticOrder.getOrdersWithItemsAsync(
+      orderIds
+    );
+    res.status(200).json(ordersWithItems);
   } catch (error) {
     console.error("Error fetching order:", error);
     res.status(500).json({ message: "Internal server error" });

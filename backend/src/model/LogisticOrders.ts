@@ -131,9 +131,9 @@ export class LogisticOrder {
   }
 
   static async checkOrdersRecentUpdatesAsync(): Promise<CheckOrderCount> {
-  // 1️⃣ Query for the latest updated order today and total order count
-  const [rows] = await pool.execute<RowDataPacket[]>(
-    `
+    // 1️⃣ Query for the latest updated order today and total order count
+    const [rows] = await pool.execute<RowDataPacket[]>(
+      `
     SELECT 
       (SELECT COUNT(*) FROM logistic_order) AS total_orders,
       lo.updated_at
@@ -142,31 +142,30 @@ export class LogisticOrder {
     ORDER BY lo.updated_at DESC
     LIMIT 1
     `
-  );
+    );
 
-  if (rows.length > 0) {
+    if (rows.length > 0) {
+      return {
+        count: Number(rows[0].total_orders) || 0,
+        lastUpdated: rows[0].updated_at
+          ? new Date(rows[0].updated_at).toISOString()
+          : undefined,
+      };
+    }
+
+    // 2️⃣ If no orders updated today, just get the total order count
+    const [countRows] = await pool.execute<RowDataPacket[]>(
+      `SELECT COUNT(*) AS total_orders FROM logistic_order`
+    );
+
     return {
-      count: Number(rows[0].total_orders) || 0,
-      lastUpdated: rows[0].updated_at
-        ? new Date(rows[0].updated_at).toISOString()
-        : undefined,
+      count:
+        countRows.length > 0 && countRows[0].total_orders
+          ? Number(countRows[0].total_orders)
+          : 0,
+      lastUpdated: undefined,
     };
   }
-
-  // 2️⃣ If no orders updated today, just get the total order count
-  const [countRows] = await pool.execute<RowDataPacket[]>(
-    `SELECT COUNT(*) AS total_orders FROM logistic_order`
-  );
-
-  return {
-    count:
-      countRows.length > 0 && countRows[0].total_orders
-        ? Number(countRows[0].total_orders)
-        : 0,
-    lastUpdated: undefined,
-  };
-}
-
 
   static async getAllcustomerAddress(): Promise<LogisticOrder[]> {
     const [rows] = await pool.execute("SELECT * FROM `logistic_order`");
@@ -190,6 +189,39 @@ export class LogisticOrder {
     );
 
     return rows as LogisticOrder[];
+  }
+
+  static async getOrdersWithItemsAsync(orderIds: number[]): Promise<any[]> {
+    if (orderIds.length === 0) return [];
+
+    const placeholders = orderIds.map(() => "?").join(", ");
+
+    const [orders] = await pool.execute(
+      `SELECT * FROM logistic_order WHERE order_id IN (${placeholders})`,
+      orderIds
+    );
+
+    const [items] = await pool.execute(
+      `SELECT * FROM logistic_order_items WHERE order_id IN (${placeholders})`,
+      orderIds
+    );
+
+    const orderWithItems = (orders as any[]).map((order) => ({
+      ...order,
+      items: (items as any[])
+        .filter((item) => item.order_id === order.order_id)
+        .map((item) => ({
+          id: item.id,
+          order_id: item.order_id,
+          order_number: item.order_number,
+          quantity: item.quantity,
+          article: item.slmdl_articleordernumber,
+          article_id: item.slmdl_article_id,
+          warehouse_id: item.warehouse_id,
+        })),
+    }));
+
+    return orderWithItems;
   }
 
   static async getOrdersByStatus(
@@ -250,13 +282,17 @@ export class LogisticOrder {
 }
 
 export async function get_LogisticsOrdersAddress(orderIds: number[]) {
-  console.log("-------------------------------- STEP 2 GETTING ORDER ADDRESS  ----------------------------------------------------")
+  console.log(
+    "-------------------------------- STEP 2 GETTING ORDER ADDRESS  ----------------------------------------------------"
+  );
   const placeholders = orderIds.map(() => "?").join(",");
   const [orderRows] = await pool.query(
     `SELECT order_id, street, city, zipcode FROM logistic_order WHERE order_id IN (${placeholders})`,
     orderIds
   );
   console.log("Order Address:", orderRows);
-  console.log("-------------------------------------------------------------------------------------------------------------------")
+  console.log(
+    "-------------------------------------------------------------------------------------------------------------------"
+  );
   return orderRows;
 }

@@ -9,14 +9,19 @@ import {
 
 import { DynamicTourPayload } from "../../types/tour.type";
 import useDynamicTourStore from "../../store/useDynamicTourStore";
-import adminApiService from "../../services/adminApiService";
-import { useEffect, useState } from "react";
+// import adminApiService from "../../services/adminApiService";
+// import { useEffect, useState } from "react";
 
 const DynamicTourList = () => {
   const { dynamicTours, selectedTour, setSelectedTour } = useDynamicTourStore();
 
   const handleTourSelect = (tour: DynamicTourPayload) => {
-    setSelectedTour(tour);
+    if (tour.id === selectedTour?.id) {
+      setSelectedTour(null);
+      return;
+    } else {
+      setSelectedTour(tour);
+    }
   };
 
   // const [count, setCount] = useState(11);

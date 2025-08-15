@@ -17,7 +17,6 @@ import L from "leaflet";
 
 import PolylineDecoratorWrapper from "./PolylineDecoratorWrapper";
 import adminApiService from "../../services/adminApiService";
-import DynamicToursTab from "./Admin_DynamicToursTab";
 import {
   DynamicTourPayload,
   Geometry,
@@ -27,6 +26,7 @@ import {
 import useDynamicTourStore from "../../store/useDynamicTourStore";
 import useLiveOrderUpdates from "../../socket/useLiveOrderUpdates";
 import DynamicTourList from "./Admin_DynamicTourList";
+import DynamicTourDetails from "./Admin_DynamicTourDetails";
 
 // interface Stop {
 //   location: { lat: number; lng: number };
@@ -173,6 +173,7 @@ const Dashboard: React.FC = () => {
         //   stops: vehicle.stops,
         // }));
 
+        // console.log('Dynamic Tours: ', dynamic_tours)
         setDynamicTours(dynamic_tours as DynamicTourPayload[]);
         setVehicleTours(tours_route);
       } catch (err) {
@@ -335,102 +336,108 @@ const Dashboard: React.FC = () => {
                 </Marker>
               ))}
 
-            {vehicleTours.map((vehicle, idx) => (
-              <React.Fragment key={vehicle.vehicleId}>
-                {vehicle.sections.map((section, secIdx) => (
-                  <React.Fragment
-                    key={`${vehicle.vehicleId}-section-${secIdx}`}
-                  >
-                    <Polyline
-                      positions={section.coordinates}
-                      color={colors[idx % colors.length]}
-                      weight={4}
-                    />
-                    <PolylineDecoratorWrapper
-                      positions={section.coordinates}
-                      color={colors[idx % colors.length]}
-                    />
-                  </React.Fragment>
-                ))}
+            {vehicleTours.map((vehicle, idx) => {
+              const pathColor = colors[idx % colors.length];
+              return (
+                <React.Fragment key={vehicle.vehicleId}>
+                  {vehicle.sections.map((section, secIdx) => (
+                    <React.Fragment
+                      key={`${vehicle.vehicleId}-section-${secIdx}`}
+                    >
+                      <Polyline
+                        positions={section.coordinates}
+                        color={pathColor}
+                        weight={4}
+                      />
+                      <PolylineDecoratorWrapper
+                        positions={section.coordinates}
+                        color={pathColor}
+                      />
+                    </React.Fragment>
+                  ))}
 
-                {vehicle.stops.map((stop, sIdx) => {
-                  const types = stop.activities.map((a: any) => a.type);
-                  const isStartDepot =
-                    sIdx === 0 && types.includes("departure");
-                  const isLastStop = sIdx === vehicle.stops.length - 1;
+                  {vehicle.stops.map((stop, sIdx) => {
+                    const types = stop.activities.map((a: any) => a.type);
+                    const isStartDepot =
+                      sIdx === 0 && types.includes("departure");
+                    const isLastStop = sIdx === vehicle.stops.length - 1;
 
-                  // ✅ Start depot → green icon only
-                  if (isStartDepot) {
+                    // ✅ Start depot → green icon only
+                    if (isStartDepot) {
+                      return (
+                        <Marker
+                          key={`stop-${vehicle.vehicleId}-${sIdx}`}
+                          position={[stop.location.lat, stop.location.lng]}
+                          icon={startIcon}
+                        >
+                          <Popup>{pinTitle("WMS")}</Popup>
+                        </Marker>
+                      );
+                    }
+                    if (isLastStop) return null;
+                    // ✅ All other stops → numbered icon (starting from 1)
+                    const numberedIcon = L.divIcon({
+                      className: "",
+                      html: `
+                      <div style="
+                        background-color: ${pathColor};
+                        color: white;
+                        border-radius: 50%;
+                        width: 28px;
+                        height: 28px;
+                        line-height: 28px;
+                        text-align: center;
+                        font-weight: bold;
+                        border: 2px solid white;
+                        box-shadow: 0 0 2px rgba(0,0,0,0.4);
+                      ">
+                        ${sIdx}
+                      </div>
+                    `,
+                      iconSize: [28, 28],
+                      iconAnchor: [14, 28],
+                      popupAnchor: [0, -28],
+                    });
+
                     return (
                       <Marker
                         key={`stop-${vehicle.vehicleId}-${sIdx}`}
                         position={[stop.location.lat, stop.location.lng]}
-                        icon={startIcon}
+                        icon={numberedIcon}
                       >
-                        <Popup>{pinTitle("WMS")}</Popup>
+                        <Popup>
+                          <strong>Stop # {sIdx}</strong>
+                          <br />
+                          {stop.activities?.[0]?.jobId && (
+                            <>
+                              Job: {stop.activities[0].jobId}
+                              <br />
+                            </>
+                          )}
+                          {stop.time?.arrival && (
+                            <>
+                              Arrival:{" "}
+                              {new Date(stop.time.arrival).toLocaleTimeString()}
+                              <br />
+                            </>
+                          )}
+                          {stop.time?.departure && (
+                            <>
+                              Departure:{" "}
+                              {new Date(
+                                stop.time.departure
+                              ).toLocaleTimeString()}
+                            </>
+                          )}
+                        </Popup>
                       </Marker>
                     );
-                  }
-                  if (isLastStop) return null;
-                  // ✅ All other stops → numbered icon (starting from 1)
-                  const numberedIcon = L.divIcon({
-                    className: "",
-                    html: `
-                          <div style="
-                            background-color: #063b70ff;
-                            color: white;
-                            border-radius: 50%;
-                            width: 28px;
-                            height: 28px;
-                            line-height: 28px;
-                            text-align: center;
-                            font-weight: bold;
-                            border: 2px solid white;
-                            box-shadow: 0 0 2px rgba(0,0,0,0.4);
-                          ">
-                            ${sIdx}
-                          </div>
-                        `,
-                    iconSize: [28, 28],
-                    iconAnchor: [14, 28],
-                    popupAnchor: [0, -28],
-                  });
-
-                  return (
-                    <Marker
-                      key={`stop-${vehicle.vehicleId}-${sIdx}`}
-                      position={[stop.location.lat, stop.location.lng]}
-                      icon={numberedIcon}
-                    >
-                      <Popup>
-                        <strong>Stop # {sIdx}</strong>
-                        <br />
-                        {stop.activities?.[0]?.jobId && (
-                          <>
-                            Job: {stop.activities[0].jobId}
-                            <br />
-                          </>
-                        )}
-                        {stop.time?.arrival && (
-                          <>
-                            Arrival:{" "}
-                            {new Date(stop.time.arrival).toLocaleTimeString()}
-                            <br />
-                          </>
-                        )}
-                        {stop.time?.departure && (
-                          <>
-                            Departure:{" "}
-                            {new Date(stop.time.departure).toLocaleTimeString()}
-                          </>
-                        )}
-                      </Popup>
-                    </Marker>
-                  );
-                })}
-              </React.Fragment>
-            ))}
+                  })}
+                </React.Fragment>
+              );
+            })}
           </MapContainer>
+          {selectedTour && <DynamicTourDetails />}
         </Box>
       </Box>
     </>

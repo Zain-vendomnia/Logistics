@@ -41,7 +41,8 @@ const adminRouter = Router();
 // Public routes (no authentication required)
 adminRouter.get("/customer/updatelatlng", updatelatlngController);
 adminRouter.post("/picklistEmail", picklistEmail);
-adminRouter.post("/routeoptimize/getOrder", OrderCtrl.getAllLogisticOrder);
+adminRouter.get("/routeoptimize/getOrder", OrderCtrl.getLgsticOrderById);
+adminRouter.get("/routeoptimize/ordersWithItems", OrderCtrl.getOrdersWithItems);
 adminRouter.post("/insertParkingPermit", insertParkingPermit);
 adminRouter.post("/Runtour", runTourController);
 

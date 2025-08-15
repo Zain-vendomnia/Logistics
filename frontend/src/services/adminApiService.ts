@@ -22,8 +22,13 @@ const checkOrdersRecentUpdates = async () =>
 
 const fetchAllOrders = () =>
   axios.get(`${API_BaseUrl}orders`, { headers: authHeader() });
+
 const fetchSpecifiedOrder = (order_number: string) => {
-  return axios.post(`${API_BaseUrl}getOrder`, { order_number });
+  return axios.get(`${API_BaseUrl}getOrder`, { params: { order_number } });
+};
+
+const fetchOrdersWithItems = (order_numbers: string) => {
+  return axios.get(`${API_BaseUrl}ordersWithItems`, { params: {order_numbers} });
 };
 
 const getTour = (tourId: number) =>
@@ -192,6 +197,7 @@ const adminApiService = {
   checkOrdersRecentUpdates,
   fetchAllOrders,
   fetchSpecifiedOrder,
+  fetchOrdersWithItems,
   createTour,
   getTour,
   getRouteResponse,

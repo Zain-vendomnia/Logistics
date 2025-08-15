@@ -10,7 +10,7 @@ type DynamicTourStore = {
   setDynamicTours: (dTours: DynamicTourPayload[]) => void;
 
   selectedTour: DynamicTourPayload | null;
-  setSelectedTour: (dTour: DynamicTourPayload) => void;
+  setSelectedTour: (dTour: DynamicTourPayload| null) => void;
 };
 
 const createDynamicTourStore: StateCreator<DynamicTourStore> = (set, get) => ({
