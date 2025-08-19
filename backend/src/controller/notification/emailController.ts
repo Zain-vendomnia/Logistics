@@ -20,6 +20,7 @@ const sendEmail = async (
   templateName: string,
   templateData: Record<string, string | number>
 ): Promise<string> => {
+
   const htmlContent = renderTemplate(templateName, templateData);
 
   const mailOptions = {

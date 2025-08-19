@@ -133,7 +133,7 @@ const UploadPermitScreenshot = ({ onFileSrc }: Props) => {
             }}
           >
             <motion.div
-              variants={animationVariant}
+              // variants={animationVariant}
               animate={animationVariant ? "animate" : {}}
               style={{ opacity: 1, y: 0 }}
             >

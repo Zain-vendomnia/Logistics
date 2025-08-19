@@ -124,6 +124,14 @@ const NavBar = () => {
                 >
                   Profile
                 </Button>
+                <Button
+                  component={Link}
+                  to="/chat"
+                  color="inherit"
+                  sx={getNavButtonStyles("/chat")}
+                >
+                  Chat
+                </Button>
               </>
             )}
 

@@ -25,7 +25,7 @@
 
 /* Chat header */
 .chat-header {
-  background-color: #0b8457;
+  background-color: #e77125;
   color: white;
   padding: 0px 16px;
   font-weight: bold;
@@ -114,13 +114,13 @@
 }
 
 .chat-input input:focus {
-  border-color: #0b8457;
+  border-color: #e77125;
 }
 
 /* Send button */
 .chat-input button {
   padding: 10px 16px;
-  background-color: #0b8457;
+  background-color: #e77125;
   color: white;
   border: none;
   cursor: pointer;
@@ -130,7 +130,7 @@
 }
 
 .chat-input button:hover {
-  background-color: #08743d;
+  background-color: #cb5609;
   transform: scale(1.05);
 }
 

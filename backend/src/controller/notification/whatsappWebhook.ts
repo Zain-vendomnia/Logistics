@@ -5,6 +5,7 @@ const receiveWhatsAppMessage = async (req: Request, res: Response) => {
   const normalizeNumber = (val: string) =>
     val.replace('whatsapp:', '').replace(/\s+/g, '').trim();
 
+
   const from = normalizeNumber(req.body.From);
   const to = normalizeNumber(req.body.To);
   const body = req.body.Body;

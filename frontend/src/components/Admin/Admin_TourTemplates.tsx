@@ -16,7 +16,7 @@ import adminApiService from '../../services/adminApiService';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { getOrderInitialEmailHTML } from '../../assets/templates/OrderInitialEmails';
 
-import { sendSMS, sendWhatsAppMessage, sendEmail } from '../../services/notification/notificationService';
+import { sendSMS, sendWhatsAppMessage, sendEmail, EmailTemplate } from '../../services/notificationService';
 
 interface Tour {
   id: string;
@@ -204,10 +204,32 @@ const AdminTourTemplates = () => {
 
   const handleSendEmail = async () => {
     try {
-      const response = await sendEmail('muhammad.jahanzaibbaloch@vendomnia.com', 'Order Arrival', 'customer-notification', { name: 'Jahanzaib Baloch' });
+        const data: EmailTemplate = {
+              to: "muhammad.jahanzaibbaloch@vendomnia.com", 
+              subject: "Order Arrival", 
+              templateName: 'customer-notification', 
+              templateData: { name: 'Jahanzaib Baloch' }
+            }
+      const response = await sendEmail(data);
       alert(`Email Sent: ${response}`);
     } catch (error) {
       alert(`Failed to send email : ${error}`);
+    }
+  };
+  const handleSendSMS = async () => {
+    try {
+      const response = await sendSMS('+18777804236', 'customer-notification', { name: 'Jahanzaib Baloch' });
+      alert(`SMS Sent: ${response}`);
+    } catch (error) {
+      alert('Failed to send SMS');
+    }
+  };
+  const handleSendWhatsApp = async () => {
+    try {
+      const response = await sendWhatsAppMessage('+971501084381', 'customer-notification', { name: 'Jahanzaib Baloch' });
+      alert(`WhatsApp Sent: ${response}`);
+    } catch (error) {
+      alert('Failed to send WhatsApp message');
     }
   };
 
@@ -371,7 +393,11 @@ const AdminTourTemplates = () => {
              <Divider />
             <MenuItem sx={{ color: 'error.main' }} onClick={() => { if (currentTour) { handleDelete([currentTour.id]);  } setAnchorEl(null); }}>Delete</MenuItem>
              <Divider />
-             <button className="notification-button" onClick={handleSendEmail}>Send Email</button>
+             <button className="notification-button" onClick={handleSendEmail}>Send Email</button>             
+             <Divider />
+             <button className="notification-button" onClick={handleSendSMS}>Send Sms</button>          
+             <Divider />
+             <button className="notification-button" onClick={handleSendWhatsApp}>Send Whatsapp</button>
 
           </Menu>
 

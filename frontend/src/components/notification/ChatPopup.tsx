@@ -2,6 +2,9 @@ import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import './assets/ChatPopup.css';
 
+// Get the API URL from the environment variables
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/';  // Fallback to localhost if not defined
+
 interface User {
   name: string;
   number: string;
@@ -36,8 +39,9 @@ const ChatPopup: React.FC<ChatPopupProps> = ({ user, onClose, isMinimized, onTog
 
   useEffect(() => {
     const fetchChatHistory = async () => {
+
       try {
-        const res = await axios.get(`${process.env.REACT_APP_API_URL}api/notifications/whatsapp/chat-history`, {
+        const res = await axios.get(`${API_URL}api/notifications/whatsapp/chat-history`, {
           params: { number: user.number },
         });
 
@@ -83,7 +87,7 @@ const ChatPopup: React.FC<ChatPopupProps> = ({ user, onClose, isMinimized, onTog
     };
 
     try {
-      await axios.post(`${process.env.REACT_APP_API_URL}api/notifications/send-whatsapp-chat`, msg);
+      await axios.post(`${API_URL}api/notifications/send-whatsapp-chat`, msg);
       setChats((prevChats) => [...prevChats, msg]);
       setTimeout(() => {
         if (chatBodyRef.current) {

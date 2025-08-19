@@ -6,8 +6,10 @@ import warehouseRoutes from "./warehouse.routes";
 import { uploadImageController } from "../controller/Admin_Api/uploadImage.controller";
 import { getOrderCount } from "../controller/Admin_Api/orderCount.controller";
 import { HandleOrderDelivery } from "../controller/AdminDriverApi/HandleOrderDelivery";
+import notificationRoutes from "./notificationRoutes";  // ✅ This should have send-email route
 
 const router = Router();
+router.use("/notifications", notificationRoutes);
 
 // router.use("/api", authRouter);
 // router.use("/test", authRouter);
@@ -23,6 +25,7 @@ router.use("/admin/warehouses", warehouseRoutes);
 // Standalone admin API endpoints
 router.get("/admin/orderCount", getOrderCount);
 router.post("/upload_image", uploadImageController);
+router.use("/admindriver/tour/:tourId/order", HandleOrderDelivery);
 router.use("/admindriver/tour/:tourId/order", HandleOrderDelivery);
 
 export default router;

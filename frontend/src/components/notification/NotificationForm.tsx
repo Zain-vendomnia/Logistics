@@ -1,5 +1,5 @@
 import React from 'react';
-import { sendSMS, sendWhatsAppMessage, sendEmail } from '../../services/notification/notificationService';
+import { sendSMS, sendWhatsAppMessage, sendEmail, EmailTemplate } from '../../services/notificationService';
 import './assets/NotificationForm.css'; // Make sure to import the CSS file
 
 const NotificationForm: React.FC = () => {
@@ -23,8 +23,15 @@ const NotificationForm: React.FC = () => {
 
   const handleSendEmail = async () => {
     try {
-      const response = await sendEmail('muhammad.jahanzaibbaloch@vendomnia.com', 'Order Arrival', 'customer-notification', { name: 'Jahanzaib Baloch' });
-      alert(`Email Sent: ${response}`);
+      const data: EmailTemplate = {
+        to: "muhammad.jahanzaibbaloch@vendomnia.com", 
+        subject: "Order Arrival", 
+        templateName: 'customer-notification', 
+        templateData: { name: 'Jahanzaib Baloch' }
+      }
+
+      console.log("Data before Call: ", data);
+      const response = await sendEmail(data);
     } catch (error) {
       alert('Failed to send email');
     }
