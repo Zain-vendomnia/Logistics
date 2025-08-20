@@ -1,11 +1,10 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import {
   Box,
   Stack,
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableRow,
   Typography,
 } from "@mui/material";
@@ -18,8 +17,15 @@ interface Props {
 }
 
 const DynamicTourOrderDetails = ({ order }: Props) => {
-  const fontsize = "0.9rem";
-  const { orderRef, getDaysLeft } = useDynamicTourService();
+  const fontsize = "0.95rem";
+  // const { orderRef, getDaysLeft } = useDynamicTourService();
+  const { getDaysLeft } = useDynamicTourService();
+  const orderRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!orderRef.current) return;
+    orderRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, []);
 
   const deliveryDate = new Date(order.expected_delivery_time);
 
@@ -32,6 +38,7 @@ const DynamicTourOrderDetails = ({ order }: Props) => {
     quantity: item.quantity,
   }));
 
+  console.log("Order Details Comp: ", order);
   return (
     <Box
       ref={orderRef}
@@ -46,35 +53,25 @@ const DynamicTourOrderDetails = ({ order }: Props) => {
       p={1}
     >
       <Stack spacing={1}>
-        <Box
-          display={"flex"}
-          justifyContent={"space-between"}
-          alignItems={"flex-start"}
-          gap={1}
-          width={"100%"}
-        >
-          <Typography variant="body2" fontWeight={"bold"}>
-            Amount: {order.invoice_amount}
+        <Box>
+          <Typography variant="body2" fontSize={fontsize}>
+            Placed: {placedAt}
           </Typography>
-          <Box>
-            <Typography variant="body2" fontSize={fontsize}>
-              Placed: {placedAt}
-            </Typography>
-            <Typography variant="body2" fontSize={fontsize}>
-              Delivery by: {deliveryAt}
-            </Typography>
-            <Typography
-              variant="subtitle2"
-              fontSize={"0.75rem"}
-              sx={{
-                color: daysLeft.includes("Overdue")
-                  ? "error.main"
-                  : "primary.main",
-              }}
-            >
-              ({daysLeft})
-            </Typography>
-          </Box>
+          <Typography variant="body2" fontSize={fontsize}>
+            Delivery by: {deliveryAt}
+          </Typography>
+          <Typography
+            variant="subtitle2"
+            fontSize={"0.75rem"}
+            fontStyle={"italic"}
+            sx={{
+              color: daysLeft.includes("Overdue")
+                ? "error.main"
+                : "primary.main",
+            }}
+          >
+            ({daysLeft})
+          </Typography>
         </Box>
         <Box>
           <Typography variant="body2" fontWeight={"bold"}>

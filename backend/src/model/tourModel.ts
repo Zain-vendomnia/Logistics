@@ -1,6 +1,7 @@
 import { ResultSetHeader } from "mysql2";
 import pool from "../database";
 import { CreateTour } from "../types/dto.types";
+import { logWithTime } from "../utils/logging";
 
 // interface Tour {
 //   id?: number;
@@ -16,8 +17,7 @@ import { CreateTour } from "../types/dto.types";
 // }
 
 export const createTour = async (tour: CreateTour) => {
-  console.log("-------------------------------- STEP 1 CREATING THE TOUR  ----------------------------------------------------")
-
+  logWithTime("[Create Tour Initiated]");
 
   const connection = await pool.getConnection();
   await connection.beginTransaction();
@@ -100,7 +100,9 @@ export const createTour = async (tour: CreateTour) => {
 
     const [result] = await connection.query(insertSql, insertValues);
     await connection.commit();
-    console.log("-------------------------------------------------------------------------------------------------------------------")
+    console.log(
+      "-------------------------------------------------------------------------------------------------------------------"
+    );
 
     return result as ResultSetHeader;
   } catch (error) {

@@ -255,18 +255,30 @@ export class LogisticOrder {
   static async getPinboardOrdersAsync(): Promise<pinboardOrder[]> {
     const [rows] = await pool.execute(`
       SELECT 
-        order_id , order_number, order_time, expected_delivery_time, invoice_amount,
-        city, zipcode, street, lattitude, longitude, warehouse_id
-      FROM logistic_order
-      WHERE status IN ('initial', 'unassigned')
-      ORDER BY updated_at DESC, created_at DESC;
+          o.order_id,
+          o.order_number,
+          o.order_time,
+          o.expected_delivery_time,
+          o.invoice_amount,
+          o.city,
+          o.zipcode,
+          o.street,
+          o.lattitude,
+          o.longitude,
+          o.warehouse_id,
+          wh.warehouse_name
+      FROM logistic_order o
+      JOIN warehouse_details wh
+        ON o.warehouse_id = wh.warehouse_id   -- <--- table alias added here
+      WHERE o.status IN ('initial', 'unassigned')
+      ORDER BY o.updated_at DESC, o.created_at DESC;
+
     `);
     const orders = (rows as any[]).map((raw: any) => ({
       id: raw.order_id,
       order_number: raw.order_number,
       order_time: raw.order_time,
       delivery_time: raw.expected_delivery_time,
-      amount: raw.invoice_amount,
       city: raw.city,
       zipcode: raw.zipcode,
       street: raw.street,
@@ -275,6 +287,7 @@ export class LogisticOrder {
         lng: raw.longitude || null,
       },
       warehouse_id: raw.warehouse_id,
+      warehouse: raw.warehouse_name,
     })) as pinboardOrder[];
 
     return orders;
@@ -282,17 +295,12 @@ export class LogisticOrder {
 }
 
 export async function get_LogisticsOrdersAddress(orderIds: number[]) {
-  console.log(
-    "-------------------------------- STEP 2 GETTING ORDER ADDRESS  ----------------------------------------------------"
-  );
   const placeholders = orderIds.map(() => "?").join(",");
   const [orderRows] = await pool.query(
     `SELECT order_id, street, city, zipcode FROM logistic_order WHERE order_id IN (${placeholders})`,
     orderIds
   );
-  console.log("Order Address:", orderRows);
-  console.log(
-    "-------------------------------------------------------------------------------------------------------------------"
-  );
+  console.log("Orders Addresses:", orderRows);
+
   return orderRows;
 }

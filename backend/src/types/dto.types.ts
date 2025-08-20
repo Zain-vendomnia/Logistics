@@ -1,3 +1,6 @@
+import { DecodedRoute, Unassigned } from "./hereMap.types";
+import { Tour } from "./tour.types";
+
 export type CreateTour = {
   tourDate: string;
   startTime: string;
@@ -6,6 +9,29 @@ export type CreateTour = {
   orderIds: number[];
   driverId: number;
   warehouseId: number;
+};
+
+export interface DynamicTourPayload {
+  id?: number | null;
+  tour_number?: string | null;
+  tour_route?: object | null; // Geometry[]/DecodedRoute[]
+  orderIds: string; // Comma-separated
+  warehouse_id: number;
+  approved_by?: string | null;
+  approved_at?: string | null;
+}
+
+export type UnassignedRes = {
+  orderId: number;
+  reasons: string[];
+};
+
+export type DynamicTourRes = {
+  tour: Tour;
+  unassigned: UnassignedRes[];
+  dynamicTour: DynamicTourPayload;
+  // routes: DecodedRoute;
+  // orderIds: string;
 };
 
 export interface WarehouseDetails {
@@ -36,12 +62,12 @@ export type pinboardOrder = {
 
   order_time: string;
   delivery_time: string;
-  amount: number;
 
   city: string;
   zipcode: string;
   street: string;
-  
+
   location: { lat: number; lng: number };
   warehouse_id: number;
+  warehouse: string;
 };

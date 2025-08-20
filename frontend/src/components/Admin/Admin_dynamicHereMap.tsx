@@ -17,12 +17,8 @@ import L from "leaflet";
 
 import PolylineDecoratorWrapper from "./PolylineDecoratorWrapper";
 import adminApiService from "../../services/adminApiService";
-import {
-  DynamicTourPayload,
-  Geometry,
-  pinboardOrder,
-  Stop,
-} from "../../types/tour.type";
+import { DynamicTourPayload, Geometry, Stop } from "../../types/tour.type";
+import { PinboardOrder } from "../../types/order.type";
 import useDynamicTourStore from "../../store/useDynamicTourStore";
 import useLiveOrderUpdates from "../../socket/useLiveOrderUpdates";
 import DynamicTourList from "./Admin_DynamicTourList";
@@ -124,15 +120,19 @@ const colors = ["blue", "green", "red", "purple", "orange", "brown"];
 const Dashboard: React.FC = () => {
   const mapRef = useRef<L.Map | null>(null);
 
-  const { orderList, addOrders, selectedTour, setDynamicTours } =
-    useDynamicTourStore();
+  const {
+    pinboard_OrderList,
+    pinboard_AddOrders,
+    selectedTour,
+    setDynamicTours,
+  } = useDynamicTourStore();
 
   useLiveOrderUpdates((new_order) => {
     console.log(
       `[${new Date().toLocaleTimeString()}] - New Shop Order`,
       new_order
     );
-    addOrders([new_order]);
+    pinboard_AddOrders([new_order]);
   });
 
   const [vehicleTours, setVehicleTours] = useState<Geometry[]>([]);
@@ -198,7 +198,7 @@ const Dashboard: React.FC = () => {
   }, [isLoading, vehicleTours]);
 
   useEffect(() => {
-    if (!selectedTour || !mapRef.current) return;
+    if (!selectedTour || !selectedTour.tour_route || !mapRef.current) return;
 
     allCoords = extract_Coords(selectedTour.tour_route);
 
@@ -210,11 +210,11 @@ const Dashboard: React.FC = () => {
     try {
       const fetchOrders = async () => {
         const res = await adminApiService.fetchPinboardOrders();
-        const orders = (res.data as pinboardOrder[]) || [];
+        const orders = (res.data as PinboardOrder[]) || [];
 
         console.log("Fetched Pinboard Orders:", orders);
 
-        addOrders(orders);
+        pinboard_AddOrders(orders);
       };
       fetchOrders();
     } catch (err) {
@@ -314,8 +314,8 @@ const Dashboard: React.FC = () => {
               attribution="&copy; OpenStreetMap contributors"
             />
 
-            {orderList &&
-              orderList.map((order) => (
+            {pinboard_OrderList &&
+              pinboard_OrderList.map((order) => (
                 <Marker
                   key={order.id}
                   position={[order.location.lat, order.location.lng]}
@@ -330,8 +330,6 @@ const Dashboard: React.FC = () => {
                     <strong>City:</strong> {order.city}
                     <br />
                     <strong>Zipcode:</strong> {order.zipcode}
-                    <br />
-                    <strong>Amount:</strong> {order.amount}
                   </Popup>
                 </Marker>
               ))}

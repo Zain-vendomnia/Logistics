@@ -72,6 +72,8 @@ adminRouter.use(validateToken, roleCheck(["admin"]));
 
 adminRouter.post("/hereMapController", hereMapController);
 // adminRouter.post("/dynamicTourController", dynamicTourCtrl.create_dynamicTour);
+
+adminRouter.post("/createDynamicTour", dynamicTourCtrl.createDynamicTour);
 adminRouter.get("/dynamicTours", dynamicTourCtrl.getDynamicTours);
 
 adminRouter.get("/pinboardOrders", OrderCtrl.getPinboardOrders);

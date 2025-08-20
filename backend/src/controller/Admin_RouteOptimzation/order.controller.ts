@@ -37,19 +37,19 @@ export const getLgsticOrderById = async (_req: Request, res: Response) => {
 // Dynamic Map Board - DMB
 export const getOrdersWithItems = async (_req: Request, res: Response) => {
   try {
-    const { order_numbers } = _req.query;
-    if (!order_numbers) {
+    const { orderIds } = _req.query;
+    if (!orderIds) {
       return res.status(400).json({ message: "order numbers are required" });
     }
 
-    const orderIds: number[] = String(order_numbers)
+    const req_order_Ids: number[] = String(orderIds)
       .split(",")
       .map((id) => Number(id));
 
-    logWithTime(`[getOrdersWithItems]:  ${orderIds}`);
+    logWithTime(`[getOrdersWithItems]:  ${req_order_Ids}`);
 
     const ordersWithItems = await LogisticOrder.getOrdersWithItemsAsync(
-      orderIds
+      req_order_Ids
     );
     res.status(200).json(ordersWithItems);
   } catch (error) {

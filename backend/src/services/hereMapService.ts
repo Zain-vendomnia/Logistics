@@ -12,51 +12,6 @@ import {
 import { Tour } from "../types/tour.types";
 import { LogisticOrder } from "../types/database.types";
 
-// const warehouseGroups = [
-//   {
-//     warehouseAddress:
-//       "WeltZiel Logistic GmbH., Rudolf-Diesel-Straße 40 , Nufringen, 71154 ", // WeltZiel Logistic GmbH
-//     vehicleCount: 1,
-//     capacityPerVehicle: 300,
-//   },
-//   //     {
-//   //       warehouseAddress: "Plischka und Schmeling,Fokkerstr. 8,Schkeuditz,04435", // Plischka und Schmeling
-//   //       vehicleCount: 1,
-//   //       capacityPerVehicle: 1800,
-//   //     },
-//   //     {
-//   //       warehouseAddress: 'Honer Str. 49,Eschwege,37269', // Sunniva GmbH
-//   //       vehicleCount: 1,
-//   //       capacityPerVehicle: 1800
-//   //     },
-//   //      {
-//   //       warehouseAddress: 'Geis Eurocargo GmbH, Ipsheimer Straße 19, Nürnberg , 90431',
-//   //       vehicleCount: 1,
-//   //       capacityPerVehicle: 1800
-//   //     },
-//   //   {
-//   //     warehouseAddress: 'Zahn Logistics GmbH, Christof-Ruthof-Weg 7, Mainz-Kastel, 55252 ',
-//   //     vehicleCount: 1,
-//   //     capacityPerVehicle: 1800
-//   //   }
-//   //   {
-//   //     warehouseAddress: 'ILB Transit & Logistik GmbH & Co. KG,Bonifatiusstraße 391, Rheine, 48432',
-//   //     vehicleCount: 1,
-//   //     capacityPerVehicle: 1800
-//   //   }
-//   //    {
-//   //     warehouseAddress: 'AdL Logistic GmbH, Gerlinger Str. 34, Berlin, 12349',
-//   //     vehicleCount: 1,
-//   //     capacityPerVehicle: 1800
-//   //    },
-
-//   //  {
-//   //     warehouseAddress: 'Recht Logistik Gruppe, Weetfelder Str., Bönen, 59199',
-//   //     vehicleCount: 1,
-//   //     capacityPerVehicle: 1800
-//   //  }
-// ];
-
 const HERE_API_KEY =
   process.env.HERE_API_KEY || "2tJpOzfdl3mgNpwKiDt-KuAQlzgEbsFkbX8byW97t1k";
 
@@ -152,18 +107,26 @@ async function buildFleet(warehouseGroups: any[]): Promise<FleetType[]> {
 
 // WarehouseGroup as DB object array
 async function PlanTour(orders: LogisticOrder[], warehouseGroup: any[]) {
-    console.log("-------------------------------- STEP 4 PLAN TOUR ----------------------------------------------------")
+  console.log(
+    "-------------------------------- STEP 4 PLAN TOUR ----------------------------------------------------"
+  );
 
-    console.log("-------------------------------- calling the createJobList ----------------------------------------------------")
-    const jobList = createJobList(orders);
-    console.log("Job list created: ", jobList);
-    console.log("-------------------------------- calling the buildJobs ----------------------------------------------------")
-    const jobs = await buildJobs(jobList);
-    console.log("Jobs Build created: ", jobs);
-    
-    console.log("-------------------------------- calling the buildFleet ----------------------------------------------------")
-    const fleetTypes = await buildFleet(warehouseGroup);
-    console.log("Fleet Types created: ", fleetTypes);
+  console.log(
+    "-------------------------------- calling the createJobList ----------------------------------------------------"
+  );
+  const jobList = createJobList(orders);
+  console.log("Job list created: ", jobList);
+  console.log(
+    "-------------------------------- calling the buildJobs ----------------------------------------------------"
+  );
+  const jobs = await buildJobs(jobList);
+  console.log("Jobs Build created: ", jobs);
+
+  console.log(
+    "-------------------------------- calling the buildFleet ----------------------------------------------------"
+  );
+  const fleetTypes = await buildFleet(warehouseGroup);
+  console.log("Fleet Types created: ", fleetTypes);
 
   const problem = {
     fleet: {
@@ -186,7 +149,9 @@ async function PlanTour(orders: LogisticOrder[], warehouseGroup: any[]) {
     if (!tour) {
       throw new Error("No tour found in the response.");
     }
-      console.log("-------------------------------------------------------------------------------------------------------------------")
+    console.log(
+      "-------------------------------------------------------------------------------------------------------------------"
+    );
 
     return {
       tour,
@@ -322,11 +287,31 @@ async function getRoutesForTour(tour: Tour): Promise<DecodedRoute | null> {
   }
 }
 
+function 
+extractTourOrderIds(tour: Tour): string {
+  const ids: number[] = [];
+
+  tour.stops.forEach((stop) => {
+    stop.activities.forEach((act) => {
+      if (act.jobId.includes("_")) {
+        const parts = act.jobId.split("_");
+        const idPart = parts[1];
+        if (!isNaN(Number(idPart))) {
+          ids.push(Number(idPart));
+        }
+      }
+    });
+  });
+
+  return [...new Set(ids)].join(",");
+}
+
 const hereMapService = {
   geocode,
   getRoutesForTour,
   PlanTour,
   PlanTourAsync_Mock,
+  extractTourOrderIds,
 };
 
 export default hereMapService;
@@ -351,59 +336,3 @@ function logApiError(error: Error | string | unknown, source: string): void {
     stack,
   });
 }
-
-// const getRoutesFromTours = async (tours: Tour | Tour[]): Promise<DecodedRoute[]> => {
-// const tourList =  Array.isArray(tours) ? tours : [tour];
-//   const routePromises = tourList
-//     .filter((tour) => (tour.stops?.length ?? 0) >= 2)
-//     .map(async (tour) => {
-//       try {
-//         const { stops } = tour;
-
-//         const origin = `${stops[0].location.lat},${stops[0].location.lng}`;
-//         const destination = `${stops[stops.length - 1].location.lat},${
-//           stops[stops.length - 1].location.lng
-//         }`;
-//         const vias = stops
-//           .slice(1, -1)
-//           .map(
-//             (stop: { location: { lat: number; lng: number } }) =>
-//               `&via=${stop.location.lat},${stop.location.lng}!passThrough=true`
-//           )
-//           .join("");
-
-//         const url =
-//           `https://router.hereapi.com/v8/routes?transportMode=truck` +
-//           `&origin=${origin}&destination=${destination}${vias}` +
-//           `&return=polyline,summary` +
-//           `&truck.height=2.5&truck.length=6&truck.width=2.05` +
-//           `&truck.weight=3.5&truck.axleCount=2&truck.trailerCount=1` +
-//           `&apiKey=${HERE_API_KEY}`;
-
-//         const { data } = await axios.get(url);
-//         const sections = (data.routes?.[0]?.sections || []).map((sec: any) => {
-//           const decoded = decode(sec.polyline).polyline;
-//           return {
-//             summary: sec.summary,
-//             coordinates: decoded.map(([lat, lng, z]) => ({
-//               lat,
-//               lng,
-//               z: z || 0,
-//             })),
-//           };
-//         });
-
-//         return {
-//           vehicleId: tour.vehicleId,
-//           sections,
-//           stops,
-//         } as DecodedRoute;
-//       } catch (err) {
-//         logApiError(err, `getRoutesFromTours for vehicleId=${tour.vehicleId}`);
-//         return null; // Return null so others can proceed
-//       }
-//     });
-
-//   const results = await Promise.all(routePromises);
-//   return results.filter((route): route is DecodedRoute => route !== null);
-// };

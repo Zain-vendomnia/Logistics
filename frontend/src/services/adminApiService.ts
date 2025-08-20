@@ -1,7 +1,12 @@
 // adminApiService.ts
 import axios from "axios";
 import authHeader from "./auth-header";
-import { CreateTour_Req } from "../types/tour.type";
+import {
+  CreateTour_Req,
+  DynamicTourPayload,
+  DynamicTourRes,
+} from "../types/tour.type";
+import { Order } from "../types/order.type";
 
 const API_BaseUrl = "http://localhost:8080/api/admin/routeoptimize/";
 const API_BaseUrl_Admin = "http://localhost:8080/api/admin/";
@@ -27,8 +32,12 @@ const fetchSpecifiedOrder = (order_number: string) => {
   return axios.get(`${API_BaseUrl}getOrder`, { params: { order_number } });
 };
 
-const fetchOrdersWithItems = (order_numbers: string) => {
-  return axios.get(`${API_BaseUrl}ordersWithItems`, { params: {order_numbers} });
+const fetchOrdersWithItems = async (orderIds: string): Promise<Order[]> => {
+  const res = await axios.get(`${API_BaseUrl}ordersWithItems`, {
+    params: { orderIds },
+  });
+  console.log(`[debug] fetchOrdersWithItems: ${res}`);
+  return res.data as Order[];
 };
 
 const getTour = (tourId: number) =>
@@ -37,10 +46,13 @@ const getTour = (tourId: number) =>
     params: { tourId },
   });
 
-const getWarehouse = (id: number) =>
-  axios.get(`${API_BaseUrl}getWarehouse/${id}`, {
+const getWarehouse = async (id: number) => {
+  const res = await axios.get(`${API_BaseUrl}getWarehouse/${id}`, {
     headers: authHeader(),
   });
+
+  return res.data;
+};
 
 const createTour = (tourData: CreateTour_Req) =>
   axios.post(`${API_BaseUrl}createtour`, tourData, { headers: authHeader() });
@@ -181,6 +193,19 @@ const fetchDynamicTours = () =>
     headers: authHeader(),
   });
 
+const requestDynamicTour = async (
+  payload: DynamicTourPayload
+): Promise<DynamicTourRes> => {
+  const res = await axios.post(
+    `${API_BaseUrl_Admin}createDynamicTour`,
+    payload,
+    {
+      headers: authHeader(),
+    }
+  );
+  return res.data as DynamicTourRes;
+};
+
 export const uploadexcel = (formData: FormData) =>
   axios.post(`${API_BaseUrl_Admin}uploadexcel`, formData, {
     headers: {
@@ -215,6 +240,7 @@ const adminApiService = {
   insertParkingPermit,
   plotheremap,
   fetchDynamicTours,
+  requestDynamicTour,
   createtourHereApi,
   fetchPinboardOrders,
   uploadexcel,

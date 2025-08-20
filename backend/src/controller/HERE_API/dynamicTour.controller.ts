@@ -2,7 +2,12 @@ import { Request, Response } from "express";
 import axios from "axios";
 import { decode } from "../../utils/flexiblePolylineDecoder";
 import pLimit from "p-limit";
-import { getUnapprovedDynamicTours } from "../../services/dynamicTour.service";
+import {
+  createDynamicTourAsync,
+  getUnapprovedDynamicTours,
+} from "../../services/dynamicTour.service";
+import { logWithTime } from "../../utils/logging";
+import { DynamicTourPayload } from "../../types/dto.types";
 
 const HERE_API_KEY =
   process.env.HERE_API_KEY || "2tJpOzfdl3mgNpwKiDt-KuAQlzgEbsFkbX8byW97t1k";
@@ -240,6 +245,31 @@ export const create_dynamicTour = async (
 
     res.json({ routes: allDecodedRoutes, unassigned: allUnassigned });
     console.log("Unassigned jobs:", JSON.stringify(allUnassigned));
+  } catch (err) {
+    console.error("Error in dynamicTourController:", err);
+    if (!res.headersSent) {
+      res.status(500).json({
+        message: "Tour planning or routing failed.",
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+};
+
+export const createDynamicTour = async (_req: Request, res: Response) => {
+  try {
+    const payload: DynamicTourPayload = _req.body;
+
+    if (!payload || !payload.orderIds || !payload.warehouse_id)
+      res.status(400).json({ message: "Invalid payload" });
+
+    const dynamicTour = await createDynamicTourAsync(payload);
+
+    res.json(dynamicTour);
+    logWithTime(
+      `[Unassigned jobs]:,
+      ${JSON.stringify(dynamicTour.unassigned)}`
+    );
   } catch (err) {
     console.error("Error in dynamicTourController:", err);
     if (!res.headersSent) {

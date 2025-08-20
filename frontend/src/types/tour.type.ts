@@ -116,25 +116,22 @@ export type Tour = {
 };
 
 export interface DynamicTourPayload {
-  id?: number;
-  tour_number: string;
-  tour_route: Geometry[];
+  id?: number | null;
+  tour_number?: string | null;
+  tour_route?: Geometry[] | null; // object;
   orderIds: string; // Comma-separated
   warehouse_id: number;
+  approved_by?: string | null;
+  approved_at?: string | null;
 }
 
-export type pinboardOrder = {
-  id: number;
-  order_number: string;
+export type UnassignedRes = {
+  orderId: number;
+  reasons: string[];
+};
 
-  order_time: string;
-  delivery_time: string;
-  amount: number;
-
-  city: string;
-  zipcode: string;
-  street: string;
-  
-  location: { lat: number; lng: number };
-  warehouse_id: number;
+export type DynamicTourRes = {
+  tour: Tour;
+  unassigned: UnassignedRes[];
+  dynamicTour: DynamicTourPayload;
 };

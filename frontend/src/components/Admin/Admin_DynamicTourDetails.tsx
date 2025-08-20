@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Button,
@@ -8,24 +8,27 @@ import {
   IconButton,
   InputLabel,
   List,
-  ListItem,
-  ListItemButton,
-  ListItemText,
+  ListSubheader,
   MenuItem,
   Modal,
   OutlinedInput,
   Select,
+  SelectChangeEvent,
+  Stack,
   TextField,
   Typography,
 } from "@mui/material";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import PaletteIcon from "@mui/icons-material/Palette";
+
+import { motion, AnimatePresence } from "framer-motion";
 
 import { useDynamicTourService } from "../../hooks/useDynamicTourService";
 import { scrollStyles } from "../../../src/theme";
 import useDynamicTourStore from "../../store/useDynamicTourStore";
-import DynamicTourOrderDetails from "./Admin_DynamicTourOrderDetails";
+import { OrdersList } from "./common/OrdersList";
+import { Order, PinboardOrder } from "../../types/order.type";
+import adminApiService from "../../services/adminApiService";
 
 const modalStyle = {
   position: "absolute",
@@ -42,24 +45,46 @@ const modalStyle = {
 
 const formStyle = {
   fieldWidth: 190,
-  fontSize: "0.95rem",
+  fontSize: "1rem",
 };
 
 const DynamicTourDetails = () => {
+  const { pinboard_OrderList } = useDynamicTourStore();
+
+  const groupedPinbOrders = pinboard_OrderList.reduce(
+    (acc, order) => {
+      if (!acc[order.warehouse_id]) acc[order.warehouse_id] = [];
+
+      acc[order.warehouse_id].push(order);
+      return acc;
+    },
+    {} as Record<number, PinboardOrder[]>
+  );
+  const warehouseMap = Object.fromEntries(
+    pinboard_OrderList.map((o) => [o.warehouse_id, o.warehouse])
+  );
+  const [expanded, setExpanded] = useState(false);
+  // const [selectedPinbOrders, setSelectedPinbOrders] = useState<Order[]>([]);
+
+  // selected pinboard orders
+
   const {
     warehouse,
     drivers,
     tourOrders,
-    isOrderListUpdated,
-    selectedOrderId,
-    deleteTargetId,
-    setDeleteTargetId,
+    shouldUpdateTourRoute,
+    // deleteTargetId,
+    // setDeleteTargetId,
 
-    orderRef,
+    selectedPinbOrders,
+    handleSelectPinbOrder,
 
+    removeOrderId,
+    setRemoveOrderId,
     orderToDelete,
     handleOrderRemove,
-    hanldeOrderAdd,
+
+    // hanldeOrderAdd,
     handleOrderSelect,
     generateTimeOptions,
 
@@ -70,8 +95,28 @@ const DynamicTourDetails = () => {
     handleFormChange,
     handleTourSubmit,
     handleTourReject,
-    newDynamicTour,
+    updateDynamicTour,
+
+    // pinboardOrderSearch,
   } = useDynamicTourService();
+
+  const [pendingRemove, setPendingRemove] = useState<{
+    type: "torders" | "porders";
+    order: Order;
+  } | null>(null);
+  const requestOrderRemove = (type: "torders" | "porders", order: Order) => {
+    setPendingRemove({ type, order });
+  };
+  const confirmOrderRemove = () => {
+    if (!pendingRemove) return;
+
+    handleOrderRemove(pendingRemove.type, pendingRemove.order.order_id);
+    setPendingRemove(null);
+  };
+
+  const pinboardOrderSearch = () => {
+    return;
+  };
 
   return (
     <>
@@ -234,11 +279,11 @@ const DynamicTourDetails = () => {
             gap={3}
             mt={2}
           >
-            {isOrderListUpdated ? (
+            {shouldUpdateTourRoute ? (
               <Button
                 variant="contained"
                 color="success"
-                onClick={newDynamicTour}
+                onClick={updateDynamicTour}
               >
                 New Tour Route
               </Button>
@@ -270,11 +315,12 @@ const DynamicTourDetails = () => {
           borderRadius={2}
           sx={{
             maxHeight: "calc(100vh - 30%)",
-            maxWidth: 320,
+            maxWidth: 370,
             width: { md: 280, lg: 320 },
             pointerEvents: "auto",
             display: "flex",
             flexDirection: "column",
+            gap: 1,
           }}
         >
           <Box
@@ -289,9 +335,75 @@ const DynamicTourDetails = () => {
               </Box>{" "}
               Orders
             </Typography>
-            <IconButton color="primary" onClick={hanldeOrderAdd}>
-              <AddCircleOutlineIcon />
-            </IconButton>
+
+            <Box display="flex" alignItems={"center"} gap={1}>
+              <AnimatePresence mode="wait">
+                {!expanded ? (
+                  <motion.div
+                    key="icon"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ apacity: 0, scale: 0.6 }}
+                    transition={{ duration: 0.25 }}
+                  >
+                    <IconButton
+                      color="primary"
+                      onClick={() => setExpanded((prev) => !prev)}
+                    >
+                      <AddCircleOutlineIcon />
+                    </IconButton>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="select"
+                    initial={{ width: 0, opacity: 0 }}
+                    animate={{ width: "160px", opacity: 1 }}
+                    exit={{ width: 0, opacity: 0 }}
+                    transition={{ duraion: 0.3 }}
+                    style={{ overflow: "hidden", maxWidth: "180px" }}
+                  >
+                    <FormControl sx={{ width: "160px" }} size="small">
+                      <InputLabel
+                        htmlFor="porders-select"
+                        sx={{ fontSize: formStyle.fontSize, top: -5 }}
+                      >
+                        {selectedPinbOrders.length > 0
+                          ? "Selected Orders"
+                          : "Select Orders"}
+                      </InputLabel>
+                      <Select
+                        id="porders-select"
+                        label="Select orders"
+                        multiple
+                        value={selectedPinbOrders.map((o) =>
+                          o.order_id.toString()
+                        )}
+                        onChange={handleSelectPinbOrder}
+                        onClose={() => setExpanded(false)} // Collapse
+                      >
+                        {Object.entries(groupedPinbOrders).map(
+                          ([warehouseId, pOrders]) => [
+                            // <React.Fragment key={`header-${warehouseId}`}>
+                            <ListSubheader
+                              key={`header-${warehouseId}`}
+                              sx={{ fontSize: "1.2rem", fontWeight: "bold" }}
+                            >
+                              {warehouseMap[Number(warehouseId)]}
+                            </ListSubheader>,
+                            pOrders.map((po) => (
+                              <MenuItem key={po.id} value={po.id}>
+                                {po.order_number}
+                              </MenuItem>
+                            )),
+                            // </React.Fragment>
+                          ]
+                        )}
+                      </Select>
+                    </FormControl>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </Box>
           </Box>
           <Divider flexItem />
           <Box
@@ -304,50 +416,39 @@ const DynamicTourDetails = () => {
             }}
           >
             <List>
-              {tourOrders.map((order, idx) => (
-                <React.Fragment key={order.order_id}>
-                  <ListItem disablePadding>
-                    <ListItemButton
-                      sx={{ px: 0, m: 0 }}
-                      onClick={() => handleOrderSelect(order.order_id)}
-                    >
-                      <ListItemText>
-                        <Box
-                          component={"span"}
-                          fontSize={"medium"}
-                          color={"primary.dark"}
-                        >
-                          {String(idx + 1).padStart(2, "0")}
-                        </Box>{" "}
-                        {order.order_number}
-                      </ListItemText>
-                    </ListItemButton>
-                    <IconButton
-                      onClick={() => setDeleteTargetId(order.order_id)}
-                    >
-                      <DeleteOutlineIcon />
-                    </IconButton>
-                  </ListItem>
-                  {selectedOrderId === order.order_id && (
-                    <DynamicTourOrderDetails order={order} />
-                  )}
-                </React.Fragment>
-              ))}
+              {selectedPinbOrders.length > 0 && (
+                <Stack spacing={1} width="100%">
+                  <Typography color="primary">Add Orders</Typography>
+                  <OrdersList
+                    items={selectedPinbOrders}
+                    handleDelete={(orderItem) =>
+                      requestOrderRemove("porders", orderItem)
+                    }
+                  />
+                  <Divider />
+                  <Typography color="primary" sx={{ py: 1 }}>
+                    Tour Orders
+                  </Typography>
+                </Stack>
+              )}
+              <OrdersList
+                items={tourOrders}
+                handleDelete={(orderItem) =>
+                  requestOrderRemove("torders", orderItem)
+                }
+              />
             </List>
           </Box>
         </Box>
       </Box>
 
       {/* Remove Confirmation Modal */}
-      <Modal
-        open={deleteTargetId != null}
-        onClose={() => setDeleteTargetId(null)}
-      >
+      <Modal open={!!pendingRemove} onClose={() => setPendingRemove(null)}>
         <Box sx={{ ...modalStyle, width: 450 }}>
           <Typography variant="h5" mb={2}>
             Do you want to remove{" "}
             <Box component="span" fontWeight="bold">
-              Order {orderToDelete?.order_number}
+              Order {pendingRemove?.order?.order_number}
             </Box>{" "}
             from the Tour?
           </Typography>
@@ -355,11 +456,11 @@ const DynamicTourDetails = () => {
             <Button
               variant="contained"
               color="error"
-              onClick={handleOrderRemove}
+              onClick={confirmOrderRemove}
             >
               Remove
             </Button>
-            <Button variant="outlined" onClick={() => setDeleteTargetId(null)}>
+            <Button variant="outlined" onClick={() => setPendingRemove(null)}>
               Cancel
             </Button>
           </Box>
