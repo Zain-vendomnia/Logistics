@@ -8,7 +8,7 @@ import {
 } from "@mui/material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { Order } from "../../../types/order.type";
-import DynamicTourOrderDetails from "../Admin_DynamicTourOrderDetails";
+import DynamicTourOrderDetails from "./DynamicTourOrderDetails";
 
 type Props = {
   items: Order[];
@@ -16,9 +16,8 @@ type Props = {
   //   handleSelect: (id: number) => void;
 };
 
-export const OrdersList = ({ items, handleDelete }: Props) => {
+export const DynamicOrdersList = ({ items, handleDelete }: Props) => {
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
-  //   const [removeOrderId, setRemoveOrderId] = useState<number | null>(null);
 
   const [orderList, setOrderList] = useState<Order[]>(items);
   useEffect(() => {

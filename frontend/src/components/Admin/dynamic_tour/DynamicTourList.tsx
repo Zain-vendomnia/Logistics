@@ -7,10 +7,8 @@ import {
   Typography,
 } from "@mui/material";
 
-import { DynamicTourPayload } from "../../types/tour.type";
-import useDynamicTourStore from "../../store/useDynamicTourStore";
-// import adminApiService from "../../services/adminApiService";
-// import { useEffect, useState } from "react";
+import { DynamicTourPayload } from "../../../types/tour.type";
+import useDynamicTourStore from "../../../store/useDynamicTourStore";
 
 const DynamicTourList = () => {
   const { dynamicTours, selectedTour, setSelectedTour } = useDynamicTourStore();
@@ -24,30 +22,10 @@ const DynamicTourList = () => {
     }
   };
 
-  // const [count, setCount] = useState(11);
-  // useEffect(() => {
-  //   const addNewOrder = () => {
-  //     adminApiService.newShopOrder(count);
-  //     setCount((p) => p + 1);
-  //   };
-
-  //   let interval: ReturnType<typeof setInterval>;
-  //   const timeout = setTimeout(() => {
-  //     interval = setInterval(() => {
-  //       addNewOrder();
-  //     }, 5000);
-  //   }, 10000);
-
-  //   return () => {
-  //     clearTimeout(timeout);
-  //     clearInterval(interval);
-  //   };
-  // }, []);
-
   return (
     <Box width={"100%"} height="100%" overflow="auto">
       <Box display={"flex"} justifyContent={"center"} p={1} mb={1}>
-        <Typography variant="h5" color="primary">
+        <Typography variant="h5" fontWeight={"bold"} color="primary.dark">
           Dynamic Tours
         </Typography>
       </Box>
@@ -67,7 +45,9 @@ const DynamicTourList = () => {
                 cursor: "pointer",
               }}
             >
-              <ListItemText>{tour.tour_number}</ListItemText>
+              <Typography sx={{ fontSize: "1.2rem" }}>
+                {tour.tour_number}
+              </Typography>
             </ListItemButton>
           </ListItem>
         ))}

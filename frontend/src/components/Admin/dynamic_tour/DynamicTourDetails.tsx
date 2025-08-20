@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from "react";
+import { useState } from "react";
 import {
+  Backdrop,
   Box,
   Button,
   Chip,
+  CircularProgress,
   Divider,
   FormControl,
   IconButton,
@@ -13,7 +15,6 @@ import {
   Modal,
   OutlinedInput,
   Select,
-  SelectChangeEvent,
   Stack,
   TextField,
   Typography,
@@ -23,12 +24,11 @@ import PaletteIcon from "@mui/icons-material/Palette";
 
 import { motion, AnimatePresence } from "framer-motion";
 
-import { useDynamicTourService } from "../../hooks/useDynamicTourService";
-import { scrollStyles } from "../../../src/theme";
-import useDynamicTourStore from "../../store/useDynamicTourStore";
-import { OrdersList } from "./common/OrdersList";
-import { Order, PinboardOrder } from "../../types/order.type";
-import adminApiService from "../../services/adminApiService";
+import { useDynamicTourService } from "../../../hooks/useDynamicTourService";
+import { scrollStyles } from "../../../theme";
+import useDynamicTourStore from "../../../store/useDynamicTourStore";
+import { DynamicOrdersList } from "./DynamicOrdersList";
+import { Order, PinboardOrder } from "../../../types/order.type";
 
 const modalStyle = {
   position: "absolute",
@@ -64,28 +64,19 @@ const DynamicTourDetails = () => {
     pinboard_OrderList.map((o) => [o.warehouse_id, o.warehouse])
   );
   const [expanded, setExpanded] = useState(false);
-  // const [selectedPinbOrders, setSelectedPinbOrders] = useState<Order[]>([]);
-
-  // selected pinboard orders
 
   const {
+    loading,
     warehouse,
     drivers,
     tourOrders,
     shouldUpdateTourRoute,
-    // deleteTargetId,
-    // setDeleteTargetId,
 
     selectedPinbOrders,
     handleSelectPinbOrder,
 
-    removeOrderId,
-    setRemoveOrderId,
-    orderToDelete,
     handleOrderRemove,
 
-    // hanldeOrderAdd,
-    handleOrderSelect,
     generateTimeOptions,
 
     formData,
@@ -96,8 +87,6 @@ const DynamicTourDetails = () => {
     handleTourSubmit,
     handleTourReject,
     updateDynamicTour,
-
-    // pinboardOrderSearch,
   } = useDynamicTourService();
 
   const [pendingRemove, setPendingRemove] = useState<{
@@ -114,12 +103,16 @@ const DynamicTourDetails = () => {
     setPendingRemove(null);
   };
 
-  const pinboardOrderSearch = () => {
-    return;
-  };
-
   return (
     <>
+      <Backdrop
+        sx={(theme) => ({ color: "#fff", zIndex: theme.zIndex.modal + 1 })}
+        open={loading}
+        // onClick={handleClose}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
+
       <Box
         sx={{
           position: "absolute",
@@ -285,7 +278,7 @@ const DynamicTourDetails = () => {
                 color="success"
                 onClick={updateDynamicTour}
               >
-                New Tour Route
+                Update Tour Route
               </Button>
             ) : (
               <>
@@ -383,10 +376,13 @@ const DynamicTourDetails = () => {
                       >
                         {Object.entries(groupedPinbOrders).map(
                           ([warehouseId, pOrders]) => [
-                            // <React.Fragment key={`header-${warehouseId}`}>
                             <ListSubheader
                               key={`header-${warehouseId}`}
-                              sx={{ fontSize: "1.2rem", fontWeight: "bold" }}
+                              sx={{
+                                fontSize: "1.1rem",
+                                color: "primary.main",
+                                fontWeight: "bold",
+                              }}
                             >
                               {warehouseMap[Number(warehouseId)]}
                             </ListSubheader>,
@@ -395,7 +391,6 @@ const DynamicTourDetails = () => {
                                 {po.order_number}
                               </MenuItem>
                             )),
-                            // </React.Fragment>
                           ]
                         )}
                       </Select>
@@ -419,7 +414,7 @@ const DynamicTourDetails = () => {
               {selectedPinbOrders.length > 0 && (
                 <Stack spacing={1} width="100%">
                   <Typography color="primary">Add Orders</Typography>
-                  <OrdersList
+                  <DynamicOrdersList
                     items={selectedPinbOrders}
                     handleDelete={(orderItem) =>
                       requestOrderRemove("porders", orderItem)
@@ -431,7 +426,7 @@ const DynamicTourDetails = () => {
                   </Typography>
                 </Stack>
               )}
-              <OrdersList
+              <DynamicOrdersList
                 items={tourOrders}
                 handleDelete={(orderItem) =>
                   requestOrderRemove("torders", orderItem)

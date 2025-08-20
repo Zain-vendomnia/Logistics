@@ -9,8 +9,8 @@ import {
   Typography,
 } from "@mui/material";
 
-import { useDynamicTourService } from "../../hooks/useDynamicTourService";
-import { Order } from "../../types/dto.type";
+import { Order } from "../../../types/dto.type";
+import { getDaysLeft } from "../../../utils/formatConverter";
 
 interface Props {
   order: Order;
@@ -18,8 +18,7 @@ interface Props {
 
 const DynamicTourOrderDetails = ({ order }: Props) => {
   const fontsize = "0.95rem";
-  // const { orderRef, getDaysLeft } = useDynamicTourService();
-  const { getDaysLeft } = useDynamicTourService();
+
   const orderRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {

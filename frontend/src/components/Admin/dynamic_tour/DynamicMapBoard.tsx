@@ -15,14 +15,14 @@ import {
 import { useMap } from "react-leaflet";
 import L from "leaflet";
 
-import PolylineDecoratorWrapper from "./PolylineDecoratorWrapper";
-import adminApiService from "../../services/adminApiService";
-import { DynamicTourPayload, Geometry, Stop } from "../../types/tour.type";
-import { PinboardOrder } from "../../types/order.type";
-import useDynamicTourStore from "../../store/useDynamicTourStore";
-import useLiveOrderUpdates from "../../socket/useLiveOrderUpdates";
-import DynamicTourList from "./Admin_DynamicTourList";
-import DynamicTourDetails from "./Admin_DynamicTourDetails";
+import PolylineDecoratorWrapper from "../PolylineDecoratorWrapper";
+import adminApiService from "../../../services/adminApiService";
+import { DynamicTourPayload, Geometry, Stop } from "../../../types/tour.type";
+import { PinboardOrder } from "../../../types/order.type";
+import useDynamicTourStore from "../../../store/useDynamicTourStore";
+import useLiveOrderUpdates from "../../../socket/useLiveOrderUpdates";
+import DynamicTourList from "./DynamicTourList";
+import DynamicTourDetails from "./DynamicTourDetails";
 
 // interface Stop {
 //   location: { lat: number; lng: number };
@@ -117,7 +117,7 @@ const extract_Coords = (tours: Geometry[]): [number, number][] => {
 
 const colors = ["blue", "green", "red", "purple", "orange", "brown"];
 
-const Dashboard: React.FC = () => {
+const DymanicMapBoard = () => {
   const mapRef = useRef<L.Map | null>(null);
 
   const {
@@ -442,7 +442,7 @@ const Dashboard: React.FC = () => {
   );
 };
 
-export default Dashboard;
+export default DymanicMapBoard;
 
 type MapReadyProps = {
   onMapReady: (map: L.Map) => void;

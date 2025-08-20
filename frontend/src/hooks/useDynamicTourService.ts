@@ -9,17 +9,11 @@ import {
 import adminApiService from "../services/adminApiService";
 import { Driver, Order, Warehouse } from "../types/dto.type";
 import { getAvailableDrivers } from "../services/driverService";
-import useDynamicTourStore, {
-  DTourinfo_data,
-} from "../store/useDynamicTourStore";
-import { getCurrentUser } from "../services/auth.service";
+import useDynamicTourStore from "../store/useDynamicTourStore";
 import {
   NotificationSeverity,
   useNotificationStore,
 } from "../store/useNotificationStore";
-import { Message } from "@mui/icons-material";
-import { title } from "process";
-// import adminApiService from "../../services/adminApiService";
 
 const getOrders = () => [
   { id: 1, name: 213 },
@@ -36,18 +30,14 @@ const getOrders = () => [
   { id: 13, name: 224 },
 ];
 
-interface Props {
-  selectedTour: DynamicTourPayload;
-}
-
 export const useDynamicTourService = () => {
   const { showNotification } = useNotificationStore();
   const { selectedTour, setSelectedTour, dTourinfo_data, set_dTourinfo_data } =
     useDynamicTourStore();
 
-  console.log("Selected Tour - Hook", selectedTour);
-
   const theme = useTheme<Theme>();
+
+  const [loading, setLoading] = useState(false);
 
   const [warehouse, setWarehouse] = useState<Warehouse | null>(null);
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -128,21 +118,28 @@ export const useDynamicTourService = () => {
 
     // get warehouse details
     const fetchData = async () => {
-      const warehouseRes = await adminApiService.getWarehouse(
-        selectedTour.warehouse_id
-      );
-      setWarehouse(warehouseRes);
+      try {
+        const warehouseRes = await adminApiService.getWarehouse(
+          selectedTour.warehouse_id
+        );
+        setWarehouse(warehouseRes);
 
-      // const orderIds = "37,38,39,40";
-      const orderIds = selectedTour.orderIds;
-      const orders: Order[] =
-        await adminApiService.fetchOrdersWithItems(orderIds);
-      console.log(orders);
+        // const orderIds = "37,38,39,40";
+        const orderIds = selectedTour.orderIds;
+        const orders: Order[] =
+          await adminApiService.fetchOrdersWithItems(orderIds);
+        console.log(orders);
 
-      // const orders = getOrders();
+        // const orders = getOrders();
 
-      setTourOrders(orders);
-      setShouldUpdateTourRoute(false);
+        setTourOrders(orders);
+        setShouldUpdateTourRoute(false);
+        setLoading(false);
+      } catch (error) {
+        throw Error("error fetching tour detaiuls");
+      } finally {
+        setLoading(false);
+      }
     };
     fetchData();
 
@@ -156,7 +153,7 @@ export const useDynamicTourService = () => {
   }, [selectedOrderId]);
 
   const handleOrderSelect = (orderId: number) => {
-    console.log("handle Order Select:", orderId);
+    // console.log("handle Order Select:", orderId);
     setSelectedOrderId((prev) => (prev === orderId ? null : orderId));
   };
 
@@ -178,13 +175,8 @@ export const useDynamicTourService = () => {
 
     if (selectedOrderId === orderId) setSelectedOrderId(null);
     setRemoveOrderId(null);
-    // setOrderListUpdated(true);
   };
   const orderToDelete = tourOrders.find((o) => o.order_id === removeOrderId);
-
-  // const hanldeOrderAdd = () => {
-  //   setOrderListUpdated(false);
-  // };
 
   const handleFormChange = (
     e:
@@ -229,46 +221,51 @@ export const useDynamicTourService = () => {
     });
 
   const updateDynamicTour = async () => {
-    const request: DynamicTourPayload = {
-      ...selectedTour!,
-      tour_route: [],
-      orderIds: tourOrders.map((o) => o.order_id.toString()).join(","),
-      // approved_by: getCurrentUser().user_id,
-      // approved_at: new Date().toISOString(),
-    };
-    // console.log("Update D-Tour Request: ", request);
-    const res: DynamicTourRes =
-      await adminApiService.requestDynamicTour(request);
-    // console.log("Update D-Tour Response: ", res);
+    setLoading(true);
+    try {
+      const torders = tourOrders.map((o) => o.order_id.toString()).join(",");
+      const porders = selectedPinbOrders
+        .map((o) => o.order_id.toString())
+        .join(",");
 
-    notifyUnassignedOrders(res.unassigned as UnassignedRes[]);
+      const request: DynamicTourPayload = {
+        ...selectedTour!,
+        tour_route: [],
+        orderIds: [torders, porders].filter(Boolean).join(","),
+        // updated_by: getCurrentUser().user_id,
+        // approved_by: getCurrentUser().user_id,
+        // approved_at: new Date().toISOString(),
+      };
+      // console.log("Update D-Tour Request: ", request);
+      const res: DynamicTourRes =
+        await adminApiService.requestDynamicTour(request);
+      // console.log("Update D-Tour Response: ", res);
 
-    // store dTourinfo_data for later use   // to be fixed later
-    // const dtour_obj: DTourinfo_data = {
-    //   dTour_id: selectedTour?.id!,
-    //   tour: res.tour,
-    //   unassigned: res.unassigned,
-    // };
-    // setDTourinfo(dtour_obj);
+      notifyUnassignedOrders(res.unassigned as UnassignedRes[]);
 
-    const unassignedOrderIds = new Set(res.unassigned.map((u) => u.orderId));
-    console.log("unassigned order ids: ", unassignedOrderIds);
-    setTourOrders((prev) =>
-      prev.filter((o) => !unassignedOrderIds.has(o.order_id))
-    );
-    setSelectedTour(res.dynamicTour);
-  };
+      // store dTourinfo_data for later use   // to be fixed later
+      // const dtour_obj: DTourinfo_data = {
+      //   dTour_id: selectedTour?.id!,
+      //   tour: res.tour,
+      //   unassigned: res.unassigned,
+      // };
+      // setDTourinfo(dtour_obj);
 
-  const getDaysLeft = (endDate: Date, startDate: Date) => {
-    const diffInTime = endDate.getTime() - startDate.getTime();
-    const diffInDays = Math.ceil(diffInTime / (1000 * 60 * 60 * 24));
+      const unassignedOrderIds = new Set(res.unassigned.map((u) => u.orderId));
 
-    const daysLeft =
-      diffInDays > 0
-        ? `${diffInDays} day${diffInDays !== 1 ? "s" : ""} left`
-        : `Overdue by ${Math.abs(diffInDays)} day${Math.abs(diffInDays) !== 1 ? "s" : ""}`;
+      console.log("unassigned order ids: ", unassignedOrderIds);
+      setTourOrders((prev) =>
+        prev.filter((o) => !unassignedOrderIds.has(o.order_id))
+      );
 
-    return daysLeft;
+      setSelectedTour(res.dynamicTour);
+      // selectedTourOrders will be populated in UseEffect above
+      setSelectedPinbOrders([]);
+    } catch (error) {
+      throw Error("Error while creaitn new tour route");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const notifyUnassignedOrders = (unassigned: UnassignedRes[]) => {
@@ -296,7 +293,13 @@ export const useDynamicTourService = () => {
 
   const pinboardOrderSearch = () => {};
 
-  const handleTourReject = () => {};
+  const handleTourReject = () => {
+    console.log("Tour Rejecteion Called");
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+    }, 5000);
+  };
 
   const handleSelectPinbOrder = async (e: any) => {
     console.log("Hit!!");
@@ -309,6 +312,7 @@ export const useDynamicTourService = () => {
   };
 
   return {
+    loading,
     warehouse,
     drivers,
     tourOrders,
@@ -317,15 +321,11 @@ export const useDynamicTourService = () => {
     selectedPinbOrders,
     handleSelectPinbOrder,
 
-    // selectedOrderId,
-    // deleteTargetId,
-    // setDeleteTargetId,
     removeOrderId,
     setRemoveOrderId,
     orderToDelete,
     handleOrderRemove,
 
-    // hanldeOrderAdd,
     handleOrderSelect,
     generateTimeOptions,
 
@@ -339,7 +339,6 @@ export const useDynamicTourService = () => {
     updateDynamicTour,
 
     // pinboardOrderSearch,
-    getDaysLeft,
 
     orderRef,
   };
