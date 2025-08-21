@@ -287,8 +287,7 @@ async function getRoutesForTour(tour: Tour): Promise<DecodedRoute | null> {
   }
 }
 
-function 
-extractTourOrderIds(tour: Tour): string {
+function extractTourOrderIds(tour: Tour): string {
   const ids: number[] = [];
 
   tour.stops.forEach((stop) => {

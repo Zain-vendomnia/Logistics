@@ -121,12 +121,14 @@ export interface DynamicTourPayload {
   tour_route?: Geometry[] | null; // object;
   orderIds: string; // Comma-separated
   warehouse_id: number;
+  updated_by?: string | null;
   approved_by?: string | null;
   approved_at?: string | null;
 }
 
 export type UnassignedRes = {
   orderId: number;
+  order_number: string;
   reasons: string[];
 };
 

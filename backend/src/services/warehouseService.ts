@@ -14,7 +14,6 @@ export const getWarehouseById = async (id: number) => {
 };
 
 export const getWarehouseWithVehiclesById = async (id: number) => {
-    console.log("-------------------------------- STEP 3 GETTING WAREHOUSE WITH VEHICLES  ----------------------------------------------------")
 
   const [rows]: any = await pool.query(
     `SELECT
@@ -38,8 +37,6 @@ export const getWarehouseWithVehiclesById = async (id: number) => {
     );
     
     if (!rows.length) return null;
-    console.log("warehouse found:", rows);
-    console.log("-------------------------------------------------------------------------------------------------------------------")
   return {
     warehouse_id: rows[0].warehouse_id,
     warehouse_name: rows[0].warehouse_name,

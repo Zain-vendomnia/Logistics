@@ -214,7 +214,6 @@ export const LOGIC_ORDER_TABLE = `
   );
 `;
 
-
 export const LOGIC_ORDER_ITEMS_TABLE = `
   CREATE TABLE IF NOT EXISTS logistic_order_items (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -302,10 +301,12 @@ export const CREATE_DYNAMIC_TOURS_TABLE = `
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, 
     tour_number VARCHAR(25) NOT NULL UNIQUE,
     tour_route JSON NOT NULL,
+    tour_data JSON NOT NULL,
     orderIds TEXT NOT NULL, 
     warehouse_id INT NOT NULL, 
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP, 
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, 
+    updated_by VARCHAR(45) DEFAULT NULL, 
     approved_by VARCHAR(45) DEFAULT NULL, 
     approved_at DATETIME DEFAULT NULL
   );

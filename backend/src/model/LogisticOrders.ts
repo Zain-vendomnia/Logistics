@@ -1,6 +1,6 @@
 import { ResultSetHeader, RowDataPacket } from "mysql2";
 import pool from "../database";
-import { CheckOrderCount, pinboardOrder } from "../types/dto.types";
+import { CheckOrderCount, PinboardOrder } from "../types/dto.types";
 
 export enum OrderStatus {
   initial = "initial",
@@ -252,14 +252,13 @@ export class LogisticOrder {
     return (result as ResultSetHeader).affectedRows > 0;
   }
 
-  static async getPinboardOrdersAsync(): Promise<pinboardOrder[]> {
+  static async getPinboardOrdersAsync(): Promise<PinboardOrder[]> {
     const [rows] = await pool.execute(`
       SELECT 
           o.order_id,
           o.order_number,
           o.order_time,
           o.expected_delivery_time,
-          o.invoice_amount,
           o.city,
           o.zipcode,
           o.street,
@@ -269,8 +268,8 @@ export class LogisticOrder {
           wh.warehouse_name
       FROM logistic_order o
       JOIN warehouse_details wh
-        ON o.warehouse_id = wh.warehouse_id   -- <--- table alias added here
-      WHERE o.status IN ('initial', 'unassigned')
+        ON o.warehouse_id = wh.warehouse_id
+      WHERE o.status IN ('initial', 'unassigned', 'rescheduled')
       ORDER BY o.updated_at DESC, o.created_at DESC;
 
     `);
@@ -288,7 +287,7 @@ export class LogisticOrder {
       },
       warehouse_id: raw.warehouse_id,
       warehouse: raw.warehouse_name,
-    })) as pinboardOrder[];
+    })) as PinboardOrder[];
 
     return orders;
   }
@@ -297,7 +296,7 @@ export class LogisticOrder {
 export async function get_LogisticsOrdersAddress(orderIds: number[]) {
   const placeholders = orderIds.map(() => "?").join(",");
   const [orderRows] = await pool.query(
-    `SELECT order_id, street, city, zipcode FROM logistic_order WHERE order_id IN (${placeholders})`,
+    `SELECT order_id, order_number, street, city, zipcode FROM logistic_order WHERE order_id IN (${placeholders})`,
     orderIds
   );
   console.log("Orders Addresses:", orderRows);

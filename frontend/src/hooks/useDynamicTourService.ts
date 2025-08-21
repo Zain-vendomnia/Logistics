@@ -14,6 +14,7 @@ import {
   NotificationSeverity,
   useNotificationStore,
 } from "../store/useNotificationStore";
+import { getCurrentUser } from "../services/auth.service";
 
 const getOrders = () => [
   { id: 1, name: 213 },
@@ -32,8 +33,7 @@ const getOrders = () => [
 
 export const useDynamicTourService = () => {
   const { showNotification } = useNotificationStore();
-  const { selectedTour, setSelectedTour, dTourinfo_data, set_dTourinfo_data } =
-    useDynamicTourStore();
+  const { selectedTour, setSelectedTour } = useDynamicTourStore();
 
   const theme = useTheme<Theme>();
 
@@ -124,11 +124,10 @@ export const useDynamicTourService = () => {
         );
         setWarehouse(warehouseRes);
 
-        // const orderIds = "37,38,39,40";
         const orderIds = selectedTour.orderIds;
         const orders: Order[] =
           await adminApiService.fetchOrdersWithItems(orderIds);
-        console.log(orders);
+        console.log("selectedTour Order Details: ", orders);
 
         // const orders = getOrders();
 
@@ -232,28 +231,20 @@ export const useDynamicTourService = () => {
         ...selectedTour!,
         tour_route: [],
         orderIds: [torders, porders].filter(Boolean).join(","),
-        // updated_by: getCurrentUser().user_id,
+        updated_by: getCurrentUser().email,
         // approved_by: getCurrentUser().user_id,
         // approved_at: new Date().toISOString(),
       };
-      // console.log("Update D-Tour Request: ", request);
+      console.log("Update D-Tour Request: ", request);
       const res: DynamicTourRes =
         await adminApiService.requestDynamicTour(request);
-      // console.log("Update D-Tour Response: ", res);
+      console.log("Update D-Tour Response: ", res);
 
       notifyUnassignedOrders(res.unassigned as UnassignedRes[]);
 
-      // store dTourinfo_data for later use   // to be fixed later
-      // const dtour_obj: DTourinfo_data = {
-      //   dTour_id: selectedTour?.id!,
-      //   tour: res.tour,
-      //   unassigned: res.unassigned,
-      // };
-      // setDTourinfo(dtour_obj);
-
       const unassignedOrderIds = new Set(res.unassigned.map((u) => u.orderId));
 
-      console.log("unassigned order ids: ", unassignedOrderIds);
+      // console.log("unassigned order ids: ", unassignedOrderIds);
       setTourOrders((prev) =>
         prev.filter((o) => !unassignedOrderIds.has(o.order_id))
       );
@@ -271,19 +262,11 @@ export const useDynamicTourService = () => {
   const notifyUnassignedOrders = (unassigned: UnassignedRes[]) => {
     if (!unassigned.length) return;
 
-    const OrderMap = new Map(
-      tourOrders.map((o) => [o.order_id, o.order_number])
-    );
-
-    unassigned.forEach((unassign) => {
-      const reasons = unassign.reasons
-        .map((r: string) => r.split(":")[1])
-        .join("\n");
-
-      const order_number = OrderMap.get(unassign.orderId);
+    unassigned.forEach((un) => {
+      const reasons = un.reasons.map((r: string) => r.split(":")[1]).join("\n");
 
       showNotification({
-        title: order_number ?? "Unknown Order",
+        title: un.order_number ?? "Unknown Order",
         message: reasons || "Unassigned without reason",
         severity: NotificationSeverity.Warning,
         duration: 12000,

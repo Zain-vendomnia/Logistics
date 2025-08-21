@@ -2,6 +2,7 @@ import pool from "../database";
 import {
   get_LogisticsOrdersAddress,
   LogisticOrder,
+  OrderStatus,
 } from "../model/LogisticOrders";
 import {
   DynamicTourPayload,
@@ -34,6 +35,9 @@ export async function createDynamicTourAsync(
   const orders = (await get_LogisticsOrdersAddress(
     orderIds
   )) as LogisticOrder[];
+  const order_number_map = new Map<number, string>(
+    orders.map((o) => [o.order_id, o.order_number])
+  );
 
   const warehouse = await getWarehouseWithVehiclesById(payload.warehouse_id);
 
@@ -54,20 +58,28 @@ export async function createDynamicTourAsync(
   if (routes) {
     const dynamicTour: DynamicTourPayload = {
       ...payload,
+      tour_data: { tour, unassigned },
       tour_route: routes,
       orderIds: xOrderIds,
     };
 
     await saveDynamicTour(dynamicTour);
+
+    const order_ids = xOrderIds.split(",").map((o) => Number(o));
+    await LogisticOrder.updateOrdersStatus(order_ids, OrderStatus.assigned);
   } else {
     logWithTime(`[Null Response from Here Map - Routes creation]`);
     throw Error("Null Response from Here Map - Routes creation");
   }
 
-  const unassignedOrders: UnassignedRes[] = unassigned.map((unassigned) => ({
-    orderId: Number(unassigned.jobId.split("_")[1]),
-    reasons: unassigned.reasons.map((r) => `${r.code}:${r.description}`),
-  }));
+  const unassignedOrders: UnassignedRes[] = unassigned.map((unassigned) => {
+    const order_id = Number(unassigned.jobId.split("_")[1]);
+    return {
+      orderId: order_id,
+      order_number: order_number_map.get(order_id) ?? "",
+      reasons: unassigned.reasons.map((r) => `${r.code}:${r.description}`),
+    };
+  });
 
   const response: DynamicTourRes = {
     tour: tour,
@@ -83,10 +95,12 @@ const saveDynamicTour = async (payload: DynamicTourPayload) => {
     id,
     tour_number,
     tour_route,
+    tour_data,
     orderIds,
     warehouse_id,
     approved_by = null,
     approved_at = null,
+    updated_by = null,
   } = payload;
 
   const isNew = !id && !tour_number;
@@ -97,17 +111,19 @@ const saveDynamicTour = async (payload: DynamicTourPayload) => {
 
     const query = `
       INSERT INTO dynamic_tours (
-        tour_number, tour_route, orderIds, warehouse_id, approved_by, approved_at
-      ) VALUES (?, ?, ?, ?, ?, ?)
+        tour_number, tour_route, tour_data, orderIds, warehouse_id, approved_by, approved_at, updated_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const values = [
       new_tourNumber,
       JSON.stringify(tour_route),
+      JSON.stringify(tour_data),
       orderIds,
       warehouse_id,
       approved_by,
       approved_at,
+      updated_by,
     ];
 
     try {
@@ -120,20 +136,24 @@ const saveDynamicTour = async (payload: DynamicTourPayload) => {
   } else {
     // Update existing
     const query = `
-      UPDATE dynamic_tours
-      SET
-        tour_route = ?,
-        orderIds = ?,
-        approved_by = ?,
-        approved_at = ?
-      WHERE ${id ? "id = ?" : "tour_number = ?"}
-    `;
+  UPDATE dynamic_tours
+  SET
+    tour_route = ?,
+    tour_data = ?,
+    orderIds = ?,
+    approved_by = ?,
+    approved_at = ?,
+    updated_by = ?
+  WHERE ${id ? "id = ?" : "tour_number = ?"}
+`;
 
     const values = [
       JSON.stringify(tour_route),
+      JSON.stringify(tour_data ?? {}),
       orderIds,
       approved_by,
       approved_at,
+      updated_by,
       id || tour_number,
     ];
 

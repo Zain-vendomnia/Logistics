@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { LogisticOrder } from "../../model/LogisticOrders";
-import { CheckOrderCount, pinboardOrder } from "../../types/dto.types";
+import { CheckOrderCount, PinboardOrder } from "../../types/dto.types";
 import { logWithTime } from "../../utils/logging";
 
 export const getAllLogisticOrders = async (_req: Request, res: Response) => {
@@ -95,7 +95,7 @@ export const getCheckOrdersRecentUpdates = async (
 
 export const getPinboardOrders = async (_req: Request, res: Response) => {
   try {
-    const orders: pinboardOrder[] =
+    const orders: PinboardOrder[] =
       await LogisticOrder.getPinboardOrdersAsync(); // Shopware orders
 
     res.status(200).json(orders);
