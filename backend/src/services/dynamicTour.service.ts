@@ -169,18 +169,15 @@ const saveDynamicTour = async (payload: DynamicTourPayload) => {
 
 // export async function getDynamicToursAsync()
 export async function getUnapprovedDynamicTours(): Promise<
-  Pick<
-    DynamicTourPayload,
-    "id" | "tour_number" | "tour_route" | "orderIds" | "warehouse_id"
-  >[]
+  DynamicTourPayload[]
 > {
-  const query =
-    "SELECT id, tour_number, tour_route, orderIds, warehouse_id FROM dynamic_tours WHERE approved_at IS NULL";
+  const query = "SELECT * FROM dynamic_tours WHERE approved_at IS NULL";
+  // "SELECT id, tour_number, tour_route, orderIds, warehouse_id FROM dynamic_tours WHERE approved_at IS NULL";
 
   try {
     const [rows] = await pool.execute(query);
 
-    return (rows as any[]).map((row) => ({
+    const dTours = (rows as DynamicTourPayload[]).map((row) => ({
       id: row.id,
       tour_number: row.tour_number,
       tour_route:
@@ -188,8 +185,21 @@ export async function getUnapprovedDynamicTours(): Promise<
           ? JSON.parse(row.tour_route)
           : row.tour_route,
       orderIds: row.orderIds,
+      totalOrdersItemsQty: 0,
       warehouse_id: row.warehouse_id,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      updated_by: row.updated_by,
     }));
+
+    for (const tour of dTours) {
+      const order_ids = tour.orderIds.split(",");
+      tour.totalOrdersItemsQty = await LogisticOrder.getOrderItemsCount(
+        order_ids
+      );
+    }
+
+    return dTours;
   } catch (error) {
     console.error("Error fetching unapproved dynamic tours:", error);
     throw error;

@@ -281,13 +281,12 @@ const DymanicMapBoard = () => {
           sx={{
             display: "flex",
             flexDirection: "column",
-            width: 290,
+            maxWidth: 320,
             height: "100%",
             overflow: "hidden",
             p: 2,
           }}
         >
-          {/* <DynamicToursTab /> */}
           <DynamicTourList />
         </Paper>
 

@@ -120,8 +120,14 @@ export interface DynamicTourPayload {
   tour_number?: string | null;
   tour_route?: Geometry[] | null; // object;
   orderIds: string; // Comma-separated
+  totalOrdersItemsQty: number;
+
   warehouse_id: number;
+
+  created_at?: string | null;
+  updated_at?: string | null;
   updated_by?: string | null;
+
   approved_by?: string | null;
   approved_at?: string | null;
 }

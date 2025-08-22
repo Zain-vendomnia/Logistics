@@ -6,7 +6,7 @@ import validateToken from "../middlewares/validateToken";
 import { optimizeRouteController } from "../controller/Admin_RouteOptimzation/optimizeRouteController";
 import { updatelatlngController } from "../controller/Admin_RouteOptimzation/updatelatlngController";
 import * as OrderCtrl from "../controller/Admin_RouteOptimzation/order.controller";
-import * as TourCtrl from "../controller/Admin_RouteOptimzation/tourController";
+import * as TourCtrl from "../controller/Admin_RouteOptimzation/tour.controller";
 import { ExportTourController } from "../controller/Admin_RouteOptimzation/exportTourController";
 import { getAllTourController } from "../controller/Admin_RouteOptimzation/getAllTourController";
 import { updateCustomerInfoController } from "../controller/Admin_RouteOptimzation/updateCustomerInfo.controller";

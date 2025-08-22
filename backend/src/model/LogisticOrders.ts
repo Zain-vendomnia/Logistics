@@ -306,6 +306,23 @@ export class LogisticOrder {
 
     return orders;
   }
+
+  static async getOrderItemsCount(orderIds: string[]): Promise<number> {
+    if (!orderIds || orderIds.length === 0) return 0;
+
+    const placeholders = orderIds.map(() => "?").join(",");
+    const query = `SELECT quantity FROM logistic_order_items WHERE order_id IN (${placeholders})`;
+
+    try {
+      const [rows] = await pool.execute(query, orderIds);
+      const items = rows as { quantity: number }[];
+
+      return items.reduce((acc, item) => acc + item.quantity, 0);
+    } catch (error) {
+      console.error("Error fetching order items count:", error);
+      throw error;
+    }
+  }
 }
 
 export async function get_LogisticsOrdersAddress(orderIds: number[]) {
