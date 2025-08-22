@@ -122,6 +122,7 @@ const DymanicMapBoard = () => {
 
   const {
     pinboard_OrderList,
+    lastFetchedAt,
     pinboard_AddOrders,
     selectedTour,
     setDynamicTours,
@@ -154,6 +155,7 @@ const DymanicMapBoard = () => {
     duration: 1.5,
   };
 
+  // Fetch Dynamic Tours
   useEffect(() => {
     const fetchTours = async () => {
       try {
@@ -206,21 +208,28 @@ const DymanicMapBoard = () => {
     mapRef.current.flyToBounds(bounds, flyToBoundsOptions as any);
   }, [selectedTour]);
 
+  // Fetch pinboard Orders
   useEffect(() => {
-    try {
-      const fetchOrders = async () => {
-        const res = await adminApiService.fetchPinboardOrders();
-        const orders = (res.data as PinboardOrder[]) || [];
+    const fetchOrders = async () => {
+      try {
+        const now = Date.now();
+        const staleAfter = 1000 * 60 * 30; // 30 minutes
+        const isStale = !lastFetchedAt || now - lastFetchedAt > staleAfter;
+        if (pinboard_OrderList.length === 0 || isStale) {
+          const orders: PinboardOrder[] =
+            await adminApiService.fetchPinboardOrders(lastFetchedAt);
 
-        console.log("Fetched Pinboard Orders:", orders);
+          const existingIds = new Set(pinboard_OrderList.map((o) => o.id));
+          const newOrders = orders.filter((o) => !existingIds.has(o.id));
+          pinboard_AddOrders(newOrders);
+        }
+      } catch (err) {
+        console.error("Failed to fetch pinboard Orders", err);
+      }
+    };
 
-        pinboard_AddOrders(orders);
-      };
-      fetchOrders();
-    } catch (err) {
-      console.error("Failed to fetch new Orders", err);
-    }
-  }, []);
+    fetchOrders();
+  }, [pinboard_OrderList.length, lastFetchedAt, pinboard_AddOrders]);
 
   const handleReposition = () => {
     if (mapRef.current) {

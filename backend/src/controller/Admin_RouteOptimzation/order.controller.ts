@@ -95,8 +95,12 @@ export const getCheckOrdersRecentUpdates = async (
 
 export const getPinboardOrders = async (_req: Request, res: Response) => {
   try {
-    const orders: PinboardOrder[] =
-      await LogisticOrder.getPinboardOrdersAsync(); // Shopware orders
+    const sinceHeader = _req.headers["last-fetched-at"] as string | undefined;
+    const since = sinceHeader;
+
+    const orders: PinboardOrder[] = await LogisticOrder.getPinboardOrdersAsync(
+      since
+    ); // Shopware orders
 
     res.status(200).json(orders);
   } catch (error) {

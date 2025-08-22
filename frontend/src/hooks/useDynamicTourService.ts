@@ -97,11 +97,10 @@ export const useDynamicTourService = () => {
       .map((id) => Number(id));
 
     // Check if tourOrders have been changed
-    // Or if any new pinboard orders are selected
-    const tourChanged = tourOrders.some(
-      (porder) => !selectedTourOrders.includes(porder.order_id)
+    const tourChanged = selectedTourOrders.some(
+      (to) => !tourOrders.find((o) => o.order_id === to)
     );
-
+    // Or if any new pinboard orders are selected
     const newPinboardOrdersAdded = selectedPinbOrders.length > 0;
 
     setShouldUpdateTourRoute(tourChanged || newPinboardOrdersAdded);
@@ -141,7 +140,7 @@ export const useDynamicTourService = () => {
       }
     };
     fetchData();
-
+    setSelectedPinbOrders([]);
     setFormData(initialFormState);
   }, [selectedTour]);
 

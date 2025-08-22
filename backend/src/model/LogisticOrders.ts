@@ -252,8 +252,10 @@ export class LogisticOrder {
     return (result as ResultSetHeader).affectedRows > 0;
   }
 
-  static async getPinboardOrdersAsync(): Promise<PinboardOrder[]> {
-    const [rows] = await pool.execute(`
+  static async getPinboardOrdersAsync(
+    since?: string
+  ): Promise<PinboardOrder[]> {
+    let query = `
       SELECT 
           o.order_id,
           o.order_number,
@@ -265,14 +267,27 @@ export class LogisticOrder {
           o.lattitude,
           o.longitude,
           o.warehouse_id,
-          wh.warehouse_name
+          wh.warehouse_name,
+          o.updated_at,
+          o.created_at
       FROM logistic_order o
       JOIN warehouse_details wh
         ON o.warehouse_id = wh.warehouse_id
       WHERE o.status IN ('initial', 'unassigned', 'rescheduled')
-      ORDER BY o.updated_at DESC, o.created_at DESC;
+  `;
 
-    `);
+    const params: any[] = [];
+
+    if (since) {
+      const sinceDate = new Date(since);
+      query += ` AND (o.updated_at > ? OR o.created_at > ?)`;
+      params.push(sinceDate, sinceDate);
+    }
+
+    query += ` ORDER BY o.updated_at DESC, o.created_at DESC`;
+
+    const [rows] = await pool.execute(query, params);
+
     const orders = (rows as any[]).map((raw: any) => ({
       id: raw.order_id,
       order_number: raw.order_number,

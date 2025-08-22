@@ -5,6 +5,7 @@ import { PinboardOrder } from "../types/order.type";
 
 type DynamicTourStore = {
   pinboard_OrderList: PinboardOrder[]; // List of order IDs
+  lastFetchedAt: number | null;
   pinboard_AddOrders: (orders: PinboardOrder[]) => void;
 
   // State for dynamic tours
@@ -17,9 +18,11 @@ type DynamicTourStore = {
 
 const createDynamicTourStore: StateCreator<DynamicTourStore> = (set, get) => ({
   pinboard_OrderList: [],
+  lastFetchedAt: null,
   pinboard_AddOrders: (orders) =>
     set((state) => ({
       pinboard_OrderList: [...state.pinboard_OrderList, ...orders],
+      lastFetchedAt: Date.now(),
     })),
 
   dynamicTours: [],
@@ -31,11 +34,11 @@ const createDynamicTourStore: StateCreator<DynamicTourStore> = (set, get) => ({
 
 const useDynamicTourStore = create<DynamicTourStore>()(
   persist(createDynamicTourStore, {
-    name: "dynamictour-board",
+    name: "dynamic-mapboard",
     storage: createJSONStorage(() => localStorage),
     version: 1,
     partialize: (state) => ({
-      orderList: state.pinboard_OrderList,
+      pOrderList: state.pinboard_OrderList,
       dynamicTours: state.dynamicTours,
       selectedTour: state.selectedTour,
     }),
