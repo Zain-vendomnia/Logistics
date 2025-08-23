@@ -18,6 +18,7 @@ router.use("/admin", adminRouter);
 router.use("/admin/drivers", driverRoutes);
 // router.use("/admin/", driverRoutes);
 router.use("/admin/warehouses", warehouseRoutes);
+router.use("/driver", driverRoutes);
 // router.use("/admin/", warehouseRoutes);
 
 // Standalone admin API endpoints

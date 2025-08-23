@@ -27,6 +27,7 @@ export function useAuth() {
   if (!context) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
+  // console.log("useAuth context:", context);
   return context;
 }
 
@@ -49,8 +50,8 @@ export function AuthProvider({ children }: Props) {
     console.log("userdetails: " + JSON.stringify(user));
 
     if (user) {
-      console.log("valid user");
-      console.log("===============================");
+      // console.log("valid user");
+      console.log("-------------------------------------------------------------------------");
       setCurrentUser(user);
       setShowDriverBoard(isDriver(user));
       setShowAdminBoard(isAdmin(user));
