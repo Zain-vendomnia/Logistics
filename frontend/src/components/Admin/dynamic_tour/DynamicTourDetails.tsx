@@ -89,6 +89,7 @@ const DynamicTourDetails = () => {
     updateDynamicTour,
   } = useDynamicTourService();
 
+  console.log("Warehouse Selected: ", warehouse);
   const [pendingRemove, setPendingRemove] = useState<{
     type: "torders" | "porders";
     order: Order;
@@ -141,7 +142,7 @@ const DynamicTourDetails = () => {
         >
           <Box width="100%">
             <Typography variant="h4" gutterBottom>
-              {warehouse?.warehouse_name}
+              {warehouse?.town}
             </Typography>
           </Box>
 
@@ -159,7 +160,7 @@ const DynamicTourDetails = () => {
               onChange={handleFormChange}
               size="small"
               fullWidth
-              //   required
+              required
               sx={{
                 "& .MuiInputBase-input": { fontSize: formStyle.fontSize }, // input text
                 flex: "1 1 45%",
@@ -199,14 +200,14 @@ const DynamicTourDetails = () => {
             <Box flex="1 1 45%">
               <Box display="flex" alignItems="center" gap={1} mb={1}>
                 <PaletteIcon fontSize="small" color="action" />
-                <Typography variant="body2">Route Color:</Typography>
+                <Typography variant="subtitle2">Route Color:</Typography>
               </Box>
               <Box display="flex" alignItems="center" gap={2}>
                 <Box
                   component="input"
                   type="color"
                   name="routeColor"
-                  value={formData.routeColor}
+                  value={warehouse?.colorCode || formData.routeColor}
                   onChange={handleFormChange}
                   sx={{
                     width: 30,
@@ -220,8 +221,11 @@ const DynamicTourDetails = () => {
                   label={formData.routeColor.toUpperCase()}
                   size="small"
                   sx={{
-                    backgroundColor: formData.routeColor,
-                    color: theme.palette.getContrastText(formData.routeColor),
+                    backgroundColor:
+                      warehouse?.colorCode || formData.routeColor,
+                    color: theme.palette.getContrastText(
+                      warehouse?.colorCode || formData.routeColor
+                    ),
                     minWidth: 80,
                   }}
                 />

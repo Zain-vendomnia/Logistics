@@ -1,13 +1,25 @@
-import React from "react";
-import { Box, lighten, Typography, useTheme } from "@mui/material";
+import {
+  Box,
+  lighten,
+  SxProps,
+  Theme,
+  Typography,
+  useTheme,
+} from "@mui/material";
 
 interface Props {
   label: string;
   color?: "primary" | "info" | "error" | "warning" | "success" | string;
   variant?: "contained" | "outlined";
+  sx?: SxProps<Theme>;
 }
 
-const XChip = ({ label, color = "primary", variant = "contained" }: Props) => {
+const XChip = ({
+  label,
+  color = "primary",
+  variant = "contained",
+  sx,
+}: Props) => {
   const theme = useTheme();
 
   const pickColor = (clr: string) => {
@@ -27,8 +39,10 @@ const XChip = ({ label, color = "primary", variant = "contained" }: Props) => {
     }
   };
 
+  const isContained = variant === "contained";
+
   const bColor = pickColor(color);
-  const bgColor = lighten(bColor, variant === "contained" ? 0.3 : 0.85);
+  const bgColor = lighten(bColor, isContained ? 0.1 : 0.85);
 
   return (
     <Box
@@ -39,14 +53,19 @@ const XChip = ({ label, color = "primary", variant = "contained" }: Props) => {
         px: 1,
         py: 0.5,
         borderRadius: "999px",
-        border: `1px solid ${bColor}`,
+        border: isContained ? 'none' : `1px solid ${bColor}`,
         bgcolor: bgColor,
-        color: variant === "contained" ? "#fff" : bColor,
+        color: isContained ? "#fff" : bColor,
         fontWeight: 400,
-        // height: 30,
+        whiteSpace: "nowrap",
+        flexShrink: 0,
+        ...sx,
       }}
     >
-      <Typography variant="subtitle2" sx={{ lineHeight: 1 }}>
+      <Typography
+        variant="subtitle2"
+        sx={{ lineHeight: 1, whiteSpace: "nowrap" }}
+      >
         {label}
       </Typography>
     </Box>

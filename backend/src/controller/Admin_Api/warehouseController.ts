@@ -12,9 +12,11 @@ export const getAllWarehouses = async (_req: Request, res: Response) => {
 
 export const getWarehouseById = async (req: Request, res: Response) => {
   try {
-    const warehouse = await warehouseService.getWarehouseById(
-      Number(req.params.id)
-    );
+    const warehouseId = Number(req.params.id);
+    if (!warehouseId)
+      return res.status(404).json({ message: "Invalid Warehouse" });
+
+    const warehouse = await warehouseService.getWarehouseById(warehouseId);
 
     if (!warehouse) {
       return res.status(400).json({ message: "Warehouse not found" });

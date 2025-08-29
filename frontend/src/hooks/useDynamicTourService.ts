@@ -7,7 +7,7 @@ import {
   UnassignedRes,
 } from "../types/tour.type";
 import adminApiService from "../services/adminApiService";
-import { Driver, Order, Warehouse } from "../types/dto.type";
+import { Driver, Order, WarehouseDetails } from "../types/dto.type";
 import { getAvailableDrivers } from "../services/driverService";
 import useDynamicTourStore from "../store/useDynamicTourStore";
 import {
@@ -39,7 +39,7 @@ export const useDynamicTourService = () => {
 
   const [loading, setLoading] = useState(false);
 
-  const [warehouse, setWarehouse] = useState<Warehouse | null>(null);
+  const [warehouse, setWarehouse] = useState<WarehouseDetails | null>(null);
   const [drivers, setDrivers] = useState<Driver[]>([]);
 
   const [tourOrders, setTourOrders] = useState<Order[]>([]);
@@ -59,7 +59,7 @@ export const useDynamicTourService = () => {
     driverId: "",
     tourDate: today,
     startTime: "07:30",
-    routeColor: theme.palette.primary.main,
+    routeColor: theme.palette.primary.light,
   };
   const [formData, setFormData] = useState(initialFormState);
 
@@ -118,9 +118,8 @@ export const useDynamicTourService = () => {
     // get warehouse details
     const fetchData = async () => {
       try {
-        const warehouseRes = await adminApiService.getWarehouse(
-          selectedTour.warehouse_id
-        );
+        const warehouseRes: WarehouseDetails =
+          await adminApiService.getWarehouse(selectedTour.warehouse_id);
         setWarehouse(warehouseRes);
 
         const orderIds = selectedTour.orderIds;

@@ -1,20 +1,36 @@
 import pool from "../database";
+import { WarehouseDetails } from "../types/dto.types";
 
 export const getAllWarehouses = async () => {
   const [rows] = await pool.query("SELECT * FROM warehouse_details");
   return rows;
 };
 
-export const getWarehouseById = async (id: number) => {
+export const getWarehouseById = async (
+  id: number
+): Promise<WarehouseDetails> => {
   const [rows]: any = await pool.query(
     `SELECT * FROM warehouse_details WHERE warehouse_id = ?`,
     [id]
   );
-  return rows[0];
+
+  const row = rows[0];
+  const warehouse: WarehouseDetails = {
+    id: row.warehouse_details,
+    name: row.warehouse_name,
+    town: row.town,
+    address: row.address,
+    zipcode: row.zip_code,
+    zip_codes_delivering: row.zip_codes_delivering,
+    colorCode: row.color_code,
+    email: row.email,
+    clerkName: row.clerk_name,
+    clerkMob: row.clerk_mob,
+  };
+  return warehouse;
 };
 
 export const getWarehouseWithVehiclesById = async (id: number) => {
-
   const [rows]: any = await pool.query(
     `SELECT
        wd.warehouse_id,
@@ -33,10 +49,10 @@ export const getWarehouseWithVehiclesById = async (id: number) => {
      LEFT JOIN vehicle_details vd
      ON wd.warehouse_id = vd.warehouse_id
      WHERE wd.warehouse_id = ?`,
-     [id]
-    );
-    
-    if (!rows.length) return null;
+    [id]
+  );
+
+  if (!rows.length) return null;
   return {
     warehouse_id: rows[0].warehouse_id,
     warehouse_name: rows[0].warehouse_name,
@@ -55,7 +71,6 @@ export const getWarehouseWithVehiclesById = async (id: number) => {
         driver_id: r.driver_id,
       })),
   };
-
 };
 
 export const createWarehouse = async (warehouse: {

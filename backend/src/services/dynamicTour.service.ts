@@ -180,7 +180,12 @@ const saveDynamicTour = async (payload: DynamicTourPayload) => {
 export async function getUnapprovedDynamicTours(): Promise<
   DynamicTourPayload[]
 > {
-  const query = "SELECT * FROM dynamic_tours WHERE approved_at IS NULL";
+  const query = `
+  SELECT dt.*, wh.warehouse_name, wh.color_code AS warehouse_colorCode
+  FROM dynamic_tours AS dt
+  JOIN warehouse_details AS wh 
+    ON dt.warehouse_id = wh.warehouse_id
+  WHERE approved_at IS NULL`;
   // "SELECT id, tour_number, tour_route, orderIds, warehouse_id FROM dynamic_tours WHERE approved_at IS NULL";
 
   try {
@@ -196,6 +201,8 @@ export async function getUnapprovedDynamicTours(): Promise<
       orderIds: row.orderIds,
       totalOrdersItemsQty: 0,
       warehouse_id: row.warehouse_id,
+      warehouse_name: row.warehouse_name,
+      warehouse_colorCode: row.warehouse_colorCode,
       created_at: row.created_at,
       updated_at: row.updated_at,
       updated_by: row.updated_by,

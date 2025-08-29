@@ -1,19 +1,24 @@
 import Box from "@mui/material/Box/Box";
 import {
   Chip,
+  FormControl,
   List,
   ListItem,
   ListItemButton,
   Stack,
+  TextField,
   Typography,
 } from "@mui/material";
 
 import { DynamicTourPayload } from "../../../types/tour.type";
 import useDynamicTourStore from "../../../store/useDynamicTourStore";
 import XChip from "../../base-ui/XChip";
+import { ChangeEvent, useState } from "react";
+import { Height } from "@mui/icons-material";
 
 const DynamicTourList = () => {
   const { dynamicTours, selectedTour, setSelectedTour } = useDynamicTourStore();
+  console.log("dynamicTours", dynamicTours);
 
   const handleTourSelect = (tour: DynamicTourPayload) => {
     if (tour.id === selectedTour?.id) {
@@ -28,16 +33,61 @@ const DynamicTourList = () => {
     return orderIds.split(",").length;
   };
 
-  console.log("dynamicTours", dynamicTours);
+  const [dynamicTourList, setDynamicTourList] = useState(dynamicTours);
+
+  const [searchItem, setSearchItem] = useState("");
+
+  const handleTourSearch = (e: ChangeEvent<HTMLInputElement>) => {
+    const searchString = e.target.value;
+    setSearchItem(searchString);
+
+    if (!searchString) {
+      setDynamicTourList(dynamicTours);
+      return;
+    }
+
+    let resultArray: DynamicTourPayload[] = dynamicTours.filter((t) =>
+      t.tour_number
+        ?.toString()
+        .toLocaleLowerCase()
+        .includes(searchString.toLocaleLowerCase())
+    );
+
+    // if (resultArray.length === 0 ){
+    // dynamicTours.filter(t => t.warehouse_name || t.locationName)
+    // }
+
+    if (resultArray.length > 0) setDynamicTourList(resultArray);
+  };
+
   return (
-    <Box width={"100%"} height="100%" overflow="auto">
-      <Box display={"flex"} justifyContent={"center"} p={1} mb={1}>
+    <Box
+      display={"flex"}
+      flexDirection={"column"}
+      gap={1}
+      width={"100%"}
+      height="100%"
+      overflow="auto"
+    >
+      <Box display={"flex"} justifyContent={"center"} mb={1}>
         <Typography variant="h5" fontWeight={"bold"} color="primary.dark">
           Dynamic Tours
         </Typography>
       </Box>
+
+      <FormControl>
+        <TextField
+          size="small"
+          placeholder="Search Tour"
+          value={searchItem}
+          // onFocus={() => setSearchItem("")}
+          onChange={handleTourSearch}
+          disabled={false}
+        />
+      </FormControl>
+
       <List disablePadding>
-        {dynamicTours.map((tour) => (
+        {dynamicTourList.map((tour) => (
           <ListItem disablePadding key={tour.tour_number}>
             <ListItemButton
               onClick={() => handleTourSelect(tour)}
@@ -53,14 +103,26 @@ const DynamicTourList = () => {
             >
               <Stack spacing={1}>
                 <Stack direction="row" spacing={1}>
-                  <Chip color="error" size="small" />
+                  <Chip
+                    sx={{
+                      height: 27,
+                      width: 15,
+                      bgcolor: (tour.warehouse_colorCode as any) || "error",
+                    }}
+                  />
+
                   <Typography sx={{ fontSize: "1.1rem" }}>
                     {tour.tour_number}
                   </Typography>
-
                   {/* <Badge color="secondary" badgeContent={80} /> */}
                 </Stack>
-                <Stack direction="row" spacing={1}>
+                <Stack
+                  direction="row"
+                  // spacing={1}
+                  flexWrap={"wrap"}
+                  gap={1}
+                  overflow={"hidden"}
+                >
                   <XChip
                     label={`Ziele ${getOrderCount(tour.orderIds)}`}
                     color="info"

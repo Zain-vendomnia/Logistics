@@ -160,11 +160,10 @@ const DymanicMapBoard = () => {
     const fetchTours = async () => {
       try {
         // const res = await adminApiService.plotheremap();
-        const res = await adminApiService.fetchDynamicTours();
-        const dynamic_tours = res.data || [];
+        const dynamic_tours = await adminApiService.fetchDynamicTours();
 
         const tours_route: Geometry[] = dynamic_tours.flatMap(
-          (tour: DynamicTourPayload) => tour.tour_route
+          (tour: DynamicTourPayload) => tour.tour_route || []
         );
         // const tours: VehicleTour[] = routes.map((vehicle: any) => ({
         //   vehicleId: vehicle.vehicleId,
@@ -281,7 +280,8 @@ const DymanicMapBoard = () => {
           sx={{
             display: "flex",
             flexDirection: "column",
-            maxWidth: 320,
+            maxWidth: 360,
+            // width: 320,
             height: "100%",
             overflow: "hidden",
             p: 1,

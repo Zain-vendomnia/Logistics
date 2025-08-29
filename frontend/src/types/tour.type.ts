@@ -123,6 +123,8 @@ export interface DynamicTourPayload {
   totalOrdersItemsQty: number;
 
   warehouse_id: number;
+  warehouse_name?: string;
+  warehouse_colorCode?: string;
 
   created_at?: string | null;
   updated_at?: string | null;

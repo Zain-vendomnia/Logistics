@@ -20,6 +20,8 @@ export interface DynamicTourPayload {
   totalOrdersItemsQty: number;
 
   warehouse_id: number;
+  warehouse_name?: string;
+  warehouse_colorCode?: string;
 
   created_at?: string | null;
   updated_at?: string | null;
@@ -45,10 +47,23 @@ export type DynamicTourRes = {
 
 export interface WarehouseDetails {
   id: number;
-  name: string;
-  address: string;
-  vehicleCount: number;
-  capacityPerVehicle: number;
+  name?: string;
+  town: string;
+  address?: string;
+  zipcode?: string;
+  zip_codes_delivering?: string;
+  colorCode?: string;
+
+  email?: string;
+  clerkName?: string;
+  clerkMob?: string;
+
+  created_at?: string;
+  updated_at?: string;
+  updated_by?: string;
+
+  vehicleCount?: number;
+  capacityPerVehicle?: number;
 }
 
 export type NotAssigned = {

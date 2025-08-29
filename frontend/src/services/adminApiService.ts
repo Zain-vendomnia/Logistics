@@ -7,6 +7,7 @@ import {
   DynamicTourRes,
 } from "../types/tour.type";
 import { Order, PinboardOrder } from "../types/order.type";
+import { WarehouseDetails } from "../types/dto.type";
 
 const API_BaseUrl = "http://localhost:8080/api/admin/routeoptimize/";
 const API_BaseUrl_Admin = "http://localhost:8080/api/admin/";
@@ -46,12 +47,12 @@ const getTour = (tourId: number) =>
     params: { tourId },
   });
 
-const getWarehouse = async (id: number) => {
+const getWarehouse = async (id: number): Promise<WarehouseDetails> => {
   const res = await axios.get(`${API_BaseUrl}getWarehouse/${id}`, {
     headers: authHeader(),
   });
 
-  return res.data;
+  return res.data as WarehouseDetails;
 };
 
 const createTour = (tourData: CreateTour_Req) =>
@@ -175,7 +176,7 @@ const plotheremap = () =>
 const fetchPinboardOrders = async (
   lastFetchedAt?: number | null
 ): Promise<PinboardOrder[]> => {
-  const headers: Record<string, string> = {...authHeader()};
+  const headers: Record<string, string> = { ...authHeader() };
   const res = await axios.get(`${API_BaseUrl_Admin}pinboardOrders`, {
     headers: { ...authHeader(), "last-fetched-at": `${lastFetchedAt}` },
   });
@@ -194,10 +195,13 @@ const newShopOrder = (id: number) =>
 //     params: { id },
 //   });
 
-const fetchDynamicTours = () =>
-  axios.get(`${API_BaseUrl_Admin}dynamicTours`, {
+const fetchDynamicTours = async (): Promise<DynamicTourPayload[]> => {
+  const res = await axios.get(`${API_BaseUrl_Admin}dynamicTours`, {
     headers: authHeader(),
   });
+
+  return (res.data as DynamicTourPayload[]) || [];
+};
 
 const requestDynamicTour = async (
   payload: DynamicTourPayload
