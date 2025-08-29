@@ -251,8 +251,16 @@ export const useDynamicTourService = () => {
       setSelectedTour(res.dynamicTour);
       // selectedTourOrders will be populated in UseEffect above
       setSelectedPinbOrders([]);
-    } catch (error) {
-      throw Error("Error while creaitn new tour route");
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Original error:", error);
+        throw new Error("Error while creating new tour route", {
+          cause: error,
+        });
+      } else {
+        console.error("Unknown error:", error);
+        throw new Error("Error while creating new tour route");
+      }
     } finally {
       setLoading(false);
     }

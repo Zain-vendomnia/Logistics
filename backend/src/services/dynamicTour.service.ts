@@ -14,10 +14,17 @@ import { logWithTime } from "../utils/logging";
 import hereMapService from "./hereMapService";
 import { getWarehouseWithVehiclesById } from "./warehouseService";
 
-function generateTourNumber(): string {
-  const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, ""); // YYYYMMDD
-  const randomPart = Math.floor(10000 + Math.random() * 90000); // 5-digit random number
-  return `TOUR-${datePart}-${randomPart}`;
+async function generateTourNumber(orderIds: number[]): Promise<string> {
+  const orders = (await get_LogisticsOrdersAddress(
+    orderIds
+  )) as LogisticOrder[];
+
+  const zipcodePrefixes = Array.from(
+    new Set(orders.map((o) => o.zipcode?.substring(0, 2) || "00"))
+  );
+
+  const zipcodeString = zipcodePrefixes.join("-");
+  return `PLZ-${zipcodeString}`;
 }
 
 export async function createDynamicTourAsync(
@@ -104,10 +111,10 @@ const saveDynamicTour = async (payload: DynamicTourPayload) => {
   } = payload;
 
   const isNew = !id && !tour_number;
-
   if (isNew) {
     // Create new
-    const new_tourNumber = generateTourNumber();
+    const order_ids = orderIds.split(",").map((o) => Number(o));
+    const new_tourNumber = await generateTourNumber(order_ids);
 
     const query = `
       INSERT INTO dynamic_tours (
@@ -136,18 +143,20 @@ const saveDynamicTour = async (payload: DynamicTourPayload) => {
   } else {
     // Update existing
     const query = `
-  UPDATE dynamic_tours
-  SET
-    tour_route = ?,
-    tour_data = ?,
-    orderIds = ?,
-    approved_by = ?,
-    approved_at = ?,
-    updated_by = ?
-  WHERE ${id ? "id = ?" : "tour_number = ?"}
-`;
+      UPDATE dynamic_tours
+      SET
+      tour_number = ?,
+        tour_route = ?,
+        tour_data = ?,
+        orderIds = ?,
+        approved_by = ?,
+        approved_at = ?,
+        updated_by = ?
+      WHERE ${id ? "id = ?" : "tour_number = ?"}
+    `;
 
     const values = [
+      tour_number,
       JSON.stringify(tour_route),
       JSON.stringify(tour_data ?? {}),
       orderIds,

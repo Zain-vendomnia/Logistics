@@ -277,14 +277,14 @@ const DymanicMapBoard = () => {
       <Box display="flex" height="100%" width="100%">
         {/* Left Panel */}
         <Paper
-          elevation={3}
+          elevation={2}
           sx={{
             display: "flex",
             flexDirection: "column",
             maxWidth: 320,
             height: "100%",
             overflow: "hidden",
-            p: 2,
+            p: 1,
           }}
         >
           <DynamicTourList />
