@@ -1,8 +1,8 @@
 // import pool from "../../database";
 import { Request, Response } from "express";
 import { emitNewOrder } from "../../socket";
-import { PinboardOrder } from "../../types/dto.types";
-import { LogisticOrder } from "../../model/LogisticOrders";
+import { LogisticOrder, OrderStatus } from "../../model/LogisticOrders";
+import { Order } from "../../types/order.types";
 
 // function randomOffset(maxOffset = 0.009) {
 //   return (Math.random() * 2 - 1) * maxOffset;
@@ -19,8 +19,7 @@ export async function newShopOrder(_req: Request, res: Response) {
     // const orderData: any =
     //   Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
 
-    const orders: PinboardOrder[] =
-      await LogisticOrder.getPinboardOrdersAsync();
+    const orders: Order[] = await LogisticOrder.getPinboardOrdersAsync();
     const orderData = orders[0];
     if (!orderData) {
       return res.status(404).json({ message: "Original order not found" });
@@ -32,20 +31,22 @@ export async function newShopOrder(_req: Request, res: Response) {
     // const newLat = parseFloat(orderData.lattitude) + randomOffset(0.002); // ~±200m
     // const newLng = parseFloat(orderData.longitude) + randomOffset(0.002);
 
-    const new_order: PinboardOrder = {
-      id: Number(id),
+    const new_order: Order = {
+      order_id: Number(id),
       order_number: String(newOrderNumber),
+      status: OrderStatus.initial,
 
       city: orderData.city,
       zipcode: orderData.zipcode,
       street: orderData.street,
 
       order_time: orderData.order_time,
-      delivery_time: orderData.delivery_time,
-      // location: { lat: newLat, lng: newLng },
+      expected_delivery_time: orderData.expected_delivery_time,
+
       location: orderData.location,
+
       warehouse_id: orderData.warehouse_id,
-      warehouse: orderData.warehouse,
+      warehouse_name: orderData.warehouse_name,
     };
 
     emitNewOrder(new_order);
@@ -53,7 +54,7 @@ export async function newShopOrder(_req: Request, res: Response) {
     return res.status(201).json({
       message: "Order cloned successfully",
       newOrderNumber,
-      location: orderData.location,
+      location: location,
       // location: { lat: newLat, lng: newLng },
     });
   } catch (error) {

@@ -7,7 +7,7 @@ import {
   UnassignedRes,
 } from "../types/tour.type";
 import adminApiService from "../services/adminApiService";
-import { Driver, Order, WarehouseDetails } from "../types/dto.type";
+import { Driver, WarehouseDetails } from "../types/dto.type";
 import { getAvailableDrivers } from "../services/driverService";
 import useDynamicTourStore from "../store/useDynamicTourStore";
 import {
@@ -15,6 +15,7 @@ import {
   useNotificationStore,
 } from "../store/useNotificationStore";
 import { getCurrentUser } from "../services/auth.service";
+import { Order } from "../types/order.type";
 
 const getOrders = () => [
   { id: 1, name: 213 },
@@ -280,7 +281,16 @@ export const useDynamicTourService = () => {
     });
   };
 
-  const pinboardOrderSearch = () => {};
+  const pinboardOrderSearch = async (search_order: any) => {
+    if (!search_order) return;
+
+    console.log("pinboardOrderSearch order: ", search_order);
+
+    const orders: Order[] = await adminApiService.fetchOrdersWithItems(
+      search_order.order_id.toString()
+    );
+    setSelectedPinbOrders(orders);
+  };
 
   const handleTourReject = () => {
     console.log("Tour Rejecteion Called");
@@ -290,13 +300,32 @@ export const useDynamicTourService = () => {
     }, 5000);
   };
 
-  const handleSelectPinbOrder = async (e: any) => {
-    console.log("Hit!!");
-    const value = e.target.value;
-    const orderIds = Array.isArray(value) ? value.join(",") : value;
+  // const handleSelectPinbOrder = async (e: any) => {
+  //   console.log("Hit!!");
+  //   const value = e.target.value;
+
+  //   console.log("handleSelectPinbOrder orders: ", value);
+
+  //   const orderIds = Array.isArray(value) ? value.join(",") : value;
+
+  //   const orders: Order[] =
+  //     await adminApiService.fetchOrdersWithItems(orderIds);
+  //   setSelectedPinbOrders(orders);
+  // };
+
+  const handleSelectPinbOrder = async (newValue: Order[]) => {
+    if (newValue.length === 0) {
+      setSelectedPinbOrders([]);
+      return;
+    }
+    console.log("PinB_Orders_Select Ids", newValue);
+    const orderIds = newValue.map((o) => o.order_id).join(",");
+
+    console.log("PinB_Orders_Select Ids", orderIds);
 
     const orders: Order[] =
       await adminApiService.fetchOrdersWithItems(orderIds);
+
     setSelectedPinbOrders(orders);
   };
 
@@ -327,7 +356,7 @@ export const useDynamicTourService = () => {
     handleTourReject,
     updateDynamicTour,
 
-    // pinboardOrderSearch,
+    pinboardOrderSearch,
 
     orderRef,
   };

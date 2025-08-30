@@ -18,11 +18,11 @@ import L from "leaflet";
 import PolylineDecoratorWrapper from "../PolylineDecoratorWrapper";
 import adminApiService from "../../../services/adminApiService";
 import { DynamicTourPayload, Geometry, Stop } from "../../../types/tour.type";
-import { PinboardOrder } from "../../../types/order.type";
 import useDynamicTourStore from "../../../store/useDynamicTourStore";
 import useLiveOrderUpdates from "../../../socket/useLiveOrderUpdates";
 import DynamicTourList from "./DynamicTourList";
 import DynamicTourDetails from "./DynamicTourDetails";
+import { Order } from "../../../types/order.type";
 
 // interface Stop {
 //   location: { lat: number; lng: number };
@@ -187,6 +187,7 @@ const DymanicMapBoard = () => {
     fetchTours();
   }, []);
 
+  // mapRef to all tours
   useEffect(() => {
     if (!mapRef.current) return;
 
@@ -198,6 +199,7 @@ const DymanicMapBoard = () => {
     }
   }, [isLoading, vehicleTours]);
 
+  // mapRef to selected tour
   useEffect(() => {
     if (!selectedTour || !selectedTour.tour_route || !mapRef.current) return;
 
@@ -207,7 +209,7 @@ const DymanicMapBoard = () => {
     mapRef.current.flyToBounds(bounds, flyToBoundsOptions as any);
   }, [selectedTour]);
 
-  // Fetch pinboard Orders
+  // Fetch pinboard orders
   useEffect(() => {
     const fetchOrders = async () => {
       try {
@@ -215,11 +217,15 @@ const DymanicMapBoard = () => {
         const staleAfter = 1000 * 60 * 30; // 30 minutes
         const isStale = !lastFetchedAt || now - lastFetchedAt > staleAfter;
         if (pinboard_OrderList.length === 0 || isStale) {
-          const orders: PinboardOrder[] =
+          const orders: Order[] =
             await adminApiService.fetchPinboardOrders(lastFetchedAt);
 
-          const existingIds = new Set(pinboard_OrderList.map((o) => o.id));
-          const newOrders = orders.filter((o) => !existingIds.has(o.id));
+          console.error("Pin-b Orders: ", orders);
+
+          const existingIds = new Set(
+            pinboard_OrderList.map((o) => o.order_id)
+          );
+          const newOrders = orders.filter((o) => !existingIds.has(o.order_id));
           pinboard_AddOrders(newOrders);
         }
       } catch (err) {
@@ -275,20 +281,7 @@ const DymanicMapBoard = () => {
 
       <Box display="flex" height="100%" width="100%">
         {/* Left Panel */}
-        <Paper
-          elevation={2}
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            maxWidth: 360,
-            // width: 320,
-            height: "100%",
-            overflow: "hidden",
-            p: 1,
-          }}
-        >
-          <DynamicTourList />
-        </Paper>
+        <DynamicTourList />
 
         {/* Right Map */}
         <Box flexGrow={1} position="relative">
@@ -323,24 +316,31 @@ const DymanicMapBoard = () => {
             />
 
             {pinboard_OrderList &&
-              pinboard_OrderList.map((order) => (
-                <Marker
-                  key={order.id}
-                  position={[order.location.lat, order.location.lng]}
-                  icon={defaultIcon}
-                >
-                  <Popup>
-                    {pinTitle(order.order_number)}
-                    <strong>Placed at:</strong> {order.order_time}
-                    <br />
-                    <strong>Deliver:</strong> {order.delivery_time}
-                    <br />
-                    <strong>City:</strong> {order.city}
-                    <br />
-                    <strong>Zipcode:</strong> {order.zipcode}
-                  </Popup>
-                </Marker>
-              ))}
+              pinboard_OrderList.map(
+                (order) =>
+                  order && (
+                    <Marker
+                      key={order.order_id}
+                      position={order.location}
+                      icon={defaultIcon}
+                    >
+                      <Popup>
+                        {pinTitle(order.order_number)}
+                        <strong>Placed at:</strong>{" "}
+                        {new Date(order.order_time).toLocaleDateString()}
+                        <br />
+                        <strong>Deliver:</strong>{" "}
+                        {new Date(
+                          order.expected_delivery_time
+                        ).toLocaleDateString()}
+                        <br />
+                        <strong>City:</strong> {order.city}
+                        <br />
+                        <strong>Zipcode:</strong> {order.zipcode}
+                      </Popup>
+                    </Marker>
+                  )
+              )}
 
             {vehicleTours.map((vehicle, idx) => {
               const pathColor = colors[idx % colors.length];

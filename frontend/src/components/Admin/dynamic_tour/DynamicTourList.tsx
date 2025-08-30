@@ -1,3 +1,4 @@
+import { ChangeEvent, useState } from "react";
 import Box from "@mui/material/Box/Box";
 import {
   Chip,
@@ -5,6 +6,7 @@ import {
   List,
   ListItem,
   ListItemButton,
+  Paper,
   Stack,
   TextField,
   Typography,
@@ -13,8 +15,6 @@ import {
 import { DynamicTourPayload } from "../../../types/tour.type";
 import useDynamicTourStore from "../../../store/useDynamicTourStore";
 import XChip from "../../base-ui/XChip";
-import { ChangeEvent, useState } from "react";
-import { Height } from "@mui/icons-material";
 
 const DynamicTourList = () => {
   const { dynamicTours, selectedTour, setSelectedTour } = useDynamicTourStore();
@@ -61,99 +61,113 @@ const DynamicTourList = () => {
   };
 
   return (
-    <Box
-      display={"flex"}
-      flexDirection={"column"}
-      gap={1}
-      width={"100%"}
-      height="100%"
-      overflow="auto"
-    >
-      <Box display={"flex"} justifyContent={"center"} mb={1}>
-        <Typography variant="h5" fontWeight={"bold"} color="primary.dark">
-          Dynamic Tours
-        </Typography>
-      </Box>
+    <>
+      <Paper
+        elevation={2}
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          maxWidth: 360,
+          height: "100%",
+          overflow: "hidden",
+          p: 1,
+        }}
+      >
+        <Box
+          display={"flex"}
+          flexDirection={"column"}
+          gap={1}
+          width="100%"
+          height="100%"
+          overflow="auto"
+        >
+          <Box display={"flex"} justifyContent={"center"} mb={1}>
+            <Typography variant="h5" fontWeight={"bold"} color="primary.dark">
+              Dynamic Tours
+            </Typography>
+          </Box>
 
-      <FormControl>
-        <TextField
-          size="small"
-          placeholder="Search Tour"
-          value={searchItem}
-          // onFocus={() => setSearchItem("")}
-          onChange={handleTourSearch}
-          disabled={false}
-        />
-      </FormControl>
+          <FormControl>
+            <TextField
+              size="small"
+              placeholder="Search Tour"
+              value={searchItem}
+              // onFocus={() => setSearchItem("")}
+              onChange={handleTourSearch}
+              disabled={false}
+            />
+          </FormControl>
 
-      <List disablePadding>
-        {dynamicTourList.map((tour) => (
-          <ListItem disablePadding key={tour.tour_number}>
-            <ListItemButton
-              onClick={() => handleTourSelect(tour)}
-              sx={{
-                padding: 1,
-                border: "1px solid #ccc",
-                borderRadius: 2,
-                marginBottom: 1,
-                backgroundColor:
-                  selectedTour?.id === tour.id ? "#f0f0f0" : "#fff",
-                cursor: "pointer",
-              }}
-            >
-              <Stack spacing={1}>
-                <Stack direction="row" spacing={1}>
-                  <Chip
-                    sx={{
-                      height: 27,
-                      width: 15,
-                      bgcolor: (tour.warehouse_colorCode as any) || "error",
-                    }}
-                  />
-
-                  <Typography sx={{ fontSize: "1.1rem" }}>
-                    {tour.tour_number}
-                  </Typography>
-                  {/* <Badge color="secondary" badgeContent={80} /> */}
-                </Stack>
-                <Stack
-                  direction="row"
-                  // spacing={1}
-                  flexWrap={"wrap"}
-                  gap={1}
-                  overflow={"hidden"}
+          <List disablePadding>
+            {dynamicTourList.map((tour) => (
+              <ListItem disablePadding key={tour.tour_number}>
+                <ListItemButton
+                  onClick={() => handleTourSelect(tour)}
+                  sx={{
+                    padding: 1,
+                    border: "1px solid #ccc",
+                    borderRadius: 2,
+                    marginBottom: 1,
+                    backgroundColor:
+                      selectedTour?.id === tour.id ? "#f0f0f0" : "#fff",
+                    cursor: "pointer",
+                  }}
                 >
-                  <XChip
-                    label={`Ziele ${getOrderCount(tour.orderIds)}`}
-                    color="info"
-                    variant="outlined"
-                  />
-                  <XChip
-                    label={`Menge ${tour.totalOrdersItemsQty}`}
-                    color="success"
-                    variant="outlined"
-                  />
-                  <XChip
-                    label={`C: ${new Date(tour.created_at!).toLocaleDateString()}`}
-                    color="#777"
-                    variant="outlined"
-                  />
-                </Stack>
-                {tour.updated_by && tour.updated_at && (
-                  <Stack direction="row" spacing={1}>
-                    <XChip
-                      label={`${tour.updated_by.split("@")[0]} - ${new Date(tour.updated_at).toLocaleDateString()}`}
-                      color="warning"
-                      variant="outlined"
-                    />
+                  <Stack spacing={1}>
+                    <Stack direction="row" spacing={1}>
+                      <Chip
+                        sx={{
+                          height: 27,
+                          width: 15,
+                          bgcolor: (tour.warehouse_colorCode as any) || "error",
+                        }}
+                      />
+
+                      <Typography sx={{ fontSize: "1.1rem" }}>
+                        {tour.tour_number}
+                      </Typography>
+                      {/* <Badge color="secondary" badgeContent={80} /> */}
+                    </Stack>
+                    <Stack
+                      direction="row"
+                      // spacing={1}
+                      flexWrap={"wrap"}
+                      gap={1}
+                      overflow={"hidden"}
+                    >
+                      <XChip
+                        label={`Ziele ${getOrderCount(tour.orderIds)}`}
+                        color="info"
+                        variant="outlined"
+                      />
+                      <XChip
+                        label={`Menge ${tour.totalOrdersItemsQty}`}
+                        color="success"
+                        variant="outlined"
+                      />
+                      <XChip
+                        label={`C: ${new Date(tour.created_at!).toLocaleDateString()}`}
+                        color="#777"
+                        variant="outlined"
+                      />
+                    </Stack>
+                    {tour.updated_by && tour.updated_at && (
+                      <Stack direction="row" spacing={1}>
+                        <XChip
+                          label={`M: ${tour.updated_by.split("@")[0]} - ${new Date(tour.updated_at).toLocaleDateString()}`}
+                          color="warning"
+                          variant="outlined"
+                        />
+                      </Stack>
+                    )}
                   </Stack>
-                )}
-              </Stack>
-            </ListItemButton>
-          </ListItem>
-        ))}
-      </List>
-    </Box>
+                </ListItemButton>
+              </ListItem>
+            ))}
+          </List>
+        </Box>
+      </Paper>
+    </>
   );
 };
 

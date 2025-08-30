@@ -1,12 +1,12 @@
 import { StateCreator, create } from "zustand";
 import { DynamicTourPayload } from "../types/tour.type";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { PinboardOrder } from "../types/order.type";
+import { Order } from "../types/order.type";
 
 type DynamicTourStore = {
-  pinboard_OrderList: PinboardOrder[]; // List of order IDs
+  pinboard_OrderList: Order[]; // List of order IDs
   lastFetchedAt: number | null;
-  pinboard_AddOrders: (orders: PinboardOrder[]) => void;
+  pinboard_AddOrders: (orders: Order[]) => void;
 
   // State for dynamic tours
   dynamicTours: DynamicTourPayload[];

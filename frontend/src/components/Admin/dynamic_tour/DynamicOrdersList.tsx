@@ -29,7 +29,7 @@ export const DynamicOrdersList = ({ items, handleDelete }: Props) => {
   };
 
   return (
-    <>
+    <Box width={"100%"}>
       {orderList.map((item, idx) => (
         <React.Fragment key={item.order_id}>
           <ListItem disablePadding>
@@ -54,6 +54,6 @@ export const DynamicOrdersList = ({ items, handleDelete }: Props) => {
           )}
         </React.Fragment>
       ))}
-    </>
+    </Box>
   );
 };

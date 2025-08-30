@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
 import { LogisticOrder } from "../../model/LogisticOrders";
-import { CheckOrderCount, PinboardOrder } from "../../types/dto.types";
+import { CheckOrderCount } from "../../types/dto.types";
 import { logWithTime } from "../../utils/logging";
+import { Order } from "../../types/order.types";
 
 export const getAllLogisticOrders = async (_req: Request, res: Response) => {
   try {
@@ -98,10 +99,9 @@ export const getPinboardOrders = async (_req: Request, res: Response) => {
     const sinceHeader = _req.headers["last-fetched-at"] as string | undefined;
     const since = sinceHeader;
 
-    const orders: PinboardOrder[] = await LogisticOrder.getPinboardOrdersAsync(
-      since
-    ); // Shopware orders
+    const orders: Order[] = await LogisticOrder.getPinboardOrdersAsync(since); // Shopware orders
 
+    // console.log("pin-b orders: ", orders);
     res.status(200).json(orders);
   } catch (error) {
     console.error("Error fetching orders:", error);

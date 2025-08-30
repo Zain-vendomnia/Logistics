@@ -6,7 +6,7 @@ import {
   DynamicTourPayload,
   DynamicTourRes,
 } from "../types/tour.type";
-import { Order, PinboardOrder } from "../types/order.type";
+import { Order } from "../types/order.type";
 import { WarehouseDetails } from "../types/dto.type";
 
 const API_BaseUrl = "http://localhost:8080/api/admin/routeoptimize/";
@@ -175,7 +175,7 @@ const plotheremap = () =>
 
 const fetchPinboardOrders = async (
   lastFetchedAt?: number | null
-): Promise<PinboardOrder[]> => {
+): Promise<Order[]> => {
   const headers: Record<string, string> = { ...authHeader() };
   const res = await axios.get(`${API_BaseUrl_Admin}pinboardOrders`, {
     headers: { ...authHeader(), "last-fetched-at": `${lastFetchedAt}` },

@@ -80,18 +80,18 @@ export type CheckOrderCount = {
   lastUpdated?: string; // optional if not available
 };
 
-export type PinboardOrder = {
-  id: number;
-  order_number: string;
+// export type PinboardOrder = {
+//   id: number;
+//   order_number: string;
 
-  order_time: string;
-  delivery_time: string;
+//   order_time: string;
+//   delivery_time: string;
 
-  city: string;
-  zipcode: string;
-  street: string;
+//   city: string;
+//   zipcode: string;
+//   street: string;
 
-  location: { lat: number; lng: number };
-  warehouse_id: number;
-  warehouse: string;
-};
+//   location: { lat: number; lng: number };
+//   warehouse_id: number;
+//   warehouse: string;
+// };

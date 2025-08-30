@@ -1,6 +1,7 @@
 import { ResultSetHeader, RowDataPacket } from "mysql2";
 import pool from "../database";
-import { CheckOrderCount, PinboardOrder } from "../types/dto.types";
+import { CheckOrderCount } from "../types/dto.types";
+import { Order } from "../types/order.types";
 
 export enum OrderStatus {
   initial = "initial",
@@ -252,24 +253,11 @@ export class LogisticOrder {
     return (result as ResultSetHeader).affectedRows > 0;
   }
 
-  static async getPinboardOrdersAsync(
-    since?: string
-  ): Promise<PinboardOrder[]> {
+  static async getPinboardOrdersAsync(since?: string): Promise<Order[]> {
     let query = `
       SELECT 
-          o.order_id,
-          o.order_number,
-          o.order_time,
-          o.expected_delivery_time,
-          o.city,
-          o.zipcode,
-          o.street,
-          o.lattitude,
-          o.longitude,
-          o.warehouse_id,
-          wh.warehouse_name,
-          o.updated_at,
-          o.created_at
+          o.*,
+          wh.warehouse_name, wh.town
       FROM logistic_order o
       JOIN warehouse_details wh
         ON o.warehouse_id = wh.warehouse_id
@@ -286,25 +274,38 @@ export class LogisticOrder {
 
     query += ` ORDER BY o.updated_at DESC, o.created_at DESC`;
 
-    const [rows] = await pool.execute(query, params);
+    try {
+      const [rows] = await pool.execute(query, params);
 
-    const orders = (rows as any[]).map((raw: any) => ({
-      id: raw.order_id,
-      order_number: raw.order_number,
-      order_time: raw.order_time,
-      delivery_time: raw.expected_delivery_time,
-      city: raw.city,
-      zipcode: raw.zipcode,
-      street: raw.street,
-      location: {
-        lat: raw.lattitude || null,
-        lng: raw.longitude || null,
-      },
-      warehouse_id: raw.warehouse_id,
-      warehouse: raw.warehouse_name,
-    })) as PinboardOrder[];
+      const orders: Order[] = (rows as any[]).map((raw: any) => ({
+        order_id: raw.order_id,
+        order_number: raw.order_number,
+        status: raw.status,
 
-    return orders;
+        payment_id: raw.payment_id,
+
+        order_time: raw.order_time,
+        expected_delivery_time: raw.expected_delivery_time,
+
+        warehouse_id: raw.warehouse_id,
+        warehouse_name: raw.warehouse_name,
+        warehouse_town: raw.town,
+
+        phone: raw.phone,
+        street: raw.street,
+        city: raw.city,
+        zipcode: raw.zipcode,
+
+        location: { lat: raw.lattitude, lng: raw.longitude },
+
+        items: [],
+      }));
+
+      return orders;
+    } catch (error) {
+      console.error("Error fetching pin-b orders:", error);
+      throw error;
+    }
   }
 
   static async getOrderItemsCount(orderIds: string[]): Promise<number> {

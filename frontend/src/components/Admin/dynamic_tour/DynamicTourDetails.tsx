@@ -1,11 +1,14 @@
 import { useState } from "react";
 import {
+  Autocomplete,
   Backdrop,
+  Badge,
   Box,
   Button,
   Chip,
   CircularProgress,
   Divider,
+  FilledInput,
   FormControl,
   IconButton,
   InputLabel,
@@ -28,7 +31,7 @@ import { useDynamicTourService } from "../../../hooks/useDynamicTourService";
 import { scrollStyles } from "../../../theme";
 import useDynamicTourStore from "../../../store/useDynamicTourStore";
 import { DynamicOrdersList } from "./DynamicOrdersList";
-import { Order, PinboardOrder } from "../../../types/order.type";
+import { Order } from "../../../types/order.type";
 
 const modalStyle = {
   position: "absolute",
@@ -58,11 +61,13 @@ const DynamicTourDetails = () => {
       acc[order.warehouse_id].push(order);
       return acc;
     },
-    {} as Record<number, PinboardOrder[]>
+    {} as Record<number, Order[]>
   );
+
   const warehouseMap = Object.fromEntries(
-    pinboard_OrderList.map((o) => [o.warehouse_id, o.warehouse])
+    pinboard_OrderList.map((o) => [o.warehouse_id, o.warehouse_name!])
   );
+
   const [expanded, setExpanded] = useState(false);
 
   const {
@@ -74,6 +79,7 @@ const DynamicTourDetails = () => {
 
     selectedPinbOrders,
     handleSelectPinbOrder,
+    pinboardOrderSearch,
 
     handleOrderRemove,
 
@@ -89,7 +95,7 @@ const DynamicTourDetails = () => {
     updateDynamicTour,
   } = useDynamicTourService();
 
-  console.log("Warehouse Selected: ", warehouse);
+  // console.log("Warehouse Selected: ", warehouse);
   const [pendingRemove, setPendingRemove] = useState<{
     type: "torders" | "porders";
     order: Order;
@@ -140,10 +146,26 @@ const DynamicTourDetails = () => {
             gap: 2,
           }}
         >
-          <Box width="100%">
-            <Typography variant="h4" gutterBottom>
-              {warehouse?.town}
-            </Typography>
+          <Box display={"flex"} justifyContent={"space-between"} width="100%">
+            <Stack spacing={-0.5}>
+              <Badge
+                badgeContent={`zip:${warehouse?.zipcode}`}
+                color="primary"
+              />
+              <Typography variant="h4">{warehouse?.town}</Typography>
+
+              <Typography variant="subtitle2">
+                [{warehouse?.zip_codes_delivering}]
+              </Typography>
+            </Stack>
+            <Stack spacing={-0.5}>
+              <Typography variant="subtitle2">
+                Name: {warehouse?.name}
+              </Typography>
+              <Typography variant="subtitle2">
+                Add: {warehouse?.address}
+              </Typography>
+            </Stack>
           </Box>
 
           <Box
@@ -354,51 +376,66 @@ const DynamicTourDetails = () => {
                   <motion.div
                     key="select"
                     initial={{ width: 0, opacity: 0 }}
-                    animate={{ width: "160px", opacity: 1 }}
+                    animate={{ width: "170px", opacity: 1 }}
                     exit={{ width: 0, opacity: 0 }}
                     transition={{ duraion: 0.3 }}
                     style={{ overflow: "hidden", maxWidth: "180px" }}
                   >
-                    <FormControl sx={{ width: "160px" }} size="small">
-                      <InputLabel
-                        htmlFor="porders-select"
-                        sx={{ fontSize: formStyle.fontSize, top: -5 }}
-                      >
-                        {selectedPinbOrders.length > 0
-                          ? "Selected Orders"
-                          : "Select Orders"}
-                      </InputLabel>
-                      <Select
-                        id="porders-select"
-                        label="Select orders"
-                        multiple
-                        value={selectedPinbOrders.map((o) =>
-                          o.order_id.toString()
-                        )}
-                        onChange={handleSelectPinbOrder}
-                        onClose={() => setExpanded(false)} // Collapse
-                      >
-                        {Object.entries(groupedPinbOrders).map(
-                          ([warehouseId, pOrders]) => [
-                            <ListSubheader
-                              key={`header-${warehouseId}`}
-                              sx={{
-                                fontSize: "1.1rem",
-                                color: "primary.main",
-                                fontWeight: "bold",
-                              }}
-                            >
-                              {warehouseMap[Number(warehouseId)]}
-                            </ListSubheader>,
-                            pOrders.map((po) => (
-                              <MenuItem key={po.id} value={po.id}>
-                                {po.order_number}
-                              </MenuItem>
-                            )),
-                          ]
-                        )}
-                      </Select>
-                    </FormControl>
+                    <Autocomplete
+                      multiple
+                      disableCloseOnSelect
+                      options={pinboard_OrderList}
+                      getOptionLabel={(option) => option.order_number}
+                      groupBy={(option) => option.warehouse_town!}
+                      value={selectedPinbOrders}
+                      onChange={(_, newValue) =>
+                        handleSelectPinbOrder(newValue)
+                      }
+                      isOptionEqualToValue={(option, value) =>
+                        option.order_id === value.order_id
+                      }
+                      renderTags={() => null} // hides chips
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          variant="standard"
+                          placeholder={
+                            selectedPinbOrders.length > 0
+                              ? "Selected Orders"
+                              : "Select Orders"
+                          }
+                          size="small"
+                          sx={{
+                            mt: 0,
+                            top: 0,
+                            pt: 0,
+                            width: "160px",
+                            "& .MuiInputBase-input": {
+                              fontSize: "1.1rem",
+                              // padding: "4px 6px",
+                            },
+                          }}
+                        />
+                      )}
+                      slotProps={{
+                        listbox: {
+                          sx: {
+                            "& .MuiAutocomplete-groupLabel": {
+                              fontWeight: "bold",
+                              fontSize: "1.07rem",
+                              color: "primary.main",
+                              backgroundColor: "rgba(0,0,0,0.04)", // subtle bg highlight
+                              px: 1,
+                              // py: 0.2,
+                            },
+                            "& .MuiAutocomplete-option": {
+                              fontSize: "1rem",
+                              padding: "4px 16px",
+                            },
+                          },
+                        },
+                      }}
+                    />
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -410,6 +447,7 @@ const DynamicTourDetails = () => {
               flex: 1,
               pr: 1,
               mt: 1,
+              width:'100%',
               //   maxHeight: 600,
               ...scrollStyles(theme),
             }}

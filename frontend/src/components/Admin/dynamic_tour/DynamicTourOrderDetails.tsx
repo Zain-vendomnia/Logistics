@@ -9,7 +9,7 @@ import {
   Typography,
 } from "@mui/material";
 
-import { Order } from "../../../types/dto.type";
+import { Order } from "../../../types/order.type";
 import { getDaysLeft } from "../../../utils/formatConverter";
 
 interface Props {
@@ -51,7 +51,7 @@ const DynamicTourOrderDetails = ({ order }: Props) => {
       mb={2}
       p={1}
     >
-      <Stack spacing={1}>
+      <Stack spacing={1} width={'100%'}>
         <Box>
           <Typography variant="body2" fontSize={fontsize}>
             Placed: {placedAt}
@@ -88,7 +88,7 @@ const DynamicTourOrderDetails = ({ order }: Props) => {
             Items
           </Typography>
           <Table
-            sx={{ minWidth: "40%" }}
+            sx={{ minWidth: "40%"}}
             size="small"
             aria-label="a dense table"
           >
