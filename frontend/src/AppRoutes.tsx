@@ -12,7 +12,6 @@ import BoardDriver from "./components/driver/BoardDriver";
 import SuperAdmin from "./components/SuperAdmin";
 import AdminDashboard from "./components/Admin/Admin_dashboard";
 import ManageDrivers from "./components/Admin/ManageDrivers";
-import ManageVehicles from "./components/Admin/ManageVehicles";
 import ManageWarehouse from "./components/Admin/ManageWarehouse";
 import Admin_TourTemplates from "./components/Admin/Admin_TourTemplates";
 import Admin_MapComponent from "./components/Admin/Admin_MapComponent";
@@ -29,8 +28,6 @@ import TestUnhandledPromise from "./components/pages/TestUnhandledPromise";
 import TestRuntimeError from "./components/pages/TestRuntimeError";
 import Admin_dynamicHereMap from "./components/Admin/Admin_dynamicHereMap";
 import AdminHereMap from "./components/Admin/MapRoutesViewer";
-import MultiUserChat from './components/notification/MultiUserChat';
-
 // Role-based route guard
 const ProtectedRoute = ({
   element,
@@ -40,7 +37,6 @@ const ProtectedRoute = ({
   allowedRoles?: ("admin" | "superadmin" | "driver")[];
 }) => {
   const { user } = useAuth();
-  console.log("ProtectedRoute user:", user);
   if (!user) return <Navigate to="/login" replace />;
   // Role checks
   const userRole = isSuperAdmin(user)
@@ -73,8 +69,10 @@ const AppRoutes = () => {
 
   return (
     <Routes>
-      <Route path="/" element={getUserBoard()} />
-
+      <Route
+        path="/"
+        element={user ? getUserBoard() : <Navigate to="/login" replace />}
+      />
       <Route
         path="/login"
         element={!user ? <Login /> : <Navigate to="/" replace />}
@@ -146,22 +144,6 @@ const AppRoutes = () => {
         }
       />
       <Route
-
-        path="/manage_vehicles"
-        element={
-          <ProtectedRoute
-            element={<ManageVehicles />}
-
-        path="/chat"
-        element={
-          <ProtectedRoute
-            element={<MultiUserChat />}
-
-            allowedRoles={["admin"]}
-          />
-        }
-      />
-      <Route
         path="/manage_warehouse"
         element={
           <ProtectedRoute
@@ -205,7 +187,6 @@ const AppRoutes = () => {
       <Route path="/admin_dashboard" element={<AdminDashboard />} />
       <Route path="/admin_addtour" element={<AdminAddTour />} />
       <Route path="/manage_drivers" element={<ManageDrivers />} />
-      <Route path="/chat" element={<MultiUserChat />} />
       <Route path="/manage_warehouse" element={<ManageWarehouse />} />
       <Route path="/admin_tourtemplates" element={<Admin_TourTemplates />} />
       <Route path="/admin_mapComponent/:id" element={<Admin_MapComponent />} />
