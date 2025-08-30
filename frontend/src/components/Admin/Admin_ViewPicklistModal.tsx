@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Box, Typography, Grid, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Checkbox, Button, CircularProgress } from '@mui/material';
 import adminApiService from '../../services/adminApiService';
+import { Tabs, Tab } from '@mui/material';
+
 
 import { generatePicklistEmailHtml} from '../../assets/templates/generatePicklistEmailHtml'; // Default Import
+import { generateOrderDetailsEmailHtml} from '../../assets/templates/generateOrderDetailsEmailHtml'; // Default Import
 import { renderToStaticMarkup } from 'react-dom/server';
 import latestOrderServices from './AdminServices/latestOrderServices';
 
@@ -147,53 +150,58 @@ const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({ open, handleClose
   const [loading, setLoading] = useState(false);
   const [Btnloading, setBtnloading] = useState(false);
   const [selectedTour, setSelectedTour] = useState<any | null>(null);
+
+
+const [activeTab, setActiveTab] = useState(0);
+
+const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  setActiveTab(newValue);
+};
+
+
   useEffect(() => {
-    if (!open || !tourData?.id) return;
-
-    const fetchPicklistData = async (tourId: string) => {
-      setLoading(true);
-      try {
-        const instance = latestOrderServices.getInstance();
-        const toursdata = await instance.getTours();
-        const matchedTour = toursdata.find((tour: any) => tour.id === Number(tourId));
-        if (matchedTour) {
-          setPicklistData(matchedTour);
-        } else {
-          console.error('Tour not found');
-        }
-      } catch (error) {
-        console.error('Error fetching picklist data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    // Initial fetch immediately
-    fetchPicklistData(tourData.id);
-
-    // Setup interval for polling every 3 seconds
-    //const intervalId = setInterval(() => {
-     // fetchPicklistData(tourData.id);
-   // }, 3000);
-
-    // Cleanup on unmount or when open/tourData changes
-   // return () => clearInterval(intervalId);
-
+    if (open && tourData?.id) {
+      fetchPicklistData(tourData.id);
+    }
   }, [open, tourData]);
 
+  const fetchPicklistData = async (tourId: string) => {
+    setLoading(true);
+
+    try {
+      const instance = latestOrderServices.getInstance();
+      const toursdata = await instance.getTours();
+      const matchedTour = toursdata.find((tour: any) => tour.id === Number(tourId));
+      if (matchedTour) {
+        setPicklistData(matchedTour);
+      } else {
+        console.error('Tour not found');
+      }
+    } catch (error) {
+      console.error('Error fetching picklist data:', error);
+    } finally {
+      setLoading(false);
+    }
+
+  };
 
   const handleSendEmail = async () => {
     if (!picklistData) return;
 
     const emailHtml = generatePicklistEmailHtml(picklistData, aggregatedItems, totalQuantity);
-    const fullEmailHtml = 'Dear,<br><br> Please find attached Picklist for your reference.' + emailSignatureHtml;
+
+    const orderDetailsHtml = generateOrderDetailsEmailHtml(picklistData);
+
+    let fullEmailHtml = 'Dear,<br><br> Please find attached Picklist for your reference.' + emailSignatureHtml;
+    fullEmailHtml = orderDetailsHtml + emailSignatureHtml;
+
     setBtnloading(true);
     
 
     try {
 
       // 🔁 1. Create a hidden container
-      const element = document.createElement('div');
+      let element = document.createElement('div');
       element.innerHTML = emailHtml;
       element.style.position = 'absolute';
       element.style.left = '-9999px';
@@ -202,19 +210,50 @@ const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({ open, handleClose
       element.style.backgroundColor = 'white'; // avoid transparency issues
       document.body.appendChild(element);
 
-       const pdfBlob = await generatePdfFromElement(element);
 
-       const attachment = await blobToBase64(pdfBlob); // use FileReaderAdd commentMore actions
-       const attachment_name = 'picklist.pdf'; // use FileReader
+      let config ={
+        orientation: 'p',  // Potrait orientation
+        unit: 'mm',                 // Points as the unit
+        format: 'a4',               // A4 size format
+      };
+
+       let pdfBlob = await generatePdfFromElement(element,config);
+
+       let attachment = await blobToBase64(pdfBlob); // use FileReader
+       let attachment_name = 'picklist.pdf'; // use FileReader
        // Wait a bit in case it's just rendered
-      
+
+      // 🔁 1. Create a hidden container
+      element = document.createElement('div');
+      element.innerHTML = orderDetailsHtml;
+      element.style.position = 'absolute';
+      element.style.left = '-9999px';
+      element.style.top = '0';
+      element.style.width = '60%'; // match your content width
+      element.style.backgroundColor = 'white'; // avoid transparency issues
+      document.body.appendChild(element);
+
+      config = {
+        orientation: 'landscape',  // Landscape orientation
+        unit: 'pt',                 // Points as the unit
+        format: 'a4',               // A4 size format
+      };
+
+       pdfBlob = await generatePdfFromElement(element,config);
+
+       let second_attachment = await blobToBase64(pdfBlob); // use FileReader
+       let second_attachment_name = 'order-details.pdf'; // use FileReader
+       // Wait a bit in case it's just rendered
+
 
       await adminApiService.picklistEmail({
-        to: 'jishi.puthanpurayil@vendomnia.com', // Update with actual email
+        to: 'muhammad.jahanzaibbaloch@vendomnia.com', // Update with actual email
         subject: 'Picklist',
         html: fullEmailHtml,
-        attachment,        
-        attachment_name
+        attachment,
+        attachment_name,
+        second_attachment,
+        second_attachment_name
       });
 
       // On success
@@ -240,7 +279,7 @@ const blobToBase64 = (blob: Blob): Promise<string> => {
   });
 };
 
-const generatePdfFromElement = async (element: HTMLElement): Promise<Blob> => {
+const generatePdfFromElement = async (element: HTMLElement,config: any): Promise<Blob> => {
   return new Promise(async (resolve, reject) => {
     try {
       const canvas = await html2canvas(element, {
@@ -250,7 +289,7 @@ const generatePdfFromElement = async (element: HTMLElement): Promise<Blob> => {
       });
 
       const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdf = new jsPDF(config);
 
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
@@ -308,6 +347,18 @@ const generatePdfFromElement = async (element: HTMLElement): Promise<Blob> => {
   const aggregatedItems: { [key: string]: number } = {};
   let totalQuantity = 0;
 
+  let zips = (() => {
+    const uniqueZips = picklistData?.orders
+      ?.map((order: { zipcode: string }) => order.zipcode)
+      .filter((zip: string, index: number, self: string[]) => zip && self.indexOf(zip) === index);
+
+    if (!uniqueZips || uniqueZips.length === 0) return ' N/A';
+
+    return uniqueZips.length === 1
+      ? ` ${uniqueZips[0]}`
+      : ` ${uniqueZips.map((zip: string) => zip.slice(-2)).join(', ')}`;
+  })();
+
   if (picklistData) {
     picklistData.orders.forEach((order: { items: any[]; }) => {
       order.items.forEach(item => {
@@ -316,6 +367,8 @@ const generatePdfFromElement = async (element: HTMLElement): Promise<Blob> => {
         totalQuantity += item.quantity;
       });
     });
+
+
   }
 
   if (loading) {
@@ -342,209 +395,278 @@ const generatePdfFromElement = async (element: HTMLElement): Promise<Blob> => {
     <Modal open={open} onClose={handleClose}>
       <Box>
         <Grid container spacing={2}>
-          <Box sx={modalStyle} id="pdf-content">
-            <Box sx={{ textAlign: 'center', mb: '25px' }}>
-              <img
-                src={`https://sunniva-solar.de/wp-content/uploads/2025/01/Sunniva_1600x500_transparent-min.png`}
-                alt="Sunniva Logo"
-                style={{ height: '52px' }}
-              />
-            </Box>
+        <Box sx={modalStyle}>
+          <Tabs value={activeTab} onChange={handleTabChange} centered sx={{ mb: 3 }}>
+            <Tab label="Picklist" />
+            <Tab label="Order Details" />
+          </Tabs>
 
-            <Paper sx={{ p: 1, boxShadow: 'none' }}>
-              {/* Title */}
-              <Typography
-                variant="h6"
-                sx={{
-                  textAlign: 'center',
-                  color: '#000',
-                  fontSize: '14px',
-                  textDecoration: 'underline',
-                  fontWeight: 'bold',
-                  mb: 2,
-                  fontFamily: 'Raleway',
-                }}
-              >
-                PICK LIST
-              </Typography>
-
-              {/* Warehouse & Driver Details */}
-              <Box
-                sx={{
-                  fontFamily: 'Raleway',
-                  color: '#000',
-                  fontSize: '13px',
-                  width: '430px',
-                  lineHeight: 1.1,
-                }}
-              >
-                <p>
-                  <strong>Location&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> {picklistData?.warehouseName ?? 'N/A'} <br />
-                  <strong>Driver&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> {picklistData?.driver?.driver_name ?? 'N/A'} <br />
-                  <strong>Licence plate&nbsp;&nbsp;&nbsp;:</strong> {picklistData?.driver?.licenceplate ?? 'N/A'} <br />
-                  <strong>Email&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> {picklistData?.driver?.email ?? 'N/A'} <br />
-                  <strong>Phone&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> {picklistData?.driver?.mobile ?? 'N/A'} <br />
-                  <strong>ZIP Code&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> 
-                  {(() => {
-                    const uniqueZips = picklistData?.orders
-                      ?.map((order: { zipcode: string }) => order.zipcode)
-                      .filter((zip: string, index: number, self: string[]) => zip && self.indexOf(zip) === index);
-
-                    if (!uniqueZips || uniqueZips.length === 0) return ' N/A';
-
-                    return uniqueZips.length === 1
-                      ? ` ${uniqueZips[0]}`
-                      : ` ${uniqueZips.map((zip: string) => zip.slice(-2)).join(', ')}`;
-                  })()} <br />
-                  <strong>Date&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong>
-                  {picklistData?.tour_date
-                    ? (() => {
-                        const dates = picklistData.tour_date.split(',');
-                        return dates
-                          .map((day: string, index: number) =>
-                            index === 0
-                              ? ` ${new Date(day).toLocaleDateString('en-GB')}`
-                              : `\n                     ${new Date(day).toLocaleDateString('en-GB')}`
-                          )
-                          .join('\n');
-                      })()
-                    : ' N/A'}
-                </p>
+          {/* PICKLIST TAB */}
+          {activeTab === 0 && (
+            <Box id="pdf-content">
+              <Box sx={{ textAlign: 'center', mb: '25px' }}>
+                <img
+                  src={`https://sunniva-solar.de/wp-content/uploads/2025/01/Sunniva_1600x500_transparent-min.png`}
+                  alt="Sunniva Logo"
+                  style={{ height: '52px' }}
+                />
               </Box>
-            </Paper>
+
+              <Paper sx={{ p: 1, boxShadow: 'none' }}>
+                {/* Title */}
+                <Typography
+                  variant="h6"
+                  sx={{
+                    textAlign: 'center',
+                    color: '#000',
+                    fontSize: '14px',
+                    textDecoration: 'underline',
+                    fontWeight: 'bold',
+                    mb: 2,
+                    fontFamily: 'Raleway',
+                  }}
+                >
+                  PICK LIST
+                </Typography>
+
+                {/* Warehouse & Driver Details */}
+                <Box
+                  sx={{
+                    fontFamily: 'Raleway',
+                    color: '#000',
+                    fontSize: '13px',
+                    width: '430px',
+                    lineHeight: 1.1,
+                  }}
+                >
+                  <p>
+                    <strong>Location&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> {picklistData?.warehouseName ?? 'N/A'} <br />
+                    <strong>Driver&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> {picklistData?.driver?.driver_name ?? 'N/A'} <br />
+                    <strong>Licence plate&nbsp;&nbsp;&nbsp;:</strong> {picklistData?.driver?.licenceplate ?? 'N/A'} <br />
+                    <strong>Email&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> {picklistData?.driver?.email ?? 'N/A'} <br />
+                    <strong>Phone&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> {picklistData?.driver?.mobile ?? 'N/A'} <br />
+                    <strong>ZIP Code&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> 
+                    {zips} <br />
+                    <strong>Date&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong>
+                    {picklistData?.tour_date
+                      ? (() => {
+                          const dates = picklistData.tour_date.split(',');
+                          return dates
+                            .map((day: string, index: number) =>
+                              index === 0
+                                ? ` ${new Date(day).toLocaleDateString('en-GB')}`
+                                : `\n                     ${new Date(day).toLocaleDateString('en-GB')}`
+                            )
+                            .join('\n');
+                        })()
+                      : ' N/A'}
+                  </p>
+                </Box>
+              </Paper>
 
 
-            {/*<Typography variant="h6" mb={2} sx={{ color: '#ef972e' }}>Order item details</Typography>*/}
+              {/*<Typography variant="h6" mb={2} sx={{ color: '#ef972e' }}>Order item details</Typography>*/}
 
-            {/* Orders Table */}
-      {/*      <TableContainer component={Paper}>
-              <Table>
-                <TableHead  sx={{ background: 'linear-gradient(45deg, #f7941d 30%, #f37021 90%)'}}>
-                  <TableRow>
-                    <TableCell align="center" sx={{ color: 'white' }}><strong>ITEM</strong></TableCell>
-                    <TableCell align="center" sx={{ color: 'white' }}><strong>QUANTITY</strong></TableCell>
-                    <TableCell align="center" sx={{ color: 'white' }}><strong>ORDER NO</strong></TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {getMergedOrderItems(picklistData.orders).map((item, index) => (
-                    <TableRow key={index}>
-                      <TableCell align="center">{item.slmdl_articleordernumber}</TableCell>
-                      <TableCell align="center">{item.quantity}</TableCell>
-                      <TableCell align="center">{item.order_number}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>*/}
+              {/* Orders Table */}
 
-            {/* Aggregated Table */}
-            {/*<Typography variant="h6" mb={2} mt={3} sx={{ color: '#ef972e' }}>Total pickup items</Typography>*/}
-            <TableContainer
-              component={Paper}
-              sx={{
-                width: '89%',
-                marginLeft: '11%',
-                boxShadow: 'none', // Remove Paper shadow
-                fontFamily: 'Raleway, sans-serif',
-                borderRadius: '0px'
-              }}
-            >
-              <Table
+              {/* Aggregated Table */}
+              {/*<Typography variant="h6" mb={2} mt={3} sx={{ color: '#ef972e' }}>Total pickup items</Typography>*/}
+              <TableContainer
+                component={Paper}
                 sx={{
-                  borderCollapse: 'collapse',
-                  fontSize: '14px',
+                  width: '89%',
+                  marginLeft: '11%',
+                  boxShadow: 'none', // Remove Paper shadow
+                  fontFamily: 'Raleway, sans-serif',
+                  borderRadius: '0px'
                 }}
               >
-                <TableHead>
-                  <TableRow sx={{ backgroundColor: '#f79c22' }}>
-                    <TableCell
-                      align="center"
-                      sx={{
-                        border: '1.5px solid #000',
-                        padding: '14px 20px 2px',
-                        color: 'white',
-                        fontWeight: 'bold',
-                      }}
-                    >
-                      ITEM
-                    </TableCell>
-                    <TableCell
-                      align="center"
-                      sx={{
-                        border: '1.5px solid #000',
-                        padding: '14px 20px 2px',
-                        color: 'white',
-                        fontWeight: 'bold',
-                      }}
-                    >
-                      QUANTITY
-                    </TableCell> 
-                    <TableCell
-                      align="center"
-                      sx={{
-                        border: '1.5px solid #000',
-                        padding: '14px 20px 2px',
-                        color: 'white',
-                        fontWeight: 'bold',
-                      }}
-                    >
-                      CHECK
-                    </TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {Object.entries(aggregatedItems).map(([articleNumber, qty], index) => (
-                    <TableRow key={index}>
+                <Table
+                  sx={{
+                    borderCollapse: 'collapse',
+                    fontSize: '14px',
+                  }}
+                >
+                  <TableHead>
+                    <TableRow sx={{ backgroundColor: '#f79c22' }}>
                       <TableCell
                         align="center"
                         sx={{
                           border: '1.5px solid #000',
-                          padding: '29px 8px',
-                          fontFamily: 'Raleway, sans-serif',
+                          padding: '14px 20px 2px',
+                          color: 'white',
+                          fontWeight: 'bold',
                         }}
                       >
-                        {articleNumber}
+                        ITEM
                       </TableCell>
                       <TableCell
                         align="center"
                         sx={{
                           border: '1.5px solid #000',
-                          padding: '29px 8px',
-                          fontFamily: 'Raleway, sans-serif',
+                          padding: '14px 20px 2px',
+                          color: 'white',
+                          fontWeight: 'bold',
                         }}
                       >
-                        {qty}
+                        QUANTITY
                       </TableCell> 
                       <TableCell
                         align="center"
                         sx={{
                           border: '1.5px solid #000',
-                          padding: '29px 8px',
-                          fontFamily: 'Raleway, sans-serif',
+                          padding: '14px 20px 2px',
+                          color: 'white',
+                          fontWeight: 'bold',
                         }}
                       >
-
+                        CHECK
                       </TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-            {/* Email Button */}
-            <Box mt={3} textAlign="center">
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleSendEmail}
-              disabled={Btnloading}
-              startIcon={Btnloading && <CircularProgress size={20} color="inherit" />}
-            >
-              {Btnloading ? 'Sending...' : 'Send Email'}
-            </Button>
+                  </TableHead>
+                  <TableBody>
+                    {Object.entries(aggregatedItems).map(([articleNumber, qty], index) => (
+                      <TableRow key={index}>
+                        <TableCell
+                          align="center"
+                          sx={{
+                            border: '1.5px solid #000',
+                            padding: '29px 8px',
+                            fontFamily: 'Raleway, sans-serif',
+                          }}
+                        >
+                          {articleNumber}
+                        </TableCell>
+                        <TableCell
+                          align="center"
+                          sx={{
+                            border: '1.5px solid #000',
+                            padding: '29px 8px',
+                            fontFamily: 'Raleway, sans-serif',
+                          }}
+                        >
+                          {qty}
+                        </TableCell> 
+                        <TableCell
+                          align="center"
+                          sx={{
+                            border: '1.5px solid #000',
+                            padding: '29px 8px',
+                            fontFamily: 'Raleway, sans-serif',
+                          }}
+                        >
+
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
 
             </Box>
+          )}
+
+          {/* ORDER DETAILS TAB */}
+          {activeTab === 1 && (
+            <Box sx={{ overflowX: 'auto' }}>
+             {/* <Typography
+                variant="h6"
+                sx={{
+                  textAlign: 'center',
+                  textDecoration: 'underline',
+                  fontWeight: 'bold',
+                  mb: 2,
+                  fontFamily: 'Arial, sans-serif;',
+                }}
+              >
+                ORDER DETAILS
+              </Typography>
+            */}
+              {/* Scrollable Table */}
+              <Box id="order-details-table" sx={{ minWidth: '1000px',fontFamily: 'Arial, sans-serif;', }}>
+              <Typography
+                variant="h6"
+                sx={{
+                  textAlign: 'left',
+                  fontWeight: 'bold',
+                  fontFamily: 'Arial, sans-serif;',
+                  fontSize: '18.5px;',
+                }}
+              >
+                {picklistData?.tour_name}
+              </Typography>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#ef972e', color: 'white' }}>
+                      {[
+                        'Position in Tour',
+                        'Straße',
+                        'Ansprechpartner Telefonnummer',
+                        'Postleitzahl',
+                        'Stadt',
+                        'Notiz',
+                        'Referenz',
+                        'Menge',
+                      ].map((col) => (
+                        <th key={col} style={{ border: '1px solid #ccc', padding: '8px', whiteSpace: 'nowrap' }}>
+                          {col}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {picklistData?.orders?.map((order: any, index: number) => {
+
+                      // Extract item numbers and quantity sum from order.items
+                      const itemNumbers = order.items?.map((item: any) => item.slmdl_articleordernumber).join(', ') || '';
+                      const totalQuantity = order.items?.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0) || 0;
+
+                      const isEmpty = ![
+                        index,
+                        order?.street,
+                        order?.phone,
+                        order?.zipcode,
+                        order?.city,
+                        order?.note,
+                        order?.order_number,
+                        order?.quantity,
+                      ].some((val) => val && val.toString().trim() !== '');
+
+                      if (isEmpty) return null;
+
+                      return (
+                        <tr key={index}>
+                          <td style={{ border: '1px solid #ccc', padding: '8px' }}>{index + 1 ?? ''}</td>
+                          <td style={{ border: '1px solid #ccc', padding: '8px' }}>{order.street ?? ''}</td>
+                          <td style={{ border: '1px solid #ccc', padding: '8px' }}>{order.phone ?? ''}</td>
+                          <td style={{ border: '1px solid #ccc', padding: '8px' }}>{order.zipcode ?? ''}</td>
+                          <td style={{ border: '1px solid #ccc', padding: '8px' }}>{order.city ?? ''}</td>
+                          <td style={{ border: '1px solid #ccc', padding: '8px' }}>{itemNumbers ?? ''}</td>
+                          <td style={{ border: '1px solid #ccc', padding: '8px' }}>{order.order_number ?? ''}</td>
+                          <td style={{ border: '1px solid #ccc', padding: '8px' }}>{totalQuantity ?? ''}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </Box>
+            </Box>
+          )}
+          {/* Email Button */}
+          <Box mt={3} textAlign="center">
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleSendEmail}
+            disabled={Btnloading}
+            startIcon={Btnloading && <CircularProgress size={20} color="inherit" />}
+          >
+            {Btnloading ? 'Sending...' : 'Send Email'}
+          </Button>
+
           </Box>
+        </Box>
+
         </Grid>
       </Box>
     </Modal>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Order Notification</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f5f7fa;
+      margin: 0;
+      padding: 0;
+    }
+    .email-container {
+      max-width: 600px;
+      margin: auto;
+      background-color: #ffffff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    .header {
+      background-color: #FF8C00;
+      color: white;
+      padding: 20px 30px;
+      text-align: center;
+    }
+    .content {
+      padding: 30px;
+      color: #333333;
+      line-height: 1.6;
+    }
+    .footer {
+      background-color: #f0f0f0;
+      color: #888888;
+      font-size: 12px;
+      text-align: center;
+      padding: 15px;
+    }
+    .highlight {
+      font-weight: bold;
+      color: #FF8C00;
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <h2>Sunniva - Order Update</h2>
+    </div>
+    <div class="content">
+      <p>Dear {{name}},</p>
+      <p>
+        We’re happy to inform you that your order is on the way! 
+        You can expect it to arrive within <span class="highlight">3 to 3.5 hours</span>.
+      </p>
+      <p>
+        Thank you for choosing <strong>Sunniva</strong>. If you have any questions or need support, feel free to reach out to us anytime.
+      </p>
+      <p>Warm regards,<br><strong>The Sunniva Team</strong></p>
+    </div>
+    <div class="footer">
+      &copy; 2025 Sunniva. All rights reserved.
+    </div>
+  </div>
+</body>
+</html>

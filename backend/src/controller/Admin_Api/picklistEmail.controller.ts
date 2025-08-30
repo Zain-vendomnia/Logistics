@@ -4,7 +4,8 @@ import nodemailer from 'nodemailer';
 // function to simulate sending an email
 export const picklistEmail = async (req: Request, res: Response) => {
   try {
-    const { to, subject, html, attachment,attachment_name } = req.body;
+    const { to, subject, html, attachment,attachment_name, second_attachment,
+      second_attachment_name } = req.body;
 
 
     // Configure nodemailer
@@ -18,26 +19,32 @@ export const picklistEmail = async (req: Request, res: Response) => {
       }
     });
 
-    // Prepare the email options
+    // Prepare the base email options
     const mailOptions: any = {
       from: '"SUNNIVA" <service@vendomnia.com>',
       to,
       subject,
-      html
+      html,
+      attachments: []
     };
 
-    // Conditionally add attachment if attachment is present
-    if (attachment) {
-      mailOptions.attachments = [
-        {
-          filename: attachment_name,
-          content: attachment.split(',')[1], // remove "data:image/png;base64,"
-          encoding: 'base64',
-          cid: 'signature_cid' // reference this in the HTML img src
-        }
-      ];
+    // Add the first attachment if available
+    if (attachment && attachment_name) {
+      mailOptions.attachments.push({
+        filename: attachment_name,
+        content: attachment.split(',')[1],
+        encoding: 'base64',
+      });
     }
 
+    // Conditionally add the second attachment if available
+    if (second_attachment && second_attachment_name) {
+      mailOptions.attachments.push({
+        filename: second_attachment_name,
+        content: second_attachment.split(',')[1],
+        encoding: 'base64',
+      });
+    }
     // Send the email
     const info = await transporter.sendMail(mailOptions);
 

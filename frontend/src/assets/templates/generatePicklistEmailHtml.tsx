@@ -79,11 +79,11 @@ export const generatePicklistEmailHtml = (
 
       <div style="font-family: 'Raleway', Arial, sans-serif; color: #000; font-size: 13px; width: 430px;">
           <p style="font-family: Raleway, sans-serif; line-height: normal;">
-            <strong>Location&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> ${picklistData.warehouseName}<br />
+            <strong>Location&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> ${picklistData.warehouseName ?? 'N/A'}<br />
             <strong>Driver&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> ${picklistData.driver.driver_name}<br />
-            <strong>Licence plate&nbsp;&nbsp;&nbsp;&nbsp;:</strong> ${picklistData.driver.licenceplate}<br />
-            <strong>Email&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> ${picklistData.driver.email}<br />
-            <strong>Phone&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> ${picklistData.driver.mobile}<br />
+            <strong>Licence plate&nbsp;&nbsp;&nbsp;&nbsp;:</strong> ${picklistData.driver.licenceplate  ?? 'N/A'}<br />
+            <strong>Email&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> ${picklistData.driver.email   ?? 'N/A'}<br />
+            <strong>Phone&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> ${picklistData.driver.mobile ?? 'N/A'}<br />
             <strong>ZIP Code&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> ${formattedZipCodes}<br />
             <strong>Date&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> ${formattedTourDate}
           </p>

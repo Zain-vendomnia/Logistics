@@ -1,0 +1,8 @@
+Hello {{name}}, 👋
+
+Thank you for shopping with Sunniva! 🛒  
+Your order is on its way and will arrive within 3 to 3.5 hours. 🚚
+
+If you have any questions or need assistance, feel free to reply to this message.
+
+- Team Sunniva 💛

@@ -184,6 +184,13 @@ export const uploadexcel = (formData: FormData) =>
     },
   });
 
+  const getShopOrder = (orderNumber: number) => {
+    console.log(API_BaseUrl_Admin+`proxy/orders/${orderNumber}`);
+    return axios.get(API_BaseUrl_Admin+`proxy/orders/${orderNumber}`, {
+      headers: authHeader(),
+    });
+  };
+
 const adminApiService = {
   fetchRouteData,
   fetchOrderTourCount,
@@ -213,6 +220,7 @@ const adminApiService = {
   fetchPinboardOrders,
   uploadexcel,
   getWarehouse,
+  getShopOrder,
   newShopOrder,
 };
 

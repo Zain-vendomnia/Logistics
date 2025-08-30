@@ -30,6 +30,7 @@
     "@types/react-dom": "^18.0.0",
     "axios": "^0.27.2",
     "bootstrap": "^4.6.2",
+    "caniuse-lite": "^1.0.30001734",
     "canvas-confetti": "^1.9.3",
     "confetti": "^2.0.6",
     "dayjs": "^1.11.13",
@@ -48,6 +49,8 @@
     "leaflet-routing-machine": "^3.2.12",
     "leaflet.markercluster": "^1.5.3",
     "lodash": "^4.17.21",
+    "os-browserify": "^0.3.0",
+    "path-browserify": "^1.0.1",
     "puppeteer": "^24.9.0",
     "react": "^18.2.0",
     "react-animated-modal": "^1.1.1",
@@ -97,7 +100,7 @@
     "@types/leaflet-routing-machine": "^3.2.8",
     "@types/mapbox__polyline": "^1.0.5",
     "@types/react-signature-canvas": "^1.0.7",
-    "ajv": "^6.12.6",
+    "ajv": "^8.17.1",
     "typescript": "^4.9.5"
   }
 }

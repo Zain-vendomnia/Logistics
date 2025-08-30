@@ -14,6 +14,7 @@ import warehouseDetailsSetup from "../../initialDBSetup/warehouseDetailsSetup";
 import vahicleDetailsSetup from "../../initialDBSetup/vehicleDetailsSetup";
 import WMSOrderSetup from "../../initialDBSetup/wms_orders";
 import WMSOrderArticlesSetup from "../../initialDBSetup/wms_order_articles";
+import WhatsappChatsSetup from "../../initialDBSetup/whatsappChat";
 
 export async function runInitialDbSetup() {
   await initialSetup();
@@ -32,4 +33,5 @@ export async function runInitialDbSetup() {
   await routeUpdatesSetup();
   await apiResponseLogSetup();
   await solarItemsSetup();
+  await WhatsappChatsSetup();
 }

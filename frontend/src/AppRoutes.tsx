@@ -29,6 +29,8 @@ import TestUnhandledPromise from "./components/pages/TestUnhandledPromise";
 import TestRuntimeError from "./components/pages/TestRuntimeError";
 import Admin_dynamicHereMap from "./components/Admin/Admin_dynamicHereMap";
 import AdminHereMap from "./components/Admin/MapRoutesViewer";
+import MultiUserChat from './components/notification/MultiUserChat';
+
 // Role-based route guard
 const ProtectedRoute = ({
   element,
@@ -144,10 +146,17 @@ const AppRoutes = () => {
         }
       />
       <Route
+
         path="/manage_vehicles"
         element={
           <ProtectedRoute
             element={<ManageVehicles />}
+
+        path="/chat"
+        element={
+          <ProtectedRoute
+            element={<MultiUserChat />}
+
             allowedRoles={["admin"]}
           />
         }
@@ -196,6 +205,7 @@ const AppRoutes = () => {
       <Route path="/admin_dashboard" element={<AdminDashboard />} />
       <Route path="/admin_addtour" element={<AdminAddTour />} />
       <Route path="/manage_drivers" element={<ManageDrivers />} />
+      <Route path="/chat" element={<MultiUserChat />} />
       <Route path="/manage_warehouse" element={<ManageWarehouse />} />
       <Route path="/admin_tourtemplates" element={<Admin_TourTemplates />} />
       <Route path="/admin_mapComponent/:id" element={<Admin_MapComponent />} />
