@@ -5,7 +5,9 @@ import {
   getAllVehicles,
   getVehicleById,
   createVehicle,
-  updateVehicle
+  updateVehicle,
+  disableVehicle,
+  disableMultipleVehicle
 } from "../controller/Admin_Api/vehicleController";
 
 const router = express.Router();
@@ -17,9 +19,10 @@ router.use(validateToken);
 router.use(roleCheck(["admin"]));
 
 // Vehicles CRUD + disable endpoints
-router.get("/", getAllVehicles);                       // Get all vehicles
-router.get("/:id", getVehicleById);                    // Get one vehicle by ID
-router.post("/", createVehicle);                       // Create vehicle
-router.put("/:id", updateVehicle);                     // Update vehicle
-
+router.get("/", getAllVehicles);                       
+router.get("/:id", getVehicleById);                    
+router.post("/", createVehicle);                       
+router.put("/:id", updateVehicle);                    
+router.patch("/:id/disable", disableVehicle);  
+router.patch("/disable-multiple", disableMultipleVehicle);
 export default router;

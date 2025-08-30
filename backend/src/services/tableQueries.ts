@@ -126,7 +126,9 @@ export const CREATE_TOUR_INFO_MASTER_TABLE = `
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
     tour_total_estimate_time TIME,
-    overall_performance_rating DECIMAL(2,1) DEFAULT 0.00
+    overall_performance_rating DECIMAL(2,1) DEFAULT 0.00,
+    vehicle_id INT,
+    CONSTRAINT fk_vehicle FOREIGN KEY (vehicle_id) REFERENCES vehicle_details(vehicle_id) 
   );
 `;
 

@@ -100,7 +100,9 @@ export const getAllVehicles = async (): Promise<ServiceResponse<VehicleBasic[]>>
       d.name AS driver_name,
       v.created_at,
       v.updated_at,
-      v.is_active
+      v.is_active,
+      v.insurance_number,
+      v.insurance_expiry_date
     FROM vehicle_details v
     LEFT JOIN driver_details d ON v.driver_id = d.id
     LEFT JOIN warehouse_details w ON v.warehouse_id = w.warehouse_id
@@ -130,7 +132,9 @@ export const getVehicleById = async (id: number): Promise<ServiceResponse<Vehicl
       v.driver_id,
       v.created_at,
       v.updated_at,
-      v.is_active
+      v.is_active,
+      v.insurance_number,
+      v.insurance_expiry_date
     FROM vehicle_details v
     WHERE v.vehicle_id = ?
     LIMIT 1
@@ -232,7 +236,6 @@ export const createVehicle = async (vehicle: {
   }
 };
 
-
 export const updateVehicle = async (
   id: number,
   vehicle: {
@@ -242,17 +245,19 @@ export const updateVehicle = async (
     miles_driven?: number;
     next_service?: string | null;
     driver_id?: number | null;
+    insurance_number?: string;   // NEW: Insurance number field
+    insurance_expiry_date?: string | null; // NEW: Insurance expiry date field
     is_active?: number;          // 1=active, 0=inactive
   }
 ): Promise<ServiceResponse<{ updated: boolean }>> => {
-  console.log(" updateVehicle ", id, vehicle)
+  console.log(" updateVehicle ", id, vehicle);
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
 
-    // 0) Ensure vehicle exists and fetch current state (need driver_id for tour check)
+    // 0) Ensure vehicle exists and fetch current state
     const [currentRows]: any = await conn.query(
-      `SELECT vehicle_id, license_plate, driver_id, is_active
+      `SELECT vehicle_id, license_plate, driver_id, is_active, insurance_number, insurance_expiry_date
          FROM vehicle_details
         WHERE vehicle_id = ?
         LIMIT 1`,
@@ -264,8 +269,6 @@ export const updateVehicle = async (
       await conn.rollback();
       return fail("NOT_FOUND", "Vehicle not found.");
     }
-
-    const driver_id=currentRows?.[0].driver_id;
 
     // 1) Plate immutability: disallow changing license_plate
     if (vehicle.license_plate !== undefined) {
@@ -295,33 +298,24 @@ export const updateVehicle = async (
         );
       }
     }
-    console.log(" vehicle.is_active ", vehicle.is_active)
-    
-    // 2a) Block deactivation if the assigned driver has future tours
-    if (vehicle.is_active !== undefined && Number(vehicle.is_active) === 0) {
-      console.log(" vehicle.is_active ", vehicle.is_active)
-      // Determine which driver_id to check (new one if provided, else current)
-      const driverIdToCheck =
-        vehicle.driver_id !== undefined ? vehicle.driver_id : current.driver_id;
 
-      if (driverIdToCheck) {
-        // Any tours strictly after today?
-        const [futureTours]: any = await conn.query(
-          `SELECT id, tour_name, tour_date
-             FROM tourinfo_master
-            WHERE driver_id = ?
-              AND DATE(tour_date) > CURDATE()
-            LIMIT 1`,
-          [driver_id]
+    // 2a) Block deactivation if this vehicle has future tours
+    if (vehicle.is_active !== undefined && Number(vehicle.is_active) === 0) {
+      const [futureTours]: any = await conn.query(
+        `SELECT id, tour_name, tour_date
+           FROM tourinfo_master
+          WHERE vehicle_id = ?
+            AND DATE(tour_date) > CURDATE()
+          LIMIT 1`,
+        [id]
+      );
+      console.log(" futureTours ", futureTours);
+      if (futureTours.length > 0) {
+        await conn.rollback();
+        return fail(
+          "HAS_FUTURE_TOUR",
+          "This vehicle has future tours assigned. You can't disable it. Change the vehicle on those tours or delete the tours and try again."
         );
-        console.log(" futureTours ", futureTours)
-        if (futureTours.length > 0) {
-          await conn.rollback();
-          return fail(
-            "HAS_FUTURE_TOUR",
-            "This vehicle’s driver has future tours assigned. You can’t disable the vehicle. Change the vehicle on those tours or delete the tours and try again."
-          );
-        }
       }
     }
 
@@ -329,20 +323,22 @@ export const updateVehicle = async (
     const sets: string[] = [];
     const vals: any[] = [];
 
-    if (vehicle.capacity !== undefined)      { sets.push("capacity = ?");      vals.push(vehicle.capacity); }
-    if (vehicle.miles_driven !== undefined)  { sets.push("miles_driven = ?");  vals.push(vehicle.miles_driven); }
-    if (vehicle.next_service !== undefined)  { sets.push("next_service = ?");  vals.push(vehicle.next_service); }
-    if (vehicle.warehouse_id !== undefined)  { sets.push("warehouse_id = ?");  vals.push(vehicle.warehouse_id); }
-    if (vehicle.driver_id !== undefined)     { sets.push("driver_id = ?");     vals.push(vehicle.driver_id); }
-    if (vehicle.is_active !== undefined)     { sets.push("is_active = ?");     vals.push(vehicle.is_active); }
+    if (vehicle.capacity !== undefined)             { sets.push("capacity = ?");             vals.push(vehicle.capacity); }
+    if (vehicle.miles_driven !== undefined)         { sets.push("miles_driven = ?");         vals.push(vehicle.miles_driven); }
+    if (vehicle.next_service !== undefined)         { sets.push("next_service = ?");         vals.push(vehicle.next_service); }
+    if (vehicle.warehouse_id !== undefined)         { sets.push("warehouse_id = ?");         vals.push(vehicle.warehouse_id); }
+    if (vehicle.driver_id !== undefined)            { sets.push("driver_id = ?");            vals.push(vehicle.driver_id); }
+    if (vehicle.insurance_number !== undefined)     { sets.push("insurance_number = ?");     vals.push(vehicle.insurance_number); }
+    if (vehicle.insurance_expiry_date !== undefined) { sets.push("insurance_expiry_date = ?"); vals.push(vehicle.insurance_expiry_date); }
+    if (vehicle.is_active !== undefined)            { sets.push("is_active = ?");            vals.push(vehicle.is_active); }
 
     if (sets.length === 0) {
       await conn.rollback();
       return fail("NO_CHANGES", "No updatable fields were provided.");
     }
 
-    console.log(" sets ", sets)
-    console.log(" vals ", vals)
+    console.log(" sets ", sets);
+    console.log(" vals ", vals);
 
     sets.push("updated_at = ?");
     vals.push(new Date());
@@ -365,9 +361,153 @@ export const updateVehicle = async (
       id,
       driver_id: vehicle?.driver_id,
       is_active: vehicle?.is_active,
+      insurance_number: vehicle?.insurance_number,
+      insurance_expiry_date: vehicle?.insurance_expiry_date,
     });
   } finally {
     conn.release();
   }
 };
 
+export const disableVehicle = async (
+  id: number
+): Promise<{ status: "success" | "warning" | "error"; message: string; data?: any }> => {
+  if (!Number.isInteger(id) || id <= 0) {
+    return { status: "error", message: `Invalid vehicle ID: ${id}` };
+  }
+
+  let connection;
+  try {
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    // Check current state
+    const [rows]: any = await connection.query(
+      "SELECT is_active FROM vehicle_details WHERE vehicle_id = ?",
+      [id]
+    );
+
+    if (rows.length === 0) {
+      await connection.rollback();
+      return { status: "error", message: `Vehicle ID - ${id} not found` };
+    }
+
+    if (rows[0].is_active === 0) {
+      await connection.rollback();
+      return { status: "warning", message: `Vehicle ID - ${id} is already inactive` };
+    }
+
+    // Update if active
+    const [result]: any = await connection.query(
+      "UPDATE vehicle_details SET is_active = 0, updated_at = NOW() WHERE vehicle_id = ?",
+      [id]
+    );
+
+    await connection.commit();
+    return {
+      status: result.affectedRows > 0 ? "success" : "error",
+      message:
+        result.affectedRows > 0
+          ? `Vehicle ID - ${id} disabled successfully`
+          : `Failed to disable vehicle ${id}`,
+      data: { vehicleId: id, status: "disabled" },
+    };
+  } catch (err) {
+    if (connection) await connection.rollback();
+    return {
+      status: "error",
+      message: `Failed to disable vehicle ${id}: ${
+        err instanceof Error ? err.message : String(err)
+      }`,
+    };
+  } finally {
+    if (connection) connection.release();
+  }
+};
+
+export const disableVehiclesBulk = async (
+  ids: number[]
+): Promise<{ status: "success" | "warning" | "error"; message: string; data?: any }> => {
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return { status: "error", message: "No vehicle IDs provided" };
+  }
+
+  // Validate all IDs
+  const invalidIds = ids.filter(id => !Number.isInteger(id) || id <= 0);
+  if (invalidIds.length > 0) {
+    return { status: "error", message: `Invalid vehicle IDs: ${invalidIds.join(', ')}` };
+  }
+
+  let connection;
+  try {
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    // Check which vehicles exist and their current states
+    const placeholders = ids.map(() => '?').join(',');
+    const [rows]: any = await connection.query(
+      `SELECT vehicle_id, is_active FROM vehicle_details WHERE vehicle_id IN (${placeholders})`,
+      ids
+    );
+
+    if (rows.length === 0) {
+      await connection.rollback();
+      return { status: "error", message: "No vehicles found with provided IDs" };
+    }
+
+    const foundIds = rows.map((row: any) => row.vehicle_id);
+    const notFoundIds = ids.filter(id => !foundIds.includes(id));
+    const alreadyInactiveIds = rows.filter((row: any) => row.is_active === 0).map((row: any) => row.vehicle_id);
+    const activeIds = rows.filter((row: any) => row.is_active === 1).map((row: any) => row.vehicle_id);
+
+    if (activeIds.length === 0) {
+      await connection.rollback();
+      let message = "No vehicles to disable.";
+      if (notFoundIds.length > 0) {
+        message += ` Not found: ${notFoundIds.join(', ')}.`;
+      }
+      if (alreadyInactiveIds.length > 0) {
+        message += ` Already inactive: ${alreadyInactiveIds.join(', ')}.`;
+      }
+      return { status: "warning", message };
+    }
+
+    // Update active vehicles
+    const activePlaceholders = activeIds.map(() => '?').join(',');
+    const [result]: any = await connection.query(
+      `UPDATE vehicle_details SET is_active = 0, updated_at = NOW() WHERE vehicle_id IN (${activePlaceholders})`,
+      activeIds
+    );
+
+    await connection.commit();
+
+    let message = `${result.affectedRows} vehicle(s) disabled successfully`;
+    if (notFoundIds.length > 0) {
+      message += `. Not found: ${notFoundIds.join(', ')}`;
+    }
+    if (alreadyInactiveIds.length > 0) {
+      message += `. Already inactive: ${alreadyInactiveIds.join(', ')}`;
+    }
+
+    return {
+      status: "success",
+      message,
+      data: { 
+        disabledIds: activeIds,
+        notFoundIds,
+        alreadyInactiveIds,
+        totalProcessed: result.affectedRows
+      },
+    };
+  } catch (err) {
+    if (connection) await connection.rollback();
+    return {
+      status: "error",
+      message: `Failed to disable vehicles: ${
+        err instanceof Error ? err.message : String(err)
+      }`,
+    };
+  } finally {
+    if (connection) connection.release();
+  }
+};

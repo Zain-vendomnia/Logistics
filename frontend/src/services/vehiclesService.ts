@@ -21,3 +21,11 @@ export const updateVehicle = async (id: number, vehicle: any) => {
   const response = await axios.put(`${API_BASE}/${id}`, vehicle, { headers: authHeader() });
   return response.data;
 };
+export const disableVehicle = async (id: number) => {
+  const response = await axios.patch(`${API_BASE}/${id}/disable`,{}, { headers: authHeader() });
+  return response.data;
+};
+export const disableVehiclesBulk = async (ids: number[]) => {
+  const response = await axios.patch(`${API_BASE}/disable-multiple`,{ids}, { headers: authHeader() });
+  return response.data;
+};

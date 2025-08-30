@@ -213,7 +213,7 @@ const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
                     "&:hover": {
                       background: selected
                         ? theme.palette.primary.gradient
-                        : theme.palette.grey[100],
+                        : theme.palette.grey[300],
                     },
                   })}
                 >

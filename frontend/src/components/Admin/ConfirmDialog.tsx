@@ -41,7 +41,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         No, Cancel
       </Button>
        <Button variant="contained" color="error" onClick={onConfirm}>
-          Yes, Delete
+          Yes, Disable
         </Button>
       </DialogActions>
     </Dialog>

@@ -55,14 +55,10 @@ const DriverPerformance = () => {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedWarehouse, setSelectedWarehouse] = useState("all");
 
-  // New state for date filters
-  const [filterType, setFilterType] = useState("weekly");
-  const [fromDate, setFromDate] = useState<Dayjs>(
-    dayjs().startOf("week").add(1, "day") // Monday
-  );
-  const [toDate, setToDate] = useState<Dayjs>(
-    dayjs().startOf("week").add(5, "day") // Friday
-  );
+  // Updated state for date filters - default to "today"
+  const [filterType, setFilterType] = useState("today");
+  const [fromDate, setFromDate] = useState<Dayjs>(dayjs());
+  const [toDate, setToDate] = useState<Dayjs>(dayjs());
 
   // Debounce search
   useEffect(() => {
@@ -74,7 +70,10 @@ const DriverPerformance = () => {
   useEffect(() => {
     let start: Dayjs, end: Dayjs;
 
-    if (filterType === "weekly") {
+    if (filterType === "today") {
+      start = dayjs();
+      end = dayjs();
+    } else if (filterType === "weekly") {
       start = dayjs().startOf("week").add(1, "day");
       end = dayjs().startOf("week").add(5, "day");
     } else if (filterType === "monthly") {
@@ -167,6 +166,7 @@ const DriverPerformance = () => {
             onChange={(e) => setFilterType(e.target.value)}
             sx={{ minWidth: 200 }}
           >
+            <MenuItem value="today">Today</MenuItem>
             <MenuItem value="weekly">Weekly (Mon–Fri)</MenuItem>
             <MenuItem value="monthly">Monthly</MenuItem>
             <MenuItem value="custom">Custom Date Range</MenuItem>
@@ -238,41 +238,66 @@ const DriverPerformance = () => {
         </Typography>
       ) : (
         <Grid container spacing={5}>
-          {filteredDrivers.map((driver) => (
-            <Grid key={driver.id} item xs={12} sm={6} md={4} lg={4}>
-              <DriverPerformanceCard
-                name={driver.name}
-                email={driver.email}
-                mobile={driver.mobile}
-                avatarUrl={driver.avatarUrl}
-                rating={driver.rating}
-                warehouseId={driver.warehouseId.toString()}
-                warehouseName={driver.warehouseName}
-                completedTours={driver.completedTours}
-                kpi1ImageUploadScore={driver.kpi1ImageUploadScore}
-                kpi1ImageCount={driver.kpi1ImageCount}
-                kpi2DeliveryScore={driver.kpi2DeliveryScore}
-                totalExpectedDeliveries={driver.totalExpectedDeliveries}
-                totalActualDeliveries={driver.totalActualDeliveries}
-                undeliveredCount={driver.undeliveredCount}
-                kpi3PODScore={driver.kpi3PODScore}
-                validPODs={driver.validPODs}
-                kpi4KmEfficiencyScore={driver.kpi4KmEfficiencyScore}
-                plannedKM={driver.plannedKM}
-                actualKM={driver.actualKM}
-                kpi5TimeScore={driver.kpi5TimeScore}
-                totalPlannedTimeMinutes={driver.totalPlannedTimeMinutes}
-                totalActualTimeMinutes={driver.totalActualTimeMinutes}
-                kpi6FuelEfficiencyScore={driver.kpi6FuelEfficiencyScore}
-                expectedFuelLiters={driver.expectedFuelLiters}
-                actualFuelLiters={driver.actualFuelLiters}
-                kpi7CustomerRating={driver.kpi7CustomerRating}
-                onViewDetail={() =>
-                  console.log(`Viewing details for ${driver.name}`)
-                }
-              />
-            </Grid>
-          ))}
+          {filteredDrivers.map((driver) => {
+            // Calculate date range for the report
+            let start: Dayjs, end: Dayjs;
+            if (filterType === "today") {
+              start = dayjs();
+              end = dayjs();
+            } else if (filterType === "weekly") {
+              start = dayjs().startOf("week").add(1, "day");
+              end = dayjs().startOf("week").add(5, "day");
+            } else if (filterType === "monthly") {
+              start = dayjs().startOf("month");
+              end = dayjs().endOf("month");
+            } else if (filterType === "overall") {
+              start = dayjs("2025-01-01");
+              end = dayjs();
+            } else {
+              start = fromDate;
+              end = toDate;
+            }
+
+            return (
+              <Grid key={driver.id} item xs={12} sm={6} md={4} lg={4}>
+                <DriverPerformanceCard
+                  name={driver.name}
+                  email={driver.email}
+                  mobile={driver.mobile}
+                  avatarUrl={driver.avatarUrl}
+                  rating={driver.rating}
+                  warehouseId={driver.warehouseId.toString()}
+                  warehouseName={driver.warehouseName}
+                  completedTours={driver.completedTours}
+                  kpi1ImageUploadScore={driver.kpi1ImageUploadScore}
+                  kpi1ImageCount={driver.kpi1ImageCount}
+                  kpi2DeliveryScore={driver.kpi2DeliveryScore}
+                  totalExpectedDeliveries={driver.totalExpectedDeliveries}
+                  totalActualDeliveries={driver.totalActualDeliveries}
+                  undeliveredCount={driver.undeliveredCount}
+                  kpi3PODScore={driver.kpi3PODScore}
+                  validPODs={driver.validPODs}
+                  kpi4KmEfficiencyScore={driver.kpi4KmEfficiencyScore}
+                  plannedKM={driver.plannedKM}
+                  actualKM={driver.actualKM}
+                  kpi5TimeScore={driver.kpi5TimeScore}
+                  totalPlannedTimeMinutes={driver.totalPlannedTimeMinutes}
+                  totalActualTimeMinutes={driver.totalActualTimeMinutes}
+                  kpi6FuelEfficiencyScore={driver.kpi6FuelEfficiencyScore}
+                  expectedFuelLiters={driver.expectedFuelLiters}
+                  actualFuelLiters={driver.actualFuelLiters}
+                  kpi7CustomerRating={driver.kpi7CustomerRating}
+                  dateRange={{
+                    from: start.format("YYYY-MM-DD"),
+                    to: end.format("YYYY-MM-DD")
+                  }}
+                  onViewDetail={() =>
+                    console.log(`Viewing details for ${driver.name}`)
+                  }
+                />
+              </Grid>
+            );
+          })}
         </Grid>
       )}
     </Box>

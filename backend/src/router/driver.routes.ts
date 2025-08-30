@@ -6,8 +6,8 @@ import {
   getDriverById,
   createDriver,
   updateDriver,
-  deleteDriver,
-  deleteMultipleDrivers,
+  disableDriver,
+  disableMultipleDrivers,
   checkDriverEligibility,
   getAvailableDriversByDateAndWarehouse,
   getDriverPerformanceData,
@@ -31,8 +31,8 @@ router.get("/available", getAvailableDriversByDateAndWarehouse);
 router.get("/:id", getDriverById);
 router.post("/", createDriver);
 router.put("/:id", updateDriver);
-router.delete("/:id", deleteDriver);
-router.post("/delete-multiple", deleteMultipleDrivers);
+router.patch("/:id/disable", disableDriver);
+router.patch("/disable-multiple", disableMultipleDrivers);
 router.get("/check-eligibility/:driverId", checkDriverEligibility);
 
 export default router;

@@ -10,7 +10,6 @@ export const getAllVehicles = async (_req: Request, res: Response) => {
   }
 };
 
-
 export const getVehicleById = async (req: Request, res: Response) => {
   try {
     const vehicle = await vehicleService.getVehicleById(Number(req.params.id));
@@ -67,5 +66,48 @@ export const updateVehicle = async (req: Request, res: Response) => {
     return res.json(updated);
   } catch (err) {
     return res.status(500).json({ message: "Error updating vehicle" });
+  }
+};
+
+// Disable single vehicle
+export const disableVehicle = async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    const result = await vehicleService.disableVehicle(id);
+
+    // Always return 200, frontend can use `status` for logic
+    return res.status(200).json(result);
+  } catch (err) {
+    return res.status(200).json({
+      status: "error",
+      message: "Error disabling warehouse",
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+};
+
+
+// Disable multiple warehouses
+export const disableMultipleVehicle = async (req: Request, res: Response) => {
+  try {
+    const { ids } = req.body;
+    const validIds = Array.isArray(ids) ? ids.filter((id) => Number.isInteger(Number(id)) && Number(id) > 0) : [];
+
+    if (validIds.length === 0) {
+      return res.status(200).json({
+        status: "error",
+        message: "No valid warehouse IDs provided",
+      });
+    }
+
+    const result = await vehicleService.disableVehiclesBulk(validIds);
+
+    return res.status(200).json(result);
+  } catch (err) {
+    return res.status(200).json({
+      status: "error",
+      message: "Error disabling warehouses",
+      error: err instanceof Error ? err.message : String(err),
+    });
   }
 };
