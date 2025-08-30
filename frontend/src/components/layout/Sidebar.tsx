@@ -20,6 +20,7 @@ import {
   AddRoad as TourIcon,
   Route as TourOutlinedIcon,
   DirectionsBusFilled,
+  AirlineSeatReclineNormal,
   Warehouse,
   AltRoute,
   Leaderboard,
@@ -93,8 +94,13 @@ const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
         },
         {
           text: "Drivers",
-          icon: <DirectionsBusFilled />,
+          icon: <AirlineSeatReclineNormal />,
           path: "/manage_drivers",
+        },
+        {
+          text: "Vehicles",
+          icon: <DirectionsBusFilled />,
+          path: "/manage_vehicles",
         },
 
         {
@@ -207,7 +213,7 @@ const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
                     "&:hover": {
                       background: selected
                         ? theme.palette.primary.gradient
-                        : theme.palette.grey[100],
+                        : theme.palette.grey[300],
                     },
                   })}
                 >

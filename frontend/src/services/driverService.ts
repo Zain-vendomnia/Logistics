@@ -18,13 +18,13 @@ export const updateDriver = async (id: number, driver: any) => {
   return response.data;
 };
 
-export const deleteDriver = async (id: number) => {
-  const response = await axios.delete(`${API_BASE}/${id}`, { headers: authHeader() });
+export const disableDriver = async (id: number) => {
+  const response = await axios.patch(`${API_BASE}/${id}/disable`,{}, { headers: authHeader() });
   return response.data;
 };
 
-export const deleteDriversBulk = async (ids: number[]) => {
-  const response = await axios.post(`${API_BASE}/delete-multiple`, { ids }, { headers: authHeader() });
+export const disableDriversBulk = async (ids: number[]) => {
+  const response = await axios.patch(`${API_BASE}/disable-multiple`, { ids }, { headers: authHeader() });
   return response.data;
 };
 

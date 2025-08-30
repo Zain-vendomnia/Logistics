@@ -66,14 +66,90 @@ const DriverDialog: React.FC<Props> = ({
   }, [open, editMode]);
 
   const renderTextField = (
-    label: string,
-    field: keyof Driver,
-    icon: React.ReactNode,
-    multiline = false,
-    autoFocus = false,
-    disabled = false,
-    highlight = false
-  ) => (
+  label: string,
+  field: keyof Driver,
+  icon: React.ReactNode,
+  multiline = false,
+  autoFocus = false,
+  disabled = false,
+  highlight = false
+) => {
+  // Custom styling for disabled driver name field
+  if (field === "name" && editMode && disabled) {
+    return (
+      <div key={field} style={{ marginBottom: '16px' }}>
+        <TextField
+          label={label}
+          type="text"
+          fullWidth
+          multiline={multiline}
+          variant="outlined"
+          value={formData[field] || ""}
+          disabled={true}
+          InputProps={{
+            startAdornment: <InputAdornment position="start">{icon}</InputAdornment>,
+            sx: {
+              backgroundColor: '#f8f9fa',
+              border: '2px solid #e9ecef',
+              borderRadius: '8px',
+              transition: 'all 0.3s ease',
+              opacity: 1,
+              color: '#6c757d',
+              WebkitTextFillColor: '#6c757d',
+              '&:hover': {
+                borderColor: '#dee2e6',
+              },
+              '& .MuiInputBase-input': {
+                color: '#6c757d',
+                fontWeight: '500',
+                fontSize: '14px',
+                WebkitTextFillColor: '#6c757d',
+              },
+            }
+          }}
+          sx={{
+            '& .MuiInputLabel-root': {
+              color: '#6c757d',
+              fontWeight: '500',
+              '&.Mui-focused': {
+                color: '#6c757d',
+              },
+            },
+            '& .MuiOutlinedInput-notchedOutline': {
+              border: 'none',
+            },
+          }}
+        />
+        <div style={{
+          marginTop: '4px',
+          marginLeft: '14px',
+          fontSize: '12px',
+          color: '#ff6b35',
+          fontWeight: '500',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px'
+        }}>
+          <span style={{
+            width: '16px',
+            height: '16px',
+            borderRadius: '50%',
+            backgroundColor: '#ff6b35',
+            color: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '10px',
+            fontWeight: 'bold'
+          }}>!</span>
+          Driver name cannot be edited
+        </div>
+      </div>
+    );
+  }
+
+  // Regular fields
+  return (
     <TextField
       label={label}
       type={field === "password" ? "password" : "text"}
@@ -86,11 +162,11 @@ const DriverDialog: React.FC<Props> = ({
       error={!!errors[field]}
       helperText={errors[field]}
       autoComplete={field === "password" ? "new-password" : undefined}
-      disabled={disabled}
+      disabled={disabled && field !== "name"} // Don't disable name field here, handled above
       InputProps={{
         startAdornment: <InputAdornment position="start">{icon}</InputAdornment>,
         sx: {
-          backgroundColor: disabled
+          backgroundColor: disabled && field !== "name"
             ? '#f0f0f0'
             : highlight
               ? '#fff9c4'
@@ -102,6 +178,7 @@ const DriverDialog: React.FC<Props> = ({
       }}
     />
   );
+};
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -122,7 +199,7 @@ const DriverDialog: React.FC<Props> = ({
           </Stack>
         ) : (
           <Stack spacing={2} mt={1} minWidth={350}>
-            {renderTextField("Driver Name", "name", <PersonOutlineIcon sx={{ color: "black" }} />, false, true)}
+            {renderTextField("Driver Name", "name", <PersonOutlineIcon sx={{ color: "black" }} />, false, true, editMode)}
             {renderTextField("Email", "email", <EmailOutlinedIcon sx={{ color: "black" }} />)}
             {renderTextField("Mobile", "mob", <PhoneAndroidIcon sx={{ color: "black" }} />)}
             {renderTextField("Address", "address", <HomeOutlinedIcon sx={{ color: "black" }} />, true)}
@@ -232,38 +309,61 @@ const DriverDialog: React.FC<Props> = ({
         )}
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={onClose} variant="outlined" size="small" sx={(theme) => ({
-          padding: '8px 24px',
-          borderRadius: '4px',
-          textTransform: 'none',
-          fontWeight: '500',
-          background: theme.palette.primary.gradient,
-          color: "#fff",
-          transition: "all 0.3s ease",
-          "&:hover": {
-            background: "#fff",
-            color: theme.palette.primary.dark,
-          }
-        })}>
-          Cancel
-        </Button>
-        <Button onClick={onSave} size="small" variant="outlined" disabled={loading} sx={(theme) => ({
-          padding: '8px 24px',
-          borderRadius: '4px',
-          textTransform: 'none',
-          fontWeight: '500',
-          background: theme.palette.primary.gradient,
-          color: "#fff",
-          transition: "all 0.3s ease",
-          "&:hover": {
-            background: "#fff",
-            color: theme.palette.primary.dark,
-          }
-        })}>
-          {editMode ? "Update" : "Create"}
-        </Button>
-      </DialogActions>
+     <DialogActions sx={{ px: 3, pb: 2 }}>
+  {/* Cancel Button */}
+  <Button
+    onClick={onClose}
+    // variant="outlined"
+    size="small"
+    sx={{
+      padding: "8px 24px",
+      borderRadius: "8px",
+      textTransform: "none",
+      fontWeight: 500,
+      backgroundColor: "#f5f5f5",
+      color: "#444",
+      border: "1px solid #ccc",
+      transition: "all 0.3s ease",
+      "&:hover": {
+        backgroundColor: "#e0e0e0",
+        borderColor: "#999",
+        color: "#222",
+      },
+    }}
+  >
+    Cancel
+  </Button>
+
+  {/* Update Button */}
+  <Button
+    onClick={onSave}
+    size="small"
+    variant="contained"
+    disabled={loading}
+    sx={{
+      padding: "8px 24px",
+      borderRadius: "8px",
+      textTransform: "none",
+      fontWeight: 600,
+      background: 'linear-gradient(45deg, #f97316, #ea580c)',
+      color: "#fff",
+      boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+      transition: "all 0.3s ease",
+      "&:hover": {
+         background: 'linear-gradient(45deg, #ea580c, #dc2626)',
+        boxShadow: "0 6px 16px rgba(0,0,0,0.25)",
+      },
+      "&.Mui-disabled": {
+        background: "#ccc",
+        color: "#777",
+        boxShadow: "none",
+      },
+    }}
+  >
+    {editMode ? "Update" : "Create"}
+  </Button>
+</DialogActions>
+
     </Dialog>
   );
 };

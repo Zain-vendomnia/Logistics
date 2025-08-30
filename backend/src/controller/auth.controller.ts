@@ -109,7 +109,7 @@ export async function login(req: Request, res: Response) {
     const accessToken = jwt.sign(
       { user_id: user.user_id, role: user.role },
       config.SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "14h" }
     );
 
     // ✅ declare in outer scope so it’s available for the final response

@@ -26,7 +26,7 @@ export async function shopwareOrderSync() {
     let params: any = {};
 
     if (!rows.length || rows[0].maxOrderId === null) {
-      params = { from_date: "2025-03-19" }; // adjust as needed
+      params = { from_date: "2025-08-10" }; // adjust as needed
       console.log("Date condition is running...")
     } else {
       params = { last_order_id: rows[0].maxOrderId };

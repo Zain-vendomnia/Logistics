@@ -29,11 +29,13 @@ export const getAllDrivers = async () => {
       d.email,
       d.warehouse_id,
       d.user_id,
+      w.warehouse_name,
       u.is_active AS status
     FROM driver_details d
     JOIN users u ON d.user_id = u.user_id
+    JOIN warehouse_details w ON d.warehouse_id = w.warehouse_id
   `);
-
+  
   return rows;
 };
 
@@ -270,171 +272,162 @@ export const updateDriver = async (
   }
 };
 
-export const deleteDriver = async (id: number) => {
-  const conn = await pool.getConnection();
+export const disableDriver = async (
+  id: number
+): Promise<{ status: "success" | "warning" | "error"; message: string; data?: any }> => {
+  if (!Number.isInteger(id) || id <= 0) {
+    return { status: "error", message: `Invalid driver ID: ${id}` };
+  }
+
+  let connection;
   try {
-    console.log("---------------------------------------------------------------------");
-    console.log(`🔄 Starting transaction to deactivate driver ID: ${id}`);
-    await conn.beginTransaction();
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
 
-    // 1. Get user_id from driver_details
-    const [driverRows]: any = await conn.query(
-      "SELECT user_id FROM driver_details WHERE id = ?",
+    // Check current state - Join with users table to get is_active status
+    const [rows]: any = await connection.query(
+      `SELECT d.id, d.name, d.user_id, u.is_active 
+       FROM driver_details d 
+       JOIN users u ON d.user_id = u.user_id 
+       WHERE d.id = ?`,
       [id]
     );
 
-    if (driverRows.length === 0) {
-      console.log(`❌ No driver found with ID: ${id}`);
-      await conn.rollback();
-      return false;
+    if (rows.length === 0) {
+      await connection.rollback();
+      return { status: "error", message: `Driver ID - ${id} not found` };
     }
 
-    const userId = driverRows[0].user_id;
-    console.log(`✅ Retrieved user_id: ${userId} for driver_id: ${id}`);
-
-    // 2. Get tour IDs from tourinfo_master for current/future dates
-    const [tourRows]: any = await conn.query(
-      "SELECT id FROM tourinfo_master WHERE driver_id = ? AND tour_date >= CURRENT_DATE()",
-      [id]
-    );
-
-    const tourIds = tourRows.map((row: any) => row.id);
-    console.log(`📦 Found ${tourIds.length} future/current tour(s) for driver_id ${id}:`, tourIds);
-
-    // 3. Delete related data using tour IDs (if any)
-    if (tourIds.length > 0) {
-      // Delete from route_segments
-      const [routeDelete]: any = await conn.query(
-        "DELETE FROM route_segments WHERE tour_id IN (?)",
-        [tourIds]
-      );
-      console.log(`🗑️ Deleted ${routeDelete.affectedRows} route segment(s)`);
-
-      // Delete from tour_driver
-      const [tourDriverDelete]: any = await conn.query(
-        "DELETE FROM tour_driver WHERE tour_id IN (?)",
-        [tourIds]
-      );
-      console.log(`🗑️ Deleted ${tourDriverDelete.affectedRows} row(s) from tour_driver`);
-
-      // Delete from tourinfo_master
-      const [tourInfoDelete]: any = await conn.query(
-        "DELETE FROM tourinfo_master WHERE id IN (?)",
-        [tourIds]
-      );
-      console.log(`🗑️ Deleted ${tourInfoDelete.affectedRows} row(s) from tourinfo_master`);
-    } else {
-      console.log(`ℹ️ No future tours found to delete for the driver.`);
+    const driver = rows[0];
+    if (driver.is_active === 0) {
+      await connection.rollback();
+      return { 
+        status: "warning", 
+        message: `Driver ID - ${id} (${driver.name}) is already inactive` 
+      };
     }
 
-    // 4. Set user as inactive
-    const [userUpdate]: any = await conn.query(
+    // Update if active - Update users table and driver_details updated_at
+    const [result]: any = await connection.query(
       "UPDATE users SET is_active = 0 WHERE user_id = ?",
-      [userId]
+      [driver.user_id]
     );
-    console.log(`⚠️ Set is_active = 0 for user_id: ${userId}`);
 
-    await conn.commit();
-    console.log(`✅ Transaction committed successfully. Driver ID ${id} deactivated.`);
-    return userUpdate.affectedRows > 0;
+    // Update the updated_at timestamp in driver_details
+    await connection.query(
+      "UPDATE driver_details SET updated_at = NOW() WHERE id = ?",
+      [id]
+    );
+
+    await connection.commit();
+    return {
+      status: result.affectedRows > 0 ? "success" : "error",
+      message:
+        result.affectedRows > 0
+          ? `Driver ID - ${id} (${driver.name}) disabled successfully`
+          : `Failed to disable driver ${id}`,
+      data: {
+        driverId: id,
+        driverName: driver.name,
+        userId: driver.user_id,
+        status: "disabled"
+      },
+    };
   } catch (err) {
-    await conn.rollback();
-    console.error(`❌ Error occurred. Transaction rolled back.`, err);
-    throw err;
+    if (connection) await connection.rollback();
+    return {
+      status: "error",
+      message: `Failed to disable driver ${id}: ${
+        err instanceof Error ? err.message : String(err)
+      }`,
+    };
   } finally {
-    conn.release();
-    console.log(`🔚 Connection released for driver_id: ${id}`);
-    console.log("---------------------------------------------------------------------");
+    if (connection) connection.release();
   }
 };
 
+// Disable multiple drivers
+export const disableMultipleDrivers = async (
+  ids: number[]
+): Promise<{ status: "success" | "warning" | "error"; message: string; data?: any }> => {
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return { status: "error", message: "'ids' must be a non-empty array of numbers" };
+  }
 
-export const deleteMultipleDrivers = async (ids: number[]) => {
-  const conn = await pool.getConnection();
+  // Validate individual IDs
+  const invalidIds = ids.filter(id => !Number.isInteger(id) || id <= 0);
+  if (invalidIds.length > 0) {
+    return { status: "error", message: `Invalid driver IDs: ${invalidIds.join(", ")}` };
+  }
+
+  let connection;
   try {
-    console.log("---------------------------------------------------------------------");
-    console.log(`🔄 Starting transaction to deactivate multiple drivers: [${ids.join(", ")}]`);
-    await conn.beginTransaction();
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
 
-    if (ids.length === 0) {
-      console.log("⚠️ No driver IDs provided.");
-      await conn.rollback();
-      return 0;
-    }
-
-    // 1. Get user_ids for each driver
-    const [driverRows]: any = await conn.query(
-      `SELECT id, user_id FROM driver_details WHERE id IN (?)`,
+    // Check current states - Join with users table to get is_active status
+    const [rows]: any = await connection.query(
+      `SELECT d.id, d.name, d.user_id, u.is_active 
+       FROM driver_details d 
+       JOIN users u ON d.user_id = u.user_id 
+       WHERE d.id IN (?)`,
       [ids]
     );
 
-    if (driverRows.length === 0) {
-      console.log("❌ No matching driver records found.");
-      await conn.rollback();
-      return 0;
+    if (rows.length === 0) {
+      await connection.rollback();
+      return { status: "error", message: "No drivers found with the provided IDs" };
     }
 
-    const userIds = driverRows.map((row: any) => row.user_id);
-    const validDriverIds = driverRows.map((row: any) => row.id);
+    const activeDrivers = rows.filter((r: any) => r.is_active === 1);
+    const inactiveCount = rows.filter((r: any) => r.is_active === 0).length;
+    const activeUserIds = activeDrivers.map((r: any) => r.user_id);
 
-    console.log(`✅ Retrieved user_ids for driver_ids: [${validDriverIds.join(", ")}]`);
+    if (activeDrivers.length === 0) {
+      await connection.rollback();
+      return {
+        status: "warning",
+        message: "All provided drivers are already inactive",
+        data: { requestedIds: ids, alreadyInactive: inactiveCount },
+      };
+    }
 
-    // 2. Get tour IDs for all drivers for current/future tours
-    const [tourRows]: any = await conn.query(
-      `SELECT id FROM tourinfo_master WHERE driver_id IN (?) AND tour_date >= CURRENT_DATE()`,
-      [validDriverIds]
+    // Disable active drivers by updating users table
+    const [result]: any = await connection.query(
+      `UPDATE users SET is_active = 0 WHERE user_id IN (?)`,
+      [activeUserIds]
     );
-    const tourIds = tourRows.map((row: any) => row.id);
-    console.log(`📦 Found ${tourIds.length} future/current tour(s) across drivers:`, tourIds);
 
-    // 3. Delete tour-related data if applicable
-    if (tourIds.length > 0) {
-      const [routeDelete]: any = await conn.query(
-        `DELETE FROM route_segments WHERE tour_id IN (?)`,
-        [tourIds]
-      );
-      console.log(`🗑️ Deleted ${routeDelete.affectedRows} route segment(s)`);
+    // Update driver_details timestamp for the active drivers
+    const activeDriverIds = activeDrivers.map((r: any) => r.id);
+    await connection.query(
+      `UPDATE driver_details SET updated_at = NOW() WHERE id IN (?)`,
+      [activeDriverIds]
+    );
 
-      const [tourDriverDelete]: any = await conn.query(
-        `DELETE FROM tour_driver WHERE tour_id IN (?)`,
-        [tourIds]
-      );
-      console.log(`🗑️ Deleted ${tourDriverDelete.affectedRows} row(s) from tour_driver`);
-
-      const [tourInfoDelete]: any = await conn.query(
-        `DELETE FROM tourinfo_master WHERE id IN (?)`,
-        [tourIds]
-      );
-      console.log(`🗑️ Deleted ${tourInfoDelete.affectedRows} row(s) from tourinfo_master`);
-    } else {
-      console.log(`ℹ️ No future/current tours found for the given drivers.`);
-    }
-
-    // 4. Instead of deleting, update is_active = 0 in users
-    if (userIds.length > 0) {
-      const [userUpdate]: any = await conn.query(
-        `UPDATE users SET is_active = 0 WHERE user_id IN (?)`,
-        [userIds]
-      );
-      console.log(`🛑 Set is_active = 0 for ${userUpdate.affectedRows} user(s)`);
-    }
-
-    // 5. Do NOT delete from driver_details
-    console.log(`🚫 Skipped deleting from driver_details. Drivers deactivated instead.`);
-
-    await conn.commit();
-    console.log(`✅ Transaction committed for multiple driver deactivations.`);
-    return validDriverIds.length;
+    await connection.commit();
+    return {
+      status: "success",
+      message: `${result.affectedRows} of ${ids.length} drivers disabled (Already inactive: ${inactiveCount})`,
+      data: {
+        requestedIds: ids,
+        affectedCount: result.affectedRows,
+        alreadyInactive: inactiveCount,
+        status: "disabled",
+      },
+    };
   } catch (err) {
-    await conn.rollback();
-    console.error(`❌ Error during bulk deactivation. Transaction rolled back.`, err);
-    throw err;
+    if (connection) await connection.rollback();
+    return {
+      status: "error",
+      message: `Failed to disable drivers: ${err instanceof Error ? err.message : String(err)}`,
+    };
   } finally {
-    conn.release();
-    console.log("🔚 Connection released after bulk driver deactivation");
-    console.log("---------------------------------------------------------------------");
+    if (connection) connection.release();
   }
 };
+
+
 
 export const evaluateDriverEligibility = async (driverId: number) => {
   console.log(`[Service] Evaluating driver eligibility for driver ID: ${driverId}`);
@@ -620,7 +613,7 @@ export const getDriverPerformanceData = async (
            ON d.warehouse_id = w.warehouse_id
     LEFT JOIN (
       SELECT tour_id,
-             GREATEST(COUNT(*) - 1, 0)                                 AS total_expected,
+             GREATEST(COUNT(*) -1, 0)                                 AS total_expected,
              SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END)     AS total_actual,
              SUM(
                CASE 
@@ -635,7 +628,7 @@ export const getDriverPerformanceData = async (
                  ELSE 0
                END
              ) AS total_valid_pod
-      FROM route_segments
+      FROM route_segments 
       GROUP BY tour_id
     ) rs ON rs.tour_id = t.id
 
@@ -878,7 +871,7 @@ export const getDriverPerformanceWeekDaily = async (
               ELSE 0
             END
           ) AS total_valid_pod
-        FROM route_segments
+        FROM route_segments WHERE status = 'delivered'
         GROUP BY tour_id
       ) rs ON rs.tour_id = t.id
       WHERE t.driver_id = ?

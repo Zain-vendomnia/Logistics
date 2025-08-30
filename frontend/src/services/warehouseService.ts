@@ -18,12 +18,12 @@ export const updateWarehouse = async (id: number, warehouse: any) => {
   return response.data;
 };
 
-export const deleteWarehouse = async (id: number) => {
-  const response = await axios.delete(`${API_BASE}/${id}`, { headers: authHeader() });
+export const disableWarehouse = async (id: number) => {
+  const response = await axios.patch(`${API_BASE}/${id}/disable`, {}, { headers: authHeader() });
   return response.data;
 };
 
-export const deleteWarehousesBulk = async (ids: number[]) => {
-  const response = await axios.post(`${API_BASE}/delete-multiple`, { ids }, { headers: authHeader() });
+export const disableWarehousesBulk = async (ids: number[]) => {
+  const response = await axios.patch(`${API_BASE}/disable-multiple`, { ids }, { headers: authHeader() });
   return response.data;
 };

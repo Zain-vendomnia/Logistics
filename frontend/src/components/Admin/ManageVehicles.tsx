@@ -1,4 +1,4 @@
-// pages/admin/ManageDrivers.tsx
+// pages/admin/ManageVehicles.tsx
 import React, { useCallback, useEffect, useState, useMemo } from "react";
 import {
   Box, Button, Snackbar, Alert, Stack, Typography, Paper, CircularProgress, TextField, InputAdornment,
@@ -6,17 +6,40 @@ import {
 } from "@mui/material";
 import { DataGrid, GridColDef, GridToolbar } from "@mui/x-data-grid";
 import { 
-  SaveAlt, PersonOffRounded, Edit, Add, Search, FilterList
+  SaveAlt, NoTransferOutlined, Edit, Add, Search, FilterList
 } from "@mui/icons-material";
 import ExcelJS from 'exceljs';
+import {getAllDrivers} from "../../services/driverService";
+import { getAllWarehouses} from "../../services/warehouseService";
 import {
-  getAllDrivers, createDriver, updateDriver,
-  disableDriver, disableDriversBulk
-} from "../../services/driverService";
-import DriverDialog from "./DriverDialog";
+  getAllVehicles,
+  createVehicle,
+  updateVehicle,
+  disableVehicle,
+  disableVehiclesBulk
+} from "../../services/vehiclesService";
+import VehicleDialog from "./VehicleDialog";
 import ConfirmDialog from "./ConfirmDialog"; 
+import dayjs from "dayjs";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import CancelIcon from "@mui/icons-material/CancelOutlined";
+
+export type Vehicle = {
+  vehicle_id: number;
+  capacity: number;
+  license_plate: string;
+  miles_driven: number;
+  next_service: string | null;
+  warehouse_id: number;
+  driver_id: number | null;
+  created_at: string;
+  updated_at: string | null;
+  is_active: number;
+  warehouse_name?: string;
+  insurance_number: string;
+  insurance_expiry_date: string | null; 
+  driver_name?: string;
+};
 
 type Driver = {
   id: number;
@@ -25,28 +48,64 @@ type Driver = {
   address: string;
   email: string;
   warehouse_id: number;
-  warehouse_name: string;
   status: number;
 };
 
-const initialFormState: Partial<Driver> = {
-  mob: "+49",           // ← default mobile field value
-  status: 1             // ← default driver status: Active
+type Warehouse = {
+  warehouse_id: number;
+  warehouse_name: string;
 };
 
-const ManageDrivers: React.FC = () => {
+const initialFormState: Partial<Vehicle> = {
+  capacity: undefined,
+  license_plate: "",
+  miles_driven: 0,
+  next_service: null,
+  warehouse_id: undefined,
+  insurance_number: "",
+  insurance_expiry_date: null,
+  driver_id: null,
+  is_active: 1,
+};
+
+// Optimized date formatting functions
+const formatDate = (date: string | null): string => {
+  if (!date) return "-";
+  const parsed = dayjs(date);
+  return parsed.isValid() ? parsed.format("YYYY-MM-DD") : "-";
+};
+
+// const formatDateTime = (date: string | null): string => {
+//   if (!date) return "-";
+//   const parsed = dayjs(date);
+//   return parsed.isValid() ? parsed.format("YYYY-MM-DD HH:mm") : "-";
+// };
+
+// // Convert date to input format (YYYY-MM-DD)
+// const formatDateForInput = (date: string | null): string => {
+//   if (!date) return "";
+//   const parsed = dayjs(date);
+//   return parsed.isValid() ? parsed.format("YYYY-MM-DD") : "";
+// };
+
+const isPositiveInt = (n: any): boolean =>
+  Number.isFinite(+n) && +n > 0 && Number.isInteger(+n);
+
+const ManageVehicles: React.FC = () => {
   const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
-  const [formData, setFormData] = useState<Partial<Driver>>(initialFormState);
+  const [formData, setFormData] = useState<Partial<Vehicle>>(initialFormState);
   const [openDialog, setOpenDialog] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState(""); // Fixed: renamed from searchQuery to searchTerm
+  const [searchTerm, setSearchTerm] = useState("");
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
-    severity: "success" as "success" | "error"| "warning",
+    severity: "success" as "success" | "error" | "warning",
   });
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
 
@@ -55,33 +114,32 @@ const ManageDrivers: React.FC = () => {
   const [confirmContent, setConfirmContent] = useState("");
   const [onConfirmAction, setOnConfirmAction] = useState<() => void>(() => () => {});
 
-  // Filter drivers based on search query
-  const filteredDrivers = useMemo(() => {
-    let filtered = drivers;
+  // Filter vehicles based on search query and status
+  const filteredVehicles = useMemo(() => {
+    let filtered = vehicles;
     
     // Apply status filter first
     if (statusFilter === "active") {
-      filtered = filtered.filter(driver => driver.status === 1);
+      filtered = filtered.filter(vehicle => vehicle.is_active === 1);
     } else if (statusFilter === "inactive") {
-      filtered = filtered.filter(driver => driver.status === 0);
+      filtered = filtered.filter(vehicle => vehicle.is_active === 0);
     }
     
     // Then apply search query filter
     if (searchTerm.trim()) {
       const query = searchTerm.toLowerCase();
-      filtered = filtered.filter((driver) => 
-        driver.name.toLowerCase().includes(query) ||
-        driver.mob.toLowerCase().includes(query) ||
-        driver.email.toLowerCase().includes(query) ||
-        driver.address.toLowerCase().includes(query) ||
-        driver.warehouse_name.toLowerCase().includes(query)
+      filtered = filtered.filter((vehicle) => 
+        vehicle.license_plate.toLowerCase().includes(query) ||
+        vehicle.insurance_number.toLowerCase().includes(query) ||
+        (vehicle.warehouse_name && vehicle.warehouse_name.toLowerCase().includes(query)) ||
+        (vehicle.driver_name && vehicle.driver_name.toLowerCase().includes(query)) ||
+        vehicle.capacity.toString().includes(query)
       );
     }
     
     return filtered;
-  }, [drivers, searchTerm, statusFilter]);
+  }, [vehicles, searchTerm, statusFilter]);
 
-  // Fixed: renamed function to match usage
   const clearFilters = () => {
     setSearchTerm("");
     setStatusFilter("all");
@@ -103,27 +161,63 @@ const ManageDrivers: React.FC = () => {
     setEditMode(false);
   };
 
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
+  const validateForm = (): boolean => {
+    const e: Record<string, string> = {};
+    
+    if (!formData.license_plate?.trim()) {
+      e.license_plate = "License plate is required";
+    }
+    
+    const numericFields = [
+      { key: 'capacity', label: 'Capacity', required: true },
+      { key: 'warehouse_id', label: 'Warehouse ID', required: true },
+    ];
+    
+    numericFields.forEach(({ key, label, required }) => {
+      const value = formData[key as keyof Partial<Vehicle>];
+      if (required && (value === undefined || value === null)) {
+        e[key] = `${label} is required`;
+      } else if (value != null && !isPositiveInt(value)) {
+        e[key] = `${label} must be a positive integer`;
+      }
+    });
 
-    if (!formData.name?.trim()) newErrors.name = "Name is required";
-    else if (/\d/.test(formData.name)) newErrors.name = "Name should not contain numbers";
-
-    if (!/^\+49\d{10,12}$/.test(formData.mob || "")) {
-     newErrors.mob = "Mobile must be a valid German number starting with +49 and 11–13 digits total";
+    if (formData.driver_id != null && !isPositiveInt(formData.driver_id)) {
+      e.driver_id = "Driver ID must be a positive integer or left blank";
     }
 
-    if (!formData.address?.trim()) newErrors.address = "Address is required";
+    if (formData.miles_driven != null && 
+        (!Number.isFinite(+formData.miles_driven) || +formData.miles_driven < 0)) {
+      e.miles_driven = "Miles driven must be a non-negative number";
+    }
 
-    if (!formData.email?.trim()) newErrors.email = "Email is required";
-    else if (!/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(formData.email)) newErrors.email = "Invalid email address";
+    // Validate next_service date format if provided
+    if (formData.next_service && !dayjs(formData.next_service).isValid()) {
+      e.next_service = "Please enter a valid date";
+    }
 
-    if (!formData.warehouse_id || isNaN(+formData.warehouse_id) || +formData.warehouse_id <= 0)
-      newErrors.warehouse_id = "Warehouse ID must be a positive number";
+    // Validate insurance_expiry_date format if provided
+    if (formData.insurance_expiry_date && !dayjs(formData.insurance_expiry_date).isValid()) {
+      e.insurance_expiry_date = "Please enter a valid date";
+    }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setErrors(e);
+    return Object.keys(e).length === 0;
   };
+
+  const loadVehicles = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await getAllVehicles();
+      const data: Vehicle[] = Array.isArray(res) ? res : res?.data ?? [];
+      setVehicles(data);
+    } catch (err) {
+      console.error("Error loading vehicles:", err);
+      showSnackbar("Failed to load vehicles", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const loadDrivers = useCallback(async () => {
     setLoading(true);
@@ -131,20 +225,35 @@ const ManageDrivers: React.FC = () => {
       const data = await getAllDrivers();
       setDrivers(data);
     } catch (err) {
-      console.error(err);
+      console.error("Error loading drivers:", err);
       showSnackbar("Failed to load drivers", "error");
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    loadDrivers();
-  }, [loadDrivers]);
+  const loadWarehouses = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await getAllWarehouses();
+      setWarehouses(data);
+    } catch (err) {
+      console.error("Error loading warehouses:", err);
+      showSnackbar("Failed to load warehouses", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const handleDialogOpen = (driver?: Driver) => {
-    setEditMode(!!driver);
-    setFormData(driver || initialFormState);
+  useEffect(() => {
+    loadVehicles();
+    loadDrivers();
+    loadWarehouses();
+  }, [loadVehicles, loadDrivers, loadWarehouses]);
+
+  const handleDialogOpen = async (vehicle?: Vehicle) => {
+    setEditMode(!!vehicle);
+    setFormData(vehicle || initialFormState);
     setErrors({});
     setOpenDialog(true);
   };
@@ -156,63 +265,81 @@ const ManageDrivers: React.FC = () => {
 
   const handleSave = async () => {
     if (!validateForm()) return;
-  
+
+    // Prepare payload with proper date formatting
+    const payload = {
+      capacity: formData.capacity ? Number(formData.capacity) : undefined,
+      license_plate: formData.license_plate?.trim(),
+      miles_driven: Number(formData.miles_driven) || 0,
+      next_service: formData.next_service || null,
+      warehouse_id: formData.warehouse_id ? Number(formData.warehouse_id) : undefined,
+      driver_id: formData.driver_id ? Number(formData.driver_id) : null,
+      insurance_number: formData.insurance_number?.trim() || "",
+      insurance_expiry_date: formData.insurance_expiry_date || null,
+      is_active: formData.is_active ?? 1,
+    };
+    
+    // Remove undefined values
+    Object.keys(payload).forEach(
+      (k) => payload[k as keyof typeof payload] === undefined && delete payload[k as keyof typeof payload]
+    );
+
     setLoading(true);
     try {
-      if (editMode && formData.id != null) {
-        const response = await updateDriver(formData.id, formData);
-  
+      if (editMode && formData.vehicle_id != null) {
+        const response = await updateVehicle(formData.vehicle_id, payload);
+
         if (response?.error) {
           showSnackbar(response.message || "An error occurred", "error");
           return;
         }
-  
-        showSnackbar("Driver updated successfully", "success");
+
+        showSnackbar("Vehicle updated successfully", "success");
       } else {
-        const response = await createDriver(formData);
-  
+        const response = await createVehicle(payload);
+
         if (response?.error) {
           showSnackbar(response.message || "An error occurred", "error");
           return;
         }
-  
-        showSnackbar("Driver created successfully", "success");
+
+        showSnackbar("Vehicle created successfully", "success");
       }
-  
+
       handleDialogClose();
-      await loadDrivers();
+      await loadVehicles();
     } catch (err) {
       console.error(err);
-      showSnackbar("Failed to save driver", "error");
+      showSnackbar("Failed to save vehicle", "error");
     } finally {
       setLoading(false);
     }
   };
 
-  const confirmDeleteDriver = (id: number) => {
+  const confirmDeleteVehicle = (id: number) => {
     showConfirmDialog(
-      "Disable Driver?",
-      "Are you sure you want to disable this driver? This will change their status to inactive.",
+      "Disable Vehicle?",
+      "Are you sure you want to disable this vehicle? This will change their status to inactive.",
       () => handleDisable(id)
     );
   };
 
   const confirmBulkDelete = () => {
     showConfirmDialog(
-      "Disable Driver?",
-      "Are you sure you want to disable this driver? This will change their status to inactive.",
+      "Disable Vehicles?",
+      "Are you sure you want to disable selected vehicles? This will change their status to inactive.",
       () => handleBulkDelete()
     );
   };
-const handleDisable = async (id: number) => {
-  setConfirmOpen(false);
-  setLoading(true);
-  
-  try {
-    const response = await disableDriver(id);
-    console.log(response);
-    
-    switch (response.status) {
+
+  const handleDisable = async (id: number) => {
+    setConfirmOpen(false);
+    setLoading(true);
+    try {
+      const response = await disableVehicle(id);
+      console.log(response)
+
+     switch (response.status) {
       case "success":
         showSnackbar(response.message, "success");
         break;
@@ -221,73 +348,60 @@ const handleDisable = async (id: number) => {
         break;
       case "error":
       default:
-        showSnackbar(response.message || "Failed to disable driver", "error");
+        showSnackbar(response.message || "Failed to vehicle warehouse", "error");
         break;
     }
-    
-    await loadDrivers();
-  } catch (err) {
-    console.error(err);
-    showSnackbar("Failed to disable driver", "error");
-  } finally {
-    setLoading(false);
-  }
-};
-const handleBulkDelete = async () => {
-  if (selectedIds.length === 0) return;
-  setConfirmOpen(false);
-  setLoading(true);
-  
-  try {
-    const response = await disableDriversBulk(selectedIds);
-    console.log(response);
-    
-    switch (response.status) {
-      case "success":
-        showSnackbar(response.message, "success");
-        break;
-      case "warning":
-        showSnackbar(response.message, "warning");
-        break;
-      case "error":
-      default:
-        showSnackbar(response.message || "Failed to disable selected drivers", "error");
-        break;
+      await loadVehicles();
+    } catch (err) {
+      console.error(err);
+      showSnackbar("Failed to disable vehicle", "error");
+    } finally {
+      setLoading(false);
     }
-    
-    setSelectedIds([]);
-    await loadDrivers();
-  } catch (err) {
-    console.error(err);
-    showSnackbar("Failed to disable selected drivers", "error");
-  } finally {
-    setLoading(false);
-  }
-};
+  };
+
+  const handleBulkDelete = async () => {
+    setConfirmOpen(false);
+    setLoading(true);
+    try {
+      await disableVehiclesBulk(selectedIds);
+      showSnackbar("Selected vehicles disabled", "success");
+      setSelectedIds([]);
+      await loadVehicles();
+    } catch (err) {
+      console.error(err);
+      showSnackbar("Failed to disable selected vehicles", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Enhanced export function
   const handleExport = async () => {
     try {
       // Create a new workbook and worksheet
       const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet('Drivers', {
+      const worksheet = workbook.addWorksheet('Vehicles', {
         properties: { tabColor: { argb: '1976D2' } }
       });
 
       // Set workbook properties
-      workbook.creator = 'Driver Management System';
-      workbook.lastModifiedBy = 'Driver Management System';
+      workbook.creator = 'Vehicle Management System';
+      workbook.lastModifiedBy = 'Vehicle Management System';
       workbook.created = new Date();
       workbook.modified = new Date();
 
       // Define columns with headers
       worksheet.columns = [
         { header: 'ID', key: 'id', width: 8 },
-        { header: 'Name', key: 'name', width: 20 },
-        { header: 'Mobile', key: 'mobile', width: 18 },
-        { header: 'Email', key: 'email', width: 30 },
-        { header: 'Address', key: 'address', width: 35 },
+        { header: 'License Plate', key: 'license_plate', width: 18 },
+        { header: 'Capacity', key: 'capacity', width: 12 },
+        { header: 'Miles Driven', key: 'miles_driven', width: 15 },
+        { header: 'Next Service', key: 'next_service', width: 18 },
         { header: 'Warehouse Name', key: 'warehouse_name', width: 25 },
+        { header: 'Driver Name', key: 'driver_name', width: 20 },
+        { header: 'Insurance Number', key: 'insurance_number', width: 20 },
+        { header: 'Insurance Expiry', key: 'insurance_expiry_date', width: 18 },
         { header: 'Status', key: 'status', width: 12 }
       ];
 
@@ -320,15 +434,18 @@ const handleBulkDelete = async () => {
       });
 
       // Add data rows
-      filteredDrivers.forEach((driver, index) => {
+      filteredVehicles.forEach((vehicle, index) => {
         const row = worksheet.addRow({
-          id: driver.id,
-          name: driver.name,
-          mobile: driver.mob,
-          email: driver.email,
-          address: driver.address,
-          warehouse_name: driver.warehouse_name,
-          status: driver.status === 1 ? 'Active' : 'Inactive'
+          id: vehicle.vehicle_id,
+          license_plate: vehicle.license_plate,
+          capacity: vehicle.capacity,
+          miles_driven: vehicle.miles_driven,
+          next_service: formatDate(vehicle.next_service),
+          warehouse_name: vehicle.warehouse_name || '-',
+          driver_name: vehicle.driver_name || '-',
+          insurance_number: vehicle.insurance_number || '-',
+          insurance_expiry_date: formatDate(vehicle.insurance_expiry_date),
+          status: vehicle.is_active === 1 ? 'Active' : 'Inactive'
         });
 
         // Style each data row
@@ -344,7 +461,7 @@ const handleBulkDelete = async () => {
           };
 
           // Status column special styling
-          if (colNumber === 7) { // Status column
+          if (colNumber === 10) { // Status column
             cell.font = {
               bold: true,
               color: { 
@@ -380,15 +497,15 @@ const handleBulkDelete = async () => {
       });
 
       // Add a title section at the top (insert rows before existing data)
-      worksheet.insertRow(1, ['Logistics Management System - Drivers Report']);
+      worksheet.insertRow(1, ['Logistics Management System - Vehicles Report']);
       worksheet.insertRow(2, [`Export Date: ${new Date().toLocaleDateString()}`]);
-      worksheet.insertRow(3, [`Total Records: ${filteredDrivers.length}`]);
+      worksheet.insertRow(3, [`Total Records: ${filteredVehicles.length}`]);
       worksheet.insertRow(4, []); // Empty row for spacing
 
       // Style the title section
       const titleRow = worksheet.getRow(1);
       titleRow.height = 30;
-      worksheet.mergeCells('A1:G1');
+      worksheet.mergeCells('A1:J1');
       
       const titleCell = worksheet.getCell('A1');
       titleCell.fill = {
@@ -429,7 +546,7 @@ const handleBulkDelete = async () => {
       // Apply autofilter to the data range (excluding title rows)
       worksheet.autoFilter = {
         from: { row: 5, column: 1 },
-        to: { row: worksheet.rowCount, column: 7 }
+        to: { row: worksheet.rowCount, column: 10 }
       };
 
       // Freeze the header row
@@ -441,7 +558,7 @@ const handleBulkDelete = async () => {
       const now = new Date();
       const dateStr = now.toISOString().split('T')[0];
       const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
-      const filename = `drivers_export_${dateStr}_${timeStr}.xlsx`;
+      const filename = `vehicles_export_${dateStr}_${timeStr}.xlsx`;
 
       // Write the file
       const buffer = await workbook.xlsx.writeBuffer();
@@ -468,19 +585,50 @@ const handleBulkDelete = async () => {
   };
 
   const columns: GridColDef[] = [
-    { field: "id", headerName: "ID", width: 80 },
-    { field: "name", headerName: "Name", flex: 1 },
-    { field: "mob", headerName: "Mobile", flex: 1 },
-    { field: "email", headerName: "Email", flex: 1 },
-    { field: "address", headerName: "Address", flex: 1 },
-    { field: "warehouse_name", headerName: "Warehouse name", flex: 1 },
+    { 
+      field: "vehicle_id", 
+      headerName: "ID", 
+      width: 80 
+    },
+    { 
+      field: "license_plate", 
+      headerName: "License Plate", 
+      flex: 1
+    },
+    { 
+      field: "capacity", 
+      headerName: "Capacity", 
+      flex: 1
+    },
+    { 
+      field: "miles_driven", 
+      headerName: "Miles", 
+      flex: 1
+    },
     {
-      field: "status",
+      field: "next_service",
+      headerName: "Next Service",
+      flex: 1,
+      valueFormatter: (value: string | null) => formatDate(value)
+    },
+    { 
+      field: "warehouse_name", 
+      headerName: "Warehouse", 
+      flex: 1
+    },
+    {
+      field: "driver_name",
+      headerName: "Driver",
+      flex: 1,
+      valueFormatter: (value: string | null) => value || "-",
+    },
+    {
+      field: "is_active",
       headerName: "Status",
       flex: 1,
       renderCell: ({ row }) => (
         <Stack height="100%" direction="row" spacing={1} alignItems="center" justifyContent="center"> 
-          {row.status === 1 ? (
+          {row.is_active === 1 ? (
             <>
               <CheckCircleOutlineIcon color="success" />
               <Typography variant="body2" color="success.main">Active</Typography>
@@ -527,7 +675,7 @@ const handleBulkDelete = async () => {
           <Button
             variant="outlined"
             color="error"
-            onClick={() => confirmDeleteDriver(row.id)}
+            onClick={() => confirmDeleteVehicle(row.vehicle_id)}
             disabled={loading}
             sx={{
               mt: 2,
@@ -542,7 +690,7 @@ const handleBulkDelete = async () => {
               },
             }}
           >
-            <PersonOffRounded fontSize="small" />
+            <NoTransferOutlined fontSize="small" />
           </Button>
         </Stack>
       ),
@@ -552,7 +700,7 @@ const handleBulkDelete = async () => {
   return (
     <Box sx={{ p: 3, minHeight: "100vh", backgroundColor: "#f4f4f4", borderRadius: 2 }}>
       <Box sx={{ p: 3, backgroundColor: "#fff", borderRadius: 2 }}>
-        <Typography variant="h5" mb={2}>Manage Drivers</Typography>
+        <Typography variant="h5" mb={2}>Manage Vehicles</Typography>
 
         {/* Search and Filter Section */}
         <Paper elevation={1} sx={{ p: 2, mb: 3, borderRadius: 2 }}>
@@ -566,7 +714,7 @@ const handleBulkDelete = async () => {
             <Grid item xs={12} md={5}>
               <TextField
                 fullWidth
-                placeholder="Search by name, mobile, email, address, or warehouse..."
+                placeholder="Search by license plate, insurance number, warehouse, driver, or capacity..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 InputProps={{
@@ -612,88 +760,88 @@ const handleBulkDelete = async () => {
             {/* Results Count */}
             <Grid item xs={12} md={3}>
               <Typography variant="body2" color="textSecondary" textAlign="right">
-                Showing {filteredDrivers.length} of {drivers.length} drivers
+                Showing {filteredVehicles.length} of {vehicles.length} vehicles
               </Typography>
             </Grid>
           </Grid>
         </Paper>
 
         <Stack direction="row" spacing={2} mb={2}>
-         <Button
-          variant="contained"
-          sx={{
-            background: 'linear-gradient(45deg, #f97316, #ea580c)',
-            color: 'white',
-            fontWeight: 600,
-            textTransform: 'none',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-            '&:hover': {
-              background: 'linear-gradient(45deg, #ea580c, #dc2626)',
-              boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
-              transform: 'translateY(-1px)',
-            },
-            transition: 'all 0.2s ease-in-out',
-          }}
-          startIcon={<Add />}
-          onClick={() => handleDialogOpen()}
-        >
-          Add Driver
-        </Button>
-        <Button
-  variant="contained"
-  disabled={!selectedIds.length}
-  onClick={confirmBulkDelete}
-  startIcon={<PersonOffRounded />}
-  sx={{
-    background: 'linear-gradient(45deg, #ef4444, #dc2626)',
-    color: 'white',
-    fontWeight: 600,
-    textTransform: 'none',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-    '&:hover': {
-      background: 'linear-gradient(45deg, #dc2626, #b91c1c)',
-      boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
-      transform: 'translateY(-1px)',
-    },
-    '&.Mui-disabled': {
-      background: 'linear-gradient(45deg, #fca5a5, #f87171)',
-      color: 'rgba(255, 255, 255, 0.6)',
-      boxShadow: 'none',
-      transform: 'none',
-    },
-    transition: 'all 0.2s ease-in-out',
-  }}
->
-  Disable Selected ({selectedIds.length})
-</Button>
+          <Button
+            variant="contained"
+            sx={{
+              background: 'linear-gradient(45deg, #f97316, #ea580c)',
+              color: 'white',
+              fontWeight: 600,
+              textTransform: 'none',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+              '&:hover': {
+                background: 'linear-gradient(45deg, #ea580c, #dc2626)',
+                boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
+                transform: 'translateY(-1px)',
+              },
+              transition: 'all 0.2s ease-in-out',
+            }}
+            startIcon={<Add />}
+            onClick={() => handleDialogOpen()}
+          >
+            Add Vehicle
+          </Button>
+          <Button
+            variant="contained"
+            disabled={!selectedIds.length}
+            onClick={confirmBulkDelete}
+            startIcon={<NoTransferOutlined />}
+            sx={{
+              background: 'linear-gradient(45deg, #ef4444, #dc2626)',
+              color: 'white',
+              fontWeight: 600,
+              textTransform: 'none',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+              '&:hover': {
+                background: 'linear-gradient(45deg, #dc2626, #b91c1c)',
+                boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
+                transform: 'translateY(-1px)',
+              },
+              '&.Mui-disabled': {
+                background: 'linear-gradient(45deg, #fca5a5, #f87171)',
+                color: 'rgba(255, 255, 255, 0.6)',
+                boxShadow: 'none',
+                transform: 'none',
+              },
+              transition: 'all 0.2s ease-in-out',
+            }}
+          >
+            Disable Selected ({selectedIds.length})
+          </Button>
          
-         <Button
-  variant="contained"
-  onClick={handleExport}
-  startIcon={<SaveAlt />}
-  sx={{
-    background: 'linear-gradient(45deg, #fb923c, #f97316)',
-    color: 'white',
-    fontWeight: 600,
-    textTransform: 'none',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-    '&:hover': {
-      background: 'linear-gradient(45deg, #f97316, #ea580c)',
-      boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
-      transform: 'translateY(-1px)',
-    },
-    transition: 'all 0.2s ease-in-out',
-  }}
->
-  Export ({filteredDrivers.length})
-</Button>
+          <Button
+            variant="contained"
+            onClick={handleExport}
+            startIcon={<SaveAlt />}
+            sx={{
+              background: 'linear-gradient(45deg, #fb923c, #f97316)',
+              color: 'white',
+              fontWeight: 600,
+              textTransform: 'none',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+              '&:hover': {
+                background: 'linear-gradient(45deg, #f97316, #ea580c)',
+                boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
+                transform: 'translateY(-1px)',
+              },
+              transition: 'all 0.2s ease-in-out',
+            }}
+          >
+            Export ({filteredVehicles.length})
+          </Button>
 
           {loading && <CircularProgress size={24} sx={{ ml: 2 }} />}
         </Stack>
 
         <Paper elevation={3} sx={{ borderRadius: 2 }}>
           <DataGrid
-            rows={filteredDrivers}
+            rows={filteredVehicles.map(v => ({ id: v.vehicle_id, ...v }))}
             columns={columns}
             checkboxSelection
             autoHeight
@@ -712,11 +860,13 @@ const handleBulkDelete = async () => {
           />
         </Paper>
 
-        <DriverDialog
+        <VehicleDialog
           open={openDialog}
           editMode={editMode}
           formData={formData}
           errors={errors}
+          drivers={drivers}
+          warehouses={warehouses}
           onClose={handleDialogClose}
           onSave={handleSave}
           onChange={(field, value) => setFormData(prev => ({ ...prev, [field]: value }))}
@@ -749,4 +899,4 @@ const handleBulkDelete = async () => {
   );
 };
 
-export default ManageDrivers;
+export default ManageVehicles;

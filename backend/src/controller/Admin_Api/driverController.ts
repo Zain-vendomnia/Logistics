@@ -66,28 +66,44 @@ export const updateDriver = async (req: Request, res: Response) => {
   }
 };
 
-export const deleteDriver = async (req: Request, res: Response) => {
+export const disableDriver = async (req: Request, res: Response) => {
   try {
-    const deleted = await driverService.deleteDriver(Number(req.params.id));
-    if (!deleted) return res.status(404).json({ message: "Driver not found" });
-    res.json({ message: "Driver deleted" });
+    const id = Number(req.params.id);
+    const result = await driverService.disableDriver(id);
+
+    // Always return 200, frontend can use `status` for logic
+    return res.status(200).json(result);
   } catch (err) {
-    res.status(500).json({ message: "Error deleting driver" });
+    return res.status(200).json({
+      status: "error",
+      message: "Error disabling warehouse",
+      error: err instanceof Error ? err.message : String(err),
+    });
   }
 };
 
-export const deleteMultipleDrivers = async (req: Request, res: Response) => {
-  try {
-    const { ids } = req.body;
-    if (!Array.isArray(ids) || ids.length === 0) {
-      return res.status(400).json({ message: "No IDs provided" });
-    }
-
-    const count = await driverService.deleteMultipleDrivers(ids);
-    res.json({ message: `${count} drivers deleted` });
-  } catch (err) {
-    res.status(500).json({ message: "Error deleting drivers" });
-  }
+export const disableMultipleDrivers = async (req: Request, res: Response) => {
+ try {
+     const { ids } = req.body;
+     const validIds = Array.isArray(ids) ? ids.filter((id) => Number.isInteger(Number(id)) && Number(id) > 0) : [];
+ 
+     if (validIds.length === 0) {
+       return res.status(200).json({
+         status: "error",
+         message: "No valid warehouse IDs provided",
+       });
+     }
+ 
+     const result = await driverService.disableMultipleDrivers(validIds);
+ 
+     return res.status(200).json(result);
+   } catch (err) {
+     return res.status(200).json({
+       status: "error",
+       message: "Error disabling warehouses",
+       error: err instanceof Error ? err.message : String(err),
+     });
+   }
 };
 export const checkDriverEligibility = async (req: Request, res: Response) => {
   try {

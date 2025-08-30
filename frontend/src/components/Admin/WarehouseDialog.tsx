@@ -1,15 +1,9 @@
 import React, { useEffect, useState } from "react";
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
-  Button, TextField, Grid, Typography, Box
+  Button, TextField, Stack, FormControlLabel, Switch,
+  CircularProgress,Typography
 } from "@mui/material";
-import {
-  Warehouse as WarehouseIcon,
-  Person as PersonIcon,
-  Phone as PhoneIcon,
-  Email as EmailIcon,
-  Home as HomeIcon
-} from "@mui/icons-material";
 
 type Warehouse = {
   warehouse_id?: number;
@@ -18,6 +12,7 @@ type Warehouse = {
   clerk_mob: string;
   address: string;
   email: string;
+  is_active: number; // 1 for active, 0 for inactive
 };
 
 interface Props {
@@ -35,178 +30,295 @@ const WarehouseFormModal: React.FC<Props> = ({
   initialData,
   editMode
 }) => {
-  const [form, setForm] = useState<Partial<Warehouse>>({ clerk_mob: "+49" });
+  const [formData, setFormData] = useState<Partial<Warehouse>>({ 
+    warehouse_name: "",
+    clerk_name: "",
+    clerk_mob: "+49",
+    address: "",
+    email: "",
+    is_active: 1
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // Form field configuration
+  const formFields = [
+    { name: "warehouse_name", label: "Warehouse Name", type: "text" },
+    { name: "clerk_name", label: "Clerk Name", type: "text" },
+    { name: "clerk_mob", label: "Clerk Mobile", type: "text" },
+    { name: "email", label: "Email", type: "email" },
+    { name: "address", label: "Address", type: "text", multiline: true }
+  ];
+
+  console.log("initialData", initialData);
 
   useEffect(() => {
-    setForm({ clerk_mob: "+49", ...initialData });
-    setErrors({});
+    if (open) {
+      setFormData({ 
+        warehouse_name: "",
+        clerk_name: "",
+        clerk_mob: "+49",
+        address: "",
+        email: "",
+        is_active: 1,
+        ...initialData 
+      });
+      setErrors({});
+    }
   }, [initialData, open]);
 
-  const handleChange = (field: keyof Warehouse) =>
-    (e: React.ChangeEvent<HTMLInputElement>) =>
-      setForm(prev => ({ ...prev, [field]: e.target.value }));
+  const handleFieldChange = (name: string, value: string) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: "" }));
+    }
+  };
 
   const validate = () => {
-    const e: Record<string, string> = {};
+    const newErrors: Record<string, string> = {};
 
     // Warehouse Name: required & only letters and spaces
-    if (!form.warehouse_name) {
-      e.warehouse_name = "Warehouse name is required";
-    } else if (!/^[A-Za-z\s]+$/.test(form.warehouse_name)) {
-      e.warehouse_name = "Warehouse name must contain only letters";
+    if (!editMode) {
+      if (!formData.warehouse_name) {
+        newErrors.warehouse_name = "Warehouse name is required";
+      } else if (!/^[A-Za-z\s&.,'-]+$/.test(formData.warehouse_name)) {
+        newErrors.warehouse_name = "Warehouse name contains invalid characters";
+      }
     }
 
     // Clerk Name: required
-    if (!form.clerk_name) {
-      e.clerk_name = "Clerk name is required";
+    if (!formData.clerk_name) {
+      newErrors.clerk_name = "Clerk name is required";
     }
 
     // Clerk Mobile: German format
-    if (!form.clerk_mob) {
-      e.clerk_mob = "Clerk mobile is required";
-    } else if (!/^\+49\d{10,12}$/.test(form.clerk_mob)) {
-      e.clerk_mob = "Enter valid German mobile number (starts with +49, 10–12 digits after)";
+    if (!formData.clerk_mob) {
+      newErrors.clerk_mob = "Clerk mobile is required";
+    } else if (!/^\+49\d{10,12}$/.test(formData.clerk_mob)) {
+      newErrors.clerk_mob = "Enter valid German mobile number (starts with +49, 10–12 digits after)";
     }
 
     // Email: required and format check
-    if (!form.email) {
-      e.email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      e.email = "Invalid email format";
+    if (!formData.email) {
+      newErrors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "Invalid email format";
     }
 
     // Address: required
-    if (!form.address) {
-      e.address = "Address is required";
+    if (!formData.address) {
+      newErrors.address = "Address is required";
     }
 
-    setErrors(e);
-    return Object.keys(e).length === 0;
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async () => {
+  const handleSave = async () => {
     if (!validate()) return;
-    setSubmitting(true);
+    
+    setLoading(true);
     try {
-      await onSubmit(form);
-      onClose();
+      await onSubmit(formData);
+      handleDialogClose();
+    } catch (error) {
+      console.error("Error saving warehouse:", error);
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
   };
 
-  const isFormFilled = Boolean(
-    form.warehouse_name &&
-    form.clerk_name &&
-    form.clerk_mob &&
-    form.email &&
-    form.address
-  );
-
-  const renderField = (
-    label: string,
-    field: keyof Warehouse,
-    icon: React.ReactNode,
-    props: any = {}
-  ) => (
-    <TextField
-      fullWidth
-      variant="outlined"
-      label={label}
-      value={form[field] || ""}
-      onChange={handleChange(field)}
-      error={!!errors[field]}
-      helperText={errors[field]}
-      InputProps={{
-        startAdornment: (
-          <Box sx={{ mr: 1, display: 'flex', alignItems: 'center' }}>{icon}</Box>
-        ),
-        ...props.inputProps
-      }}
-      {...props}
-    />
-  );
+  const handleDialogClose = () => {
+    if (!loading) {
+      onClose();
+    }
+  };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ fontWeight: 600, fontSize: "1.5rem", textAlign: "center" }}>
-        {editMode ? "Edit Warehouse" : "Add New Warehouse"}
-      </DialogTitle>
-      <DialogContent>
+    <Dialog open={open} onClose={handleDialogClose} fullWidth maxWidth="sm">
+      <DialogTitle>
+          <Typography variant="h6" align="center">
+          {editMode ? "Edit Warehouse" : "Add Warehouse"}
+        </Typography>
         <Typography variant="body2" color="text.secondary" textAlign="center" mb={2}>
           Please fill in the details carefully
         </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12}>
-            {renderField("Warehouse Name", "warehouse_name", <WarehouseIcon />, { autoFocus: true })}
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            {renderField("Clerk Name", "clerk_name", <PersonIcon />)}
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            {renderField(
-              "Clerk Mobile",
-              "clerk_mob",
-              <PhoneIcon />, 
-              { inputProps: { maxLength: 16 } }
-            )}
-          </Grid>
-          <Grid item xs={12}>
-            {renderField("Email", "email", <EmailIcon />)}
-          </Grid>
-          <Grid item xs={12}>
-            {renderField(
-              "Address",
-              "address",
-              <HomeIcon />, 
-              { multiline: true, minRows: 2 }
-            )}
-          </Grid>
-        </Grid>
+        {/* {editMode ? "Edit Warehouse" : "Add Warehouse"} */}
+        
+      </DialogTitle>
+      <DialogContent dividers>
+        <Stack spacing={2} mt={1}>
+          {/* Regular form fields */}
+         {formFields.map(({ name, label, type = "text", multiline }) => {
+  // Custom styling for disabled warehouse name field
+  if (name === "warehouse_name" && editMode) {
+    return (
+      <div key={name} style={{ marginBottom: '16px' }}>
+        <TextField
+          label={label}
+          type={type}
+          value={formData[name as keyof Warehouse] ?? ""}
+          disabled={true}
+          multiline={multiline}
+          rows={multiline ? 3 : undefined}
+          fullWidth
+          sx={{
+            '& .MuiInputBase-root': {
+              backgroundColor: '#f8f9fa',
+              border: '2px solid #e9ecef',
+              borderRadius: '8px',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                borderColor: '#dee2e6',
+              },
+            },
+            '& .MuiInputBase-input': {
+              color: '#6c757d',
+              fontWeight: '500',
+              fontSize: '14px',
+            },
+            '& .MuiInputLabel-root': {
+              color: '#6c757d',
+              fontWeight: '500',
+              '&.Mui-focused': {
+                color: '#6c757d',
+              },
+            },
+            '& .MuiOutlinedInput-notchedOutline': {
+              border: 'none',
+            },
+            '& .MuiInputBase-root.Mui-disabled': {
+              backgroundColor: '#f8f9fa',
+              '& .MuiInputBase-input': {
+                WebkitTextFillColor: '#6c757d',
+              },
+            },
+          }}
+        />
+        <div style={{
+          marginTop: '4px',
+          marginLeft: '14px',
+          fontSize: '12px',
+          color: '#ff6b35',
+          fontWeight: '500',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px'
+        }}>
+          <span style={{
+            width: '16px',
+            height: '16px',
+            borderRadius: '50%',
+            backgroundColor: '#ff6b35',
+            color: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '10px',
+            fontWeight: 'bold'
+          }}>!</span>
+          Warehouse name cannot be edited
+        </div>
+      </div>
+    );
+  }
+
+  // Regular fields
+  return (
+    <TextField
+      key={name}
+      label={label}
+      type={type}
+      value={formData[name as keyof Warehouse] ?? ""}
+      error={!!errors[name]}
+      helperText={errors[name]}
+      multiline={multiline}
+      rows={multiline ? 3 : undefined}
+      onChange={(e) => handleFieldChange(name, e.target.value)}
+      inputProps={name === "clerk_mob" ? { maxLength: 16 } : undefined}
+      sx={{
+        '& .MuiInputBase-root': {
+          borderRadius: '8px',
+          transition: 'all 0.3s ease',
+          '&:hover .MuiOutlinedInput-notchedOutline': {
+            borderColor: '#ff6b35',
+          },
+        },
+        '& .MuiInputLabel-root.Mui-focused': {
+          color: '#ff6b35',
+        },
+        '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+          borderColor: '#ff6b35',
+        },
+      }}
+    />
+  );
+})}
+
+          {/* Active/Inactive Switch */}
+          <FormControlLabel
+            control={
+              <Switch
+                checked={(formData.is_active ?? 1) === 1}
+                onChange={(e) =>
+                  setFormData(prev => ({ ...prev, is_active: e.target.checked ? 1 : 0 }))
+                }
+              />
+            }
+            label="Active"
+          />
+        </Stack>
       </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button
-          onClick={onClose}
-          variant="outlined"
-          size="small"
-          sx={(theme) => ({
-            padding: '8px 24px',
-            borderRadius: '4px',
-            textTransform: 'none',
-            fontWeight: '500',
-            background: theme.palette.primary.gradient,
-            color: "#fff",
+
+      <DialogActions>
+        <Button 
+          onClick={handleDialogClose} 
+          disabled={loading}
+           sx={{
+            padding: "8px 24px",
+            borderRadius: "8px",
+            textTransform: "none",
+            fontWeight: 500,
+            backgroundColor: "#f5f5f5",
+            color: "#444",
+            border: "1px solid #ccc",
             transition: "all 0.3s ease",
             "&:hover": {
-              background: "#fff",
-              color: theme.palette.primary.dark,
-            }
-          })}
-        >
+              backgroundColor: "#e0e0e0",
+              borderColor: "#999",
+              color: "#222",
+            },
+          }}
+          >
           Cancel
         </Button>
-        <Button
-          onClick={handleSubmit}
-          variant="contained"
-          size="small"
-          disabled={!isFormFilled || submitting}
-          sx={(theme) => ({
-            padding: '8px 24px',
-            borderRadius: '4px',
-            textTransform: 'none',
-            fontWeight: '500',
-            background: theme.palette.primary.gradient,
+        <Button 
+          variant="contained" 
+          onClick={handleSave} 
+          disabled={loading}
+           sx={{
+            padding: "8px 24px",
+            borderRadius: "8px",
+            textTransform: "none",
+            fontWeight: 600,
+            background: 'linear-gradient(45deg, #f97316, #ea580c)',
             color: "#fff",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
             transition: "all 0.3s ease",
             "&:hover": {
-              background: "#fff",
-              color: theme.palette.primary.dark,
-            }
-          })}
-        >
-          {editMode ? "Update" : "Create"}
+              background: 'linear-gradient(45deg, #ea580c, #dc2626)',
+              boxShadow: "0 6px 16px rgba(0,0,0,0.25)",
+            },
+            "&.Mui-disabled": {
+              background: "#ccc",
+              color: "#777",
+              boxShadow: "none",
+            },
+          }}
+          >
+            
+          {loading ? <CircularProgress size={20} /> : (editMode ? "Update" : "Create")}
         </Button>
       </DialogActions>
     </Dialog>

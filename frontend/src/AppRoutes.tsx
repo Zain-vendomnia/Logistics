@@ -12,6 +12,7 @@ import BoardDriver from "./components/driver/BoardDriver";
 import SuperAdmin from "./components/SuperAdmin";
 import AdminDashboard from "./components/Admin/Admin_dashboard";
 import ManageDrivers from "./components/Admin/ManageDrivers";
+import ManageVehicles from "./components/Admin/ManageVehicles";
 import ManageWarehouse from "./components/Admin/ManageWarehouse";
 import Admin_TourTemplates from "./components/Admin/Admin_TourTemplates";
 import Admin_MapComponent from "./components/Admin/Admin_MapComponent";
@@ -39,6 +40,7 @@ const ProtectedRoute = ({
   allowedRoles?: ("admin" | "superadmin" | "driver")[];
 }) => {
   const { user } = useAuth();
+  console.log("ProtectedRoute user:", user);
   if (!user) return <Navigate to="/login" replace />;
   // Role checks
   const userRole = isSuperAdmin(user)
@@ -71,10 +73,8 @@ const AppRoutes = () => {
 
   return (
     <Routes>
-      <Route
-        path="/"
-        element={user ? getUserBoard() : <Navigate to="/login" replace />}
-      />
+      <Route path="/" element={getUserBoard()} />
+
       <Route
         path="/login"
         element={!user ? <Login /> : <Navigate to="/" replace />}
@@ -146,10 +146,17 @@ const AppRoutes = () => {
         }
       />
       <Route
+
+        path="/manage_vehicles"
+        element={
+          <ProtectedRoute
+            element={<ManageVehicles />}
+
         path="/chat"
         element={
           <ProtectedRoute
             element={<MultiUserChat />}
+
             allowedRoles={["admin"]}
           />
         }

@@ -24,6 +24,7 @@ import { runTourController } from "../controller/HERE_API/runTourController";
 import { hereMapController } from "../controller/HERE_API/hereMapController";
 
 import driverRoutes from "./driver.routes";
+import vehicleRoutes from "./vehicle.routes";
 import warehouseRoutes from "./warehouse.routes";
 import * as dynamicTourCtrl from "../controller/HERE_API/dynamicTour.controller";
 
@@ -130,6 +131,7 @@ adminRouter.post("/driver/tour/:tourId/order", HandleOrderDelivery);
 adminRouter.get("/newShopwareOrder", shopware.newShopOrder);
 
 adminRouter.use("/drivers", validateToken, roleCheck(["admin"]), driverRoutes);
+adminRouter.use("/vehicles", validateToken, roleCheck(["admin"]), vehicleRoutes);
 adminRouter.use("/warehouses", warehouseRoutes);
 
 adminRouter.use(notFoundHandler);
