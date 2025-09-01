@@ -38,6 +38,9 @@ import { Console } from 'console';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { useNavigate } from 'react-router-dom';
 
+import { handlePermit } from '../../utils/handleHelper';
+
+
 type Stop = {
   id: string;
   location_id: string;
@@ -73,6 +76,11 @@ const TourMapPage: React.FC = () => {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [lastEdited, setLastEdited] = useState<number | null>(null);
+
+  const [permitTourIds, setPermitTourIds] = useState<string[]>([]);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+
   const navigate = useNavigate();
   useEffect(() => {
     // const instance = latestOrderServices.getInstance();
@@ -260,6 +268,10 @@ const TourMapPage: React.FC = () => {
       const response = await adminApiService.update_tourstatus(selectedTour.id);
       if (response.status === 200) {
         setSelectedTour((prev: any) => ({ ...prev, tour_status: 'confirmed' }));
+
+        // Send Logistics Email to Customer
+        console.log(handlePermit([selectedTour.id]));
+
       } else {
         console.error('Update failed:', response);
         alert('Failed to update tour status.');

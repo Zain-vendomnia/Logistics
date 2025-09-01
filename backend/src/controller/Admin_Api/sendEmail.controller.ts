@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import nodemailer from 'nodemailer';
 
 // function to simulate sending an email
-export const picklistEmail = async (req: Request, res: Response) => {
+export const sendEmail = async (req: Request, res: Response) => {
   try {
     const { to, subject, html, attachment,attachment_name, second_attachment,
       second_attachment_name } = req.body;

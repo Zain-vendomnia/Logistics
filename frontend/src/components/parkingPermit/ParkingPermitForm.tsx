@@ -237,7 +237,7 @@ const DeliveryPermitForm = () => {
 
     const OTPEmail = 'Sehr geehrte Kundin, sehr geehrter Kunde, Ihr OTP für die Einreichung des Parkausweisformulars lautet: '+code+'. Bitte verwenden Sie diesen Code, um Ihre Einreichung abzuschließen.';
 
-    await adminApiService.picklistEmail({
+    await adminApiService.sendEmail({
       to: formData.email, // Update with actual email
       subject: 'Parking Permit - OTP',
       html: OTPEmail,
@@ -259,7 +259,7 @@ const DeliveryPermitForm = () => {
      );
 
      const attachment_name = 'signature.png';
-     await adminApiService.picklistEmail({
+     await adminApiService.sendEmail({
        to: to,
        subject: subject,
        html,

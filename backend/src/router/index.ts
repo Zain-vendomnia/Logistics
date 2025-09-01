@@ -32,5 +32,5 @@ router.use("/admindriver/tour/:tourId/order", HandleOrderDelivery);
 export default router;
 
 // Picklist Email Route
-// app.post("/api/admin/picklistEmail", picklistEmail); // This will handle POST requests to send the email
+// app.post("/api/admin/sendEmail", sendEmail); // This will handle POST requests to send the email
 // app.post("/api/admin/insertParkingPermit", insertParkingPermit); // This will handle POST requests to insert the parking permit form

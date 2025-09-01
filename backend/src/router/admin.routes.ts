@@ -14,8 +14,9 @@ import { getAllTourhistory } from "../controller/Admin_RouteOptimzation/getAllTo
 
 import { getOrderCount } from "../controller/Admin_Api/orderCount.controller";
 import { uploadImageController } from "../controller/Admin_Api/uploadImage.controller";
-import { picklistEmail } from "../controller/Admin_Api/picklistEmail.controller";
+import { sendEmail } from "../controller/Admin_Api/sendEmail.controller";
 import { insertParkingPermit } from "../controller/Admin_Api/insertParkingPermit.controller";
+import { getOrderNotificationMetaData } from "../controller/Admin_Api/orderNotificationMetaData.controller";
 import { getWarehouseById } from "../controller/Admin_Api/warehouseController";
 
 import { HandleOrderDelivery } from "../controller/AdminDriverApi/HandleOrderDelivery";
@@ -41,9 +42,10 @@ const adminRouter = Router();
 
 // Public routes (no authentication required)
 adminRouter.get("/customer/updatelatlng", updatelatlngController);
-adminRouter.post("/picklistEmail", picklistEmail);
+adminRouter.post("/sendEmail", sendEmail);
 adminRouter.post("/routeoptimize/getOrder", OrderCtrl.getAllLogisticOrder);
 adminRouter.post("/insertParkingPermit", insertParkingPermit);
+adminRouter.post("/getOrderNotificationMetaData", getOrderNotificationMetaData);
 adminRouter.post("/Runtour", runTourController);
 
 adminRouter.post("/uploadexcel", upload.single("file"), async (req, res) => {
