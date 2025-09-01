@@ -246,7 +246,7 @@ const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
        // Wait a bit in case it's just rendered
 
 
-      await adminApiService.picklistEmail({
+      await adminApiService.sendEmail({
         to: 'muhammad.jahanzaibbaloch@vendomnia.com', // Update with actual email
         subject: 'Picklist',
         html: fullEmailHtml,

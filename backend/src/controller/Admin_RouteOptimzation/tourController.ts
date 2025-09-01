@@ -198,11 +198,13 @@ export const getTourDetails = async (_req: Request, res: Response) => {
 export const updatetourstatus = async (_req: Request, res: Response) => {
   const { tourId } = _req.params;
   console.log("tour_id" + tourId);
+  pool;
+  // console.log(' <================ LINE = 201 : FILE = tourController.ts ==============>', pool);
   try {
-    await pool.query(
-      "UPDATE tourinfo_master SET tour_status = ? WHERE id = ?",
-      ["confirmed", tourId]
-    );
+    // await pool.query(
+    //   "UPDATE tourinfo_master SET tour_status = ? WHERE id = ?",
+    //   ["confirmed", tourId]
+    // );
     console.log(`Updating tour ${tourId} to 'confirmed'`);
     res.status(200).json({ message: "Tour status updated to confirmed." });
   } catch (error) {

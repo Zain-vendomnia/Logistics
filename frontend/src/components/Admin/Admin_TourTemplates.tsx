@@ -17,6 +17,7 @@ import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { getOrderInitialEmailHTML } from '../../assets/templates/OrderInitialEmails';
 
 import { sendSMS, sendWhatsAppMessage, sendEmail, EmailTemplate } from '../../services/notificationService';
+import { handlePermit } from '../../utils/handleHelper';
 
 interface Tour {
   id: string;
@@ -98,21 +99,116 @@ const AdminTourTemplates = () => {
       showSnackbar('Failed to delete tours', 'error');
     }
   };
-
-  // Function to handle the permit email sending process
-  const handlePermit = async () => {
+  
+  const triggerPermitEmail = async () => {
     setLoading(true);
 
+    try{
+      // Send Logistics Email to Customer
+      handlePermit(permitTourIds);
+
+      showSnackbar('Emails sent successfully', 'success');
+    } catch (error) {
+      console.error('Error sending emails:', error);
+      showSnackbar('Failed to send emails', 'error');
+    } finally {
+      // Close the modal after sending the emails
+      setLoading(false);
+      setConfirmOpen(false);
+      setPermitTourIds([]);
+    }
+  };
+
+  // Function to handle the permit email sending process
+  // const handlePermit = async () => {
+  //   setLoading(true);
+
+  //   const instance = latestOrderServices.getInstance();
+  //   const toursdata = await instance.getTours();
+  //   const idNumbers = permitTourIds.map(id => Number(id));  // Get the IDs of selected tours
+  //   const matchedTours = toursdata.filter((tour: any) => idNumbers.includes(tour.id)); // Filter the tours based on the selected IDs
+  //   const allOrders = matchedTours.flatMap((tour: any) => tour.orders);  // Extract all orders from matched tours
+
+  //   try {
+  //     // Send an email to each order's customer
+  //     for (const order of allOrders) {
+
+  //       const orderNumber = order.order_number;
+
+  //       // Use window.location.origin or env var
+  //       const baseUrl = `${window.location.protocol}//${window.location.host}/ParkingPermitForm`;
+
+  //       const encodedOrderNumber = btoa(orderNumber); // Or use Buffer.from if needed
+
+  //       const finalUrl = `${baseUrl}?o=${encodedOrderNumber}`;
+
+  //       const trackingCode = order.tracking_code;
+
+  //       let html = '';
+  //       let condition = 0;
+
+  //      const formattedTime = formatDeliveryWindow(order.order_time);
+  //       order.order_time = formattedTime;
+
+
+  //       if (trackingCode && order.order_status_id != 10006 ) {
+
+  //         condition = 1;
+
+  //       }else if( !trackingCode && order.order_status_id != 10006 ){
+  //        condition = 2;
+
+  //       }else if(order.order_status_id == 10006){
+  //        condition = 3;
+  //       }
+
+
+  //       html = getOrderInitialEmailHTML(
+  //           order,
+  //           finalUrl,
+  //           condition
+  //       );
+  //       console.log('condition: ',condition);
+
+  //         // const html = `Dear ${order.firstname} ${order.lastname},\n \n 
+  //         // Please use the following form and return it to us completed and signed.
+  //         // Fill out the parking permit:\n
+  //         // ${finalUrl} \n \n
+  //         // Once submitted, we will automatically receive your permission and arrange delivery accordingly.`;
+
+  //       await adminApiService.sendEmail({
+  //         // to: order.email,
+  //         to: 'muhammad.jahanzaibbaloch@vendomnia.com',
+  //         subject: 'Parking Permit - Order #'+orderNumber,
+  //         html
+  //       });
+  //     }
+  //     showSnackbar('Emails sent successfully', 'success');
+  //   } catch (error) {
+  //     console.error('Error sending emails:', error);
+  //     showSnackbar('Failed to send emails', 'error');
+  //   } finally {
+  //     // Close the modal after sending the emails
+  //     setLoading(false);
+  //     setConfirmOpen(false);
+  //     setPermitTourIds([]);
+  //   }
+  // };
+
+  const handleOnlyParkingPermit= async () => {
+    // setLoading(true);
     const instance = latestOrderServices.getInstance();
     const toursdata = await instance.getTours();
     const idNumbers = permitTourIds.map(id => Number(id));  // Get the IDs of selected tours
     const matchedTours = toursdata.filter((tour: any) => idNumbers.includes(tour.id)); // Filter the tours based on the selected IDs
     const allOrders = matchedTours.flatMap((tour: any) => tour.orders);  // Extract all orders from matched tours
-
-    try {
-      // Send an email to each order's customer
-      for (const order of allOrders) {
-
+    SingleOrderParkingPermit(allOrders[0]);
+  };
+  // Function to handle the send specific order parking permit email process
+  const SingleOrderParkingPermit = async (order: any) => {
+      // setLoading(true);
+      try {
+        // Send an email to each order's customer
         const orderNumber = order.order_number;
 
         // Use window.location.origin or env var
@@ -122,25 +218,13 @@ const AdminTourTemplates = () => {
 
         const finalUrl = `${baseUrl}?o=${encodedOrderNumber}`;
 
-        const trackingCode = order.tracking_code;
 
         let html = '';
-        let condition = 0;
+        let condition = 4;
 
        const formattedTime = formatDeliveryWindow(order.order_time);
         order.order_time = formattedTime;
 
-
-        if (trackingCode && order.order_status_id != 10006 ) {
-
-          condition = 1;
-
-        }else if( !trackingCode && order.order_status_id != 10006 ){
-         condition = 2;
-
-        }else if(order.order_status_id == 10006){
-         condition = 3;
-        }
 
 
         html = getOrderInitialEmailHTML(
@@ -148,7 +232,6 @@ const AdminTourTemplates = () => {
             finalUrl,
             condition
         );
-        console.log('condition: ',condition);
 
           // const html = `Dear ${order.firstname} ${order.lastname},\n \n 
           // Please use the following form and return it to us completed and signed.
@@ -156,13 +239,13 @@ const AdminTourTemplates = () => {
           // ${finalUrl} \n \n
           // Once submitted, we will automatically receive your permission and arrange delivery accordingly.`;
 
-        await adminApiService.picklistEmail({
+        await adminApiService.sendEmail({
           // to: order.email,
           to: 'muhammad.jahanzaibbaloch@vendomnia.com',
-          subject: 'Parking Permit - Order #'+orderNumber+' - Condition: '+condition,
+          subject: 'Parking Permit - Order #'+orderNumber,
           html
         });
-      }
+
       showSnackbar('Emails sent successfully', 'success');
     } catch (error) {
       console.error('Error sending emails:', error);
@@ -238,7 +321,8 @@ const AdminTourTemplates = () => {
     try {
 
       if (action === 'permit'){
-            setPermitTourIds(selected);  
+            setPermitTourIds(selected); 
+
             setConfirmOpen(true);
       }
       if (action === 'delete') return handleDelete(selected);
@@ -393,12 +477,19 @@ const AdminTourTemplates = () => {
              <Divider />
             <MenuItem sx={{ color: 'error.main' }} onClick={() => { if (currentTour) { handleDelete([currentTour.id]);  } setAnchorEl(null); }}>Delete</MenuItem>
              <Divider />
-             <button className="notification-button" onClick={handleSendEmail}>Send Email</button>             
+             <Button className="notification-button"  onClick={handleSendEmail}>Send Email</Button>             
              <Divider />
-             <button className="notification-button" onClick={handleSendSMS}>Send Sms</button>          
+             <Button className="notification-button"  onClick={handleSendSMS}>Send Sms</Button>          
              <Divider />
-             <button className="notification-button" onClick={handleSendWhatsApp}>Send Whatsapp</button>
-
+             <Button className="notification-button"  onClick={handleSendWhatsApp}>Send Whatsapp</Button>
+             <Divider />
+             <Button color="primary" disabled={loading} onClick={() => {
+              if (currentTour) {
+                setPermitTourIds([currentTour.id]);
+                setAnchorEl(null);
+                handleOnlyParkingPermit();
+              }
+            }}>{loading ? 'Sending...' : 'Single Permit'}</Button>
           </Menu>
 
           <EditTourModal
@@ -466,7 +557,7 @@ const AdminTourTemplates = () => {
             <Typography variant="body1">This action cannot be undone.</Typography>
             <Box display="flex" justifyContent="center" gap={2} mt={3}>
               <Button variant="contained" color="secondary"  onClick={() => setConfirmOpen(false)}>No</Button>
-              <Button variant="contained" color="primary" disabled={loading} onClick={handlePermit}>{loading ? 'Sending...' : 'Yes'}</Button>
+              <Button variant="contained" color="primary" disabled={loading} onClick={triggerPermitEmail}>{loading ? 'Sending...' : 'Yes'}</Button>
             </Box>
           </Box>
         </Fade>

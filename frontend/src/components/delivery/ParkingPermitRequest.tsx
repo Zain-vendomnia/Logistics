@@ -49,7 +49,7 @@ const ParkingPermitRequest = () => {
 
     // adminApiService is not merged with the current codebase.
     // try {
-    //   await adminApiService.picklistEmail({
+    //   await adminApiService.sendEmail({
     //     to: " ",
     //     subject: "Parking Permit Request",
     //     //  html,

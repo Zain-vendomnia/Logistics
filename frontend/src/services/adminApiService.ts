@@ -90,8 +90,8 @@ const getOrderCount = async (): Promise<number> => {
     throw new Error("Failed to fetch order count");
   }
 };
-const picklistEmail = (emailData: any) => {
-  return axios.post(API_BaseUrl_Admin + "picklistEmail", emailData);
+const sendEmail = (emailData: any) => {
+  return axios.post(API_BaseUrl_Admin + "sendEmail", emailData);
 };
 
 const fetchAlltourstatushistory = () =>
@@ -184,10 +184,12 @@ export const uploadexcel = (formData: FormData) =>
     },
   });
 
-  const getShopOrder = (orderNumber: number) => {
-    console.log(API_BaseUrl_Admin+`proxy/orders/${orderNumber}`);
-    return axios.get(API_BaseUrl_Admin+`proxy/orders/${orderNumber}`, {
+
+  const getOrderNotificationMetaData = (orderNumber: number) => {
+
+    return axios.post(API_BaseUrl_Admin + "getOrderNotificationMetaData", {
       headers: authHeader(),
+      orderNumber:orderNumber
     });
   };
 
@@ -208,7 +210,7 @@ const adminApiService = {
   fetchRouteSegmentData,
   updateTour,
   getOrderCount,
-  picklistEmail,
+  sendEmail,
   fetchAlltourstatushistory,
   update_tourstatus,
   checkDriverRest,
@@ -220,8 +222,8 @@ const adminApiService = {
   fetchPinboardOrders,
   uploadexcel,
   getWarehouse,
-  getShopOrder,
   newShopOrder,
+  getOrderNotificationMetaData,
 };
 
 export default adminApiService;

@@ -119,7 +119,7 @@ class latestOrderServices {
       const response = await adminApiService.fetchOrderTourCount();
       const data = response.data[0];
 
-      console.log("🎯 Tour count response:", data);
+      // console.log("🎯 Tour count response:", data);
 
       if (
         data &&
@@ -333,7 +333,7 @@ class latestOrderServices {
       this.cachedTourStatusCount === count &&
       Object.values(this.tourStatusHistory).some((arr) => arr.length > 0)
     ) {
-      console.log("✅ Using cached tourStatusHistory");
+      // console.log("✅ Using cached tourStatusHistory");
       return this.tourStatusHistory;
     }
 
