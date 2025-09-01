@@ -42,6 +42,7 @@ const ProtectedRoute = ({
   const { user } = useAuth();
   console.log("ProtectedRoute user:", user);
   if (!user) return <Navigate to="/login" replace />;
+  
   // Role checks
   const userRole = isSuperAdmin(user)
     ? "superadmin"
@@ -111,7 +112,7 @@ const AppRoutes = () => {
         element={<ProtectedRoute element={<Profile />} />}
       />
 
-      {/* ✅ Only Admin can register (registering drivers) */}
+      {/* Admin can register (registering drivers) */}
       <Route
         path="/register"
         element={
@@ -119,8 +120,7 @@ const AppRoutes = () => {
         }
       />
 
-      {/* ✅ Admin-only Routes */}
-
+      {/* Admin-only Routes */}
       <Route
         path="/admin_dashboard"
         element={
@@ -146,17 +146,19 @@ const AppRoutes = () => {
         }
       />
       <Route
-
         path="/manage_vehicles"
         element={
           <ProtectedRoute
             element={<ManageVehicles />}
-
+            allowedRoles={["admin"]}
+          />
+        }
+      />
+      <Route
         path="/chat"
         element={
           <ProtectedRoute
             element={<MultiUserChat />}
-
             allowedRoles={["admin"]}
           />
         }
@@ -197,22 +199,6 @@ const AppRoutes = () => {
           />
         }
       />
-      <Route
-        path="/profile"
-        element={<ProtectedRoute element={<Profile />} />}
-      />
-      <Route path="/register" element={<Register />} />
-      <Route path="/admin_dashboard" element={<AdminDashboard />} />
-      <Route path="/admin_addtour" element={<AdminAddTour />} />
-      <Route path="/manage_drivers" element={<ManageDrivers />} />
-      <Route path="/chat" element={<MultiUserChat />} />
-      <Route path="/manage_warehouse" element={<ManageWarehouse />} />
-      <Route path="/admin_tourtemplates" element={<Admin_TourTemplates />} />
-      <Route path="/admin_mapComponent/:id" element={<Admin_MapComponent />} />
-      <Route path="/test-crash" element={<TestCrashRender />} />
-      <Route path="/test-rej" element={<TestUnhandledPromise />} />
-      <Route path="/test-runtime" element={<TestRuntimeError />} />
-
       <Route
         path="/Admin_TourMapView/:tour_id"
         element={
@@ -264,14 +250,11 @@ const AppRoutes = () => {
           />
         }
       />
-      {/* <Route path="/Admin_PickList" element={<Admin_PickListPage />} />  */}
 
-      {/* <Route
-        path="/Admin_HereMap"
-        element={
-          <ProtectedRoute element={<AdminHereMap />} allowedRoles={["admin"]} />
-        }
-      /> */}
+      {/* Test Routes - Consider protecting these or removing in production */}
+      <Route path="/test-crash" element={<TestCrashRender />} />
+      <Route path="/test-rej" element={<TestUnhandledPromise />} />
+      <Route path="/test-runtime" element={<TestRuntimeError />} />
     </Routes>
   );
 };
