@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 
-import { Box, IconButton, Paper, Typography } from "@mui/material";
+import { Badge, Box, IconButton, Paper, Typography } from "@mui/material";
 import CircularProgress from "@mui/material/CircularProgress";
 import GpsFixedIcon from "@mui/icons-material/GpsFixed";
 
@@ -249,11 +249,11 @@ const DymanicMapBoard = () => {
     return (
       <Typography
         fontWeight={"bold"}
-        variant="body2"
+        variant="subtitle1"
         sx={{
           m: 0,
           p: 0,
-          lineHeight: 0.05,
+          lineHeight: 1.2,
           display: "block",
           color: "primary.main",
         }}
@@ -326,17 +326,21 @@ const DymanicMapBoard = () => {
                     >
                       <Popup>
                         {pinTitle(order.order_number)}
+                        {/* <strong>{order.order_number}</strong>
+                        <br /> */}
+                        <strong>{order.warehouse_town}</strong>
+                        <br />
+                        {/* <strong>City:</strong> {order.city}
+                        <br />
+                        <strong>Zipcode:</strong> {order.zipcode}
+                        <br /> */}
                         <strong>Placed at:</strong>{" "}
                         {new Date(order.order_time).toLocaleDateString()}
                         <br />
-                        <strong>Deliver:</strong>{" "}
+                        <strong>Deliver by:</strong>{" "}
                         {new Date(
                           order.expected_delivery_time
                         ).toLocaleDateString()}
-                        <br />
-                        <strong>City:</strong> {order.city}
-                        <br />
-                        <strong>Zipcode:</strong> {order.zipcode}
                       </Popup>
                     </Marker>
                   )
@@ -368,7 +372,7 @@ const DymanicMapBoard = () => {
                       sIdx === 0 && types.includes("departure");
                     const isLastStop = sIdx === vehicle.stops.length - 1;
 
-                    // ✅ Start depot → green icon only
+                    // Start point > green icon only
                     if (isStartDepot) {
                       return (
                         <Marker
