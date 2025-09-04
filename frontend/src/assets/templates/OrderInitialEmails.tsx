@@ -87,11 +87,11 @@ const OrderInitialEmailTemplate2: React.FC<EmailProps> = ({
   finalUrl,
  }) => (
  <div style={{ fontFamily: 'Arial, sans-serif', fontSize: '16px', lineHeight: '1.5', color: '#333' }}>
-   {orderData}
+
    <p>Gute Neuigkeiten 🎉</p>
    <p><strong>Ihre Bestellung - {orderData.tracking_code} ({orderData.order_number}) ist unterwegs!</strong></p>
 
-   <p>Hallo Esther Sluiter,</p>
+   <p>Hallo {orderData.firstname} {orderData.lastname},</p>
 
    <p>
      Vielen Dank für den Kauf eines <strong>SUNNIVA Balkonkraftwerks</strong>. Wir freuen uns sehr,
@@ -104,9 +104,13 @@ const OrderInitialEmailTemplate2: React.FC<EmailProps> = ({
      Die Sendungsnummer lautet:
    </p>
    <p>
-     <strong>H1028640018014801004</strong>
+     <strong>{orderData.tracking_code}</strong>
      <br />
-     <a href="https://www.myhermes.de/empfangen/sendungsverfolgung/sendungsinformation#{$orderData}" target="_blank" rel="noopener noreferrer">
+     <a
+       href={`https://www.myhermes.de/empfangen/sendungsverfolgung/sendungsinformation#${orderData.tracking_code}`}
+       target="_blank"
+       rel="noopener noreferrer"
+     >
        Sendung verfolgen
      </a>
    </p>
@@ -115,7 +119,7 @@ const OrderInitialEmailTemplate2: React.FC<EmailProps> = ({
    <p>
      Die Solarmodule werden aufgrund ihrer Größe und ihres Gewichts separat geliefert.
    </p>
-   <p><strong>Liefertermin: 02.09.2025 zwischen 09:30 und 13:30 Uhr</strong></p>
+   <p><strong>Liefertermin: {orderData.order_time}</strong></p>
    <p>
      Bitte beachten Sie, dass die Lieferung der Solarmodule in dieser Woche nur zum oben genannten Termin möglich ist.
      Sollten Sie zu diesem Zeitpunkt nicht zu Hause sein, wählen Sie bitte eine der folgenden zwei Optionen:
@@ -137,7 +141,7 @@ const OrderInitialEmailTemplate2: React.FC<EmailProps> = ({
    </p>
    <p>
      <a
-       href="https://sunniva-solar.de/parking-permit-form?d=Jm89NDAwMjY3MDQ0JmY9RXN0aGVyJmw9U2x1aXRlciZzPUtsb3N0ZXItTGFuZ2VuLVN0ciAzMCZ6PTI2NzIzJmM9RW1kZW4="
+       href={`${finalUrl}`}
        target="_blank"
        rel="noopener noreferrer"
      >
@@ -168,16 +172,16 @@ const OrderInitialEmailTemplate3: React.FC<EmailProps> = ({
  }) => (
    
  <div style={{ fontFamily: 'Arial, sans-serif', fontSize: '16px', lineHeight: 1.5, color: '#333' }}>
-   <p>Hurra! Ihre Bestellung - <strong>067149549 (400265896)</strong> wurde vollständig versandt! 🚚</p>
+   <p>Hurra! Ihre Bestellung - <strong>{orderData.tracking_code} ({orderData.order_number})</strong> wurde vollständig versandt! 🚚</p>
 
-   <p>Hallo Co Semken,</p>
+   <p>Hallo {orderData.firstname} {orderData.lastname},</p>
 
    <p>
      Wir freuen uns, Ihnen mitteilen zu dürfen, dass wir Ihnen die Solarmodule am
    </p>
 
    <p style={{ fontWeight: 'bold', marginLeft: '1rem' }}>
-     Liefertermin: 01.09.2025 zwischen 15:30 und 19:30 Uhr
+     Liefertermin: {orderData.order_time}
    </p>
 
    <p>
@@ -202,7 +206,7 @@ const OrderInitialEmailTemplate3: React.FC<EmailProps> = ({
 
    <p>
      <a
-       href="https://sunniva-solar.de/parking-permit-form?d=Jm89NDAwMjY1ODk2JmY9Q28mbD1TZW1rZW4mcz1Sw7ZtZXJ3ZWcgNDImej0xMDMxOCZjPUJlcmxpbg=="
+       href={`${finalUrl}`}
        target="_blank"
        rel="noopener noreferrer"
        style={{ color: '#0070f3', textDecoration: 'underline' }}
@@ -320,8 +324,8 @@ const EmailSignature = '<div class=rd-mail-signature style=font-family:Helvetica
 
 export const getOrderInitialEmailHTML = (orderData:any, finalUrl:string, condition:number): string => {
 
-  let template = <OrderInitialEmailTemplate1 orderData={orderData} finalUrl={finalUrl} condition={condition} />;
-  
+  let template: JSX.Element | string = '';  // Declare template as a string or JSX element
+
   if (condition === 2) {
     template = <OrderInitialEmailTemplate2 orderData={orderData} finalUrl={finalUrl} condition={condition} />;
   } 

@@ -17,6 +17,7 @@ import { uploadImageController } from "../controller/Admin_Api/uploadImage.contr
 import { sendEmail } from "../controller/Admin_Api/sendEmail.controller";
 import { insertParkingPermit } from "../controller/Admin_Api/insertParkingPermit.controller";
 import { getOrderNotificationMetaData } from "../controller/Admin_Api/orderNotificationMetaData.controller";
+import { updateOrderNotificationMetaData } from "../controller/Admin_Api/orderNotificationMetaData.controller";
 import { getWarehouseById } from "../controller/Admin_Api/warehouseController";
 
 import { HandleOrderDelivery } from "../controller/AdminDriverApi/HandleOrderDelivery";
@@ -45,6 +46,7 @@ adminRouter.post("/sendEmail", sendEmail);
 adminRouter.post("/routeoptimize/getOrder", OrderCtrl.getAllLogisticOrder);
 adminRouter.post("/insertParkingPermit", insertParkingPermit);
 adminRouter.post("/getOrderNotificationMetaData", getOrderNotificationMetaData);
+adminRouter.post("/updateOrderNotificationMetaData", updateOrderNotificationMetaData);
 adminRouter.post("/Runtour", runTourController);
 
 adminRouter.post("/uploadexcel", upload.single("file"), async (req, res) => {

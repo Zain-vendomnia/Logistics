@@ -17,7 +17,7 @@ import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { getOrderInitialEmailHTML } from '../../assets/templates/OrderInitialEmails';
 
 import { sendSMS, sendWhatsAppMessage, sendEmail, EmailTemplate } from '../../services/notificationService';
-import { handlePermit } from '../../utils/handleHelper';
+import { handlePermit, formatDeliveryWindow } from '../../utils/handleHelper';
 
 interface Tour {
   id: string;
@@ -202,6 +202,8 @@ const AdminTourTemplates = () => {
     const idNumbers = permitTourIds.map(id => Number(id));  // Get the IDs of selected tours
     const matchedTours = toursdata.filter((tour: any) => idNumbers.includes(tour.id)); // Filter the tours based on the selected IDs
     const allOrders = matchedTours.flatMap((tour: any) => tour.orders);  // Extract all orders from matched tours
+
+
     SingleOrderParkingPermit(allOrders[0]);
   };
   // Function to handle the send specific order parking permit email process
@@ -222,7 +224,7 @@ const AdminTourTemplates = () => {
         let html = '';
         let condition = 4;
 
-       const formattedTime = formatDeliveryWindow(order.order_time);
+       const formattedTime = formatDeliveryWindow(order.expected_delivery_time);
         order.order_time = formattedTime;
 
 
@@ -257,32 +259,6 @@ const AdminTourTemplates = () => {
       setPermitTourIds([]);
     }
   };
-
-  const formatDeliveryWindow = (isoString: string): string => {
-    const startDate = new Date(isoString);
-    const endDate = new Date(startDate.getTime() + 30 * 60000); // Add 30 minutes
-
-    // Format date
-    const day = String(startDate.getUTCDate()).padStart(2, '0');
-    const month = String(startDate.getUTCMonth() + 1).padStart(2, '0');
-    const year = startDate.getUTCFullYear();
-    const formattedDate = `${day}-${month}-${year}`;
-
-    // Format time helper
-    const formatTime = (date: Date): string => {
-      let hours = date.getUTCHours();
-      const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-      const ampm = hours >= 12 ? 'PM' : 'AM';
-      hours = hours % 12 || 12;
-      return `${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
-    };
-
-    const startTime = formatTime(startDate);
-    const endTime = formatTime(endDate);
-
-    return  `${formattedDate} (${startTime}) zwischen ${endTime}`;
-  };
-
 
 
   const handleSendEmail = async () => {
