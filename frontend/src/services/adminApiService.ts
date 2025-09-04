@@ -108,7 +108,7 @@ const update_tourstatus = (tour_id: number) =>
 const checkDriverRest = async (driverId: number) => {
   try {
     const response = await axios.get(
-      `http://localhost:8080/api/admin/drivers/check-eligibility/${driverId}`,
+      `${API_BaseUrl_Admin}drivers/check-eligibility/${driverId}`,
       { headers: authHeader() }
     );
     return response.data; // This should include nextTourEligible, message, restHours, etc.
@@ -120,7 +120,7 @@ const checkDriverRest = async (driverId: number) => {
 
 const updateCustomerInfo = (customerData: Record<string, any>) =>
   axios.put(
-    `http://localhost:8080/api/admin/routeoptimize/updateCustomer`,
+    `${API_BaseUrl_Admin}routeoptimize/updateCustomer`,
     customerData,
     {
       headers: authHeader(),
@@ -193,6 +193,17 @@ export const uploadexcel = (formData: FormData) =>
     });
   };
 
+  const updateOrderNotificationMetaData = (orderNumber: number, meta_key: string, meta_value: string ) => {
+
+
+    return axios.post(API_BaseUrl_Admin + "updateOrderNotificationMetaData",{ orderNumber:orderNumber,
+      meta_key:meta_key,
+      meta_value:meta_value}, {
+      headers: authHeader(),
+     
+    });
+  };
+
 const adminApiService = {
   fetchRouteData,
   fetchOrderTourCount,
@@ -224,6 +235,7 @@ const adminApiService = {
   getWarehouse,
   newShopOrder,
   getOrderNotificationMetaData,
+  updateOrderNotificationMetaData,
 };
 
 export default adminApiService;
