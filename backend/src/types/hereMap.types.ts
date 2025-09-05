@@ -53,8 +53,6 @@ export interface DecodedRoute {
   stops: Stop[];
 }
 
-// planTour>tour
-
 export type Statistic = {
   cost: number;
   distance: number;

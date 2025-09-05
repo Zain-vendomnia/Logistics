@@ -16,13 +16,16 @@ export interface CreateTour_Res {
 }
 
 export type CreateTour_Req = {
+  dTour_id?: number;
+  dTour_name?: string;
   tourDate: string;
   startTime: string;
+  comments: string | null;
+  routeColor: string;
   orderIds: number[];
   driverId: number;
   warehouseId: number;
-  comments: string | null;
-  routeColor: string;
+  userId?: string;
 };
 
 export type TourData = {
@@ -117,24 +120,37 @@ export type Tour = {
 
 export interface DynamicTourPayload {
   id?: number;
-  tour_number: string;
-  tour_route: Geometry[];
+  tour_name?: string;
+  tour_route?: Geometry[] | null; // object;
   orderIds: string; // Comma-separated
+  totalOrdersItemsQty: number;
+
   warehouse_id: number;
+  warehouse_name?: string;
+  warehouse_colorCode?: string;
+
+  created_at?: string | null;
+  updated_at?: string | null;
+  updated_by?: string | null;
+
+  approved_by?: string | null;
+  approved_at?: string | null;
 }
 
-export type pinboardOrder = {
-  id: number;
+export type UnassignedRes = {
+  orderId: number;
   order_number: string;
+  reasons: string[];
+};
 
-  order_time: string;
-  delivery_time: string;
-  amount: number;
+export type DynamicTourRes = {
+  tour: Tour;
+  unassigned: UnassignedRes[];
+  dynamicTour: DynamicTourPayload;
+};
 
-  city: string;
-  zipcode: string;
-  street: string;
-  
-  location: { lat: number; lng: number };
-  warehouse_id: number;
+export type rejectDynamicTour_Req = {
+  tour_id: number;
+  userId: string;
+  reason: string;
 };

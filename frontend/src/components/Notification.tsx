@@ -84,8 +84,8 @@ export const NotificationManager = () => {
     <Box
       sx={{
         position: "fixed",
-        top: 26,
-        right: 1,
+        top: 30,
+        right:1,
         zIndex: 1500,
       }}
     >
@@ -120,27 +120,30 @@ export const NotificationManager = () => {
               )
             }
             sx={{
-              minWidth: "290px",
+              minWidth: {sm: "180px" , md:"240px"},
+              maxWidth: {sm: "250px", md:"290px", lg:"400px"},
               borderRadius: "8px",
               alignItems: "center",
               bgcolor: notify.severity && getDefaultBgColor(notify.severity),
+              whiteSpace: "normal",
+              wordBreak: "break-word",
             }}
           >
-            <Typography fontWeight={600} variant="body1" fontSize={"large"}>
+            <Typography fontWeight={450} variant="body2" fontSize={"large"}>
               {notify?.title}
             </Typography>
             {notify.message.includes(".") ? (
               <>
                 {notify.message.split(".").map((part, idx) =>
                   part.trim() ? (
-                    <Typography key={idx} fontWeight={600} variant="body1">
+                    <Typography key={idx} fontWeight={450} variant="body2">
                       {part.trim()}
                     </Typography>
                   ) : null
                 )}
               </>
             ) : (
-              <Typography fontSize={"1rem"} variant="body1">
+              <Typography fontSize={"0.95rem"} variant="body2">
                 {notify.message}
               </Typography>
             )}

@@ -84,3 +84,27 @@ export type Tour = {
   statistic: any;
   shiftIndex: number;
 };
+
+export enum TourType {
+  dynamicTour = "dynamic_tours",
+  masterTour = "tourinfo_master",
+}
+export enum TourStatus {
+  rejected = "rejected",
+  approved = "approved",
+  pending = "pending",
+  live = "live",
+  completed = "completed",
+}
+export type TourTracePayload = {
+  source_table: TourType;
+  source_id: number;
+  tour_name: string;
+  tour_route: object; // JSON
+  tour_data: object; // JSON
+  orderIds: string; // comma-separated string
+  warehouse_id: number;
+  status: TourStatus;
+  removed_reason?: string;
+  removed_by?: string;
+};

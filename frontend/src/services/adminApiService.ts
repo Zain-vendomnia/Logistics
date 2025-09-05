@@ -1,7 +1,14 @@
 // adminApiService.ts
 import axios from "axios";
 import authHeader from "./auth-header";
-import { CreateTour_Req } from "../types/tour.type";
+import {
+  CreateTour_Req,
+  DynamicTourPayload,
+  DynamicTourRes,
+  rejectDynamicTour_Req,
+} from "../types/tour.type";
+import { Order } from "../types/order.type";
+import { WarehouseDetails } from "../types/dto.type";
 
 const API_BaseUrl = "http://localhost:8080/api/admin/routeoptimize/";
 const API_BaseUrl_Admin = "http://localhost:8080/api/admin/";
@@ -22,8 +29,17 @@ const checkOrdersRecentUpdates = async () =>
 
 const fetchAllOrders = () =>
   axios.get(`${API_BaseUrl}orders`, { headers: authHeader() });
+
 const fetchSpecifiedOrder = (order_number: string) => {
-  return axios.post(`${API_BaseUrl}getOrder`, { order_number });
+  return axios.get(`${API_BaseUrl}getOrder`, { params: { order_number } });
+};
+
+const fetchOrdersWithItems = async (orderIds: string): Promise<Order[]> => {
+  const res = await axios.get(`${API_BaseUrl}ordersWithItems`, {
+    params: { orderIds },
+  });
+  console.log(`[debug] fetchOrdersWithItems: ${res}`);
+  return res.data as Order[];
 };
 
 const getTour = (tourId: number) =>
@@ -32,10 +48,13 @@ const getTour = (tourId: number) =>
     params: { tourId },
   });
 
-const getWarehouse = (id: number) =>
-  axios.get(`${API_BaseUrl}getWarehouse/${id}`, {
+const getWarehouse = async (id: number): Promise<WarehouseDetails> => {
+  const res = await axios.get(`${API_BaseUrl}getWarehouse/${id}`, {
     headers: authHeader(),
   });
+
+  return res.data as WarehouseDetails;
+};
 
 const createTour = (tourData: CreateTour_Req) =>
   axios.post(`${API_BaseUrl}createtour`, tourData, { headers: authHeader() });
@@ -155,10 +174,16 @@ const plotheremap = () =>
     headers: authHeader(),
   });
 
-const fetchPinboardOrders = () =>
-  axios.get(`${API_BaseUrl_Admin}pinboardOrders`, {
-    headers: authHeader(),
+const fetchPinboardOrders = async (
+  lastFetchedAt?: number | null
+): Promise<Order[]> => {
+  const headers: Record<string, string> = { ...authHeader() };
+  const res = await axios.get(`${API_BaseUrl_Admin}pinboardOrders`, {
+    headers: { ...authHeader(), "last-fetched-at": `${lastFetchedAt}` },
   });
+
+  return res.data;
+};
 
 const newShopOrder = (id: number) =>
   axios.get(`${API_BaseUrl_Admin}newShopwareOrder`, {
@@ -171,10 +196,50 @@ const newShopOrder = (id: number) =>
 //     params: { id },
 //   });
 
-const fetchDynamicTours = () =>
-  axios.get(`${API_BaseUrl_Admin}dynamicTours`, {
+const fetchDynamicTours = async (): Promise<DynamicTourPayload[]> => {
+  const res = await axios.get(`${API_BaseUrl_Admin}dynamicTours`, {
     headers: authHeader(),
   });
+
+  return (res.data as DynamicTourPayload[]) || [];
+};
+
+const requestDynamicTour = async (
+  payload: DynamicTourPayload
+): Promise<DynamicTourRes> => {
+  const res = await axios.post(
+    `${API_BaseUrl_Admin}createDynamicTour`,
+    payload,
+    {
+      headers: authHeader(),
+    }
+  );
+  return res.data as DynamicTourRes;
+};
+
+const acceptDynamicTour = async (payload: CreateTour_Req) => {
+  const res = await axios.post(
+    `${API_BaseUrl_Admin}acceptDynamicTour`,
+    payload,
+    {
+      headers: authHeader(),
+    }
+  );
+  return res.data;
+};
+
+const rejectDynamicTour = async (
+  payload: rejectDynamicTour_Req
+): Promise<boolean> => {
+  const res = await axios.post(
+    `${API_BaseUrl_Admin}rejectDynamicTour`,
+    payload,
+    {
+      headers: authHeader(),
+    }
+  );
+  return res.data as boolean;
+};
 
 export const uploadexcel = (formData: FormData) =>
   axios.post(`${API_BaseUrl_Admin}uploadexcel`, formData, {
@@ -212,6 +277,7 @@ const adminApiService = {
   checkOrdersRecentUpdates,
   fetchAllOrders,
   fetchSpecifiedOrder,
+  fetchOrdersWithItems,
   createTour,
   getTour,
   getRouteResponse,
@@ -229,6 +295,9 @@ const adminApiService = {
   insertParkingPermit,
   plotheremap,
   fetchDynamicTours,
+  requestDynamicTour,
+  acceptDynamicTour,
+  rejectDynamicTour,
   createtourHereApi,
   fetchPinboardOrders,
   uploadexcel,

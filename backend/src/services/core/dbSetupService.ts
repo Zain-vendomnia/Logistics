@@ -16,6 +16,8 @@ import WMSOrderSetup from "../../initialDBSetup/wms_orders";
 import WMSOrderArticlesSetup from "../../initialDBSetup/wms_order_articles";
 import WhatsappChatsSetup from "../../initialDBSetup/whatsappChat";
 import NotificationsTrackSetup from "../../initialDBSetup/notifications_track";
+import DynamicTourSetup from "../../initialDBSetup/dynamicTourSetup";
+import TourTracesSetup from "../../initialDBSetup/tourTracesSetup";
 
 export async function runInitialDbSetup() {
   await initialSetup();
@@ -36,4 +38,6 @@ export async function runInitialDbSetup() {
   await solarItemsSetup();
   await WhatsappChatsSetup();
   await NotificationsTrackSetup();
+  await DynamicTourSetup();
+  await TourTracesSetup();
 }

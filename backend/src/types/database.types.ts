@@ -1,9 +1,9 @@
-export interface LogisticOrder {
-  order_id: number;
-  street: string;
-  city: string;
-  zipcode: string;
-}
+// export interface LogisticOrder {
+//   order_id: number;
+//   street: string;
+//   city: string;
+//   zipcode: string;
+// }
 export interface LogisticOrderItem {
   id: number;
   order_id: number;

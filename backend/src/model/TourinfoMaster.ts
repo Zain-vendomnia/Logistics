@@ -1,3 +1,4 @@
+import { PoolConnection } from "mysql2/promise";
 import pool from "../database";
 import { Tour } from "../types/tour.types";
 
@@ -35,18 +36,23 @@ export class tourInfo_master {
     return rows as tourInfo_master[];
   }
   static async updateHereMapResponse(
+    conn: PoolConnection,
     tourId: number,
     jsonData: string
   ): Promise<void> {
-      console.log("-------------------------------- STEP 5 UPDATING HERE MAP RESPONSE ----------------------------------------------------")
+    console.log(
+      "-------------------------------- STEP 5 UPDATING HERE MAP RESPONSE ----------------------------------------------------"
+    );
 
-    await pool.execute(
+    await conn.execute(
       `UPDATE tourinfo_master SET heremap_route = ? WHERE id = ?`,
       [jsonData, tourId]
     );
-      console.log("-------------------------------------------------------------------------------------------------------------------")
-
+    console.log(
+      "-------------------------------------------------------------------------------------------------------------------"
+    );
   }
+
   static async updateGraphhopperResponse(
     tourId: number,
     jsonData: string

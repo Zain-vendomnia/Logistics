@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import { LogisticOrder } from "../../model/LogisticOrders";
-import { CheckOrderCount, pinboardOrder } from "../../types/dto.types";
+import { CheckOrderCount } from "../../types/dto.types";
+import { logWithTime } from "../../utils/logging";
+import { Order } from "../../types/order.types";
 
 export const getAllLogisticOrders = async (_req: Request, res: Response) => {
   try {
@@ -21,12 +23,36 @@ export const getAllLogisticOrders = async (_req: Request, res: Response) => {
   }
 };
 
-export const getAllLogisticOrder = async (_req: Request, res: Response) => {
-  const { order_number } = _req.body; // 
+export const getLgsticOrderById = async (_req: Request, res: Response) => {
+  const { order_number } = _req.query;
 
   try {
-    const orderData = await LogisticOrder.getOrder(order_number); // Assuming this method exists and works
+    const orderData = await LogisticOrder.getOrder(order_number as string);
     res.status(200).json(orderData);
+  } catch (error) {
+    console.error("Error fetching order:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// Dynamic Map Board - DMB
+export const getOrdersWithItems = async (_req: Request, res: Response) => {
+  try {
+    const { orderIds } = _req.query;
+    if (!orderIds) {
+      return res.status(400).json({ message: "order numbers are required" });
+    }
+
+    const req_order_Ids: number[] = String(orderIds)
+      .split(",")
+      .map((id) => Number(id));
+
+    logWithTime(`[getOrdersWithItems]:  ${req_order_Ids}`);
+
+    const ordersWithItems = await LogisticOrder.getOrdersWithItemsAsync(
+      req_order_Ids
+    );
+    res.status(200).json(ordersWithItems);
   } catch (error) {
     console.error("Error fetching order:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -70,9 +96,12 @@ export const getCheckOrdersRecentUpdates = async (
 
 export const getPinboardOrders = async (_req: Request, res: Response) => {
   try {
-    const orders: pinboardOrder[] =
-      await LogisticOrder.getPinboardOrdersAsync(); // Shopware orders
+    const sinceHeader = _req.headers["last-fetched-at"] as string | undefined;
+    const since = sinceHeader;
 
+    const orders: Order[] = await LogisticOrder.getPinboardOrdersAsync(since); // Shopware orders
+
+    // console.log("pin-b orders: ", orders);
     res.status(200).json(orders);
   } catch (error) {
     console.error("Error fetching orders:", error);
