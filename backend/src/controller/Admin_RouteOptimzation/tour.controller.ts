@@ -9,7 +9,7 @@ import { ResultSetHeader } from "mysql2";
 import {
   getTourDetailsById,
   getTourMapDataAsync,
-} from "../../services/tourService";
+} from "../../services/tour.service";
 import { logWithTime } from "../../utils/logging";
 
 export const createTourController = async (req: Request, res: Response) => {

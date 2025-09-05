@@ -32,6 +32,7 @@ import { scrollStyles } from "../../../theme";
 import useDynamicTourStore from "../../../store/useDynamicTourStore";
 import { DynamicOrdersList } from "./DynamicOrdersList";
 import { Order } from "../../../types/order.type";
+import { RejectTourModal } from "./RejectTourModal";
 
 const modalStyle = {
   position: "absolute",
@@ -71,6 +72,8 @@ const DynamicTourDetails = () => {
   const [expanded, setExpanded] = useState(false);
 
   const {
+    showRejectModal,
+    setShowRejectModal,
     loading,
     warehouse,
     drivers,
@@ -311,7 +314,7 @@ const DynamicTourDetails = () => {
                 <Button
                   variant="outlined"
                   color="error"
-                  onClick={handleTourReject}
+                  onClick={() => setShowRejectModal(true)}
                 >
                   Reject
                 </Button>
@@ -447,7 +450,7 @@ const DynamicTourDetails = () => {
               flex: 1,
               pr: 1,
               mt: 1,
-              width:'100%',
+              width: "100%",
               //   maxHeight: 600,
               ...scrollStyles(theme),
             }}
@@ -479,7 +482,7 @@ const DynamicTourDetails = () => {
         </Box>
       </Box>
 
-      {/* Remove Confirmation Modal */}
+      {/* Order Remove Confirmation Modal */}
       <Modal open={!!pendingRemove} onClose={() => setPendingRemove(null)}>
         <Box sx={{ ...modalStyle, width: 450 }}>
           <Typography variant="h5" mb={2}>
@@ -503,6 +506,13 @@ const DynamicTourDetails = () => {
           </Box>
         </Box>
       </Modal>
+
+      {/* Tour Reject Confermation Modal */}
+      <RejectTourModal
+        open={showRejectModal}
+        onClose={() => setShowRejectModal(false)}
+        onReject={handleTourReject}
+      />
     </>
   );
 };

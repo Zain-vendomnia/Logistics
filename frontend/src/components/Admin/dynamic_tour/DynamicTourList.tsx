@@ -68,7 +68,7 @@ const DynamicTourList = () => {
     }
 
     let resultArray: DynamicTourPayload[] = dynamicTours.filter((t) =>
-      t.tour_number
+      t.tour_name
         ?.toString()
         .toLocaleLowerCase()
         .includes(searchString.toLocaleLowerCase())
@@ -135,7 +135,7 @@ const DynamicTourList = () => {
               <>
                 <ListItem
                   disablePadding
-                  key={tour.tour_number}
+                  key={tour.tour_name}
                   sx={
                     selectedTour?.id === tour.id
                       ? {
@@ -179,7 +179,7 @@ const DynamicTourList = () => {
                         />
 
                         <Typography sx={{ fontSize: "1.1rem" }}>
-                          {tour.tour_number}
+                          {tour.tour_name}
                         </Typography>
                         {/* <Badge color="secondary" badgeContent={80} /> */}
                       </Stack>
@@ -375,7 +375,7 @@ const DynamicTourList = () => {
             Insights Pane
           </Typography>
           <Typography variant="subtitle1" fontWeight={"bold"}>
-            {selectedTour.tour_number}-60-53-50-70
+            {selectedTour.tour_name}-60-53-50-70
           </Typography>
           {/* Duration */}
           <Box

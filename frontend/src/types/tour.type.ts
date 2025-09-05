@@ -16,13 +16,16 @@ export interface CreateTour_Res {
 }
 
 export type CreateTour_Req = {
+  dTour_id?: number;
+  dTour_name?: string;
   tourDate: string;
   startTime: string;
+  comments: string | null;
+  routeColor: string;
   orderIds: number[];
   driverId: number;
   warehouseId: number;
-  comments: string | null;
-  routeColor: string;
+  userId?: string;
 };
 
 export type TourData = {
@@ -116,8 +119,8 @@ export type Tour = {
 };
 
 export interface DynamicTourPayload {
-  id?: number | null;
-  tour_number?: string | null;
+  id?: number;
+  tour_name?: string;
   tour_route?: Geometry[] | null; // object;
   orderIds: string; // Comma-separated
   totalOrdersItemsQty: number;
@@ -144,4 +147,10 @@ export type DynamicTourRes = {
   tour: Tour;
   unassigned: UnassignedRes[];
   dynamicTour: DynamicTourPayload;
+};
+
+export type rejectDynamicTour_Req = {
+  tour_id: number;
+  userId: string;
+  reason: string;
 };

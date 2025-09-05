@@ -2,6 +2,7 @@ import { ResultSetHeader, RowDataPacket } from "mysql2";
 import pool from "../database";
 import { CheckOrderCount } from "../types/dto.types";
 import { Order } from "../types/order.types";
+import { PoolConnection } from "mysql2/promise";
 
 export enum OrderStatus {
   initial = "initial",
@@ -239,13 +240,14 @@ export class LogisticOrder {
   }
 
   static async updateOrdersStatus(
+    conn: PoolConnection,
     orderIds: number[],
     status: OrderStatus
   ): Promise<Boolean> {
-    if (!status) throw new Error("Invalis order status provided");
+    if (!status) throw new Error("Invalid order status provided");
 
     const placeholders = orderIds.map(() => "?").join(", ");
-    const [result] = await pool.execute(
+    const [result] = await conn.execute(
       `UPDATE logistic_order SET status = ?, updated_at = NOW() WHERE order_id IN (${placeholders})`,
       [status, ...orderIds]
     );

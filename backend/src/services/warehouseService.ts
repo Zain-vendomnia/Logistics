@@ -16,7 +16,7 @@ export const getWarehouseById = async (
 
   const row = rows[0];
   const warehouse: WarehouseDetails = {
-    id: row.warehouse_details,
+    id: row.warehouse_id,
     name: row.warehouse_name,
     town: row.town,
     address: row.address,

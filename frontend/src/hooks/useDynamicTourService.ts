@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { useTheme, Theme } from "@mui/material/styles";
 import { SelectChangeEvent } from "@mui/material";
 import {
+  CreateTour_Req,
   DynamicTourPayload,
   DynamicTourRes,
+  rejectDynamicTour_Req,
   UnassignedRes,
 } from "../types/tour.type";
 import adminApiService from "../services/adminApiService";
@@ -51,6 +53,8 @@ export const useDynamicTourService = () => {
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   // const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
   const [removeOrderId, setRemoveOrderId] = useState<number | null>(null);
+
+  const [showRejectModal, setShowRejectModal] = useState(false);
 
   const orderRef = useRef<HTMLDivElement | null>(null);
 
@@ -176,6 +180,47 @@ export const useDynamicTourService = () => {
   };
   const orderToDelete = tourOrders.find((o) => o.order_id === removeOrderId);
 
+  // const handleSelectPinbOrder = async (e: any) => {
+  //   console.log("Hit!!");
+  //   const value = e.target.value;
+
+  //   console.log("handleSelectPinbOrder orders: ", value);
+
+  //   const orderIds = Array.isArray(value) ? value.join(",") : value;
+
+  //   const orders: Order[] =
+  //     await adminApiService.fetchOrdersWithItems(orderIds);
+  //   setSelectedPinbOrders(orders);
+  // };
+
+  const handleSelectPinbOrder = async (newValue: Order[]) => {
+    if (newValue.length === 0) {
+      setSelectedPinbOrders([]);
+      return;
+    }
+    console.log("PinB_Orders_Select Ids", newValue);
+    const orderIds = newValue.map((o) => o.order_id).join(",");
+
+    console.log("PinB_Orders_Select Ids", orderIds);
+
+    const orders: Order[] =
+      await adminApiService.fetchOrdersWithItems(orderIds);
+
+    setSelectedPinbOrders(orders);
+  };
+
+  const pinboardOrderSearch = async (search_order: any) => {
+    if (!search_order) return;
+
+    console.log("pinboardOrderSearch order: ", search_order);
+
+    const orders: Order[] = await adminApiService.fetchOrdersWithItems(
+      search_order.order_id.toString()
+    );
+    setSelectedPinbOrders(orders);
+  };
+
+  // Tour modification functions
   const handleFormChange = (
     e:
       | React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -187,36 +232,6 @@ export const useDynamicTourService = () => {
       [name]: value,
     }));
   };
-
-  const handleTourSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("Form Submit Event", e);
-    console.log("Form Data Submitted:", formData);
-
-    //************* */
-    const reasons =
-      "TIME_WINDOW_CONSTRAINT:cannot be assigned due to violation of time window";
-
-    showNotification({
-      title: "Order_Number",
-      message: `${reasons}`,
-      severity: NotificationSeverity.Warning,
-      duration: 26000,
-    });
-    showNotification({
-      // title: "Order_Number",
-      message: "Order_Number",
-      severity: NotificationSeverity.Warning,
-      duration: 26000,
-    });
-  };
-
-  const generateTimeOptions = () =>
-    Array.from({ length: (24 - 7) * 2 }, (_, i) => {
-      const hour = 7 + Math.floor(i / 2);
-      const minutes = i % 2 === 0 ? "00" : "30";
-      return `${String(hour).padStart(2, "0")}:${minutes}`;
-    });
 
   const updateDynamicTour = async () => {
     setLoading(true);
@@ -266,6 +281,87 @@ export const useDynamicTourService = () => {
     }
   };
 
+  // Accept Dynamic Tour
+  const handleTourSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    console.log("Current Warehouse...", warehouse);
+
+    console.log("Submitting Dynamic Tour...", e);
+
+    setLoading(true);
+
+    try {
+      // Collect order IDs from selected lists
+      const torders = tourOrders.map((o) => o.order_id);
+
+      // Build request payload
+      const request: CreateTour_Req = {
+        dTour_id: selectedTour?.id,
+        dTour_name: selectedTour?.tour_name,
+        ...formData, // tourDate, startTime, driverId, routeColor
+        driverId: Number(formData.driverId),
+        comments: "",
+        orderIds: torders,
+        warehouseId: warehouse?.id!, // ensure from warehouse service
+        userId: getCurrentUser().email, // service helper
+      };
+
+      console.log("Accept D-Tour Request:", request);
+
+      // API call
+      const res = await adminApiService.acceptDynamicTour(request);
+      console.log("Accept D-Tour Response:", res);
+
+      showNotification({
+        message: `Tour ${res.tourName} created successfully`,
+        severity: NotificationSeverity.Success,
+        duration: 8000,
+      });
+    } catch (error: unknown) {
+      console.error("Error Accepting Tour:", error);
+      showNotification({
+        message: "Error Accepting Tour",
+        severity: NotificationSeverity.Error,
+        duration: 8000,
+      });
+    } finally {
+      setSelectedTour(null);
+      setSelectedPinbOrders([]);
+      setLoading(false);
+    }
+  };
+
+  const handleTourReject = async (reason: string) => {
+    setLoading(true);
+    try {
+      const request: rejectDynamicTour_Req = {
+        tour_id: selectedTour?.id!,
+        userId: getCurrentUser().email,
+        reason,
+      };
+
+      const res = await adminApiService.rejectDynamicTour(request);
+      console.log("Reject D-Tour Response:", res);
+
+      showNotification({
+        message: "Tour Rejected Successfully",
+        severity: NotificationSeverity.Success,
+      });
+    } catch (error: unknown) {
+      console.error("Error Rejecting Tour:", error);
+      showNotification({
+        message: "Error Rejecting Tour",
+        severity: NotificationSeverity.Error,
+      });
+    } finally {
+      setSelectedTour(null);
+      setSelectedPinbOrders([]);
+      setLoading(false);
+    }
+  };
+
+  // Side functions
   const notifyUnassignedOrders = (unassigned: UnassignedRes[]) => {
     if (!unassigned.length) return;
 
@@ -281,55 +377,16 @@ export const useDynamicTourService = () => {
     });
   };
 
-  const pinboardOrderSearch = async (search_order: any) => {
-    if (!search_order) return;
-
-    console.log("pinboardOrderSearch order: ", search_order);
-
-    const orders: Order[] = await adminApiService.fetchOrdersWithItems(
-      search_order.order_id.toString()
-    );
-    setSelectedPinbOrders(orders);
-  };
-
-  const handleTourReject = () => {
-    console.log("Tour Rejecteion Called");
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-    }, 5000);
-  };
-
-  // const handleSelectPinbOrder = async (e: any) => {
-  //   console.log("Hit!!");
-  //   const value = e.target.value;
-
-  //   console.log("handleSelectPinbOrder orders: ", value);
-
-  //   const orderIds = Array.isArray(value) ? value.join(",") : value;
-
-  //   const orders: Order[] =
-  //     await adminApiService.fetchOrdersWithItems(orderIds);
-  //   setSelectedPinbOrders(orders);
-  // };
-
-  const handleSelectPinbOrder = async (newValue: Order[]) => {
-    if (newValue.length === 0) {
-      setSelectedPinbOrders([]);
-      return;
-    }
-    console.log("PinB_Orders_Select Ids", newValue);
-    const orderIds = newValue.map((o) => o.order_id).join(",");
-
-    console.log("PinB_Orders_Select Ids", orderIds);
-
-    const orders: Order[] =
-      await adminApiService.fetchOrdersWithItems(orderIds);
-
-    setSelectedPinbOrders(orders);
-  };
+  const generateTimeOptions = () =>
+    Array.from({ length: (24 - 7) * 2 }, (_, i) => {
+      const hour = 7 + Math.floor(i / 2);
+      const minutes = i % 2 === 0 ? "00" : "30";
+      return `${String(hour).padStart(2, "0")}:${minutes}`;
+    });
 
   return {
+    showRejectModal,
+    setShowRejectModal,
     loading,
     warehouse,
     drivers,

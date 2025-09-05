@@ -2,6 +2,7 @@ import { ResultSetHeader } from "mysql2";
 import pool from "../database";
 import { CreateTour } from "../types/dto.types";
 import { logWithTime } from "../utils/logging";
+import { PoolConnection } from "mysql2/promise";
 
 // interface Tour {
 //   id?: number;
@@ -16,12 +17,11 @@ import { logWithTime } from "../utils/logging";
 //   warehouseId: number;
 // }
 
-export const createTour = async (tour: CreateTour) => {
+export const createTourAsync = async (
+  connection: PoolConnection,
+  tour: CreateTour
+) => {
   logWithTime("[Create Tour Initiated]");
-
-  const connection = await pool.getConnection();
-  await connection.beginTransaction();
-
   try {
     // 1. Get Driver: name, userId, active status
     const [driverUserRows]: any = await connection.query(
@@ -35,10 +35,10 @@ export const createTour = async (tour: CreateTour) => {
     if (!driverUserRows.length)
       throw new Error(`Driver not found with ID ${tour.driverId}`);
 
-    const { is_active, name } = driverUserRows[0];
+    const { is_active, name: driverName } = driverUserRows[0];
     if (is_active === 0) throw new Error("Driver is inactive");
 
-    // 2. Check if drive ralso has a tour on same day
+    // 2. Check if driver also has a tour on same day
     const [duplicateTourRows]: any = await connection.query(
       `SELECT COUNT(*) AS count FROM tourinfo_master
       WHERE driver_id = ? AND tour_date = ?`,
@@ -51,72 +51,95 @@ export const createTour = async (tour: CreateTour) => {
     if (!Array.isArray(tour.orderIds) || tour.orderIds.length === 0)
       throw new Error("No order IDs provided for this tour.");
 
-    const orderPlaceholders = tour.orderIds.map(() => "?").join(",");
-    const [zipRows]: any = await connection.query(
-      `SELECT zipcode FROM logistic_order WHERE order_id IN (${orderPlaceholders})`,
-      tour.orderIds
-    );
-    if (!zipRows.length) throw new Error(`No valid orders found`);
-
     // 4. Generate tour name
-    const zipcodes = zipRows.map((r: any) => r.zipcode);
-    const firstZip = zipcodes[0];
-    const lastZip = zipcodes[zipcodes.length - 1];
-
-    const firstZipPrefix = firstZip.substring(0, 2);
-    const lastZipPrefix = lastZip.substring(0, 2);
-
-    const tourDateFormatted = new Date(tour.tourDate);
-    const dayName = tourDateFormatted.toLocaleDateString("en-US", {
-      weekday: "long",
-    });
-    const formattedDate = `${tourDateFormatted.getFullYear()}.${String(
-      tourDateFormatted.getMonth() + 1
-    ).padStart(2, "0")}.${String(tourDateFormatted.getDate()).padStart(
-      2,
-      "0"
-    )}`;
-    const driverName = name.replace(/\s+/g, "");
-    const tourName = `PLZ-${firstZipPrefix}-${lastZipPrefix}-${driverName}-${dayName}-${formattedDate}`;
+    const tourName = await generateTourName(
+      connection,
+      tour,
+      driverName as string
+    );
 
     // 5. Insert into tourinfo_master
     const insertSql = `
     INSERT INTO tourinfo_master (
-      tour_name, comments, start_time, driver_id, route_color, tour_date, order_ids, warehouse_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      tour_name, comments, start_time, driver_id, route_color, tour_date, order_ids, warehouse_id, created_by
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?,?)
   `;
     const insertValues = [
       tourName,
-      tour.comments || null,
+      tour.comments || `Creating Tour at ${new Date().toISOString()}`,
       tour.startTime,
       tour.driverId,
       tour.routeColor,
       tour.tourDate,
       JSON.stringify(tour.orderIds),
       tour.warehouseId,
+      tour.userId
     ];
 
     console.log("[tourModel] Creating tour with values:", insertValues);
 
     const [result] = await connection.query(insertSql, insertValues);
-    await connection.commit();
-    console.log(
-      "-------------------------------------------------------------------------------------------------------------------"
-    );
+    const resultSet = result as ResultSetHeader;
 
-    return result as ResultSetHeader;
-  } catch (error) {
-    await connection.rollback();
+    if (resultSet.insertId) {
+      await insertTourDriverData(connection, {
+        tour_id: resultSet.insertId,
+        driver_id: tour.driverId,
+        tour_date: tour.tourDate,
+      });
+    }
 
-    console.error("[tourModel] Error creating tour:", error);
-    throw new Error("[tourModel] error while creating new Tour");
-  } finally {
-    connection.release();
+    return { tourId: resultSet.insertId, tourName: tourName };
+  } catch (err: unknown) {
+    console.error("[tourModel] Error creating tour:", err);
+    const message = err instanceof Error ? err.message : new Error(String(err));
+    throw new Error(`[tourModel] Failed: ${message}`);
   }
 };
 
+async function generateTourName(
+  conn: PoolConnection,
+  tour: CreateTour,
+  driverName: string
+) {
+  let tour_name = "";
+
+  if (!tour.dTour_name) {
+    const orderPlaceholders = tour.orderIds.map(() => "?").join(",");
+    const [zipRows]: any = await conn.query(
+      `SELECT zipcode FROM logistic_order WHERE order_id IN (${orderPlaceholders})`,
+      tour.orderIds
+    );
+    if (!zipRows.length) throw new Error(`No valid orders found`);
+
+    const zipcodes: string[] = zipRows.map((r: any) => String(r.zipcode));
+
+    const zipcodePrefixes = Array.from(
+      new Set(zipcodes.map((z) => z.substring(0, 2) || "00"))
+    );
+
+    tour_name = `PLZ-${zipcodePrefixes}`;
+  } else {
+    tour_name = tour.dTour_name;
+  }
+
+  const tourDateFormatted = new Date(tour.tourDate);
+  const dayName = tourDateFormatted.toLocaleDateString("en-US", {
+    weekday: "long",
+  });
+  const formattedDate = `${tourDateFormatted.getFullYear()}.${String(
+    tourDateFormatted.getMonth() + 1
+  ).padStart(2, "0")}.${String(tourDateFormatted.getDate()).padStart(2, "0")}`;
+
+  const driver_name = driverName.replace(/\s+/g, "").toLowerCase();
+
+  tour_name += `-${driver_name}-${dayName}-${formattedDate}`;
+
+  return tour_name;
+}
+
 // Function to insert a tour_driver data into the database
-export const insertTourDriverData = async (tour: any) => {
+export const insertTourDriverData = async (conn: PoolConnection, tour: any) => {
   const sql = `
     INSERT INTO tour_driver (tour_id, driver_id, tour_date)
     VALUES (?, ?, ?)
@@ -126,7 +149,7 @@ export const insertTourDriverData = async (tour: any) => {
 
   try {
     console.log("[tour_driver] Creating tour_driver entry:", values);
-    const [result] = await pool.query(sql, values);
+    const [result] = await conn.query(sql, values);
     console.log("[tour_driver] Entry created successfully");
     return result;
   } catch (err) {
@@ -283,11 +306,12 @@ export const updateTour = async (tourData: any) => {
   }
 };
 
-export const removeUnassignedOrders = async (
+export const removeUnassignedOrdersFromTour = async (
+  conn: PoolConnection,
   tourId: number,
   orderIdsToRemove: number[]
 ) => {
-  const [rows]: any = await pool.query(
+  const [rows]: any = await conn.query(
     `SELECT order_ids FROM tourinfo_master WHERE id = ?`,
     [tourId]
   );
@@ -312,14 +336,13 @@ export const removeUnassignedOrders = async (
     (id) => !orderIdsToRemove.includes(id)
   );
 
-  await pool.query(`UPDATE tourinfo_master SET order_ids = ? WHERE id = ?`, [
+  await conn.query(`UPDATE tourinfo_master SET order_ids = ? WHERE id = ?`, [
     JSON.stringify(updatedOrderIds),
     tourId,
   ]);
 
   console.log(
-    `
-    Removed ${orderIdsToRemove.length} order(s) from Tour ${tourId}. Remaing order: `,
+    `Removed ${orderIdsToRemove.length} order(s) from Tour ${tourId}. Remaing order: `,
     updatedOrderIds
   );
 };

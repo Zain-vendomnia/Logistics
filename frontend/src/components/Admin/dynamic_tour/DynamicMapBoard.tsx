@@ -143,8 +143,8 @@ const DymanicMapBoard = () => {
   );
 
   const fallbackCoords: [number, number][] = [
-    [50.110924, 8.682127], // Frankfurt Germany
-    [50.110924, 8.682127],
+    [52.520008, 13.404954], // Berlin Germany
+    // [50.110924, 8.682127], // Frankfurt Germany
   ];
 
   let allCoords: [number, number][] = fallbackCoords;
@@ -196,6 +196,10 @@ const DymanicMapBoard = () => {
 
       const bounds = L.latLngBounds(allCoords);
       mapRef.current.flyToBounds(bounds, flyToBoundsOptions as any);
+
+      // setTimeout(() => {
+      //   mapRef.current?.setZoom(mapRef.current.getZoom() - 1); // zoom out 1 level
+      // }, 1600);
     }
   }, [isLoading, vehicleTours]);
 
@@ -227,6 +231,17 @@ const DymanicMapBoard = () => {
           );
           const newOrders = orders.filter((o) => !existingIds.has(o.order_id));
           pinboard_AddOrders(newOrders);
+
+          // Update map view
+          const locations = orders.map((o) => o.location);
+          if (mapRef.current && locations.length > 0) {
+            const bounds = L.latLngBounds(locations as any);
+            mapRef.current.flyToBounds(bounds, {
+              padding: [50, 50],
+              maxZoom: 6,
+              duration: 1.5,
+            });
+          }
         }
       } catch (err) {
         console.error("Failed to fetch pinboard Orders", err);

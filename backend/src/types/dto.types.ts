@@ -1,7 +1,9 @@
-import { DecodedRoute, Unassigned } from "./hereMap.types";
-import { Geometry, Tour } from "./tour.types";
+import { Unassigned } from "./hereMap.types";
+import { Tour } from "./tour.types";
 
 export type CreateTour = {
+  dTour_id?: number;
+  dTour_name?: string;
   tourDate: string;
   startTime: string;
   comments: string | null;
@@ -9,13 +11,25 @@ export type CreateTour = {
   orderIds: number[];
   driverId: number;
   warehouseId: number;
+  userId?: string;
+};
+
+export type rejectDynamicTour_Req = {
+  tour_id: number;
+  userId: string;
+  reason: string;
+};
+
+type TourData = {
+  tour: Tour;
+  unassigned: Unassigned[];
 };
 
 export interface DynamicTourPayload {
   id?: number | null;
-  tour_number?: string | null;
+  tour_name?: string;
   tour_route?: object | null; // Geometry[]/DecodedRoute[]/object
-  tour_data?: object | null;
+  tour_data?: TourData;
   orderIds: string; // Comma-separated
   totalOrdersItemsQty: number;
 

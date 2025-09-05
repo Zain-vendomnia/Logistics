@@ -5,6 +5,7 @@ import {
   CreateTour_Req,
   DynamicTourPayload,
   DynamicTourRes,
+  rejectDynamicTour_Req,
 } from "../types/tour.type";
 import { Order } from "../types/order.type";
 import { WarehouseDetails } from "../types/dto.type";
@@ -216,6 +217,30 @@ const requestDynamicTour = async (
   return res.data as DynamicTourRes;
 };
 
+const acceptDynamicTour = async (payload: CreateTour_Req) => {
+  const res = await axios.post(
+    `${API_BaseUrl_Admin}acceptDynamicTour`,
+    payload,
+    {
+      headers: authHeader(),
+    }
+  );
+  return res.data;
+};
+
+const rejectDynamicTour = async (
+  payload: rejectDynamicTour_Req
+): Promise<boolean> => {
+  const res = await axios.post(
+    `${API_BaseUrl_Admin}rejectDynamicTour`,
+    payload,
+    {
+      headers: authHeader(),
+    }
+  );
+  return res.data as boolean;
+};
+
 export const uploadexcel = (formData: FormData) =>
   axios.post(`${API_BaseUrl_Admin}uploadexcel`, formData, {
     headers: {
@@ -251,6 +276,8 @@ const adminApiService = {
   plotheremap,
   fetchDynamicTours,
   requestDynamicTour,
+  acceptDynamicTour,
+  rejectDynamicTour,
   createtourHereApi,
   fetchPinboardOrders,
   uploadexcel,

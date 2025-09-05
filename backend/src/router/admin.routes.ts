@@ -73,8 +73,10 @@ adminRouter.use(validateToken, roleCheck(["admin"]));
 adminRouter.post("/hereMapController", hereMapController);
 // adminRouter.post("/dynamicTourController", dynamicTourCtrl.create_dynamicTour);
 
-adminRouter.post("/createDynamicTour", dynamicTourCtrl.createDynamicTour);
 adminRouter.get("/dynamicTours", dynamicTourCtrl.getDynamicTours);
+adminRouter.post("/createDynamicTour", dynamicTourCtrl.createDynamicTour);
+adminRouter.post("/acceptDynamicTour", dynamicTourCtrl.acceptDynamicTour);
+adminRouter.post("/rejectDynamicTour", dynamicTourCtrl.rejectDynamicTour);
 
 adminRouter.get("/pinboardOrders", OrderCtrl.getPinboardOrders);
 adminRouter.get("/tours", getFilteredToursController);

@@ -10,7 +10,12 @@ import {
   Unassigned,
 } from "../types/hereMap.types";
 import { Tour } from "../types/tour.types";
-import { LogisticOrder } from "../types/database.types";
+// import { LogisticOrder } from "../types/database.types";
+import {
+  get_LogisticsOrdersAddress,
+  LogisticOrder,
+} from "../model/LogisticOrders";
+import { getWarehouseWithVehiclesById } from "./warehouseService";
 
 const HERE_API_KEY =
   process.env.HERE_API_KEY || "2tJpOzfdl3mgNpwKiDt-KuAQlzgEbsFkbX8byW97t1k";
@@ -106,25 +111,11 @@ async function buildFleet(warehouseGroups: any[]): Promise<FleetType[]> {
 }
 
 // WarehouseGroup as DB object array
-async function PlanTour(orders: LogisticOrder[], warehouseGroup: any[]) {
-  console.log(
-    "-------------------------------- STEP 4 PLAN TOUR ----------------------------------------------------"
-  );
-
-  console.log(
-    "-------------------------------- calling the createJobList ----------------------------------------------------"
-  );
+async function PlanTourAsync(orders: LogisticOrder[], warehouseGroup: any[]) {
   const jobList = createJobList(orders);
-  console.log("Job list created: ", jobList);
-  console.log(
-    "-------------------------------- calling the buildJobs ----------------------------------------------------"
-  );
-  const jobs = await buildJobs(jobList);
-  console.log("Jobs Build created: ", jobs);
 
-  console.log(
-    "-------------------------------- calling the buildFleet ----------------------------------------------------"
-  );
+  const jobs = await buildJobs(jobList);
+
   const fleetTypes = await buildFleet(warehouseGroup);
   console.log("Fleet Types created: ", fleetTypes);
 
@@ -149,9 +140,6 @@ async function PlanTour(orders: LogisticOrder[], warehouseGroup: any[]) {
     if (!tour) {
       throw new Error("No tour found in the response.");
     }
-    console.log(
-      "-------------------------------------------------------------------------------------------------------------------"
-    );
 
     return {
       tour,
@@ -164,6 +152,18 @@ async function PlanTour(orders: LogisticOrder[], warehouseGroup: any[]) {
     logApiError(error, "PlanTourAsync");
     throw new Error("Failed to plan tour.");
   }
+}
+
+async function CreateTourRouteAsync(orderIds: number[], warehouse_id: number) {
+  const orders = (await get_LogisticsOrdersAddress(
+    orderIds
+  )) as LogisticOrder[];
+
+  const warehouse = await getWarehouseWithVehiclesById(warehouse_id);
+
+  const { tour, unassigned } = await PlanTourAsync(orders, [warehouse]);
+
+  return { tour, unassigned, orders };
 }
 
 // Mock testing functions
@@ -308,9 +308,12 @@ function extractTourOrderIds(tour: Tour): string {
 const hereMapService = {
   geocode,
   getRoutesForTour,
-  PlanTour,
-  PlanTourAsync_Mock,
+  // PlanTour: PlanTourAsync,
+  CreateTourRouteAsync,
+
   extractTourOrderIds,
+
+  PlanTourAsync_Mock,
 };
 
 export default hereMapService;

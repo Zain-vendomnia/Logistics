@@ -307,15 +307,41 @@ export const CREATE_SOLARMODULES_ITEMS_TABLE = `
 export const CREATE_DYNAMIC_TOURS_TABLE = `
   CREATE TABLE IF NOT EXISTS dynamic_tours (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, 
-    tour_number VARCHAR(25) NOT NULL UNIQUE,
+    tour_name VARCHAR(45) NOT NULL UNIQUE,
     tour_route JSON NOT NULL,
     tour_data JSON NOT NULL,
     orderIds TEXT NOT NULL, 
-    warehouse_id INT NOT NULL, 
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP, 
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, 
-    updated_by VARCHAR(45) DEFAULT NULL, 
+    warehouse_id INT NOT NULL,
     approved_by VARCHAR(45) DEFAULT NULL, 
     approved_at DATETIME DEFAULT NULL
+    updated_by VARCHAR(45) DEFAULT NULL, 
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, 
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP, 
   );
+`;
+
+export const CREATE_TOUR_TRACES_TABLE = `
+  CREATE TABLE IF NOT EXISTS tour_traces (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    
+    source_table ENUM('dynamic_tours', 'tourinfo_master') NOT NULL,
+
+    source_id INT NOT NULL,
+    tour_name VARCHAR(100) NOT NULL,
+    tour_route JSON NULL,
+    tour_data JSON NULL,
+    orderIds TEXT NOT NULL,
+    warehouse_id INT NOT NULL,
+
+    status ENUM('rejected', 'pending', 'live', 'confirmed', 'completed') DEFAULT NULL,
+    
+ 
+    removed_reason VARCHAR(255) DEFAULT NULL,
+    removed_by VARCHAR(45) DEFAULT NULL,
+    removed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
 `;
