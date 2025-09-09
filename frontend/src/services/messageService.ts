@@ -370,64 +370,6 @@ export const uploadFile = async (file: File, orderId: string): Promise<{ success
   }
 };
 
-// Utility functions with new 'sending' status
-export const getDeliveryStatusIcon = (status: string): string => {
-  switch (status) {
-    case 'sending':
-      return '⏳';
-    case 'pending':
-      return '⏳';
-    case 'sent':
-      return '✓';
-    case 'delivered':
-      return '✓✓';
-    case 'read':
-      return '✓✓';
-    case 'failed':
-      return '❌';
-    default:
-      return '⏳';
-  }
-};
-
-export const getDeliveryStatusText = (status: string): string => {
-  switch (status) {
-    case 'sending':
-      return 'Sending...';
-    case 'pending':
-      return 'Pending...';
-    case 'sent':
-      return 'Sent';
-    case 'delivered':
-      return 'Delivered';
-    case 'read':
-      return 'Read';
-    case 'failed':
-      return 'Failed';
-    default:
-      return 'Pending';
-  }
-};
-
-export const getDeliveryStatusColor = (status: string): string => {
-  switch (status) {
-    case 'sending':
-      return '#FFA500'; // Orange
-    case 'pending':
-      return '#FFA500'; // Orange
-    case 'sent':
-      return '#0084FF'; // Blue
-    case 'delivered':
-      return '#0084FF'; // Blue
-    case 'read':
-      return '#0084FF'; // Blue
-    case 'failed':
-      return '#FF3B30'; // Red
-    default:
-      return '#999999'; // Gray
-  }
-};
-
 // Helper function to check if message is temporary/optimistic
 export const isOptimisticMessage = (message: Message): boolean => {
   return message.id.startsWith('temp_') || message.delivery_status === 'sending';
@@ -461,37 +403,6 @@ export const updateMessageStatus = (messages: Message[], messageId: string, stat
     }
     return msg;
   });
-};
-
-// Helper function to determine media type from file
-export const getMediaTypeFromFile = (file: File): 'image' | 'video' | 'audio' | 'document' => {
-  const type = file.type.toLowerCase();
-  
-  if (type.startsWith('image/')) return 'image';
-  if (type.startsWith('video/')) return 'video';
-  if (type.startsWith('audio/')) return 'audio';
-  return 'document';
-};
-
-// Helper function to validate file for upload
-export const validateFile = (file: File): { valid: boolean; error?: string } => {
-  const maxSize = 10 * 1024 * 1024; // 10MB
-  const allowedTypes = [
-    'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-    'video/mp4', 'video/webm',
-    'audio/mp3', 'audio/wav', 'audio/ogg',
-    'application/pdf', 'text/plain'
-  ];
-
-  if (file.size > maxSize) {
-    return { valid: false, error: 'File size must be less than 10MB' };
-  }
-
-  if (!allowedTypes.includes(file.type)) {
-    return { valid: false, error: 'File type not supported' };
-  }
-
-  return { valid: true };
 };
 
 // Initialize and cleanup functions

@@ -6,32 +6,16 @@ import ChatWindow from './ChatWindow';
 import theme from '../../theme';
 import { getAllCustomers } from '../../services/customerService';
 import { updateCustomerUnreadCount } from '../../services/messageService';
-
-// Core Customer interface
-export interface Customer {
-  // Required
-  order_id: number;
-  name: string;
-  status: 'online' | 'offline' | 'away' | 'busy';
-  
-  // Optional messaging
-  lastMessage?: string;
-  unreadCount: number;
-  avatar?: string;
-  lastActive?: string;
-  
-  // Optional order data
-  phone?: string;
-  order_number?: string;
-  timestamp?: string;
-  message_type?: 'text' | 'image' | 'document' | 'voice';
-}
-
-// Filter options
-export interface FilterOptions {
-  showUnreadOnly: boolean;
-  statusFilter: 'all' | 'online' | 'offline' | 'away' | 'busy';
-}
+import { 
+  Customer, 
+  FilterOptions, 
+  CustomerStats 
+} from './shared/types';
+import { 
+  normalizeCustomer, 
+  processCustomers, 
+  calculateCustomerStats 
+} from './shared/utils';
 
 const CustomersChat: React.FC = () => {
   // State
@@ -55,12 +39,8 @@ const CustomersChat: React.FC = () => {
         const response = await getAllCustomers();
         
         if (mounted) {
-          // Normalize data
-          const normalized = response.map((c: any) => ({
-            ...c,
-            unreadCount: c.unreadCount ?? 0,
-            status: c.status || 'offline',
-          }));
+          // Normalize data using shared utility
+          const normalized = response.map(normalizeCustomer);
           setCustomers(normalized);
           setError(null);
         }
@@ -80,46 +60,15 @@ const CustomersChat: React.FC = () => {
     return () => { mounted = false; };
   }, []);
 
-  // Filtered and sorted customers
+  // Processed customers using shared utility
   const processedCustomers = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    
-    // Filter
-    let filtered = customers;
-    
-    if (query) {
-      filtered = filtered.filter(c => 
-        c.name.toLowerCase().includes(query) ||
-        c.lastMessage?.toLowerCase().includes(query) ||
-        c.phone?.toLowerCase().includes(query)
-      );
-    }
-
-    if (filters.showUnreadOnly) {
-      filtered = filtered.filter(c => (c.unreadCount ?? 0) > 0);
-    }
-
-    if (filters.statusFilter !== 'all') {
-      filtered = filtered.filter(c => c.status === filters.statusFilter);
-    }
-
-    // Sort: unread first, then by last active, then by name
-    return filtered.sort((a, b) => {
-      // Unread count (desc)
-      const unreadDiff = (b.unreadCount ?? 0) - (a.unreadCount ?? 0);
-      if (unreadDiff !== 0) return unreadDiff;
-      
-      // Last active (desc)
-      if (a.lastActive && b.lastActive) {
-        return new Date(b.lastActive).getTime() - new Date(a.lastActive).getTime();
-      }
-      if (a.lastActive) return -1;
-      if (b.lastActive) return 1;
-      
-      // Name (asc)
-      return a.name.localeCompare(b.name);
-    });
+    return processCustomers(customers, searchQuery, filters);
   }, [customers, searchQuery, filters]);
+
+  // Calculate stats using shared utility
+  const stats: CustomerStats = useMemo(() => {
+    return calculateCustomerStats(customers, processedCustomers);
+  }, [customers, processedCustomers]);
 
   // Handlers
   const handleSelectCustomer = useCallback(async (id: number) => {
@@ -179,9 +128,7 @@ const CustomersChat: React.FC = () => {
     );
   }
 
-  // Calculate stats
-  const totalUnread = customers.reduce((sum, c) => sum + (c.unreadCount ?? 0), 0);
-  const onlineCount = customers.filter(c => c.status === 'online').length;
+  // Check if filters are active
   const hasActiveFilters = filters.showUnreadOnly || filters.statusFilter !== 'all' || searchQuery;
 
   return (
@@ -197,12 +144,7 @@ const CustomersChat: React.FC = () => {
           filters={filters}
           onFilterChange={handleFilterChange}
           onClearAll={handleClearAll}
-          stats={{
-            total: customers.length,
-            filtered: processedCustomers.length,
-            online: onlineCount,
-            unread: totalUnread,
-          }}
+          stats={stats}
         />
         
         <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>

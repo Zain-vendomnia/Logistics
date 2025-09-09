@@ -23,69 +23,23 @@ import {
   MenuItem,
 } from '@mui/material';
 import {
-  AttachFile as AttachFileIcon,
-  Image as ImageIcon,
   Search as SearchIcon,
   Clear as ClearIcon,
   FilterList as FilterIcon,
   Circle as CircleIcon,
 } from '@mui/icons-material';
-import { Customer, FilterOptions } from './CustomersChat';
+import { Customer, FilterOptions, CustomerListProps } from './shared/types';
+import { 
+  getInitials, 
+  getAvatarColor, 
+  formatTime, 
+  STATUS_COLORS,
+  createSearchRegex,
+  getMessageDisplay
+} from './shared/utils';
 
 // Constants
 const SIDEBAR_WIDTH = 360;
-const STATUS_COLORS = {
-  online: '#4caf50',
-  away: '#ff9800',
-  busy: '#f44336',
-  offline: '#9e9e9e',
-} as const;
-
-const AVATAR_COLORS = [
-  '#1976d2', '#388e3c', '#f57c00', '#7b1fa2',
-  '#c2185b', '#00796b', '#5d4037', '#455a64'
-];
-
-// Utility functions
-const getInitials = (name: string): string =>
-  name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
-
-const getAvatarColor = (name: string): string =>
-  AVATAR_COLORS[name.length % AVATAR_COLORS.length];
-
-const formatTime = (timestamp?: string): string => {
-  if (!timestamp) return '';
-  
-  const date = new Date(timestamp);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const mins = Math.floor(diffMs / 60000);
-  
-  if (mins < 1) return 'now';
-  if (mins < 60) return `${mins}m`;
-  if (mins < 1440) return `${Math.floor(mins / 60)}h`;
-  if (mins < 10080) return `${Math.floor(mins / 1440)}d`;
-  
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-};
-
-// Props interface
-interface CustomerListProps {
-  customers: Customer[];
-  selectedCustomerId: number | null;
-  onSelectCustomer: (id: number) => void;
-  searchQuery: string;
-  onSearchChange: (query: string) => void;
-  filters: FilterOptions;
-  onFilterChange: (filters: Partial<FilterOptions>) => void;
-  onClearAll: () => void;
-  stats: {
-    total: number;
-    filtered: number;
-    online: number;
-    unread: number;
-  };
-}
 
 // Customer item component
 const CustomerItem = memo<{
@@ -94,14 +48,11 @@ const CustomerItem = memo<{
   searchQuery: string;
   onClick: () => void;
 }>(({ customer, isSelected, searchQuery, onClick }) => {
-  // console.log("------------------------------------------------")
-  // console.log(customer)
-  // console.log("------------------------------------------------")
-  // Highlight search matches
+  // Memoize search highlighting
   const highlightText = useCallback((text: string): React.ReactNode => {
     if (!searchQuery) return text;
     
-    const regex = new RegExp(`(${searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    const regex = createSearchRegex(searchQuery);
     const parts = text.split(regex);
     
     return parts.map((part, i) => 
@@ -118,13 +69,8 @@ const CustomerItem = memo<{
     );
   }, [searchQuery]);
 
-  const getMessage = () => {
-    if (customer.lastMessage) return customer.lastMessage;
-    if (customer.message_type === 'image') return '📷 Image';
-    if (customer.message_type === 'document') return '📎 Document';
-    if (customer.message_type === 'voice') return '🎤 Voice message';
-    return 'No messages yet';
-  };
+  // Memoize message display
+  const messageDisplay = useMemo(() => getMessageDisplay(customer), [customer]);
 
   return (
     <ListItem
@@ -160,7 +106,7 @@ const CustomerItem = memo<{
             width: 40,
             height: 40 
           }}>
-            {getInitials(customer.name)}
+            {getInitials(customer.name)} 
           </Avatar>
         </Badge>
       </ListItemAvatar>
@@ -190,7 +136,7 @@ const CustomerItem = memo<{
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap'
           }}>
-            {getMessage()}
+            {messageDisplay}
           </Typography>
         }
       />
@@ -212,9 +158,6 @@ const CustomerList: React.FC<CustomerListProps> = ({
   onClearAll,
   stats,
 }) => {
-  console.log("-------------------------------------------------")
-  console.log(customers)
-  console.log("-------------------------------------------------")
   const [filterMenuAnchor, setFilterMenuAnchor] = useState<null | HTMLElement>(null);
 
   // Active filters count
