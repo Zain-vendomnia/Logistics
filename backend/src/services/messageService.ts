@@ -49,6 +49,8 @@ export interface MessageRequest {
   type: "text" | "file";
   fileName?: string;
   phone_number: string;
+  fileUrl?: string;     // Add this
+  fileType?: string;    // Add this
 }
 
 export interface SendMessageResponse {
@@ -168,7 +170,7 @@ export const sendMessage = async (
   const now = new Date();
   const tempId = `temp_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
-  // Create optimistic message
+  // Create optimistic message with file data
   const optimisticMessage: Message = {
     id: tempId,
     order_id: orderId,
@@ -181,13 +183,16 @@ export const sendMessage = async (
     message_type: messageData.type,
     created_at: now.toISOString(),
     updated_at: now.toISOString(),
-    delivery_status: "sending", // Optimistic status
+    delivery_status: "sending",
     is_read: 0,
     timestamp: now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     type: messageData.type === "file" ? "document" : "text",
     twilio_sid: null,
     readAt: null,
+    // Add file properties
     ...(messageData.fileName && { fileName: messageData.fileName }),
+    ...(messageData.fileUrl && { fileUrl: messageData.fileUrl }),
+    ...(messageData.fileType && { fileType: messageData.fileType }),
   };
 
   try {
@@ -197,13 +202,35 @@ export const sendMessage = async (
     console.log("Broadcasting optimistic message to UI");
     emitMessageToOrder(orderId, optimisticMessage);
 
-    // PHASE 2: Send via Twilio
+    // PHASE 2: Send via Twilio - FIXED to handle media
     console.log("Sending via Twilio...");
-    const twilioResponse = await client.messages.create({
-      body: messageData.content,
-      from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`,
-      to: `whatsapp:${messageData.phone_number}`,
-    });
+    
+    let twilioResponse;
+    
+    if (messageData.type === "file" && messageData.fileUrl) {
+      // 🔥 Send MEDIA message via Twilio WhatsApp
+      console.log("Sending MEDIA message:", {
+        mediaUrl: messageData.fileUrl,
+        fileType: messageData.fileType
+      });
+      
+      twilioResponse = await client.messages.create({
+        from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`,
+        to: `whatsapp:${messageData.phone_number}`,
+        mediaUrl: [messageData.fileUrl], // 🔥 KEY FIX: Send media URL
+        // body: messageData.content  // Optional caption (limited support)
+      });
+      
+    } else {
+      // 📝 Send TEXT message via Twilio WhatsApp  
+      console.log("Sending TEXT message:", messageData.content);
+      
+      twilioResponse = await client.messages.create({
+        body: messageData.content,
+        from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`,
+        to: `whatsapp:${messageData.phone_number}`,
+      });
+    }
 
     console.log("Twilio Response:", {
       sid: twilioResponse.sid,
@@ -215,13 +242,14 @@ export const sendMessage = async (
     if (twilioResponse.sid) {
       const deliveryStatus = mapTwilioStatusToDeliveryStatus(twilioResponse.status);
 
-      // PHASE 3: Insert into database
+      // PHASE 3: Insert into database with file data
       console.log("Inserting into database...");
       const insertQuery = `
         INSERT INTO whatsapp_chats
           (order_id, \`from\`, \`to\`, body, direction, message_type, 
-           created_at, updated_at, delivery_status, is_read, twilio_sid)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           created_at, updated_at, delivery_status, is_read, twilio_sid,
+           media_url, media_content_type)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
       
       const [result] = (await pool.query(insertQuery, [
@@ -236,9 +264,11 @@ export const sendMessage = async (
         deliveryStatus,
         0,
         twilioResponse.sid,
+        messageData.fileUrl || null,        // 🔥 Save file URL
+        messageData.fileType || null        // 🔥 Save file type
       ])) as [{ insertId: number }, any];
 
-      // PHASE 4: Create final message with real ID
+      // PHASE 4: Create final message with real ID and file data
       const finalMessage: Message = {
         ...optimisticMessage,
         id: result.insertId.toString(),
@@ -282,10 +312,20 @@ export const sendMessage = async (
   } catch (error: any) {
     console.error("sendMessage error:", error);
 
+    // Check for specific Twilio errors
+    if (error.code) {
+      console.error("Twilio Error Details:", {
+        code: error.code,
+        message: error.message,
+        moreInfo: error.moreInfo
+      });
+    }
+
     // Update UI to show failure
     const failedMessage: Message = {
       ...optimisticMessage,
       delivery_status: "failed",
+      errorCode: error.code?.toString(),
       errorMessage: error.message || "Failed to send message"
     };
 

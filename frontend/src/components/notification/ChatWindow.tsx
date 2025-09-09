@@ -2,17 +2,18 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import {
   Box, AppBar, Toolbar, Typography, Avatar, IconButton, Paper, TextField,
   CircularProgress, Chip, Alert, Snackbar, Dialog, DialogContent, DialogTitle, Input,
+  LinearProgress,
 } from '@mui/material';
 import {
   AttachFile as AttachFileIcon, Send as SendIcon, Close as CloseIcon,
   PhoneDisabled as PhoneDisabledIcon,
 } from '@mui/icons-material';
 import { 
-  getMessagesByOrderId, sendMessage, socketService, 
+  getMessagesByOrderId, sendMessage, socketService, uploadFile,
   updateMessageInArray, updateMessageStatus, isOptimisticMessage
 } from '../../services/messageService';
 import { Customer, ChatWindowProps, Message, MessageRequest, MessageUpdate, MessageStatusUpdate } from './shared/types';
-import { getInitials, getAvatarColor, getStatusConfig, getStatusIcon, validateFile } from './shared/utils';
+import { getInitials, getAvatarColor, getStatusConfig, getStatusIcon } from './shared/utils';
 
 // Alert Components
 const NoPhoneAlert = ({ customerName }: { customerName: string }) => (
@@ -60,6 +61,8 @@ const MediaDisplay = ({ message }: { message: Message }) => {
     if (type?.includes('image')) return '📷';
     if (type?.includes('video')) return '🎬';
     if (type?.includes('audio')) return '🎤';
+    if (type?.includes('application/pdf')) return '📄';
+    if (type?.includes('application/')) return '📋';
     return '📎';
   };
 
@@ -156,6 +159,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ customer, orderId }) => {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -164,63 +169,162 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ customer, orderId }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasValidPhone = useMemo(() => customer.phone && customer.phone.replace(/\D/g, '') !== '', [customer.phone]);
-  const isInputDisabled = sending || !connected || !hasValidPhone;
+  const isInputDisabled = sending || uploading || !connected || !hasValidPhone;
   const isMyMessage = useCallback((msg: Message) => 
     msg.direction === 'outbound' || msg.sender === 'You' || msg.sender.startsWith('You:'), []);
 
-  const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const validation = validateFile(file);
-      if (!validation.valid) {
-        setError(validation.error || 'Invalid file');
-        return;
-      }
-      setSelectedFile(file);
-      setError(null);
+  // File validation with official Twilio WhatsApp limits
+  const validateFile = useCallback((file: File) => {
+    // Official Twilio WhatsApp file size limits (in MB)
+    const FILE_SIZE_LIMITS = {
+      'image/': 5,      // 5MB for images (Twilio limit)
+      'video/': 16,     // 16MB for videos (Twilio WhatsApp limit)
+      'audio/': 16,     // 16MB for audio (Twilio WhatsApp limit)
+      'application/': 16, // 16MB for documents (Twilio WhatsApp limit)
+      'text/': 16,      // 16MB for text files
+      'default': 16     // 16MB default for WhatsApp
+    };
+
+    const fileSizeMB = file.size / 1024 / 1024;
+    const fileType = file.type.toLowerCase();
+    
+    // Find size limit for this file type
+    const sizeLimit = Object.entries(FILE_SIZE_LIMITS).find(([type]) => 
+      fileType.startsWith(type)
+    )?.[1] || FILE_SIZE_LIMITS.default;
+
+    if (fileSizeMB > sizeLimit) {
+      return {
+        valid: false,
+        error: `File too large. Maximum size for ${fileType.split('/')[0]} files is ${sizeLimit}MB (current: ${fileSizeMB.toFixed(2)}MB)`
+      };
     }
+
+    // Check if file type is supported by Twilio WhatsApp
+    const supportedTypes = [
+      'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
+      'video/mp4', 'video/3gpp', 'video/quicktime', 'video/avi', 'video/mov',
+      'audio/aac', 'audio/amr', 'audio/mp3', 'audio/mpeg', 'audio/ogg',
+      'application/pdf', 'application/msword', 'application/vnd.openxmlformats',
+      'application/vnd.ms-excel', 'application/vnd.ms-powerpoint',
+      'text/plain', 'text/csv'
+    ];
+    
+    const isSupported = supportedTypes.some(type => 
+      fileType === type || fileType.startsWith(type.split('/')[0] + '/')
+    );
+    
+    if (!isSupported) {
+      return {
+        valid: false,
+        error: 'Unsupported file type for WhatsApp. Supported: Images (JPG, PNG, GIF), Videos (MP4, MOV), Audio (MP3, AAC), Documents (PDF, DOC, XLS)'
+      };
+    }
+
+    return { valid: true };
   }, []);
 
+  const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const validation = validateFile(file);
+    if (!validation.valid) {
+      setError(validation.error || 'Invalid file');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    console.log('📎 File selected:', {
+      name: file.name,
+      type: file.type,
+      size: `${(file.size / 1024 / 1024).toFixed(2)}MB`
+    });
+    
+    setSelectedFile(file);
+    setError(null);
+  }, [validateFile]);
+
   const handleSendMessage = useCallback(async () => {
-    if ((!newMessage.trim() && !selectedFile) || sending || !connected) return;
+    if ((!newMessage.trim() && !selectedFile) || sending || uploading || !connected) return;
     
     if (!customer.phone || customer.phone.replace(/\D/g, '') === '') {
       setError("Can't send message: Customer doesn't have a phone number");
       return;
     }
     
-    const content = selectedFile ? `[Image: ${selectedFile.name}]` : newMessage.trim();
-    const messageType = selectedFile ? 'file' : 'text';
-    
-    setNewMessage('');
-    setSelectedFile(null);
     setSending(true);
     setError(null);
 
     try {
-      const messageData: MessageRequest = {
-        sender: 'admin',
-        content,
-        type: messageType,
-        phone_number: Number(customer.phone?.replace(/\D/g, '') || 0),
-        ...(selectedFile && { fileName: selectedFile.name }),
-      };
-
-      const result = await sendMessage(orderId, messageData);
-      if (result.success) {
-        setSuccessMessage('Message sent successfully!');
+      let messageData: MessageRequest;
+      
+      if (selectedFile) {
+        // 🔥 FIX: Actually upload the file first
+        console.log('📤 Uploading file:', selectedFile.name, selectedFile.type, `${(selectedFile.size / 1024 / 1024).toFixed(2)}MB`);
+        setUploading(true);
+        setUploadProgress(0);
+        
+        const uploadResult = await uploadFile(selectedFile, orderId.toString(), (progress) => {
+          setUploadProgress(progress);
+        });
+        
+        setUploading(false);
+        setUploadProgress(0);
+        
+        if (!uploadResult.success) {
+          setError(uploadResult.error || 'Failed to upload file');
+          setSending(false);
+          return;
+        }
+        
+        console.log('✅ File uploaded successfully:', uploadResult);
+        
+        // Create message with uploaded file data
+        messageData = {
+          sender: 'admin',
+          content: `Sent ${selectedFile.type.startsWith('image/') ? 'an image' : 'a file'}: ${selectedFile.name}`,
+          type: 'file',
+          phone_number: Number(customer.phone?.replace(/\D/g, '') || 0),
+          fileName: selectedFile.name,
+          fileUrl: uploadResult.fileUrl,
+          fileType: selectedFile.type
+        };
+        
       } else {
+        // Text message
+        messageData = {
+          sender: 'admin',
+          content: newMessage.trim(),
+          type: 'text',
+          phone_number: Number(customer.phone?.replace(/\D/g, '') || 0),
+        };
+      }
+
+      console.log('📨 Sending message:', messageData);
+      const result = await sendMessage(orderId, messageData);
+
+      if (result.success) {
+        console.log('✅ Message sent successfully');
+        setSuccessMessage(selectedFile ? 'File sent successfully!' : 'Message sent successfully!');
+        setNewMessage('');
+        setSelectedFile(null);
+      } else {
+        console.error('❌ Send failed:', result.error);
         setError(result.error || 'Failed to send message');
-        if (!selectedFile) setNewMessage(content);
       }
     } catch (err) {
+      console.error('❌ Send message error:', err);
       setError('Failed to send message');
-      if (!selectedFile) setNewMessage(content);
     } finally {
       setSending(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      setUploading(false);
+      setUploadProgress(0);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
-  }, [newMessage, selectedFile, sending, connected, orderId, customer.phone]);
+  }, [newMessage, selectedFile, sending, uploading, connected, orderId, customer.phone]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -320,6 +424,21 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ customer, orderId }) => {
       {!hasValidPhone && <NoPhoneAlert customerName={customer.name} />}
       <ConnectionAlert connected={connected} />
 
+      {/* Upload Progress */}
+      {uploading && (
+        <Box sx={{ px: 2, py: 1, bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+            <Typography variant="body2" color="primary">
+              Uploading {selectedFile?.name}...
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {uploadProgress}%
+            </Typography>
+          </Box>
+          <LinearProgress variant="determinate" value={uploadProgress} />
+        </Box>
+      )}
+
       {/* Messages Area */}
       <Box sx={{ flexGrow: 1, overflow: 'auto', p: 2, bgcolor: 'background.default' }}>
         {messages.length === 0 ? (
@@ -345,13 +464,17 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ customer, orderId }) => {
         <Box sx={{ p: 1, bgcolor: 'grey.100', borderTop: 1, borderColor: 'divider' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography sx={{ fontSize: '1.2rem' }}>📷</Typography>
+              <Typography sx={{ fontSize: '1.2rem' }}>
+                {selectedFile.type.startsWith('image/') ? '📷' : 
+                 selectedFile.type.startsWith('video/') ? '🎬' :
+                 selectedFile.type.startsWith('audio/') ? '🎤' : '📎'}
+              </Typography>
               <Typography variant="body2">{selectedFile.name}</Typography>
               <Typography variant="caption" color="text.secondary">
                 ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
               </Typography>
             </Box>
-            <IconButton size="small" onClick={() => setSelectedFile(null)}>
+            <IconButton size="small" onClick={() => setSelectedFile(null)} disabled={uploading}>
               <CloseIcon />
             </IconButton>
           </Box>
@@ -363,7 +486,10 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ customer, orderId }) => {
         borderTop: 1, borderColor: 'divider',
         ...(isInputDisabled && { bgcolor: '#f5f5f5', opacity: 0.8 }) }}>
         <Input type="file" inputRef={fileInputRef} onChange={handleFileSelect}
-          inputProps={{ accept: 'image/*' }} sx={{ display: 'none' }} />
+          inputProps={{ 
+            accept: 'image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt'
+          }} 
+          sx={{ display: 'none' }} />
         <IconButton disabled={isInputDisabled} onClick={() => fileInputRef.current?.click()}
           sx={{ color: isInputDisabled ? '#bdbdbd' : 'action.active' }}>
           <AttachFileIcon />
@@ -371,6 +497,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ customer, orderId }) => {
         <TextField fullWidth variant="outlined" size="small"
           placeholder={!hasValidPhone ? "Add phone number to send messages" 
             : !connected ? 'Connecting to messaging service...' 
+            : uploading ? 'Uploading file...'
             : `Type a message to ${customer.name}...`}
           value={newMessage} onChange={e => setNewMessage(e.target.value)}
           onKeyPress={handleKeyPress} disabled={isInputDisabled}
@@ -386,7 +513,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ customer, orderId }) => {
             color: isInputDisabled ? '#9e9e9e' : 'white', 
             '&:hover': { bgcolor: isInputDisabled ? '#e0e0e0' : 'primary.dark' }, 
             '&:disabled': { bgcolor: '#e0e0e0', color: '#9e9e9e' } }}>
-          {sending ? <CircularProgress size={20} color="inherit" /> : <SendIcon />}
+          {sending || uploading ? <CircularProgress size={20} color="inherit" /> : <SendIcon />}
         </IconButton>
       </Box>
 

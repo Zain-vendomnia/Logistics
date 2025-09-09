@@ -5,7 +5,7 @@ import authHeader from './auth-header';
 const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8080';
 const MESSAGES_API_BASE = `${API_BASE}/api/admin/messages`;
 
-// Updated Message interface to match backend with all required properties
+// Updated Message interface to include file properties
 export interface Message {
   id: string;
   order_id: number;
@@ -24,22 +24,24 @@ export interface Message {
   type: 'text' | 'image' | 'video' | 'audio' | 'document' | 'location' | 'contacts' | 'sticker' | 'unknown' | 'file';
   fileName?: string;
   twilio_sid?: string | null;
-  fileUrl?: string;      // Added for media URLs
-  fileType?: string;     // Added for media content types
-  errorCode?: string;    // Added for error tracking
-  errorMessage?: string; // Added for error messages
-  readAt?: string | null; // Added for read timestamps
+  fileUrl?: string;
+  fileType?: string;
+  errorCode?: string;
+  errorMessage?: string;
+  readAt?: string | null;
 }
 
+// Updated MessageRequest to include file properties
 export interface MessageRequest {
   sender: string;
   content: string;
   type: 'text' | 'file';
   phone_number: number;
   fileName?: string;
+  fileUrl?: string;     // Added for uploaded file URL
+  fileType?: string;    // Added for file MIME type
 }
 
-// New interfaces for optimistic updates
 export interface MessageUpdate {
   tempId: string;
   message: Message;
@@ -53,13 +55,22 @@ export interface MessageStatusUpdate {
   };
 }
 
-// Updated response interface to match backend
 export interface SendMessageResponse {
   success: boolean;
   status?: 'success' | 'error';
   message?: Message;
   error?: string;
   twilioStatus?: string;
+}
+
+// File upload response interface
+export interface FileUploadResponse {
+  success: boolean;
+  fileUrl?: string;
+  fileName?: string;
+  fileType?: string;
+  fileSize?: number;
+  error?: string;
 }
 
 // Extract token helper
@@ -72,7 +83,7 @@ const getTokenFromAuthHeader = (): string | null => {
   return authHeaderValue || null;
 };
 
-// Socket.IO Service
+// Socket.IO Service (unchanged, keeping existing implementation)
 class SocketService {
   private socket: Socket | null = null;
   private connected = false;
@@ -133,9 +144,7 @@ class SocketService {
     return this.connected && this.socket?.connected === true;
   }
 
-  // ------------------------------
   // Chat room events
-  // ------------------------------
   joinOrder(orderId: number): void {
     console.log(`Joining order room: ${orderId}`);
     this.socket?.emit('join-order', orderId);
@@ -146,16 +155,9 @@ class SocketService {
     this.socket?.emit('leave-order', orderId);
   }
 
-  // ------------------------------
-  // Optimistic Message Events
-  // ------------------------------
-  
-  // Listen for new messages (including optimistic ones)
+  // Message events
   onNewMessage(callback: (message: Message) => void): void {
-    this.socket?.on('new-message', (data) => {
-      console.log('New message received:', data);
-      callback(data);
-    });
+    this.socket?.on('new-message', callback);
   }
 
   offNewMessage(callback?: (message: Message) => void): void {
@@ -166,12 +168,8 @@ class SocketService {
     }
   }
 
-  // Listen for message updates (when optimistic messages get real IDs)
   onMessageUpdated(callback: (data: MessageUpdate) => void): void {
-    this.socket?.on('message-updated', (data) => {
-      console.log('Message updated:', data);
-      callback(data);
-    });
+    this.socket?.on('message-updated', callback);
   }
 
   offMessageUpdated(callback?: (data: MessageUpdate) => void): void {
@@ -182,12 +180,8 @@ class SocketService {
     }
   }
 
-  // Listen for status updates (from webhooks)
   onMessageStatusUpdated(callback: (data: MessageStatusUpdate) => void): void {
-    this.socket?.on('message-status-updated', (data) => {
-      console.log('Message status updated:', data);
-      callback(data);
-    });
+    this.socket?.on('message-status-updated', callback);
   }
 
   offMessageStatusUpdated(callback?: (data: MessageStatusUpdate) => void): void {
@@ -198,7 +192,7 @@ class SocketService {
     }
   }
 
-  // LEGACY: Keep old methods for backward compatibility
+  // Legacy compatibility methods
   onMessageStatusUpdate(callback: (data: any) => void): void {
     this.onMessageStatusUpdated(callback);
   }
@@ -220,9 +214,7 @@ class SocketService {
     // Handled by offMessageStatusUpdated
   }
 
-  // ------------------------------
-  // Connection wrappers
-  // ------------------------------
+  // Connection events
   onConnect(callback: () => void): void {
     this.socket?.on('connect', callback);
   }
@@ -255,9 +247,7 @@ class SocketService {
 // Singleton
 export const socketService = new SocketService();
 
-// ------------------------------
 // REST API Functions
-// ------------------------------
 export const updateCustomerUnreadCount = async (orderId: number, unreadCount: number = 0): Promise<void> => {
   try {
     await axios.put(
@@ -275,7 +265,6 @@ export const getMessagesByOrderId = async (orderId: number): Promise<Message[]> 
   try {
     const response = await axios.get(`${MESSAGES_API_BASE}/${orderId}`, { headers: authHeader() });
     
-    // Handle different response formats
     if (response.data.status === 'success') {
       return response.data.data || [];
     } else if (Array.isArray(response.data)) {
@@ -290,23 +279,106 @@ export const getMessagesByOrderId = async (orderId: number): Promise<Message[]> 
   }
 };
 
-// Updated to handle file uploads and match backend response format
+// 🔥 FIXED: File upload function with progress tracking
+export const uploadFile = async (
+  file: File, 
+  orderId: string,
+  onProgress?: (progress: number) => void
+): Promise<FileUploadResponse> => {
+  try {
+    console.log('📤 Starting file upload:', {
+      fileName: file.name,
+      fileType: file.type,
+      fileSize: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
+      orderId
+    });
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('orderId', orderId);
+
+    const response = await axios.post(`${MESSAGES_API_BASE}/upload`, formData, {
+      headers: {
+        ...authHeader(),
+        'Content-Type': 'multipart/form-data',
+      },
+      onUploadProgress: (progressEvent) => {
+        if (progressEvent.total && onProgress) {
+          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          onProgress(progress);
+        }
+      },
+      timeout: 30000, // 30 second timeout for large files
+    });
+
+    console.log('📤 Upload response:', response.data);
+
+    if (response.data.success) {
+      return {
+        success: true,
+        fileUrl: response.data.fileUrl,
+        fileName: response.data.fileName || file.name,
+        fileType: response.data.fileType || file.type,
+        fileSize: response.data.fileSize || file.size,
+      };
+    } else {
+      return {
+        success: false,
+        error: response.data.error || 'Upload failed',
+      };
+    }
+  } catch (error) {
+    console.error('❌ File upload error:', error);
+    
+    if (axios.isAxiosError(error)) {
+      if (error.code === 'ECONNABORTED') {
+        return {
+          success: false,
+          error: 'Upload timeout. File may be too large.',
+        };
+      }
+      
+      const responseData = error.response?.data as { error?: string };
+      if (responseData?.error) {
+        return {
+          success: false,
+          error: responseData.error,
+        };
+      }
+      
+      if (error.response?.status === 413) {
+        return {
+          success: false,
+          error: 'File too large. Maximum size exceeded.',
+        };
+      }
+    }
+    
+    return {
+      success: false,
+      error: 'File upload failed. Please try again.',
+    };
+  }
+};
+
+// Updated sendMessage function to handle file messages
 export const sendMessage = async (
   orderId: number, 
   messageData: MessageRequest
 ): Promise<{ success: boolean; message?: Message; error?: string }> => {
   try {
-    console.log('Sending message via API:', { orderId, messageData });
+    console.log('📨 Sending message via API:', { orderId, messageData });
     
     const response = await axios.post(`${MESSAGES_API_BASE}/${orderId}`, messageData, { 
-      headers: authHeader() 
+      headers: authHeader(),
+      timeout: 10000 // 10 second timeout
     });
 
-    console.log('API Response:', response.data);
+    console.log('📨 API Response:', response.data);
     
     const data: SendMessageResponse = response.data;
 
-    if (data.status === 'success') {
+    if (data.status === 'success' || data.success) {
       return {
         success: true,
         message: data.message
@@ -318,54 +390,42 @@ export const sendMessage = async (
       };
     }
   } catch (error) {
-    console.error('Failed to send message:', error);
+    console.error('❌ Failed to send message:', error);
     
-    if (axios.isAxiosError(error) && error.response?.data) {
-      const responseData = error.response.data as { error?: string; message?: string };
-      return {
-        success: false,
-        error: responseData.error || responseData.message || 'Failed to send message'
-      };
+    if (axios.isAxiosError(error)) {
+      if (error.code === 'ECONNABORTED') {
+        return {
+          success: false,
+          error: 'Request timeout. Please try again.'
+        };
+      }
+      
+      if (error.response?.data) {
+        const responseData = error.response.data as { error?: string; message?: string };
+        return {
+          success: false,
+          error: responseData.error || responseData.message || 'Failed to send message'
+        };
+      }
+      
+      if (error.response?.status === 400) {
+        return {
+          success: false,
+          error: 'Invalid message data. Please check your input.'
+        };
+      }
+      
+      if (error.response?.status === 404) {
+        return {
+          success: false,
+          error: 'Order not found. Please refresh and try again.'
+        };
+      }
     }
     
     return {
       success: false,
-      error: 'Network error occurred'
-    };
-  }
-};
-
-// File upload function for media messages
-export const uploadFile = async (file: File, orderId: string): Promise<{ success: boolean; fileUrl?: string; fileName?: string; error?: string }> => {
-  try {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('orderId', orderId);
-
-    const response = await axios.post(`${MESSAGES_API_BASE}/upload`, formData, {
-      headers: {
-        ...authHeader(),
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-
-    if (response.data.success) {
-      return {
-        success: true,
-        fileUrl: response.data.fileUrl,
-        fileName: response.data.fileName,
-      };
-    } else {
-      return {
-        success: false,
-        error: response.data.error || 'Upload failed',
-      };
-    }
-  } catch (error) {
-    console.error('File upload error:', error);
-    return {
-      success: false,
-      error: 'File upload failed',
+      error: 'Network error occurred. Please check your connection.'
     };
   }
 };
@@ -383,11 +443,9 @@ export const findMessageByTempId = (messages: Message[], tempId: string): Messag
 // Helper function to update message in array
 export const updateMessageInArray = (messages: Message[], updatedMessage: Message, tempId?: string): Message[] => {
   return messages.map(msg => {
-    // If we have a tempId, replace the temp message with the updated one
     if (tempId && msg.id === tempId) {
       return updatedMessage;
     }
-    // Otherwise, update by matching ID
     if (msg.id === updatedMessage.id) {
       return { ...msg, ...updatedMessage };
     }
@@ -423,4 +481,50 @@ export const testWebhookEndpoint = async (): Promise<any> => {
     console.error('Webhook test failed:', error);
     throw error;
   }
+};
+
+// File validation helper (moved from utils for consistency)
+export const validateFileForTwilio = (file: File): { valid: boolean; error?: string } => {
+  // Twilio WhatsApp file size limits
+  const SIZE_LIMITS = {
+    image: 5,   // 5MB
+    video: 16,  // 16MB
+    audio: 16,  // 16MB
+    document: 16 // 16MB
+  };
+
+  const fileSizeMB = file.size / 1024 / 1024;
+  const fileType = file.type.toLowerCase();
+
+  // Check file size
+  let sizeLimit = 16; // Default
+  if (fileType.startsWith('image/')) sizeLimit = SIZE_LIMITS.image;
+  else if (fileType.startsWith('video/')) sizeLimit = SIZE_LIMITS.video;
+  else if (fileType.startsWith('audio/')) sizeLimit = SIZE_LIMITS.audio;
+  else if (fileType.startsWith('application/')) sizeLimit = SIZE_LIMITS.document;
+
+  if (fileSizeMB > sizeLimit) {
+    return {
+      valid: false,
+      error: `File too large. Maximum size for ${fileType.split('/')[0]} files is ${sizeLimit}MB`
+    };
+  }
+
+  // Check supported types
+  const supportedTypes = [
+    'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
+    'video/mp4', 'video/3gpp', 'video/quicktime',
+    'audio/aac', 'audio/amr', 'audio/mp3', 'audio/mpeg', 'audio/ogg',
+    'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument'
+  ];
+
+  const isSupported = supportedTypes.some(type => fileType.startsWith(type));
+  if (!isSupported) {
+    return {
+      valid: false,
+      error: 'Unsupported file type for WhatsApp messaging'
+    };
+  }
+
+  return { valid: true };
 };

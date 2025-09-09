@@ -1,11 +1,14 @@
 import express from "express";
+import multer from "multer";
+import path from "path";
 // import validateToken from "../middlewares/validateToken";
 // import roleCheck from "../middlewares/roleCheck";
-import { 
+import {
   updateUnreadCount,
   getMessagesByOrderId,
   sendMessage,
-  // New webhook controllers
+  uploadFile, // New upload controller
+  // Webhook controllers
   handleTwilioStatusWebhook,
   handleTwilioIncomingWebhook,
   testWebhookEndpoint
@@ -14,25 +17,52 @@ import { notFoundHandler } from "../middlewares/notFoundHandler";
 
 const router = express.Router();
 
-// ✅ WEBHOOK ROUTES (NO AUTH) - Must be BEFORE authentication middleware
-// These endpoints are called by Twilio, so they don't need authentication
-router.use('/twilio', express.urlencoded({ extended: true })); // Parse Twilio form data
-router.use('/twilio', express.json()); // Also handle JSON
+// Fixed multer setup with proper filename generation
+const storage = multer.diskStorage({
+  destination: (_req,_file, cb) => {
+    cb(null, 'uploads/');
+  },
+  filename: (_req, file, cb) => {
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(7);
+    const ext = path.extname(file.originalname);
+    const name = path.basename(file.originalname, ext)
+      .replace(/[^a-zA-Z0-9]/g, '-')
+      .substring(0, 30);
+    
+    const filename = `${timestamp}-${random}-${name}${ext}`;
+    cb(null, filename);
+  }
+});
 
-// Twilio webhook endpoints (public - no auth required)
-router.post("/twilio/status", handleTwilioStatusWebhook);     // Status updates from Twilio
-router.post("/twilio/incoming", handleTwilioIncomingWebhook); // Incoming WhatsApp messages  
-router.get("/twilio/test", testWebhookEndpoint);              // Test webhook setup
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 16 * 1024 * 1024 } // 16MB limit
+});
 
-// ✅ AUTHENTICATED ROUTES - Apply authentication after webhook routes
+// Serve uploaded files
+router.use('/files', express.static('uploads'));
+
+// WEBHOOK ROUTES (NO AUTH)
+router.use('/twilio', express.urlencoded({ extended: true }));
+router.use('/twilio', express.json());
+
+router.post("/twilio/status", handleTwilioStatusWebhook);
+router.post("/twilio/incoming", handleTwilioIncomingWebhook);
+router.get("/twilio/test", testWebhookEndpoint);
+
+// AUTHENTICATED ROUTES
 // router.use(validateToken);
-
-// Everything below is admin-only
 // router.use(roleCheck(["admin"]));
 
-// ✅ ADMIN MESSAGE MANAGEMENT ROUTES
-router.get("/:orderId", getMessagesByOrderId);           // GET /api/admin/messages/:orderId
-router.post("/:orderId", sendMessage);                   // POST /api/admin/messages/:orderId  
-router.put("/:orderId/unread-count", updateUnreadCount); // PUT /api/admin/messages/:orderId/unread-count
+// FILE UPLOAD ROUTE
+router.post("/upload", upload.single('file'), uploadFile);
+
+// MESSAGE ROUTES
+router.get("/:orderId", getMessagesByOrderId);
+router.post("/:orderId", sendMessage);
+router.put("/:orderId/unread-count", updateUnreadCount);
+
 router.use(notFoundHandler);
+
 export default router;

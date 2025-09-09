@@ -36,10 +36,21 @@ export const getMessagesByOrderId = async (req: Request, res: Response) => {
 export const sendMessage = async (req: Request, res: Response) => {
   try {
     const { orderId } = req.params;
-    const { sender, content, type, fileName, phone_number } = req.body;
+    console.log("-------------------------------------------------------")
+    console.log( req.body)
+    console.log("-------------------------------------------------------")
+    const { 
+      sender, 
+      content, 
+      type, 
+      fileName, 
+      phone_number,
+      fileUrl,
+      fileType 
+    } = req.body;
 
     // Validation
-    if (!orderId || !sender || !content || !type || !phone_number) {
+    if (!orderId || !sender || !type || !phone_number) {
       return res.status(400).json({
         status: "error",
         message: "Missing required fields",
@@ -53,13 +64,33 @@ export const sendMessage = async (req: Request, res: Response) => {
       });
     }
 
+    // For text messages, content is required
+    // For file messages, fileUrl is required
+    if (type === "text" && !content) {
+      return res.status(400).json({
+        status: "error",
+        message: "Content is required for text messages",
+      });
+    }
+
+    if (type === "file" && !fileUrl) {
+      return res.status(400).json({
+        status: "error",
+        message: "File URL is required for file messages",
+      });
+    }
+
     const messageData = {
       sender,
-      content: content.trim(),
+      content: content?.trim() || '',
       type: type as "text" | "file",
       phone_number,
       ...(fileName && { fileName }),
+      ...(fileUrl && { fileUrl }),
+      ...(fileType && { fileType }),
     };
+
+    console.log('Sending message:', { orderId, type, hasFileUrl: !!fileUrl });
 
     const result = await messageService.sendMessage(orderId, messageData);
 
@@ -242,3 +273,63 @@ export const testWebhookEndpoint = async (req: Request, res: Response) => {
     timestamp: new Date().toISOString()
   });
 };
+
+
+/**
+ * Upload file controller
+ */
+export const uploadFile = async (req: Request, res: Response) => {
+  try {
+    const file = req.file;
+    const orderId = req.body.orderId;
+
+    if (!file) {
+      return res.status(400).json({
+        success: false,
+        error: 'No file uploaded'
+      });
+    }
+
+    if (!orderId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Order ID is required'
+      });
+    }
+
+    // Generate public URL for the file
+    const baseUrl = process.env.HOST_URL 
+    const fileUrl = `${baseUrl}/api/admin/messages/files/${file.filename}`;
+
+    console.log('File uploaded successfully:', {
+      originalName: file.originalname,
+      storedName: file.filename,
+      fileUrl,
+      fileType: file.mimetype,
+      fileSize: file.size
+    });
+
+    res.json({
+      success: true,
+      fileUrl,
+      fileName: file.originalname,
+      fileType: file.mimetype,
+      fileSize: file.size
+    });
+
+  } catch (error) {
+    console.error('File upload error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error during file upload'
+    });
+  }
+};
+
+
+
+
+
+
+
+
