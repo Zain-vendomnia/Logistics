@@ -369,3 +369,49 @@ export const CREATE_NOTIFICATION_TABLE = `
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
   );
 `;
+
+export const CREATE_Delivery_Cost_Rates_TABLE = `
+  CREATE TABLE IF NOT EXISTS delivery_cost_rates (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    avg_tour_duration_hrs DECIMAL(10,2),
+    avg_tour_length_km DECIMAL(10,2),
+    bkw_per_tour DECIMAL(10,2),
+    avg_number_tour_days DECIMAL(10,2),
+    personnel_costs_per_hour DECIMAL(10,2) NOT NULL,
+    diesel_costs_per_liter DECIMAL(10,2) NOT NULL,
+    consumption_l_per_100km DECIMAL(10,2),
+    van_costs_per_day DECIMAL(10,2) NOT NULL,
+    storage_cost_per_chp DECIMAL(10,2),
+    currency_code enum('EUR', 'USD') DEFAULT 'EUR',
+    handling_inbound_cost_tour DECIMAL(10,2),
+    handling_outbound_cost_pal DECIMAL(10,2),
+    handling_outbound_costs_tour DECIMAL(10,2),
+    hotel_costs DECIMAL(10,2),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+`;
+
+export const INSERT_Delivery_Cost_Rates_TABLE = `
+INSERT INTO delivery_cost_rates (
+    avg_tour_duration_hrs,
+    avg_tour_length_km,
+    bkw_per_tour,
+    avg_number_tour_days,
+    personnel_costs_per_hour,
+    diesel_costs_per_liter,
+    consumption_l_per_100km,
+    van_costs_per_day,
+    hotel_costs,
+    created_at,
+    handling_inbound_cost_tour,
+    handling_outbound_cost_pal,
+    handling_outbound_costs_tour,
+    storage_cost_per_chp,
+    currency_code
+)
+VALUES (
+    9.25, 367, 16, 2, 18.18, 1.38, 10, 18.91, 65, NOW(),
+    NULL, NULL, NULL, NULL, 'EUR'
+);
+`;
