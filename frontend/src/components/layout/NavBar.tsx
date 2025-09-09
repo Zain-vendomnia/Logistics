@@ -132,6 +132,14 @@ const NavBar = () => {
                 >
                   Chat
                 </Button>
+                <Button
+                  component={Link}
+                  to="/customer-chat"
+                  color="inherit"
+                  sx={getNavButtonStyles("/customer-chat")}
+                >
+                  Live Chat
+                </Button>
               </>
             )}
 
