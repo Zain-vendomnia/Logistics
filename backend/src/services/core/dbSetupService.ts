@@ -19,6 +19,7 @@ import NotificationsTrackSetup from "../../initialDBSetup/notifications_track";
 import DynamicTourSetup from "../../initialDBSetup/dynamicTourSetup";
 import TourTracesSetup from "../../initialDBSetup/tourTracesSetup";
 import deliveryCostRatesSetup from "../../initialDBSetup/deliveryCostRatesSetup";
+import deliveryCostPerTourSetup from "../../initialDBSetup/deliveryCostPerTourSetup";
 
 export async function runInitialDbSetup() {
   await initialSetup();
@@ -42,4 +43,5 @@ export async function runInitialDbSetup() {
   await DynamicTourSetup();
   await TourTracesSetup();
   await deliveryCostRatesSetup();
+  await deliveryCostPerTourSetup();
 }

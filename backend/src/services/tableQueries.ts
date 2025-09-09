@@ -359,6 +359,30 @@ export const CREATE_TOUR_TRACES_TABLE = `
 );
 `;
 
+export const CREATE_Delivery_Cost_Per_Tour_Table = `
+  CREATE TABLE IF NOT EXISTS delivery_cost_per_tour (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    dynamic_tour_id INT NULL UNIQUE,
+    tour_id INT NULL UNIQUE,
+    hotel_cost DECIMAL(10,2),
+    van_tour_cost DECIMAL(10,2),
+    diesel_tour_cost DECIMAL(10,2),
+    personnel_tour_cost DECIMAL(10,2),
+    warehouse_tour_cost DECIMAL(10,2),
+    infeed_tour_cost DECIMAL(10,2),
+    we_tour_cost DECIMAL(10,2),
+    wa_tour_cost DECIMAL(10,2),
+    total_cost DECIMAL(12,2),
+    delivery_cost_per_stop DECIMAL(10,2),
+    delivery_cost_per_bkw DECIMAL(10,2),
+    delivery_cost_per_slmd DECIMAL(10,2),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (dynamic_tour_id) REFERENCES dynamic_tours(id) ON DELETE CASCADE,
+    FOREIGN KEY (tour_id) REFERENCES tourinfo_master(id) ON DELETE CASCADE
+  );
+`;
+
 export const CREATE_NOTIFICATION_TABLE = `
   CREATE TABLE IF NOT EXISTS notifications_track (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, 
