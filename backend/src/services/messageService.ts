@@ -344,7 +344,9 @@ export const sendMessage = async (
  */
 export const updateMessageDeliveryStatus = async (
   twilioSid: string, 
-  newStatus: string
+  newStatus: string,
+  errorCode?: string,
+  errorMessage?: string
 ): Promise<{ success: boolean; message?: string }> => {
   try {
     const deliveryStatus = mapTwilioStatusToDeliveryStatus(newStatus);
@@ -352,10 +354,10 @@ export const updateMessageDeliveryStatus = async (
     // Update database with updated_at timestamp
     const updateQuery = `
       UPDATE whatsapp_chats 
-      SET delivery_status = ?, updated_at = CURRENT_TIMESTAMP 
+      SET delivery_status = ?, error_code = ?, error_message = ?, updated_at = CURRENT_TIMESTAMP 
       WHERE twilio_sid = ?
     `;
-    const [result] = (await pool.query(updateQuery, [deliveryStatus, twilioSid])) as [{ affectedRows: number }, any];
+    const [result] = (await pool.query(updateQuery, [deliveryStatus, errorCode, errorMessage, twilioSid])) as [{ affectedRows: number }, any];
 
     if (result.affectedRows === 0) {
       return { 

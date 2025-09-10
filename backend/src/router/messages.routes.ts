@@ -55,6 +55,7 @@ router.get("/twilio/test", testWebhookEndpoint);
 // router.use(validateToken);
 // router.use(roleCheck(["admin"]));
 
+router.use('/whatsapp-media', express.static('uploads/whatsapp-media'));
 // FILE UPLOAD ROUTE
 router.post("/upload", upload.single('file'), uploadFile);
 

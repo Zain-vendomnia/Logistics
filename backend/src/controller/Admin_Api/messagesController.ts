@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import * as messageService from "../../services/messageService";
-
+import { downloadAndStoreMedia } from "../../utils/mediaDownloader"; 
 
 /**
  * Get all messages for a specific order
@@ -148,12 +148,14 @@ export const handleTwilioStatusWebhook = async (req: Request, res: Response) => 
   console.log("-----------------------------------------------------");
   console.log("am triggered nagaraj")
   try {
-    const { MessageSid, MessageStatus } = req.body;
+    console.log("------------------------------------------------------");
+    console.log("req Payload:", req.body);
+    console.log("------------------------------------------------------");
+    const { MessageSid, MessageStatus, ErrorCode,ErrorMessage } = req.body;
 
-    console.log("Twilio Status Update:", { MessageSid, MessageStatus });
 
     if (MessageSid && MessageStatus) {
-      await messageService.updateMessageDeliveryStatus(MessageSid, MessageStatus);
+      await messageService.updateMessageDeliveryStatus(MessageSid, MessageStatus, ErrorCode, ErrorMessage);
     }
 
     return res.status(200).send('OK');
@@ -162,22 +164,6 @@ export const handleTwilioStatusWebhook = async (req: Request, res: Response) => 
     return res.status(200).send('OK');
   }
 };
-
-/**
- * Map Twilio message type to WhatsApp message type
- */
-// const mapTwilioMessageType = (numMedia: string | undefined, body: string | undefined): messageService.WhatsAppMessageType => {
-//   const hasMedia = numMedia && parseInt(numMedia) > 0;
-  
-//   if (!hasMedia) {
-//     return "text";
-//   }
-  
-//   // For media messages, we default to "document" since we don't have the exact type
-//   // In a real implementation, you might want to check MediaContentType0 to determine
-//   // if it's image, video, audio, etc.
-//   return "document";
-// };
 
 /**
  * Handle incoming WhatsApp messages
@@ -218,7 +204,7 @@ export const handleTwilioIncomingWebhook = async (req: Request, res: Response) =
 
     // ✅ Step 3: Determine message type & content
     const isMedia = NumMedia && parseInt(NumMedia) > 0;
-    const whatsappMessageType = MessageType
+    const whatsappMessageType = MessageType;
     const messageBody = isMedia ? `[${whatsappMessageType}]` : (Body || "").trim();
 
     // ✅ Step 4: Validate message body
@@ -227,7 +213,38 @@ export const handleTwilioIncomingWebhook = async (req: Request, res: Response) =
       return res.status(200).send("OK");
     }
 
-    // ✅ Step 5: Prepare data for service
+    // ✅ NEW STEP 5: Download media if present
+    let localMediaUrl = null;
+    let localFileName = null;
+    let localFileType = null;
+    let localFileSize = null;
+
+    if (isMedia && MediaUrl0 && MediaContentType0) {
+      console.log("📥 Downloading media file...", { 
+        MediaUrl0, 
+        MediaContentType0, 
+        MessageSid 
+      });
+      
+      const downloadResult = await downloadAndStoreMedia(
+        MediaUrl0, 
+        MediaContentType0, 
+        MessageSid
+      );
+
+      if (downloadResult.success) {
+        localMediaUrl = downloadResult.localUrl;
+        localFileName = downloadResult.fileName;
+        localFileType = downloadResult.fileType;
+        localFileSize = downloadResult.fileSize;
+        console.log("✅ Media downloaded successfully:", localMediaUrl);
+      } else {
+        console.error("❌ Media download failed:", downloadResult.error);
+        // Continue processing - we'll use the original Twilio URL as fallback
+      }
+    }
+
+    // ✅ Step 6: Prepare data for service (with local media URLs if available)
     const incomingMessageData = {
       twilioSid: MessageSid,
       phoneNumber,
@@ -238,11 +255,34 @@ export const handleTwilioIncomingWebhook = async (req: Request, res: Response) =
       smsStatus: SmsStatus,
       accountSid: AccountSid,
       channelMetadata: ChannelMetadata,
-      mediaUrl: MediaUrl0,
+      // Use local URL if download was successful, otherwise fallback to Twilio URL
+      mediaUrl: localMediaUrl || MediaUrl0,
       mediaContentType: MediaContentType0,
+      // Add additional fields for local file info
+      ...(localFileName && { fileName: localFileName }),
+      ...(localFileType && { fileType: localFileType }),
+      ...(localFileSize && { fileSize: localFileSize }),
+      // Keep original Twilio URL for reference/backup
+      ...(MediaUrl0 && { originalTwilioUrl: MediaUrl0 }),
     };
 
-    // ✅ Step 6: Pass to service
+    console.log("📩 Processing incoming message:", {
+      twilioSid: MessageSid,
+      phoneNumber,
+      messageType: whatsappMessageType,
+      bodyLength: messageBody.length,
+      waId: WaId,
+      profileName: ProfileName,
+      smsStatus: SmsStatus,
+      accountSid: AccountSid,
+      // Show which URL we're using
+      mediaUrl: localMediaUrl || MediaUrl0,
+      isLocalMedia: !!localMediaUrl,
+      ...(localFileName && { fileName: localFileName }),
+      ...(localFileSize && { fileSize: localFileSize })
+    });
+
+    // ✅ Step 7: Pass to service
     const result = await messageService.handleIncomingMessage(incomingMessageData);
 
     if (result.success) {
@@ -325,11 +365,4 @@ export const uploadFile = async (req: Request, res: Response) => {
     });
   }
 };
-
-
-
-
-
-
-
 
