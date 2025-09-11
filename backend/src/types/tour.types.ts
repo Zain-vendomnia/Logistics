@@ -46,7 +46,7 @@ export interface SectionSummary {
 export interface Coordinate {
   lat: number;
   lng: number;
-  z: number;
+  z?: number;
 }
 
 export interface Section {
@@ -107,4 +107,20 @@ export type TourTracePayload = {
   status: TourStatus;
   removed_reason?: string;
   removed_by?: string;
+};
+
+export type LocationMeta = Coordinate & {
+  area: string;
+  zipcode: string;
+};
+
+export type MatrixResult = {
+  origins: LocationMeta[];
+  destinations: LocationMeta[];
+  estimates: {
+    origin: LocationMeta;
+    destination: LocationMeta;
+    distanceKm: number | null;
+    duration: number | null;
+  }[];
 };

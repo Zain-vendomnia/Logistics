@@ -255,7 +255,7 @@ export class LogisticOrder {
     return (result as ResultSetHeader).affectedRows > 0;
   }
 
-  static async getPinboardOrdersAsync(since?: string): Promise<Order[]> {
+  static async getPendingOrdersAsync(since?: string): Promise<Order[]> {
     let query = `
       SELECT 
           o.*,
@@ -330,7 +330,7 @@ export class LogisticOrder {
 
 export async function get_LogisticsOrdersAddress(orderIds: number[]) {
   const placeholders = orderIds.map(() => "?").join(",");
-  const [orderRows] = await pool.query(
+  const [orderRows] = await pool.execute(
     `SELECT order_id, order_number, street, city, zipcode FROM logistic_order WHERE order_id IN (${placeholders})`,
     orderIds
   );

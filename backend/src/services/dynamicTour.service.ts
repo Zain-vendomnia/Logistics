@@ -13,7 +13,7 @@ import {
 } from "../types/dto.types";
 import { DecodedRoute } from "../types/hereMap.types";
 import { logWithTime } from "../utils/logging";
-import hereMapService from "./hereMapService";
+import hereMapService from "./hereMap.service";
 
 import { createTourAsync } from "../model/tourModel";
 import { tourInfo_master } from "../model/TourinfoMaster";
@@ -96,7 +96,11 @@ export async function createDynamicTourAsync(payload: DynamicTourPayload) {
     const response: DynamicTourRes = {
       tour: tour,
       unassigned: unassignedOrders,
-      dynamicTour: { ...payload, orderIds: xOrderIds, tour_route: routes },
+      dynamicTour: {
+        ...payload,
+        orderIds: xOrderIds,
+        tour_route: routes,
+      },
     };
 
     return response;
@@ -147,8 +151,8 @@ const saveDynamicTour = async (
     ];
 
     try {
-      const [result] = await conn.execute(query, values);
-      return { ...result, tour_number: new_tourNumber };
+      const [result]: any = await conn.execute(query, values);
+      return { ...result, id: result.insertId, tour_number: new_tourNumber };
     } catch (error) {
       console.error("Error inserting dynamic tour:", error);
       throw error;

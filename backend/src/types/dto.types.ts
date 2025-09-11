@@ -59,7 +59,7 @@ export type DynamicTourRes = {
   // orderIds: string;
 };
 
-export interface WarehouseDetails {
+export interface WarehouseDetailsDto {
   id: number;
   name?: string;
   town: string;

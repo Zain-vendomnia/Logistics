@@ -19,7 +19,7 @@ export async function newShopOrder(_req: Request, res: Response) {
     // const orderData: any =
     //   Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
 
-    const orders: Order[] = await LogisticOrder.getPinboardOrdersAsync();
+    const orders: Order[] = await LogisticOrder.getPendingOrdersAsync();
     const orderData = orders[0];
     if (!orderData) {
       return res.status(404).json({ message: "Original order not found" });

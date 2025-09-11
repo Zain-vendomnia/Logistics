@@ -405,9 +405,10 @@ export const CREATE_Delivery_Cost_Rates_TABLE = `
     diesel_costs_per_liter DECIMAL(10,2) NOT NULL,
     consumption_l_per_100km DECIMAL(10,2),
     van_costs_per_day DECIMAL(10,2) NOT NULL,
-    storage_cost_per_chp DECIMAL(10,2),
+    storage_cost_per_BKW DECIMAL(10,2),
     currency_code enum('EUR', 'USD') DEFAULT 'EUR',
     handling_inbound_cost_tour DECIMAL(10,2),
+    handling_inbound_cost_panel DECIMAL(10,2),
     handling_outbound_cost_pal DECIMAL(10,2),
     handling_outbound_costs_tour DECIMAL(10,2),
     hotel_costs DECIMAL(10,2),
@@ -429,13 +430,14 @@ INSERT INTO delivery_cost_rates (
     hotel_costs,
     created_at,
     handling_inbound_cost_tour,
+    handling_inbound_cost_panel,
     handling_outbound_cost_pal,
     handling_outbound_costs_tour,
-    storage_cost_per_chp,
+    storage_cost_per_BKW,
     currency_code
 )
 VALUES (
     9.25, 367, 16, 2, 18.18, 1.38, 10, 18.91, 65, NOW(),
-    NULL, NULL, NULL, NULL, 'EUR'
+    NULL, 0.05, NULL, NULL, NULL, 'EUR'
 );
 `;

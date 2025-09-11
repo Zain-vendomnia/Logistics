@@ -1,4 +1,4 @@
-import { PoolConnection } from "mysql2/promise";
+import { PoolConnection, ResultSetHeader } from "mysql2/promise";
 import { LogisticOrder, OrderStatus } from "../model/LogisticOrders";
 import { route_segments } from "../model/routeSegments";
 import { tourInfo_master } from "../model/TourinfoMaster";
@@ -8,8 +8,8 @@ import {
 } from "../model/tourModel";
 import { CreateTour, NotAssigned } from "../types/dto.types";
 import { DecodedRoute, Unassigned } from "../types/hereMap.types";
-import { Tour, LogisticsRoute } from "../types/tour.types";
-import hereMapService from "./hereMapService";
+import { Tour, LogisticsRoute, TourType } from "../types/tour.types";
+import hereMapService from "./hereMap.service";
 import pool from "../database";
 
 export async function getTourMapDataAsync(tourPayload: CreateTour) {
@@ -250,4 +250,79 @@ export async function getTourDetailsById(tourId: number) {
   const routes = await route_segments.getAllRouteSegments_TourId(tourId);
 
   return { tour: tourObj.tour_name, routes, unassigned: "400098044,400098044" };
+}
+
+export async function createDeliveryCostForTour(
+  tourId: number,
+  type: TourType = TourType.dynamicTour
+): Promise<any> {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    // Fetch delivery cost rates
+    const [ratesRows]: any = await connection.execute(`
+    SELECT personnel_costs_per_hour, diesel_costs_per_liter, 
+           consumption_l_per_100km, van_costs_per_day, hotel_costs
+    FROM delivery_cost_rates
+    ORDER BY id DESC
+    LIMIT 1
+  `);
+
+    const rates = ratesRows[0];
+    if (!rates) throw new Error("No delivery cost rates found");
+
+    // Compute costs
+    const personnelCost = rates.personnel_costs_per_hour * 8; // 8 tour hours
+    const dieselCost =
+      rates.diesel_costs_per_liter * rates.consumption_l_per_100km;
+    const vanCost = rates.van_costs_per_day;
+    const totalCost = rates.hotel_costs + vanCost + dieselCost + personnelCost;
+
+    const costPerStop = totalCost / 10; // tour Stops
+    const costPerBkw = totalCost / 5; // tour BKW
+    const costPerSlmd = totalCost / 5; // tour SLMD
+
+    const idColumn =
+      type === TourType.masterTour ? "tour_id" : "dynamic_tour_id";
+
+    // Insert into delivery_cost_per_tour
+    const [insertResult]: any = await connection.execute<ResultSetHeader>(
+      `INSERT INTO delivery_cost_per_tour (
+      ${idColumn}, hotel_cost, van_tour_cost, diesel_tour_cost,
+      personnel_tour_cost, total_cost,
+      delivery_cost_per_stop, delivery_cost_per_bkw, delivery_cost_per_slmd,
+      warehouse_tour_cost, infeed_tour_cost, we_tour_cost, wa_tour_cost
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0)`,
+      [
+        tourId,
+        rates.hotel_costs,
+        rates.van_costs_per_day,
+        dieselCost,
+        personnelCost,
+        totalCost,
+        costPerStop,
+        costPerBkw,
+        costPerSlmd,
+      ]
+    );
+
+    const insertedId = insertResult.insertId;
+
+    // Return the new row
+    const [rows]: any = await connection.execute(
+      `SELECT * FROM delivery_cost_per_tour WHERE id = ?`,
+      [insertedId]
+    );
+
+    await connection.commit();
+
+    return rows[0];
+  } catch (error) {
+    await connection.rollback();
+    console.error("Error creating delivery cost for tour:", error);
+    throw error;
+  } finally {
+    connection.release();
+  }
 }

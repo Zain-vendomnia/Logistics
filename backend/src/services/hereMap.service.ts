@@ -9,13 +9,18 @@ import {
   DecodedRoute,
   Unassigned,
 } from "../types/hereMap.types";
-import { Tour } from "../types/tour.types";
+import {
+  Coordinate,
+  LocationMeta,
+  MatrixResult,
+  Tour,
+} from "../types/tour.types";
 // import { LogisticOrder } from "../types/database.types";
 import {
   get_LogisticsOrdersAddress,
   LogisticOrder,
 } from "../model/LogisticOrders";
-import { getWarehouseWithVehiclesById } from "./warehouseService";
+import { getWarehouseWithVehicles } from "./warehouse.service";
 
 const HERE_API_KEY =
   process.env.HERE_API_KEY || "2tJpOzfdl3mgNpwKiDt-KuAQlzgEbsFkbX8byW97t1k";
@@ -159,7 +164,7 @@ async function CreateTourRouteAsync(orderIds: number[], warehouse_id: number) {
     orderIds
   )) as LogisticOrder[];
 
-  const warehouse = await getWarehouseWithVehiclesById(warehouse_id);
+  const warehouse = await getWarehouseWithVehicles(warehouse_id);
 
   const { tour, unassigned } = await PlanTourAsync(orders, [warehouse]);
 
@@ -305,11 +310,77 @@ function extractTourOrderIds(tour: Tour): string {
   return [...new Set(ids)].join(",");
 }
 
+// Estimate distance/duration between multiple origins and destinations.
+export const matrixEstimate = async (
+  origins: LocationMeta[],
+  destinations: LocationMeta[],
+  transportMode: "car" | "truck" | "pedestrian" = "truck"
+): Promise<MatrixResult> => {
+  if (!origins.length || !destinations.length) {
+    throw new Error(
+      "matrixEstimate requires at least one origin and one destination."
+    );
+  }
+
+  // Rare case - for later use
+  // "regionDefinition": { "type": "circle", "center": {"lat":25.27,"lng":55.29}, "radius":50000 },
+  // "matrixAttributes": ["travelTimes", "distances", "travelTimesWithTraffic"]
+
+  const body = {
+    origins: origins.map((o) => ({ lat: o.lat, lng: o.lng })),
+    destinations: destinations.map((d) => ({ lat: d.lat, lng: d.lng })),
+    regionDefinition: {
+      type: "world",
+    },
+    matrixAttributes: ["travelTimes", "distances"],
+    transportMode,
+  };
+
+  const url = `https://matrix.router.hereapi.com/v8/matrix?apiKey=${HERE_API_KEY}`;
+
+  const res = await axios.post(url, body);
+  console.log(res.data);
+
+  console.log(
+    `Matrix result: ${res.data.matrixTravelTimes.length} travel times, ${
+      res.data.matrixDistances?.length ?? 0
+    } distances`
+  );
+
+  // HERE response mapping
+  // https://developer.here.com/documentation/matrix-routing-api/dev_guide/topics/response.html
+  // matrixTravelTimes is always present, matrixDistances is optional
+  const estimates: MatrixResult["estimates"] = [];
+  const size = destinations.length;
+
+  res.data.matrixTravelTimes.forEach(
+    (travelTime: number | null, idx: number) => {
+      const row = Math.floor(idx / size);
+      const col = idx % size;
+
+      estimates.push({
+        origin: origins[row],
+        destination: destinations[col],
+        distanceKm: res.data.matrixDistances
+          ? res.data.matrixDistances[idx]
+          : null,
+        duration: travelTime,
+      });
+    }
+  );
+
+  return {
+    origins,
+    destinations,
+    estimates,
+  } as MatrixResult;
+};
+
 const hereMapService = {
   geocode,
   getRoutesForTour,
-  // PlanTour: PlanTourAsync,
   CreateTourRouteAsync,
+  matrixEstimate,
 
   extractTourOrderIds,
 

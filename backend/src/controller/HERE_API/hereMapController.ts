@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import hereMapService from "../../services/hereMapService";
+import hereMapService from "../../services/hereMap.service";
 import { DecodedRoute } from "../../types/hereMap.types";
 
 const warehouseGroups = [
