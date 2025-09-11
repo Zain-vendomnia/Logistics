@@ -173,26 +173,18 @@ export const filterCustomers = (
 
   return filtered;
 };
-
-// Sort customers utility (extracted from CustomersChat)
 export const sortCustomers = (customers: Customer[]): Customer[] => {
   return customers.sort((a, b) => {
-    // Most recent conversation first (using timestamp or lastActive)
-    const aTime = new Date(a.timestamp || a.lastActive || 0).getTime();
-    const bTime = new Date(b.timestamp || b.lastActive || 0).getTime();
-    
-    // Sort by most recent first (desc)
-    if (bTime !== aTime) return bTime - aTime;
-    
-    // Fallback to unread count if times are equal
+    // First priority: sort by unread count (desc)
     const unreadDiff = (b.unreadCount ?? 0) - (a.unreadCount ?? 0);
     if (unreadDiff !== 0) return unreadDiff;
-    
-    // Final fallback to name
-    return a.name.localeCompare(b.name);
+
+    // Second priority: sort by most recent conversation time (desc)
+    const aTime = new Date(a.timestamp || a.lastActive || 0).getTime();
+    const bTime = new Date(b.timestamp || b.lastActive || 0).getTime();
+    return bTime - aTime;
   });
 };
-
 // Combined filter and sort utility
 export const processCustomers = (
   customers: Customer[],

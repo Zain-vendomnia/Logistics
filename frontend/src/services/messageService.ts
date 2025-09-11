@@ -38,8 +38,8 @@ export interface MessageRequest {
   type: 'text' | 'file';
   phone_number: number;
   fileName?: string;
-  fileUrl?: string;     // Added for uploaded file URL
-  fileType?: string;    // Added for file MIME type
+  fileUrl?: string;
+  fileType?: string;
 }
 
 export interface MessageUpdate {
@@ -53,6 +53,44 @@ export interface MessageStatusUpdate {
     delivery_status?: string;
     twilio_sid?: string;
   };
+}
+
+// UPDATED: Single customer list update event interface
+export interface CustomerListUpdate {
+  orderId: number;
+  customerName: string;
+  customerPhone?: string;
+  message: {
+    id: string;
+    content: string;
+    timestamp: string;
+    direction: 'inbound' | 'outbound';
+    type: string;
+    message_type: string;
+    fileName?: string;
+    fileUrl?: string;
+    fileType?: string;
+  };
+  unreadCount: number;
+  lastActive: string;
+}
+
+// DEPRECATED: These interfaces are no longer used with single event approach
+export interface GlobalMessageEvent {
+  message: Message;
+  customerId: number;
+  customerName: string;
+}
+
+export interface CustomerStatusUpdate {
+  orderId: number;
+  status: 'online' | 'away' | 'busy' | 'offline';
+  lastSeen?: string;
+}
+
+export interface UnreadCountUpdate {
+  orderId: number;
+  unreadCount: number;
 }
 
 export interface SendMessageResponse {
@@ -83,10 +121,12 @@ const getTokenFromAuthHeader = (): string | null => {
   return authHeaderValue || null;
 };
 
-// Socket.IO Service (unchanged, keeping existing implementation)
+// Enhanced Socket.IO Service with Single Customer Update Event
 class SocketService {
   private socket: Socket | null = null;
   private connected = false;
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 5;
 
   connect(): void {
     if (this.socket?.connected) return;
@@ -103,7 +143,7 @@ class SocketService {
       autoConnect: true,
       reconnection: true,
       reconnectionDelay: 1000,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: this.maxReconnectAttempts,
       timeout: 20000,
       auth: { token }
     });
@@ -111,6 +151,10 @@ class SocketService {
     this.socket.on('connect', () => {
       console.log('Socket.IO connected:', this.socket?.id);
       this.connected = true;
+      this.reconnectAttempts = 0;
+      
+      // Join global admin room for customer list updates
+      this.socket?.emit('join-admin-room');
     });
 
     this.socket.on('disconnect', (reason) => {
@@ -120,6 +164,11 @@ class SocketService {
 
     this.socket.on('connect_error', (error) => {
       console.error('Socket.IO connection error:', error);
+      this.reconnectAttempts++;
+      
+      if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+        console.error('Max reconnection attempts reached');
+      }
     });
 
     this.socket.on('error', (error) => {
@@ -134,6 +183,7 @@ class SocketService {
 
   disconnect(): void {
     if (this.socket) {
+      this.socket.emit('leave-admin-room');
       this.socket.disconnect();
       this.socket = null;
       this.connected = false;
@@ -144,7 +194,7 @@ class SocketService {
     return this.connected && this.socket?.connected === true;
   }
 
-  // Chat room events
+  // Chat room events (existing)
   joinOrder(orderId: number): void {
     console.log(`Joining order room: ${orderId}`);
     this.socket?.emit('join-order', orderId);
@@ -155,7 +205,7 @@ class SocketService {
     this.socket?.emit('leave-order', orderId);
   }
 
-  // Message events
+  // Individual message events (existing)
   onNewMessage(callback: (message: Message) => void): void {
     this.socket?.on('new-message', callback);
   }
@@ -189,6 +239,65 @@ class SocketService {
       this.socket?.off('message-status-updated', callback);
     } else {
       this.socket?.off('message-status-updated');
+    }
+  }
+
+  // NEW: Single customer list update event
+  onCustomerListUpdate(callback: (data: CustomerListUpdate) => void): void {
+    this.socket?.on('customer-list-update', callback);
+  }
+
+  offCustomerListUpdate(callback?: (data: CustomerListUpdate) => void): void {
+    if (callback) {
+      this.socket?.off('customer-list-update', callback);
+    } else {
+      this.socket?.off('customer-list-update');
+    }
+  }
+
+  // Customer status updates (online/offline)
+  onCustomerStatusUpdate(callback: (data: CustomerStatusUpdate) => void): void {
+    this.socket?.on('customer-status-update', callback);
+  }
+
+  offCustomerStatusUpdate(callback?: (data: CustomerStatusUpdate) => void): void {
+    if (callback) {
+      this.socket?.off('customer-status-update', callback);
+    } else {
+      this.socket?.off('customer-status-update');
+    }
+  }
+
+  // Emit customer status updates
+  updateCustomerStatus(orderId: number, status: CustomerStatusUpdate['status']): void {
+    this.socket?.emit('update-customer-status', { orderId, status });
+  }
+
+  // DEPRECATED: Old global events (kept for backward compatibility)
+  onGlobalNewMessage(callback: (data: GlobalMessageEvent) => void): void {
+    console.warn('onGlobalNewMessage is deprecated. Use onCustomerListUpdate instead.');
+    // For backward compatibility, we can map the old event to the new one
+    this.socket?.on('global-new-message', callback);
+  }
+
+  offGlobalNewMessage(callback?: (data: GlobalMessageEvent) => void): void {
+    if (callback) {
+      this.socket?.off('global-new-message', callback);
+    } else {
+      this.socket?.off('global-new-message');
+    }
+  }
+
+  onUnreadCountUpdate(callback: (data: UnreadCountUpdate) => void): void {
+    console.warn('onUnreadCountUpdate is deprecated. Use onCustomerListUpdate instead.');
+    this.socket?.on('unread-count-update', callback);
+  }
+
+  offUnreadCountUpdate(callback?: (data: UnreadCountUpdate) => void): void {
+    if (callback) {
+      this.socket?.off('unread-count-update', callback);
+    } else {
+      this.socket?.off('unread-count-update');
     }
   }
 
@@ -279,14 +388,14 @@ export const getMessagesByOrderId = async (orderId: number): Promise<Message[]> 
   }
 };
 
-// 🔥 FIXED: File upload function with progress tracking
+// File upload function with progress tracking
 export const uploadFile = async (
   file: File, 
   orderId: string,
   onProgress?: (progress: number) => void
 ): Promise<FileUploadResponse> => {
   try {
-    console.log('📤 Starting file upload:', {
+    console.log('Starting file upload:', {
       fileName: file.name,
       fileType: file.type,
       fileSize: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
@@ -308,10 +417,10 @@ export const uploadFile = async (
           onProgress(progress);
         }
       },
-      timeout: 30000, // 30 second timeout for large files
+      timeout: 30000,
     });
 
-    console.log('📤 Upload response:', response.data);
+    console.log('Upload response:', response.data);
 
     if (response.data.success) {
       return {
@@ -328,7 +437,7 @@ export const uploadFile = async (
       };
     }
   } catch (error) {
-    console.error('❌ File upload error:', error);
+    console.error('File upload error:', error);
     
     if (axios.isAxiosError(error)) {
       if (error.code === 'ECONNABORTED') {
@@ -367,14 +476,14 @@ export const sendMessage = async (
   messageData: MessageRequest
 ): Promise<{ success: boolean; message?: Message; error?: string }> => {
   try {
-    console.log('📨 Sending message via API:', { orderId, messageData });
+    console.log('Sending message via API:', { orderId, messageData });
     
     const response = await axios.post(`${MESSAGES_API_BASE}/${orderId}`, messageData, { 
       headers: authHeader(),
-      timeout: 10000 // 10 second timeout
+      timeout: 10000
     });
 
-    console.log('📨 API Response:', response.data);
+    console.log('API Response:', response.data);
     
     const data: SendMessageResponse = response.data;
 
@@ -390,7 +499,7 @@ export const sendMessage = async (
       };
     }
   } catch (error) {
-    console.error('❌ Failed to send message:', error);
+    console.error('Failed to send message:', error);
     
     if (axios.isAxiosError(error)) {
       if (error.code === 'ECONNABORTED') {
@@ -430,17 +539,15 @@ export const sendMessage = async (
   }
 };
 
-// Helper function to check if message is temporary/optimistic
+// Helper functions (existing)
 export const isOptimisticMessage = (message: Message): boolean => {
   return message.id.startsWith('temp_') || message.delivery_status === 'sending';
 };
 
-// Helper function to find message by temp ID
 export const findMessageByTempId = (messages: Message[], tempId: string): Message | undefined => {
   return messages.find(msg => msg.id === tempId);
 };
 
-// Helper function to update message in array
 export const updateMessageInArray = (messages: Message[], updatedMessage: Message, tempId?: string): Message[] => {
   return messages.map(msg => {
     if (tempId && msg.id === tempId) {
@@ -453,7 +560,6 @@ export const updateMessageInArray = (messages: Message[], updatedMessage: Messag
   });
 };
 
-// Helper function to update message status only
 export const updateMessageStatus = (messages: Message[], messageId: string, statusUpdate: any): Message[] => {
   return messages.map(msg => {
     if (msg.id === messageId) {
@@ -483,21 +589,19 @@ export const testWebhookEndpoint = async (): Promise<any> => {
   }
 };
 
-// File validation helper (moved from utils for consistency)
+// File validation helper
 export const validateFileForTwilio = (file: File): { valid: boolean; error?: string } => {
-  // Twilio WhatsApp file size limits
   const SIZE_LIMITS = {
-    image: 5,   // 5MB
-    video: 16,  // 16MB
-    audio: 16,  // 16MB
-    document: 16 // 16MB
+    image: 5,
+    video: 16,
+    audio: 16,
+    document: 16
   };
 
   const fileSizeMB = file.size / 1024 / 1024;
   const fileType = file.type.toLowerCase();
 
-  // Check file size
-  let sizeLimit = 16; // Default
+  let sizeLimit = 16;
   if (fileType.startsWith('image/')) sizeLimit = SIZE_LIMITS.image;
   else if (fileType.startsWith('video/')) sizeLimit = SIZE_LIMITS.video;
   else if (fileType.startsWith('audio/')) sizeLimit = SIZE_LIMITS.audio;
@@ -510,7 +614,6 @@ export const validateFileForTwilio = (file: File): { valid: boolean; error?: str
     };
   }
 
-  // Check supported types
   const supportedTypes = [
     'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
     'video/mp4', 'video/3gpp', 'video/quicktime',

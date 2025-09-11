@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import * as messageService from "../../services/messageService";
-import { downloadAndStoreMedia } from "../../utils/mediaDownloader"; 
+import { downloadAndStoreMedia } from "../../utils/mediaDownloader";
 
 /**
  * Get all messages for a specific order
@@ -116,7 +116,7 @@ export const sendMessage = async (req: Request, res: Response) => {
 };
 
 /**
- * Update unread count
+ * Update unread count with single customer update broadcast
  */
 export const updateUnreadCount = async (req: Request, res: Response) => {
   try {
@@ -130,7 +130,11 @@ export const updateUnreadCount = async (req: Request, res: Response) => {
       });
     }
 
+    // UPDATED: Use the new single customer update function
     const result = await messageService.updateCustomerUnreadCount(orderId, unreadCount);
+    
+    // Broadcasting is now handled inside the service function using the single event
+    
     return res.json(result);
   } catch (err) {
     console.error("Error updating unread count:", err);
@@ -146,13 +150,12 @@ export const updateUnreadCount = async (req: Request, res: Response) => {
  */
 export const handleTwilioStatusWebhook = async (req: Request, res: Response) => {
   console.log("-----------------------------------------------------");
-  console.log("am triggered nagaraj")
+  console.log("Status webhook triggered")
   try {
     console.log("------------------------------------------------------");
-    console.log("req Payload:", req.body);
+    console.log("Status Webhook Payload:", req.body);
     console.log("------------------------------------------------------");
-    const { MessageSid, MessageStatus, ErrorCode,ErrorMessage } = req.body;
-
+    const { MessageSid, MessageStatus, ErrorCode, ErrorMessage } = req.body;
 
     if (MessageSid && MessageStatus) {
       await messageService.updateMessageDeliveryStatus(MessageSid, MessageStatus, ErrorCode, ErrorMessage);
@@ -166,7 +169,7 @@ export const handleTwilioStatusWebhook = async (req: Request, res: Response) => 
 };
 
 /**
- * Handle incoming WhatsApp messages
+ * Handle incoming WhatsApp messages with single customer update broadcast
  */
 export const handleTwilioIncomingWebhook = async (req: Request, res: Response) => {
   try {
@@ -189,38 +192,38 @@ export const handleTwilioIncomingWebhook = async (req: Request, res: Response) =
       MediaContentType0,
     } = req.body;
 
-    // ✅ Step 1: Validate required fields
+    // Step 1: Validate required fields
     if (!MessageSid || !From) {
-      console.error("❌ Missing required fields:", { MessageSid, From });
+      console.error("Missing required fields:", { MessageSid, From });
       return res.status(200).send("OK");
     }
 
-    // ✅ Step 2: Extract phone number
+    // Step 2: Extract phone number
     const phoneNumber = From?.replace("whatsapp:", "").trim();
     if (!phoneNumber || phoneNumber.length < 10) {
-      console.error("❌ Invalid phone number format:", From);
+      console.error("Invalid phone number format:", From);
       return res.status(200).send("OK");
     }
 
-    // ✅ Step 3: Determine message type & content
+    // Step 3: Determine message type & content
     const isMedia = NumMedia && parseInt(NumMedia) > 0;
     const whatsappMessageType = MessageType;
     const messageBody = isMedia ? `[${whatsappMessageType}]` : (Body || "").trim();
 
-    // ✅ Step 4: Validate message body
+    // Step 4: Validate message body
     if (whatsappMessageType === "text" && !messageBody) {
-      console.error("❌ Empty text message body");
+      console.error("Empty text message body");
       return res.status(200).send("OK");
     }
 
-    // ✅ NEW STEP 5: Download media if present
+    // Step 5: Download media if present
     let localMediaUrl = null;
     let localFileName = null;
     let localFileType = null;
     let localFileSize = null;
 
     if (isMedia && MediaUrl0 && MediaContentType0) {
-      console.log("📥 Downloading media file...", { 
+      console.log("Downloading media file...", { 
         MediaUrl0, 
         MediaContentType0, 
         MessageSid 
@@ -237,14 +240,14 @@ export const handleTwilioIncomingWebhook = async (req: Request, res: Response) =
         localFileName = downloadResult.fileName;
         localFileType = downloadResult.fileType;
         localFileSize = downloadResult.fileSize;
-        console.log("✅ Media downloaded successfully:", localMediaUrl);
+        console.log("Media downloaded successfully:", localMediaUrl);
       } else {
-        console.error("❌ Media download failed:", downloadResult.error);
+        console.error("Media download failed:", downloadResult.error);
         // Continue processing - we'll use the original Twilio URL as fallback
       }
     }
 
-    // ✅ Step 6: Prepare data for service (with local media URLs if available)
+    // Step 6: Prepare data for service with enhanced fields
     const incomingMessageData = {
       twilioSid: MessageSid,
       phoneNumber,
@@ -266,7 +269,7 @@ export const handleTwilioIncomingWebhook = async (req: Request, res: Response) =
       ...(MediaUrl0 && { originalTwilioUrl: MediaUrl0 }),
     };
 
-    console.log("📩 Processing incoming message:", {
+    console.log("Processing incoming message:", {
       twilioSid: MessageSid,
       phoneNumber,
       messageType: whatsappMessageType,
@@ -282,19 +285,22 @@ export const handleTwilioIncomingWebhook = async (req: Request, res: Response) =
       ...(localFileSize && { fileSize: localFileSize })
     });
 
-    // ✅ Step 7: Pass to service
+    // Step 7: Pass to service (which now handles single customer update broadcast)
     const result = await messageService.handleIncomingMessage(incomingMessageData);
 
     if (result.success) {
-      console.log("✅ Incoming message processed successfully");
+      console.log("Incoming message processed successfully");
+      console.log("- Message saved to database");
+      console.log("- Broadcasted to order room");
+      console.log("- Single customer update broadcasted to all admins");
     } else {
-      console.error("❌ Service error:", result.error);
+      console.error("Service error:", result.error);
     }
 
-    // ✅ Always respond 200 OK
+    // Always respond 200 OK to prevent Twilio retries
     return res.status(200).send("OK");
   } catch (error) {
-    console.error("❌ Controller error:", error);
+    console.error("Controller error:", error);
     console.error("Request body:", req.body);
     return res.status(200).send("OK"); // prevent Twilio retries
   }
@@ -305,15 +311,18 @@ export const handleTwilioIncomingWebhook = async (req: Request, res: Response) =
  */
 export const testWebhookEndpoint = async (req: Request, res: Response) => {
   console.log("-----------------------------------------------------");
-  console.log(req);
+  console.log("Test endpoint called:", req.method, req.path);
+  console.log("Headers:", req.headers);
+  console.log("Body:", req.body);
   console.log("-----------------------------------------------------");
   return res.json({
     status: "success",
     message: "Webhook endpoints are working!",
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    method: req.method,
+    path: req.path
   });
 };
-
 
 /**
  * Upload file controller
@@ -338,7 +347,7 @@ export const uploadFile = async (req: Request, res: Response) => {
     }
 
     // Generate public URL for the file
-    const baseUrl = process.env.HOST_URL 
+    const baseUrl = process.env.HOST_URL;
     const fileUrl = `${baseUrl}/api/admin/messages/files/${file.filename}`;
 
     console.log('File uploaded successfully:', {
@@ -365,4 +374,3 @@ export const uploadFile = async (req: Request, res: Response) => {
     });
   }
 };
-

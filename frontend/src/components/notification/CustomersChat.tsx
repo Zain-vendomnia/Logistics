@@ -1,15 +1,16 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { ThemeProvider, CssBaseline, Box, Container, Typography } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 import CustomerList from './CustomersList';
 import ChatWindow from './ChatWindow';
 import theme from '../../theme';
 import { getAllCustomers } from '../../services/customerService';
-import { updateCustomerUnreadCount } from '../../services/messageService';
+import { updateCustomerUnreadCount, socketService } from '../../services/messageService';
 import { 
   Customer, 
   FilterOptions, 
-  CustomerStats 
+  CustomerStats,
+  
 } from './shared/types';
 import { 
   normalizeCustomer, 
@@ -28,36 +29,189 @@ const CustomersChat: React.FC = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [connected, setConnected] = useState(false);
+
+  // Ref to track mounted state
+  const mountedRef = useRef(true);
 
   // Fetch customers on mount
   useEffect(() => {
-    let mounted = true;
-
     const fetchCustomers = async () => {
       try {
         setIsLoading(true);
         const response = await getAllCustomers();
         
-        if (mounted) {
-          // Normalize data using shared utility
+        if (mountedRef.current) {
           const normalized = response.map(normalizeCustomer);
           setCustomers(normalized);
           setError(null);
         }
       } catch (err) {
         console.error('Failed to fetch customers:', err);
-        if (mounted) {
+        if (mountedRef.current) {
           setError('Failed to load customers');
         }
       } finally {
-        if (mounted) {
+        if (mountedRef.current) {
           setIsLoading(false);
         }
       }
     };
     
     fetchCustomers();
-    return () => { mounted = false; };
+  }, []);
+
+  // WebSocket setup for global customer list updates - SINGLE EVENT
+  useEffect(() => {
+    // Connect to socket service
+    socketService.connect();
+
+    const handleConnect = () => {
+      console.log('Connected to socket service for customer updates');
+      setConnected(true);
+    };
+
+    const handleDisconnect = () => {
+      console.log('Disconnected from socket service');
+      setConnected(false);
+    };
+
+    // SINGLE EVENT HANDLER: Replace all previous handlers with this one
+    const handleCustomerListUpdate = (data: {
+      orderId: number;
+      customerName: string;
+      customerPhone?: string;
+      message: {
+        id: string;
+        content: string;
+        timestamp: string;
+        direction: 'inbound' | 'outbound';
+        type: string;
+        message_type: string;
+        fileName?: string;
+        fileUrl?: string;
+        fileType?: string;
+      };
+      unreadCount: number;
+      lastActive: string;
+    }) => {
+      console.log('📡 CUSTOMER LIST UPDATE:', data);
+      
+      setCustomers(prevCustomers => {
+        console.log('📋 Previous customers before update:', 
+          prevCustomers.map(c => ({
+            order_id: c.order_id,
+            name: c.name,
+            lastMessage: c.lastMessage,
+            unreadCount: c.unreadCount
+          }))
+        );
+
+        const updatedCustomers = prevCustomers.map(customer => {
+          if (customer.order_id === data.orderId) {
+            console.log('🎯 Updating customer:', {
+              name: customer.name,
+              oldLastMessage: customer.lastMessage,
+              newLastMessage: data.message.content,
+              oldUnreadCount: customer.unreadCount,
+              newUnreadCount: data.unreadCount,
+              messageDirection: data.message.direction,
+              selectedCustomerOrderId: selectedCustomer?.order_id
+            });
+
+            // Determine display message
+            let displayMessage = '';
+            if (data.message.content && data.message.content.trim()) {
+              displayMessage = data.message.content;
+            } else {
+              displayMessage = `[${data.message.type || data.message.message_type || 'message'}]`;
+            }
+
+            const updatedCustomer = {
+              ...customer,
+              lastMessage: displayMessage,
+              timestamp: data.lastActive,
+              lastActive: data.lastActive,
+              // Update unread count based on direction and selected customer
+              unreadCount: (data.message.direction === 'inbound' && 
+                           selectedCustomer?.order_id !== customer.order_id) 
+                           ? data.unreadCount
+                           : customer.unreadCount || 0
+            };
+
+            console.log('✅ Customer updated:', {
+              name: updatedCustomer.name,
+              lastMessage: updatedCustomer.lastMessage,
+              unreadCount: updatedCustomer.unreadCount
+            });
+
+            return updatedCustomer;
+          }
+          return customer;
+        }).sort((a, b) => {
+          // Sort by timestamp to bring the most recent conversation to top
+          const timeA = new Date(a.timestamp || a.lastActive || 0).getTime();
+          const timeB = new Date(b.timestamp || b.lastActive || 0).getTime();
+          return timeB - timeA;
+        });
+
+        console.log('🏁 Final customer list after update:', 
+          updatedCustomers.map(c => ({
+            order_id: c.order_id,
+            name: c.name,
+            lastMessage: c.lastMessage,
+            unreadCount: c.unreadCount
+          }))
+        );
+
+        return updatedCustomers;
+      });
+    };
+
+    // Handle customer status updates (online/offline)
+    const handleCustomerStatusUpdate = (data: { orderId: number; status: 'online' | 'away' | 'busy' | 'offline' }) => {
+      console.log('👤 CUSTOMER STATUS UPDATE:', data);
+      
+      setCustomers(prevCustomers => {
+        return prevCustomers.map(customer => {
+          if (customer.order_id === data.orderId) {
+            return {
+              ...customer,
+              status: data.status
+            };
+          }
+          return customer;
+        });
+      });
+    };
+
+    // Set up event listeners - SIMPLIFIED TO SINGLE EVENT
+    socketService.onConnect(handleConnect);
+    socketService.onDisconnect(handleDisconnect);
+    
+    // Listen for the single customer list update event
+    socketService.getSocket()?.on('customer-list-update', handleCustomerListUpdate);
+    socketService.getSocket()?.on('customer-status-update', handleCustomerStatusUpdate);
+
+    // Check initial connection status
+    if (socketService.isConnected()) {
+      setConnected(true);
+    }
+
+    // Cleanup - SIMPLIFIED
+    return () => {
+      socketService.offConnect(handleConnect);
+      socketService.offDisconnect(handleDisconnect);
+      socketService.getSocket()?.off('customer-list-update', handleCustomerListUpdate);
+      socketService.getSocket()?.off('customer-status-update', handleCustomerStatusUpdate);
+    };
+  }, [selectedCustomer?.order_id]); // Re-run when selected customer changes
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   // Processed customers using shared utility
@@ -75,7 +229,7 @@ const CustomersChat: React.FC = () => {
     const customer = customers.find(c => c.order_id === id);
     if (!customer) return;
 
-    // Optimistic update
+    // Optimistic update - clear unread count immediately
     const updated = { ...customer, unreadCount: 0 };
     setSelectedCustomer(updated);
     setCustomers(prev => prev.map(c => c.order_id === id ? updated : c));
@@ -145,6 +299,7 @@ const CustomersChat: React.FC = () => {
           onFilterChange={handleFilterChange}
           onClearAll={handleClearAll}
           stats={stats}
+          connected={connected}
         />
         
         <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>

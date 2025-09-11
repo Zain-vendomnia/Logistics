@@ -50,9 +50,8 @@ export const getAllCustomers = async (): Promise<Customer[]> => {
               order_id,
               COUNT(*) as unread_count
           FROM whatsapp_chats 
-          WHERE is_read = 1 
-              AND order_id IS NOT NULL 
-              AND order_id != ''
+          WHERE is_read = 0
+              AND direction = 'inbound' 
           GROUP BY order_id
       ) unread ON l.order_id = unread.order_id
 

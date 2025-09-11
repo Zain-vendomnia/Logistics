@@ -1,6 +1,12 @@
 // src/services/messages.service.ts
 import pool from "../database";
-import { emitMessageToOrder, emitMessageUpdate, emitMessageStatusUpdate } from "../socket";
+import { 
+  emitMessageToOrder, 
+  emitMessageUpdate, 
+  emitMessageStatusUpdate,
+  broadcastGlobalMessageStatus,
+  broadcastCustomerUpdate
+} from "../socket";
 import twilio from "twilio";
 import dotenv from "dotenv";
 dotenv.config();
@@ -49,8 +55,8 @@ export interface MessageRequest {
   type: "text" | "file";
   fileName?: string;
   phone_number: string;
-  fileUrl?: string;     // Add this
-  fileType?: string;    // Add this
+  fileUrl?: string;
+  fileType?: string;
 }
 
 export interface SendMessageResponse {
@@ -92,6 +98,10 @@ export interface IncomingMessageData {
   channelMetadata?: string;
   mediaUrl?: string;
   mediaContentType?: string;
+  fileName?: string;
+  fileType?: string;
+  fileSize?: number;
+  originalTwilioUrl?: string;
 }
 
 export interface IncomingMessageResponse {
@@ -142,7 +152,7 @@ export const getMessagesByOrderId = async (orderId: string): Promise<Message[]> 
       updated_at: r.updated_at.toISOString(),
       delivery_status: r.delivery_status,
       is_read: r.is_read,
-      timestamp: new Date(r.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      timestamp: r.created_at.toISOString(),
       type: (r.message_type === "file" ? "document" : "text") as WhatsAppMessageType,
       twilio_sid: r.twilio_sid ?? null,
       fileUrl: r.media_url ?? undefined,
@@ -185,11 +195,10 @@ export const sendMessage = async (
     updated_at: now.toISOString(),
     delivery_status: "sending",
     is_read: 0,
-    timestamp: now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    timestamp: now.toISOString(),
     type: messageData.type === "file" ? "document" : "text",
     twilio_sid: null,
     readAt: null,
-    // Add file properties
     ...(messageData.fileName && { fileName: messageData.fileName }),
     ...(messageData.fileUrl && { fileUrl: messageData.fileUrl }),
     ...(messageData.fileType && { fileType: messageData.fileType }),
@@ -202,13 +211,12 @@ export const sendMessage = async (
     console.log("Broadcasting optimistic message to UI");
     emitMessageToOrder(orderId, optimisticMessage);
 
-    // PHASE 2: Send via Twilio - FIXED to handle media
+    // PHASE 2: Send via Twilio
     console.log("Sending via Twilio...");
     
     let twilioResponse;
     
     if (messageData.type === "file" && messageData.fileUrl) {
-      // 🔥 Send MEDIA message via Twilio WhatsApp
       console.log("Sending MEDIA message:", {
         mediaUrl: messageData.fileUrl,
         fileType: messageData.fileType
@@ -217,12 +225,10 @@ export const sendMessage = async (
       twilioResponse = await client.messages.create({
         from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`,
         to: `whatsapp:${messageData.phone_number}`,
-        mediaUrl: [messageData.fileUrl], // 🔥 KEY FIX: Send media URL
-        // body: messageData.content  // Optional caption (limited support)
+        mediaUrl: [messageData.fileUrl],
       });
       
     } else {
-      // 📝 Send TEXT message via Twilio WhatsApp  
       console.log("Sending TEXT message:", messageData.content);
       
       twilioResponse = await client.messages.create({
@@ -264,8 +270,8 @@ export const sendMessage = async (
         deliveryStatus,
         0,
         twilioResponse.sid,
-        messageData.fileUrl || null,        // 🔥 Save file URL
-        messageData.fileType || null        // 🔥 Save file type
+        messageData.fileUrl || null,
+        messageData.fileType || null
       ])) as [{ insertId: number }, any];
 
       // PHASE 4: Create final message with real ID and file data
@@ -280,6 +286,17 @@ export const sendMessage = async (
       console.log("Broadcasting final message update to UI");
       emitMessageUpdate(orderId, tempId, finalMessage);
 
+      // NEW PHASE 6: Broadcast customer list update for outbound messages
+      try {
+        const customerInfo = await getCustomerInfoByOrderId(orderId);
+        if (customerInfo) {
+          // For outbound messages, unread count should be 0 (since admin sent it)
+          broadcastCustomerUpdate(parseInt(orderId), finalMessage, customerInfo, 0);
+          console.log(`📡 Customer list updated for outbound message: ${customerInfo.name}`);
+        }
+      } catch (error) {
+        console.error("Error broadcasting outbound message to customer list:", error);
+      }
       return {
         success: true,
         message: finalMessage,
@@ -287,7 +304,6 @@ export const sendMessage = async (
       };
 
     } else {
-      // Twilio rejected the message
       console.error("Twilio rejected message:", {
         errorCode: twilioResponse.errorCode,
         errorMessage: twilioResponse.errorMessage
@@ -312,7 +328,6 @@ export const sendMessage = async (
   } catch (error: any) {
     console.error("sendMessage error:", error);
 
-    // Check for specific Twilio errors
     if (error.code) {
       console.error("Twilio Error Details:", {
         code: error.code,
@@ -321,7 +336,6 @@ export const sendMessage = async (
       });
     }
 
-    // Update UI to show failure
     const failedMessage: Message = {
       ...optimisticMessage,
       delivery_status: "failed",
@@ -340,7 +354,7 @@ export const sendMessage = async (
 };
 
 /**
- * Webhook-driven status update from Twilio
+ * Webhook-driven status update from Twilio with global broadcasting
  */
 export const updateMessageDeliveryStatus = async (
   twilioSid: string, 
@@ -375,11 +389,14 @@ export const updateMessageDeliveryStatus = async (
     if (rows.length > 0) {
       const { order_id, id } = rows[0];
       
-      // Broadcast status update to frontend
+      // Broadcast status update to specific order room
       console.log(`Broadcasting status update for message ${id}: ${newStatus} → ${deliveryStatus}`);
       emitMessageStatusUpdate(order_id, id.toString(), {
         delivery_status: deliveryStatus
       });
+
+      // Also broadcast to admin room for global updates
+      broadcastGlobalMessageStatus(id.toString(), parseInt(order_id), deliveryStatus);
     }
 
     console.log(`Updated message ${twilioSid}: ${newStatus} → ${deliveryStatus}`);
@@ -432,32 +449,70 @@ export const markMessageAsRead = async (
 };
 
 /**
- * Update unread count for messages in an order
+ * Update customer unread count with single broadcast event
  */
 export const updateCustomerUnreadCount = async (
   orderId: string, 
   unreadCount: number
 ): Promise<{ status: "success" | "warning" | "error"; message: string; data?: any }> => {
   try {
-    const query = `
-      UPDATE whatsapp_chats 
-      SET is_read = ?, updated_at = CURRENT_TIMESTAMP 
-      WHERE order_id = ?
-    `;
-    const [result] = (await pool.query(query, [unreadCount, orderId])) as [{ affectedRows: number }, any];
+    if (unreadCount === 0) {
+      // Mark all inbound messages as read for this order
+      const query = `
+        UPDATE whatsapp_chats 
+        SET is_read = 1, updated_at = CURRENT_TIMESTAMP 
+        WHERE order_id = ? AND direction = 'inbound' AND is_read = 0
+      `;
+      const [result] = (await pool.query(query, [orderId])) as [{ affectedRows: number }, any];
 
-    if (result.affectedRows === 0) {
+      // Get customer info and latest message for broadcasting
+      const customerInfo = await getCustomerInfoByOrderId(orderId);
+      if (customerInfo) {
+        // Get the latest message for this order
+        const [latestMessage] = (await pool.query(
+          `SELECT body, created_at, message_type, media_url, media_content_type FROM whatsapp_chats 
+           WHERE order_id = ? ORDER BY created_at DESC LIMIT 1`,
+          [orderId]
+        )) as [Array<{ 
+          body: string; 
+          created_at: Date; 
+          message_type: string;
+          media_url?: string;
+          media_content_type?: string;
+        }>, any];
+
+        if (latestMessage.length > 0) {
+          const messageData = latestMessage[0];
+          const mockMessage = {
+            id: 'update',
+            content: messageData.body,
+            body: messageData.body,
+            timestamp: messageData.created_at.toISOString(),
+            created_at: messageData.created_at.toISOString(),
+            direction: 'inbound' as const,
+            type: messageData.message_type === 'file' ? 'document' : 'text',
+            message_type: messageData.message_type,
+            fileName: messageData.media_content_type ? `attachment.${messageData.media_content_type.split('/')[1] || 'file'}` : undefined,
+            fileUrl: messageData.media_url || undefined,
+            fileType: messageData.media_content_type || undefined
+          };
+          
+          broadcastCustomerUpdate(parseInt(orderId), mockMessage, customerInfo, 0);
+        }
+      }
+
       return { 
-        status: "warning", 
-        message: `No records found for order_id ${orderId}` 
+        status: "success", 
+        message: "Messages marked as read successfully", 
+        data: { orderId, updatedRows: result.affectedRows } 
+      };
+    } else {
+      return { 
+        status: "success", 
+        message: "Unread count processed", 
+        data: { orderId, unreadCount } 
       };
     }
-
-    return { 
-      status: "success", 
-      message: "Unread count updated successfully", 
-      data: { orderId, updatedRows: result.affectedRows } 
-    };
   } catch (error) {
     console.error("updateCustomerUnreadCount error:", error);
     return { 
@@ -466,7 +521,10 @@ export const updateCustomerUnreadCount = async (
     };
   }
 };
-/** Find order by phone number using the phone column */
+
+/**
+ * Find order by phone number using the phone column
+ */
 const findOrderByPhone = async (phoneNumber: string): Promise<string | null> => {
   try {
     console.log(`🔍 Searching for order with phone number: ${phoneNumber}`);
@@ -489,11 +547,34 @@ const findOrderByPhone = async (phoneNumber: string): Promise<string | null> => 
   }
 };
 
+/**
+ * Get customer info for broadcasting
+ */
+const getCustomerInfoByOrderId = async (orderId: string): Promise<{ order_id: string; name: string; phone?: string } | null> => {
+  try {
+    const [rows] = (await pool.query(
+      `SELECT order_id, CONCAT(firstname, ' ', lastname) AS name, phone FROM logistic_order WHERE order_id = ? LIMIT 1`,
+      [orderId]
+    )) as [Array<{ order_id: string; name: string; phone?: string }>, any];
+
+    if (rows.length > 0) {
+      return rows[0];
+    }
+
+    return null;
+  } catch (error) {
+    console.error("Error getting customer info:", error);
+    return null;
+  }
+};
+
 // Normalize to your DB's `message_type` enum ('text' | 'file')
 const toDbMessageType = (t: WhatsAppMessageType): "text" | "file" =>
   t === "text" ? "text" : "file";
 
-/** Handle incoming WhatsApp message from Twilio webhook */
+/**
+ * Handle incoming WhatsApp message from Twilio webhook with single customer update broadcast
+ */
 export const handleIncomingMessage = async (
   data: IncomingMessageData
 ): Promise<IncomingMessageResponse> => {
@@ -508,6 +589,8 @@ export const handleIncomingMessage = async (
     accountSid,
     mediaUrl,
     mediaContentType,
+    fileName,
+    fileType,
   } = data;
 
   try {
@@ -520,6 +603,8 @@ export const handleIncomingMessage = async (
       profileName,
       smsStatus,
       accountSid,
+      hasMedia: !!mediaUrl,
+      isLocalMedia: !mediaUrl?.includes('api.twilio.com')
     });
 
     // 1) Find order
@@ -529,7 +614,13 @@ export const handleIncomingMessage = async (
     }
     console.log(`✅ Found order: ${orderId} for phone: ${phoneNumber}`);
 
-    // 2) Build DB-safe values
+    // 2) Get customer info for global broadcasting
+    const customerInfo = await getCustomerInfoByOrderId(orderId);
+    if (!customerInfo) {
+      console.warn(`No customer info found for order: ${orderId}`);
+    }
+
+    // 3) Build DB-safe values
     const dbMessageType = toDbMessageType(messageType);
     const bodyForSave =
       messageType === "text"
@@ -538,7 +629,7 @@ export const handleIncomingMessage = async (
 
     const now = new Date();
 
-    // 3) Save into DB
+    // 4) Save into DB
     const insertQuery = `
       INSERT INTO whatsapp_chats (
         order_id, twilio_sid, \`from\`, \`to\`, body, direction,
@@ -566,7 +657,7 @@ export const handleIncomingMessage = async (
     if (!result.insertId) throw new Error("Failed to insert message into database");
     console.log(`💾 Message saved to DB with ID: ${result.insertId}`);
 
-    // 4) Build message for frontend
+    // 5) Build message for frontend
     const newMessage: Message = {
       id: result.insertId.toString(),
       order_id: orderId,
@@ -581,23 +672,43 @@ export const handleIncomingMessage = async (
       updated_at: new Date().toISOString(),
       delivery_status: smsStatus || "received",
       is_read: 0,
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true }),
+      timestamp: new Date().toISOString(),
       type: messageType,
       twilio_sid: twilioSid,
       readAt: null,
       ...(dbMessageType === "file" && {
-        fileName: `${messageType} file`,
+        fileName: fileName || `${messageType} file`,
         fileUrl: mediaUrl,
-        fileType: mediaContentType,
+        fileType: mediaContentType || fileType,
       }),
     };
 
-    // 5) Emit to UI
+    // 6) Emit to specific order room
     try {
       emitMessageToOrder(orderId, newMessage);
-      console.log(`📢 Message broadcasted to order: ${orderId}`);
+      console.log(`📢 Message broadcasted to order room: ${orderId}`);
     } catch (emitError) {
-      console.error("Error emitting message to frontend:", emitError);
+      console.error("Error emitting message to order room:", emitError);
+    }
+
+    // 7) Single broadcast for customer list update (UPDATED)
+    if (customerInfo) {
+      try {
+        // Get current unread count for this order
+        const [unreadRows] = (await pool.query(
+          `SELECT COUNT(*) as unread_count FROM whatsapp_chats WHERE order_id = ? AND is_read = 0 AND direction = 'inbound'`,
+          [orderId]
+        )) as [Array<{ unread_count: number }>, any];
+
+        const currentUnreadCount = unreadRows[0]?.unread_count || 0;
+        
+        // Single broadcast with both message and unread count
+        broadcastCustomerUpdate(parseInt(orderId), newMessage, customerInfo, currentUnreadCount);
+        
+        console.log(`📡 Customer update broadcasted: ${customerInfo.name}, Message: "${bodyForSave}", Unread: ${currentUnreadCount}`);
+      } catch (error) {
+        console.error("Error broadcasting customer update:", error);
+      }
     }
 
     return { success: true, message: newMessage };

@@ -7,10 +7,15 @@ import config from "./config";
 declare module "socket.io" {
   interface Socket {
     user?: any;
+    userRole?: string;
+    userId?: string;
   }
 }
 
 let io: Server;
+
+// Store admin connections for broadcasting customer updates
+const adminConnections = new Set<string>();
 
 export const initSocket = (app: express.Application) => {
   const server = http.createServer(app);
@@ -31,8 +36,10 @@ export const initSocket = (app: express.Application) => {
     }
 
     try {
-      const decoded = jwt.verify(token, config.SECRET);
+      const decoded = jwt.verify(token, config.SECRET) as any;
       socket.user = decoded;
+      socket.userId = decoded.id;
+      socket.userRole = decoded.role || 'admin'; // Default to admin for now
       next();
     } catch (error) {
       next(new Error("Invalid authentication token"));
@@ -40,7 +47,25 @@ export const initSocket = (app: express.Application) => {
   });
 
   io.on("connection", (socket: Socket) => {
-    console.log(`Client connected: ${socket.id}`);
+    console.log(`Client connected: ${socket.id}, Role: ${socket.userRole}`);
+
+    // Handle admin joining the global room for customer list updates
+    socket.on("join-admin-room", () => {
+      if (socket.userRole === 'admin' || socket.userRole === 'support') {
+        socket.join('admin-room');
+        adminConnections.add(socket.id);
+        console.log(`Admin ${socket.id} joined admin room`);
+      } else {
+        console.log(`Non-admin user ${socket.id} attempted to join admin room`);
+      }
+    });
+
+    // Handle leaving admin room
+    socket.on("leave-admin-room", () => {
+      socket.leave('admin-room');
+      adminConnections.delete(socket.id);
+      console.log(`Admin ${socket.id} left admin room`);
+    });
 
     // Join order-specific room
     socket.on("join-order", (orderId: string) => {
@@ -62,6 +87,20 @@ export const initSocket = (app: express.Application) => {
       const roomName = `order-${orderId}`;
       socket.leave(roomName);
       console.log(`Socket ${socket.id} left room: ${roomName}`);
+    });
+
+    // Handle customer status updates
+    socket.on("update-customer-status", (data: { orderId: number; status: string }) => {
+      const { orderId, status } = data;
+      
+      // Broadcast to all admins
+      socket.to('admin-room').emit('customer-status-update', {
+        orderId,
+        status,
+        lastSeen: new Date().toISOString()
+      });
+      
+      console.log(`Customer status updated: Order ${orderId} -> ${status}`);
     });
 
     // Handle direct message sending via socket
@@ -92,17 +131,17 @@ export const initSocket = (app: express.Application) => {
       console.log(`Message sent to room ${roomName}:`, message);
     });
 
-    socket.on("disconnect", () => {
-      console.log(`Client disconnected: ${socket.id}`);
+    // Cleanup on disconnect
+    socket.on("disconnect", (reason) => {
+      console.log(`Client disconnected: ${socket.id}, reason: ${reason}`);
+      adminConnections.delete(socket.id);
     });
   });
 
   return server;
 };
 
-// ===================== Utility Functions =====================
-
-// 🆕 NEW: Export function to get IO instance
+// Export function to get IO instance
 export const getIO = (): Server => {
   if (!io) {
     throw new Error('Socket.io not initialized');
@@ -147,7 +186,7 @@ export const leaveOrderRoom = (socketId: string, orderId: string) => {
   }
 };
 
-// 🔄 UPDATED: Emit message to specific order room with consistent room naming
+// Emit message to specific order room with consistent room naming
 export const emitMessageToOrder = (orderId: string, message: any) => {
   if (!io) {
     console.warn('Socket.IO not initialized. Message not emitted.');
@@ -160,7 +199,7 @@ export const emitMessageToOrder = (orderId: string, message: any) => {
   console.log(`Message emitted to room ${roomName}:`, message.id);
 };
 
-// 🆕 NEW: Emit message updates (for optimistic UI updates)
+// Emit message updates (for optimistic UI updates)
 export const emitMessageUpdate = (orderId: string, tempId: string, updatedMessage: any) => {
   if (!io) {
     console.warn('Socket.IO not initialized. Message update not emitted.');
@@ -175,7 +214,7 @@ export const emitMessageUpdate = (orderId: string, tempId: string, updatedMessag
   console.log(`Message update emitted to room ${roomName}:`, { tempId, messageId: updatedMessage.id });
 };
 
-// 🆕 NEW: Emit message status updates (for delivery status changes)
+// Emit message status updates (for delivery status changes)
 export const emitMessageStatusUpdate = (orderId: string, messageId: string, statusUpdate: any) => {
   if (!io) {
     console.warn('Socket.IO not initialized. Status update not emitted.');
@@ -190,6 +229,85 @@ export const emitMessageStatusUpdate = (orderId: string, messageId: string, stat
   console.log(`Status update emitted to room ${roomName}:`, { messageId, statusUpdate });
 };
 
+// MAIN FUNCTION: Single customer update broadcast (replaces multiple events)
+export const broadcastCustomerUpdate = (
+  orderId: number,
+  message: any,
+  customerInfo: any,
+  unreadCount: number
+) => {
+  if (!io) {
+    console.warn('Socket.IO not initialized. Customer update not broadcasted.');
+    return;
+  }
+
+  // Check if admin room has any connections
+  const adminRoom = io.sockets.adapter.rooms.get('admin-room');
+  if (!adminRoom || adminRoom.size === 0) {
+    console.warn('No admins connected to broadcast customer update');
+    return;
+  }
+
+  const updateData = {
+    orderId,
+    customerName: customerInfo.name,
+    customerPhone: customerInfo.phone,
+    // Message data
+    message: {
+      id: message.id,
+      content: message.content || message.body || '', // Handle empty content
+      timestamp: message.timestamp || message.created_at,
+      direction: message.direction,
+      type: message.type,
+      message_type: message.message_type,
+      fileName: message.fileName,
+      fileUrl: message.fileUrl,
+      fileType: message.fileType
+    },
+    // Unread count
+    unreadCount,
+    // Timestamp for sorting
+    lastActive: message.timestamp || message.created_at
+  };
+
+  // Single event for all admin updates
+  io.to('admin-room').emit('customer-list-update', updateData);
+  
+  console.log(`📡 Customer update broadcasted to ${adminRoom.size} admins: Order ${orderId}, Message: "${message.content || message.body || '[no content]'}", Unread: ${unreadCount}`);
+};
+
+// Broadcast customer status changes (online/offline)
+export const broadcastCustomerStatusUpdate = (orderId: number, status: string, lastSeen?: string) => {
+  if (!io) {
+    console.warn('Socket.IO not initialized. Customer status update not broadcasted.');
+    return;
+  }
+  
+  io.to('admin-room').emit('customer-status-update', {
+    orderId,
+    status,
+    lastSeen: lastSeen || new Date().toISOString()
+  });
+  
+  console.log(`Broadcasting customer status: Order ${orderId} -> ${status}`);
+};
+
+// Broadcast global message status updates (delivery status)
+export const broadcastGlobalMessageStatus = (messageId: string, orderId: number, status: string) => {
+  if (!io) {
+    console.warn('Socket.IO not initialized. Global message status not broadcasted.');
+    return;
+  }
+  
+  io.to('admin-room').emit('global-message-status', {
+    messageId,
+    orderId,
+    status
+  });
+  
+  console.log(`Broadcasting global message status: Message ${messageId} -> ${status}`);
+};
+
 // Get room information (for debugging)
 export const getOrderRoomInfo = (orderId: string) => {
   if (!io) return null;
@@ -199,5 +317,35 @@ export const getOrderRoomInfo = (orderId: string) => {
     roomName,
     connectedClients: room ? room.size : 0,
     clientIds: room ? Array.from(room) : [],
+  };
+};
+
+// Get admin room information (for debugging)
+export const getAdminRoomInfo = () => {
+  if (!io) return null;
+  const room = io.sockets.adapter.rooms.get('admin-room');
+  return {
+    roomName: 'admin-room',
+    connectedAdmins: room ? room.size : 0,
+    adminIds: room ? Array.from(room) : [],
+    trackedConnections: adminConnections.size
+  };
+};
+
+// Debug function for monitoring customer updates
+export const debugCustomerUpdates = () => {
+  if (!io) return { error: 'Socket.IO not initialized' };
+  
+  const adminRoom = io.sockets.adapter.rooms.get('admin-room');
+  
+  return {
+    adminRoomExists: !!adminRoom,
+    adminRoomSize: adminRoom?.size || 0,
+    adminConnections: Array.from(adminConnections),
+    events: {
+      singleEvent: 'customer-list-update', // The single event we're using
+      // Note: Removed old events: global-new-message, unread-count-update
+    },
+    totalSockets: io.sockets.sockets.size
   };
 };

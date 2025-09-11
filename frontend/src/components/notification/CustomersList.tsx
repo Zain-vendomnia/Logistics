@@ -21,12 +21,15 @@ import {
   Button,
   Menu,
   MenuItem,
+  CircularProgress,
 } from '@mui/material';
 import {
   Search as SearchIcon,
   Clear as ClearIcon,
   FilterList as FilterIcon,
   Circle as CircleIcon,
+  Wifi as WifiIcon,
+  WifiOff as WifiOffIcon,
 } from '@mui/icons-material';
 import { Customer, FilterOptions, CustomerListProps } from './shared/types';
 import { 
@@ -41,7 +44,28 @@ import {
 // Constants
 const SIDEBAR_WIDTH = 360;
 
-// Customer item component
+// Extended interface to include connection status
+interface ExtendedCustomerListProps extends CustomerListProps {
+  connected?: boolean;
+}
+
+// Connection status indicator
+const ConnectionStatus = memo<{ connected: boolean }>(({ connected }) => (
+  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+    {connected ? (
+      <WifiIcon sx={{ fontSize: 16, color: 'success.main' }} />
+    ) : (
+      <WifiOffIcon sx={{ fontSize: 16, color: 'error.main' }} />
+    )}
+    <Typography variant="caption" color={connected ? 'success.main' : 'error.main'}>
+      {connected ? 'Live' : 'Offline'}
+    </Typography>
+  </Box>
+));
+
+ConnectionStatus.displayName = 'ConnectionStatus';
+
+// Customer item component with enhanced real-time indicators for single event
 const CustomerItem = memo<{
   customer: Customer;
   isSelected: boolean;
@@ -72,6 +96,27 @@ const CustomerItem = memo<{
   // Memoize message display
   const messageDisplay = useMemo(() => getMessageDisplay(customer), [customer]);
 
+  // Check if message is recent (within last 5 minutes) - enhanced for single event
+  const isRecentMessage = useMemo(() => {
+    if (!customer.timestamp) return false;
+    const messageTime = new Date(customer.timestamp).getTime();
+    const now = Date.now();
+    return (now - messageTime) < 5 * 60 * 1000; // 5 minutes
+  }, [customer.timestamp]);
+
+  // Enhanced logging for single event debugging
+  React.useEffect(() => {
+    console.log(`👤 CUSTOMER ${customer.name} RENDER:`, {
+      order_id: customer.order_id,
+      lastMessage: customer.lastMessage,
+      timestamp: customer.timestamp,
+      unreadCount: customer.unreadCount,
+      messageDisplay: messageDisplay,
+      isRecentMessage,
+      isSelected
+    });
+  }, [customer.lastMessage, customer.timestamp, customer.unreadCount, customer.name, messageDisplay, isRecentMessage, isSelected]);
+
   return (
     <ListItem
       onClick={onClick}
@@ -85,7 +130,14 @@ const CustomerItem = memo<{
         borderBottom: 1,
         borderColor: 'divider',
         py: 1.5,
-        transition: 'background-color 0.2s'
+        transition: 'all 0.2s ease',
+        // Enhanced highlight for new messages with single event system
+        ...(isRecentMessage && !isSelected && {
+          borderLeft: '4px solid',
+          borderLeftColor: 'primary.main',
+          animation: 'pulse 2s ease-in-out infinite',
+        }),
+        position: 'relative'
       }}
     >
       <ListItemAvatar>
@@ -98,13 +150,20 @@ const CustomerItem = memo<{
               color: STATUS_COLORS[customer.status],
               bgcolor: 'background.paper',
               borderRadius: '50%',
+              border: '2px solid',
+              borderColor: 'background.paper'
             }} />
           }
         >
           <Avatar sx={{ 
             bgcolor: getAvatarColor(customer.name),
             width: 40,
-            height: 40 
+            height: 40,
+            // Enhanced border for new messages
+            ...(isRecentMessage && !isSelected && {
+              border: '2px solid',
+              borderColor: 'primary.main'
+            })
           }}>
             {getInitials(customer.name)} 
           </Avatar>
@@ -114,40 +173,80 @@ const CustomerItem = memo<{
       <ListItemText
         primary={
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 600, flex: 1, mr: 1 }} noWrap>
+            <Typography variant="subtitle2" sx={{ 
+              fontWeight: customer.unreadCount > 0 ? 700 : 600, 
+              flex: 1, 
+              mr: 1 
+            }} noWrap>
               {highlightText(customer.name)}
             </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
               <Typography variant="caption" sx={{ 
-                color: isSelected ? 'rgba(255,255,255,0.8)' : 'text.secondary' 
+                color: isSelected ? 'rgba(255,255,255,0.8)' : 'text.secondary',
+                fontWeight: customer.unreadCount > 0 ? 600 : 400
               }}>
                 {formatTime(customer.timestamp || customer.lastActive)}
               </Typography>
               {customer.unreadCount > 0 && (
-                <Badge badgeContent={customer.unreadCount} color={isSelected ? 'default' : 'primary'} />
+                <Badge 
+                  badgeContent={customer.unreadCount} 
+                  color={isSelected ? 'default' : 'primary'}
+                  sx={{
+                    '& .MuiBadge-badge': {
+                      animation: isRecentMessage ? 'bounce 1s ease-in-out' : 'none'
+                    }
+                  }}
+                />
               )}
             </Box>
           </Box>
         }
         secondary={
-          <Typography variant="body2" sx={{
-            color: isSelected ? 'rgba(255,255,255,0.8)' : 'text.secondary',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap'
-          }}>
-            {messageDisplay}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Typography variant="body2" sx={{
+              color: isSelected ? 'rgba(255,255,255,0.8)' : 'text.secondary',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              flex: 1,
+              fontWeight: customer.unreadCount > 0 ? 500 : 400
+            }}>
+              {messageDisplay}
+            </Typography>
+            {isRecentMessage && !isSelected && (
+              <Box sx={{ 
+                width: 8, 
+                height: 8, 
+                borderRadius: '50%', 
+                bgcolor: 'primary.main',
+                ml: 1,
+                animation: 'pulse 2s ease-in-out infinite'
+              }} />
+            )}
+          </Box>
         }
       />
+
+      {/* CSS Animations */}
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.7; }
+        }
+        @keyframes bounce {
+          0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+          40% { transform: translateY(-3px); }
+          60% { transform: translateY(-2px); }
+        }
+      `}</style>
     </ListItem>
   );
 });
 
 CustomerItem.displayName = 'CustomerItem';
 
-// Main component
-const CustomerList: React.FC<CustomerListProps> = ({
+// Main component - optimized for single WebSocket event
+const CustomerList: React.FC<ExtendedCustomerListProps> = ({
   customers,
   selectedCustomerId,
   onSelectCustomer,
@@ -157,6 +256,7 @@ const CustomerList: React.FC<CustomerListProps> = ({
   onFilterChange,
   onClearAll,
   stats,
+  connected = false,
 }) => {
   const [filterMenuAnchor, setFilterMenuAnchor] = useState<null | HTMLElement>(null);
 
@@ -167,6 +267,13 @@ const CustomerList: React.FC<CustomerListProps> = ({
     if (filters.statusFilter !== 'all') count++;
     return count;
   }, [filters]);
+
+  // Calculate total unread messages - enhanced for single event system
+  const totalUnreadCount = useMemo(() => {
+    const total = customers.reduce((total, customer) => total + (customer.unreadCount || 0), 0);
+    console.log('📊 Total unread count calculated:', total, 'from', customers.length, 'customers');
+    return total;
+  }, [customers]);
 
   // Handlers
   const handleFilterMenu = useCallback((event: React.MouseEvent<HTMLElement> | null) => {
@@ -183,6 +290,17 @@ const CustomerList: React.FC<CustomerListProps> = ({
   }, [onFilterChange]);
 
   const hasActiveFilters = activeFiltersCount > 0 || searchQuery;
+
+  // Enhanced logging for single event debugging
+  React.useEffect(() => {
+    console.log('📋 CustomerList render:', {
+      customersCount: customers.length,
+      totalUnreadCount,
+      connected,
+      hasActiveFilters,
+      selectedCustomerId
+    });
+  }, [customers.length, totalUnreadCount, connected, hasActiveFilters, selectedCustomerId]);
 
   return (
     <Drawer
@@ -204,11 +322,39 @@ const CustomerList: React.FC<CustomerListProps> = ({
           <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 600 }}>
             Customers
           </Typography>
-          {stats.unread > 0 && (
-            <Chip label={`${stats.unread} unread`} size="small" color="primary" />
-          )}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <ConnectionStatus connected={connected} />
+            {totalUnreadCount > 0 && (
+              <Chip 
+                label={`${totalUnreadCount} unread`} 
+                size="small" 
+                color="primary" 
+                sx={{
+                  animation: connected ? 'none' : 'pulse 2s ease-in-out infinite'
+                }}
+              />
+            )}
+          </Box>
         </Toolbar>
       </AppBar>
+
+      {/* Enhanced Connection Status Bar for single event system */}
+      {!connected && (
+        <Box sx={{ 
+          p: 1, 
+          bgcolor: 'warning.light', 
+          color: 'warning.contrastText',
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 1,
+          animation: 'pulse 2s ease-in-out infinite'
+        }}>
+          <CircularProgress size={16} color="inherit" />
+          <Typography variant="caption">
+            Reconnecting to real-time updates...
+          </Typography>
+        </Box>
+      )}
 
       {/* Search & Filters */}
       <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
@@ -278,11 +424,11 @@ const CustomerList: React.FC<CustomerListProps> = ({
           </Box>
         )}
 
-        {/* Results count */}
+        {/* Results count - enhanced for single event system */}
         <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
           {hasActiveFilters 
             ? `Showing ${stats.filtered} of ${stats.total}`
-            : `${stats.total} customers • ${stats.online} online`}
+            : `${stats.total} customers • ${stats.online} online${connected ? ' • Live updates' : ''}`}
         </Typography>
       </Box>
 
@@ -329,7 +475,7 @@ const CustomerList: React.FC<CustomerListProps> = ({
         </Box>
       </Menu>
 
-      {/* Customer List */}
+      {/* Customer List - optimized for single event updates */}
       <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
         {customers.length > 0 ? (
           <List sx={{ p: 0 }}>
@@ -356,9 +502,27 @@ const CustomerList: React.FC<CustomerListProps> = ({
             <Typography variant="body2" color="text.secondary">
               {hasActiveFilters ? 'No matches found' : 'No customers yet'}
             </Typography>
+            {!connected && (
+              <Typography variant="caption" color="error">
+                Check connection for real-time updates
+              </Typography>
+            )}
           </Box>
         )}
       </Box>
+
+      {/* Global CSS for animations */}
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.7; }
+        }
+        @keyframes bounce {
+          0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+          40% { transform: translateY(-3px); }
+          60% { transform: translateY(-2px); }
+        }
+      `}</style>
     </Drawer>
   );
 };
