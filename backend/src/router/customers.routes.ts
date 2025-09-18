@@ -1,7 +1,7 @@
 import express from "express";
 import validateToken from "../middlewares/validateToken";
 import roleCheck from "../middlewares/roleCheck";
-import {getAllCustomers} from "../controller/Admin_Api/customersController";
+import {getAllCustomers,searchCustomers} from "../controller/Admin_Api/customersController";
 
 const router = express.Router();
 
@@ -13,5 +13,6 @@ router.use(roleCheck(["admin"]));
 
 // Customer routes
 router.get("/", getAllCustomers);
+router.get("/search", searchCustomers);
 
 export default router;

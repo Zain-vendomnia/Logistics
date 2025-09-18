@@ -1,4 +1,4 @@
-import React, { memo, useState, useMemo, useCallback } from 'react';
+import React, { memo, useMemo, useCallback } from 'react';
 import {
   Drawer,
   AppBar,
@@ -13,41 +13,54 @@ import {
   TextField,
   InputAdornment,
   IconButton,
-  Divider,
   Badge,
   Chip,
-  FormControlLabel,
-  Switch,
-  Button,
-  Menu,
-  MenuItem,
   CircularProgress,
+  LinearProgress,
+  Button,
 } from '@mui/material';
 import {
   Search as SearchIcon,
   Clear as ClearIcon,
-  FilterList as FilterIcon,
   Circle as CircleIcon,
   Wifi as WifiIcon,
   WifiOff as WifiOffIcon,
 } from '@mui/icons-material';
-import { Customer, FilterOptions, CustomerListProps } from './shared/types';
+import { Customer, CustomerStats } from './shared/types';
 import { 
   getInitials, 
   getAvatarColor, 
   formatTime, 
   STATUS_COLORS,
-  createSearchRegex,
   getMessageDisplay
 } from './shared/utils';
 
-// Constants
+// ==========================================
+// CONSTANTS
+// ==========================================
+
 const SIDEBAR_WIDTH = 360;
 
-// Extended interface to include connection status
-interface ExtendedCustomerListProps extends CustomerListProps {
+// ==========================================
+// INTERFACES
+// ==========================================
+
+interface CustomerListProps {
+  customers: Customer[];
+  selectedCustomerId: number | null;
+  onSelectCustomer: (id: number) => void;
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
+  onSearch: () => void;
+  onClearSearch: () => void;
+  stats: CustomerStats;
   connected?: boolean;
+  isSearching?: boolean;
 }
+
+// ==========================================
+// COMPONENTS
+// ==========================================
 
 // Connection status indicator
 const ConnectionStatus = memo<{ connected: boolean }>(({ connected }) => (
@@ -63,59 +76,21 @@ const ConnectionStatus = memo<{ connected: boolean }>(({ connected }) => (
   </Box>
 ));
 
-ConnectionStatus.displayName = 'ConnectionStatus';
-
-// Customer item component with enhanced real-time indicators for single event
+// Customer item component
 const CustomerItem = memo<{
   customer: Customer;
   isSelected: boolean;
-  searchQuery: string;
   onClick: () => void;
-}>(({ customer, isSelected, searchQuery, onClick }) => {
-  // Memoize search highlighting
-  const highlightText = useCallback((text: string): React.ReactNode => {
-    if (!searchQuery) return text;
-    
-    const regex = createSearchRegex(searchQuery);
-    const parts = text.split(regex);
-    
-    return parts.map((part, i) => 
-      regex.test(part) ? (
-        <Box key={i} component="span" sx={{ 
-          bgcolor: 'primary.main', 
-          color: 'white', 
-          px: 0.5, 
-          borderRadius: 0.5 
-        }}>
-          {part}
-        </Box>
-      ) : part
-    );
-  }, [searchQuery]);
-
-  // Memoize message display
+}>(({ customer, isSelected, onClick }) => {
   const messageDisplay = useMemo(() => getMessageDisplay(customer), [customer]);
 
-  // Check if message is recent (within last 5 minutes) - enhanced for single event
+  // Check if message is recent (within last 5 minutes)
   const isRecentMessage = useMemo(() => {
     if (!customer.timestamp) return false;
     const messageTime = new Date(customer.timestamp).getTime();
     const now = Date.now();
-    return (now - messageTime) < 5 * 60 * 1000; // 5 minutes
+    return (now - messageTime) < 5 * 60 * 1000;
   }, [customer.timestamp]);
-
-  // Enhanced logging for single event debugging
-  React.useEffect(() => {
-    console.log(`👤 CUSTOMER ${customer.name} RENDER:`, {
-      order_id: customer.order_id,
-      lastMessage: customer.lastMessage,
-      timestamp: customer.timestamp,
-      unreadCount: customer.unreadCount,
-      messageDisplay: messageDisplay,
-      isRecentMessage,
-      isSelected
-    });
-  }, [customer.lastMessage, customer.timestamp, customer.unreadCount, customer.name, messageDisplay, isRecentMessage, isSelected]);
 
   return (
     <ListItem
@@ -131,13 +106,10 @@ const CustomerItem = memo<{
         borderColor: 'divider',
         py: 1.5,
         transition: 'all 0.2s ease',
-        // Enhanced highlight for new messages with single event system
         ...(isRecentMessage && !isSelected && {
           borderLeft: '4px solid',
           borderLeftColor: 'primary.main',
-          animation: 'pulse 2s ease-in-out infinite',
         }),
-        position: 'relative'
       }}
     >
       <ListItemAvatar>
@@ -159,7 +131,6 @@ const CustomerItem = memo<{
             bgcolor: getAvatarColor(customer.name),
             width: 40,
             height: 40,
-            // Enhanced border for new messages
             ...(isRecentMessage && !isSelected && {
               border: '2px solid',
               borderColor: 'primary.main'
@@ -178,7 +149,7 @@ const CustomerItem = memo<{
               flex: 1, 
               mr: 1 
             }} noWrap>
-              {highlightText(customer.name)}
+              {customer.name}
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
               <Typography variant="caption" sx={{ 
@@ -191,11 +162,6 @@ const CustomerItem = memo<{
                 <Badge 
                   badgeContent={customer.unreadCount} 
                   color={isSelected ? 'default' : 'primary'}
-                  sx={{
-                    '& .MuiBadge-badge': {
-                      animation: isRecentMessage ? 'bounce 1s ease-in-out' : 'none'
-                    }
-                  }}
                 />
               )}
             </Box>
@@ -220,87 +186,89 @@ const CustomerItem = memo<{
                 borderRadius: '50%', 
                 bgcolor: 'primary.main',
                 ml: 1,
-                animation: 'pulse 2s ease-in-out infinite'
               }} />
             )}
           </Box>
         }
       />
-
-      {/* CSS Animations */}
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.7; }
-        }
-        @keyframes bounce {
-          0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-          40% { transform: translateY(-3px); }
-          60% { transform: translateY(-2px); }
-        }
-      `}</style>
     </ListItem>
   );
 });
 
-CustomerItem.displayName = 'CustomerItem';
+// Empty state component
+const EmptyState = memo<{
+  searchQuery: string;
+  connected: boolean;
+  isSearching: boolean;
+}>(({ searchQuery, connected, isSearching }) => (
+  <Box sx={{ 
+    display: 'flex', 
+    flexDirection: 'column',
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    height: 200,
+    gap: 1 
+  }}>
+    <SearchIcon sx={{ fontSize: 48, color: 'text.disabled' }} />
+    <Typography variant="body2" color="text.secondary">
+      {isSearching ? 'Searching...' : searchQuery ? `No results for "${searchQuery}"` : 'No customers yet'}
+    </Typography>
+    {searchQuery && !isSearching && (
+      <Typography variant="caption" color="text.disabled">
+        Try a different search term
+      </Typography>
+    )}
+    {!connected && !searchQuery && (
+      <Typography variant="caption" color="error">
+        Check connection for real-time updates
+      </Typography>
+    )}
+  </Box>
+));
 
-// Main component - optimized for single WebSocket event
-const CustomerList: React.FC<ExtendedCustomerListProps> = ({
+// ==========================================
+// MAIN COMPONENT
+// ==========================================
+
+const CustomerList: React.FC<CustomerListProps> = ({
   customers,
   selectedCustomerId,
   onSelectCustomer,
   searchQuery,
   onSearchChange,
-  filters,
-  onFilterChange,
-  onClearAll,
+  onSearch,
+  onClearSearch,
   stats,
   connected = false,
+  isSearching = false,
 }) => {
-  const [filterMenuAnchor, setFilterMenuAnchor] = useState<null | HTMLElement>(null);
+  // ==========================================
+  // COMPUTED VALUES
+  // ==========================================
 
-  // Active filters count
-  const activeFiltersCount = useMemo(() => {
-    let count = 0;
-    if (filters.showUnreadOnly) count++;
-    if (filters.statusFilter !== 'all') count++;
-    return count;
-  }, [filters]);
-
-  // Calculate total unread messages - enhanced for single event system
   const totalUnreadCount = useMemo(() => {
-    const total = customers.reduce((total, customer) => total + (customer.unreadCount || 0), 0);
-    console.log('📊 Total unread count calculated:', total, 'from', customers.length, 'customers');
-    return total;
+    return customers.reduce((total, customer) => total + (customer.unreadCount || 0), 0);
   }, [customers]);
 
-  // Handlers
-  const handleFilterMenu = useCallback((event: React.MouseEvent<HTMLElement> | null) => {
-    setFilterMenuAnchor(event?.currentTarget ?? null);
-  }, []);
+  const isSearchActive = searchQuery.trim().length > 0;
 
-  const handleStatusFilter = useCallback((status: FilterOptions['statusFilter']) => {
-    onFilterChange({ statusFilter: status });
-    setFilterMenuAnchor(null);
-  }, [onFilterChange]);
+  // ==========================================
+  // EVENT HANDLERS
+  // ==========================================
 
-  const handleUnreadToggle = useCallback((checked: boolean) => {
-    onFilterChange({ showUnreadOnly: checked });
-  }, [onFilterChange]);
+  const handleSearchKeyPress = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      onSearch();
+    }
+  }, [onSearch]);
 
-  const hasActiveFilters = activeFiltersCount > 0 || searchQuery;
+  const handleSelectCustomer = useCallback((customerId: number) => {
+    onSelectCustomer(customerId);
+  }, [onSelectCustomer]);
 
-  // Enhanced logging for single event debugging
-  React.useEffect(() => {
-    console.log('📋 CustomerList render:', {
-      customersCount: customers.length,
-      totalUnreadCount,
-      connected,
-      hasActiveFilters,
-      selectedCustomerId
-    });
-  }, [customers.length, totalUnreadCount, connected, hasActiveFilters, selectedCustomerId]);
+  // ==========================================
+  // RENDER
+  // ==========================================
 
   return (
     <Drawer
@@ -329,16 +297,26 @@ const CustomerList: React.FC<ExtendedCustomerListProps> = ({
                 label={`${totalUnreadCount} unread`} 
                 size="small" 
                 color="primary" 
-                sx={{
-                  animation: connected ? 'none' : 'pulse 2s ease-in-out infinite'
-                }}
               />
             )}
           </Box>
         </Toolbar>
+        {/* Search progress bar */}
+        {isSearching && (
+          <LinearProgress 
+            color="primary" 
+            sx={{ 
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: 2
+            }} 
+          />
+        )}
       </AppBar>
 
-      {/* Enhanced Connection Status Bar for single event system */}
+      {/* Connection warning */}
       {!connected && (
         <Box sx={{ 
           p: 1, 
@@ -347,7 +325,6 @@ const CustomerList: React.FC<ExtendedCustomerListProps> = ({
           display: 'flex', 
           alignItems: 'center', 
           gap: 1,
-          animation: 'pulse 2s ease-in-out infinite'
         }}>
           <CircularProgress size={16} color="inherit" />
           <Typography variant="caption">
@@ -356,9 +333,9 @@ const CustomerList: React.FC<ExtendedCustomerListProps> = ({
         </Box>
       )}
 
-      {/* Search & Filters */}
+      {/* Search Section */}
       <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
-        {/* Search bar */}
+        {/* Search input with button */}
         <Box sx={{ display: 'flex', gap: 1, mb: 1.5 }}>
           <TextField
             fullWidth
@@ -366,6 +343,8 @@ const CustomerList: React.FC<ExtendedCustomerListProps> = ({
             placeholder="Search customers..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
+            onKeyPress={handleSearchKeyPress}
+            disabled={isSearching}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -374,155 +353,87 @@ const CustomerList: React.FC<ExtendedCustomerListProps> = ({
               ),
               endAdornment: searchQuery && (
                 <InputAdornment position="end">
-                  <IconButton size="small" onClick={() => onSearchChange('')}>
+                  <IconButton 
+                    size="small" 
+                    onClick={onClearSearch}
+                    disabled={isSearching}
+                  >
                     <ClearIcon fontSize="small" />
                   </IconButton>
                 </InputAdornment>
               ),
             }}
-            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+            sx={{ 
+              '& .MuiOutlinedInput-root': { 
+                borderRadius: 2,
+                ...(isSearching && {
+                  bgcolor: 'action.hover',
+                })
+              }
+            }}
           />
           
-          <IconButton 
-            onClick={handleFilterMenu}
+          <Button
+            variant="contained"
+            onClick={onSearch}
+            disabled={isSearching || !searchQuery.trim()}
             sx={{ 
-              border: 1,
-              borderColor: activeFiltersCount > 0 ? 'primary.main' : 'divider',
-              color: activeFiltersCount > 0 ? 'primary.main' : 'text.secondary'
+              minWidth: 80,
+              whiteSpace: 'nowrap'
             }}
           >
-            <Badge badgeContent={activeFiltersCount} color="primary">
-              <FilterIcon />
-            </Badge>
-          </IconButton>
+            {isSearching ? <CircularProgress size={20} color="inherit" /> : 'Search'}
+          </Button>
         </Box>
 
-        {/* Active filters */}
-        {hasActiveFilters && (
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, alignItems: 'center' }}>
-            {filters.showUnreadOnly && (
-              <Chip
-                size="small"
-                label="Unread"
-                onDelete={() => handleUnreadToggle(false)}
-                color="primary"
-                variant="outlined"
-              />
-            )}
-            {filters.statusFilter !== 'all' && (
-              <Chip
-                size="small"
-                label={filters.statusFilter}
-                onDelete={() => handleStatusFilter('all')}
-                color="primary"
-                variant="outlined"
-              />
-            )}
-            <Button size="small" onClick={onClearAll}>
-              Clear all
-            </Button>
-          </Box>
-        )}
-
-        {/* Results count - enhanced for single event system */}
-        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-          {hasActiveFilters 
-            ? `Showing ${stats.filtered} of ${stats.total}`
-            : `${stats.total} customers • ${stats.online} online${connected ? ' • Live updates' : ''}`}
+        {/* Search status */}
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+          {isSearching ? (
+            'Searching...'
+          ) : isSearchActive ? (
+            `Found ${customers.length} results`
+          ) : (
+            `${stats.total} customers • ${stats.online} online${connected ? ' • Live updates' : ''}`
+          )}
         </Typography>
       </Box>
 
-      {/* Filter Menu */}
-      <Menu
-        anchorEl={filterMenuAnchor}
-        open={Boolean(filterMenuAnchor)}
-        onClose={() => handleFilterMenu(null)}
-        PaperProps={{ sx: { minWidth: 200 } }}
-      >
-        <Box sx={{ p: 2 }}>
-          <FormControlLabel
-            control={
-              <Switch
-                size="small"
-                checked={filters.showUnreadOnly}
-                onChange={(e) => handleUnreadToggle(e.target.checked)}
-              />
-            }
-            label="Unread only"
-          />
-        </Box>
-        <Divider />
-        <Box sx={{ py: 1 }}>
-          <Typography variant="caption" sx={{ px: 2, color: 'text.secondary' }}>
-            STATUS
-          </Typography>
-          {(['all', 'online', 'away', 'busy', 'offline'] as const).map(status => (
-            <MenuItem
-              key={status}
-              selected={filters.statusFilter === status}
-              onClick={() => handleStatusFilter(status)}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                {status !== 'all' && (
-                  <CircleIcon sx={{ fontSize: 12, color: STATUS_COLORS[status] }} />
-                )}
-                <Typography variant="body2">
-                  {status === 'all' ? 'All Status' : status.charAt(0).toUpperCase() + status.slice(1)}
-                </Typography>
-              </Box>
-            </MenuItem>
-          ))}
-        </Box>
-      </Menu>
-
-      {/* Customer List - optimized for single event updates */}
-      <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
-        {customers.length > 0 ? (
-          <List sx={{ p: 0 }}>
-            {customers.map(customer => (
-              <CustomerItem
-                key={customer.order_id}
-                customer={customer}
-                isSelected={selectedCustomerId === customer.order_id}
-                searchQuery={searchQuery}
-                onClick={() => onSelectCustomer(customer.order_id)}
-              />
-            ))}
-          </List>
-        ) : (
+      {/* Customer List */}
+      <Box sx={{ flexGrow: 1, overflow: 'auto', position: 'relative' }}>
+        {isSearching && customers.length === 0 ? (
+          // Search loading state
           <Box sx={{ 
             display: 'flex', 
             flexDirection: 'column',
             alignItems: 'center', 
             justifyContent: 'center', 
             height: 200,
-            gap: 1 
+            gap: 2
           }}>
-            <SearchIcon sx={{ fontSize: 48, color: 'text.disabled' }} />
+            <CircularProgress size={40} />
             <Typography variant="body2" color="text.secondary">
-              {hasActiveFilters ? 'No matches found' : 'No customers yet'}
+              Searching customers...
             </Typography>
-            {!connected && (
-              <Typography variant="caption" color="error">
-                Check connection for real-time updates
-              </Typography>
-            )}
           </Box>
+        ) : customers.length > 0 ? (
+          <List sx={{ p: 0 }}>
+            {customers.map(customer => (
+              <CustomerItem
+                key={customer.order_id}
+                customer={customer}
+                isSelected={selectedCustomerId === customer.order_id}
+                onClick={() => handleSelectCustomer(customer.order_id)}
+              />
+            ))}
+          </List>
+        ) : (
+          <EmptyState
+            searchQuery={searchQuery}
+            connected={connected}
+            isSearching={isSearching}
+          />
         )}
       </Box>
-
-      {/* Global CSS for animations */}
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.7; }
-        }
-        @keyframes bounce {
-          0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-          40% { transform: translateY(-3px); }
-          60% { transform: translateY(-2px); }
-        }
-      `}</style>
     </Drawer>
   );
 };

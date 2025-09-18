@@ -1,89 +1,203 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   Box, AppBar, Toolbar, Typography, Avatar, IconButton, Paper, TextField,
-  CircularProgress, Chip, Alert, Snackbar, Dialog, DialogContent, DialogTitle, Input,
-  LinearProgress,
+  CircularProgress, Alert, Snackbar, Dialog, DialogContent, DialogTitle,
+   Divider, Skeleton, Fade, Zoom, Backdrop, Slide
 } from '@mui/material';
 import {
-  AttachFile as AttachFileIcon, Send as SendIcon, Close as CloseIcon,
-  PhoneDisabled as PhoneDisabledIcon,
+  AttachFile, Send, Close, PhoneDisabled, Image, VideoFile,
+  AudioFile, Description, Check, DoneAll, AccessTime,
+  ErrorOutline, Circle
 } from '@mui/icons-material';
 import { 
   getMessagesByOrderId, sendMessage, socketService, uploadFile,
-  updateMessageInArray, updateMessageStatus, isOptimisticMessage
+  updateMessageInArray, updateMessageStatus, isOptimisticMessage, validateFileForTwilio
 } from '../../services/messageService';
 import { Customer, ChatWindowProps, Message, MessageRequest, MessageUpdate, MessageStatusUpdate } from './shared/types';
-import { getInitials, getAvatarColor, getStatusConfig, getStatusIcon } from './shared/utils';
+import { getInitials, getAvatarColor } from './shared/utils';
 
-// Alert Components
-const NoPhoneAlert = ({ customerName }: { customerName: string }) => (
-  <Box sx={{ p: 2.5, mx: 2, mb: 2, bgcolor: '#fff3e0', border: '1px solid #ff9800', borderRadius: 2,
-    display: 'flex', alignItems: 'center', gap: 2, boxShadow: '0 2px 8px rgba(255, 152, 0, 0.1)' }}>
-    <PhoneDisabledIcon sx={{ color: '#e65100', fontSize: 24 }} />
-    <Box sx={{ flexGrow: 1 }}>
-      <Typography variant="subtitle1" sx={{ color: '#e65100', fontWeight: 600, mb: 0.5 }}>
-        Unable to Send Messages
-      </Typography>
-      <Typography variant="body2" sx={{ color: '#bf360c', lineHeight: 1.4 }}>
-        {customerName} doesn't have a phone number to message. Please add a phone number to start messaging.
-      </Typography>
-    </Box>
-  </Box>
-);
+// ==========================================
+// INTERFACES
+// ==========================================
 
-const ConnectionAlert = ({ connected }: { connected: boolean }) => !connected ? (
-  <Box sx={{ p: 2, mx: 2, mb: 2, bgcolor: '#ffebee', border: '1px solid #f44336', borderRadius: 2,
-    display: 'flex', alignItems: 'center', gap: 1.5, animation: 'pulse 2s infinite' }}>
-    <CircularProgress size={18} sx={{ color: '#d32f2f' }} />
-    <Typography variant="body2" sx={{ color: '#d32f2f', fontWeight: 500 }}>
-      Connecting to messaging service...
-    </Typography>
-  </Box>
-) : null;
+interface SnackbarState {
+  open: boolean;
+  message: string;
+  severity: 'success' | 'error' | 'warning' | 'info';
+}
 
-// Media Display Component
+interface GroupedMessage {
+  date: string;
+  messages: Message[];
+}
+
+// ==========================================
+// UTILITY FUNCTIONS
+// ==========================================
+
+const formatDate = (dateStr: string): string => {
+  const date = new Date(dateStr);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  
+  if (date.toDateString() === today.toDateString()) return 'Today';
+  if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+  return date.toLocaleDateString('en-GB');
+};
+
+const formatTime = (dateStr: string): string => {
+  return new Date(dateStr).toLocaleTimeString('en-US', { 
+    hour: '2-digit', 
+    minute: '2-digit',
+    hour12: true
+  });
+};
+
+const groupMessagesByDate = (messages: Message[]): GroupedMessage[] => {
+  const groups: { [key: string]: Message[] } = {};
+  
+  messages.forEach(message => {
+    const dateKey = new Date(message.timestamp).toDateString();
+    if (!groups[dateKey]) groups[dateKey] = [];
+    groups[dateKey].push(message);
+  });
+  
+  return Object.entries(groups)
+    .map(([date, messages]) => ({
+      date,
+      messages: messages.sort((a, b) => 
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+    }))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+};
+
+// ==========================================
+// STATUS ICON COMPONENT
+// ==========================================
+
+const MessageStatusIcon = ({ status }: { status?: string }) => {
+  const iconStyle = { fontSize: 16, ml: 0.5 };
+  
+  switch(status?.toLowerCase()) {
+    case 'sent':
+      return <Check sx={{ ...iconStyle, color: '#8e8e93' }} />;
+    case 'delivered':
+      return <DoneAll sx={{ ...iconStyle, color: '#8e8e93' }} />;
+    case 'read':
+      return <DoneAll sx={{ ...iconStyle, color: '#34b7f1' }} />;
+    case 'failed':
+    case 'error':
+      return <ErrorOutline sx={{ ...iconStyle, color: '#f44336' }} />;
+    case 'pending':
+    case 'sending':
+      return <AccessTime sx={{ ...iconStyle, color: '#8e8e93' }} />;
+    default:
+      return <AccessTime sx={{ ...iconStyle, color: '#8e8e93' }} />;
+  }
+};
+
+// ==========================================
+// CONNECTION STATUS COMPONENT
+// ==========================================
+
+const ConnectionStatus = ({ connected }: { connected: boolean }) => {
+  const [showStatus, setShowStatus] = useState(true);
+
+  useEffect(() => {
+    if (connected) {
+      const timer = setTimeout(() => setShowStatus(false), 3000);
+      return () => clearTimeout(timer);
+    } else {
+      setShowStatus(true);
+    }
+  }, [connected]);
+
+  if (!showStatus && connected) return null;
+
+  return (
+    <Fade in={showStatus}>
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: 0.5,
+        px: 1.5,
+        py: 0.5,
+        bgcolor: connected ? '#25d366' : '#ffc107',
+        borderRadius: 2,
+        position: 'absolute',
+        right: 16,
+        top: '50%',
+        transform: 'translateY(-50%)',
+        zIndex: 10
+      }}>
+        <Circle sx={{ fontSize: 8, color: 'white' }} />
+        <Typography variant="caption" sx={{ color: 'white', fontWeight: 500 }}>
+          {connected ? 'Online' : 'Connecting...'}
+        </Typography>
+      </Box>
+    </Fade>
+  );
+};
+
+// ==========================================
+// MEDIA DISPLAY COMPONENT
+// ==========================================
+
 const MediaDisplay = ({ message }: { message: Message }) => {
   const [imageError, setImageError] = useState(false);
   const [showFullImage, setShowFullImage] = useState(false);
-
-  const getAuthenticatedUrl = (url: string) => {
-    if (!url?.includes('api.twilio.com')) return url;
-    const twilioSid = process.env.REACT_APP_TWILIO_SID;
-    const twilioToken = process.env.REACT_APP_TWILIO_AUTH_TOKEN;
-    if (!twilioSid || !twilioToken) return url;
-    const urlObj = new URL(url);
-    urlObj.username = twilioSid;
-    urlObj.password = twilioToken;
-    return urlObj.toString();
-  };
+  const [loading, setLoading] = useState(true);
 
   const getMediaIcon = (type?: string) => {
-    if (type?.includes('image')) return '📷';
-    if (type?.includes('video')) return '🎬';
-    if (type?.includes('audio')) return '🎤';
-    if (type?.includes('application/pdf')) return '📄';
-    if (type?.includes('application/')) return '📋';
-    return '📎';
+    const iconProps = { sx: { fontSize: 24, color: '#757575' } };
+    if (type?.includes('image')) return <Image {...iconProps} />;
+    if (type?.includes('video')) return <VideoFile {...iconProps} />;
+    if (type?.includes('audio')) return <AudioFile {...iconProps} />;
+    return <Description {...iconProps} />;
   };
 
   if (message.fileType?.startsWith('image/') && message.fileUrl && !imageError) {
-    const authUrl = getAuthenticatedUrl(message.fileUrl);
     return (
       <>
-        <Box sx={{ cursor: 'pointer', borderRadius: 1, overflow: 'hidden', maxWidth: 200, maxHeight: 200, display: 'inline-block' }}
-          onClick={() => setShowFullImage(true)}>
-          <img src={authUrl} alt={message.fileName || 'Image'}
-            style={{ width: '100%', height: 'auto', maxHeight: 200, objectFit: 'cover', display: 'block' }}
-            onError={() => setImageError(true)} />
+        <Box sx={{ position: 'relative', cursor: 'pointer', borderRadius: 1, overflow: 'hidden', maxWidth: 200 }}>
+          {loading && (
+            <Skeleton variant="rectangular" width={200} height={150} animation="wave" />
+          )}
+          <img 
+            src={message.fileUrl} 
+            alt={message.fileName || 'Image'}
+            style={{ 
+              width: '100%', 
+              height: 'auto', 
+              maxHeight: 200, 
+              objectFit: 'cover',
+              display: loading ? 'none' : 'block'
+            }}
+            onLoad={() => setLoading(false)}
+            onError={() => setImageError(true)}
+            onClick={() => setShowFullImage(true)}
+          />
         </Box>
-        <Dialog open={showFullImage} onClose={() => setShowFullImage(false)} maxWidth="lg">
+        
+        <Dialog 
+          open={showFullImage} 
+          onClose={() => setShowFullImage(false)} 
+          maxWidth="lg"
+          TransitionComponent={Zoom}
+        >
           <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography>{message.fileName || 'Image'}</Typography>
-            <IconButton onClick={() => setShowFullImage(false)}><CloseIcon /></IconButton>
+            <IconButton onClick={() => setShowFullImage(false)}>
+              <Close />
+            </IconButton>
           </DialogTitle>
           <DialogContent sx={{ p: 0 }}>
-            <img src={authUrl} alt={message.fileName || 'Image'}
-              style={{ width: '100%', height: 'auto', maxHeight: '80vh', objectFit: 'contain' }} />
+            <img 
+              src={message.fileUrl} 
+              alt={message.fileName || 'Image'}
+              style={{ width: '100%', height: 'auto', maxHeight: '80vh', objectFit: 'contain' }} 
+            />
           </DialogContent>
         </Dialog>
       </>
@@ -91,177 +205,220 @@ const MediaDisplay = ({ message }: { message: Message }) => {
   }
 
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 2, bgcolor: 'rgba(0,0,0,0.1)', borderRadius: 1,
-      minWidth: 200, cursor: message.fileUrl ? 'pointer' : 'default' }}
-      onClick={() => message.fileUrl && window.open(getAuthenticatedUrl(message.fileUrl), '_blank')}>
-      <Typography sx={{ fontSize: '1.2rem' }}>{getMediaIcon(message.fileType || message.type)}</Typography>
+    <Paper 
+      elevation={0}
+      sx={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: 1.5, 
+        p: 1.5, 
+        bgcolor: 'rgba(0,0,0,0.05)', 
+        borderRadius: 1, 
+        minWidth: 180,
+        cursor: message.fileUrl ? 'pointer' : 'default',
+        transition: 'all 0.2s',
+        '&:hover': message.fileUrl ? { bgcolor: 'rgba(0,0,0,0.08)' } : {}
+      }}
+      onClick={() => message.fileUrl && window.open(message.fileUrl, '_blank')}
+    >
+      {getMediaIcon(message.fileType || message.type)}
       <Box>
         <Typography variant="body2" fontWeight="medium">
           {message.fileName || `${message.type} file`}
         </Typography>
         <Typography variant="caption" color="text.secondary">
-          {message.fileType || 'Click to open'}
+          Click to open
         </Typography>
       </Box>
-    </Box>
+    </Paper>
   );
 };
 
-// Message Item Component
-const MessageItem = React.memo<{ message: Message; customer: Customer; isMyMessage: boolean; }>(
-  ({ message, customer, isMyMessage }) => {
-    const config = getStatusConfig(message.delivery_status);
-    const senderName = isMyMessage ? 'You' : customer.name;
-    const isOptimistic = isOptimisticMessage(message);
-    const isMediaMessage = message.message_type === 'file' || message.type !== 'text';
+// ==========================================
+// MESSAGE SKELETON LOADER
+// ==========================================
 
-    return (
-      <Box sx={{ display: 'flex', flexDirection: isMyMessage ? 'row-reverse' : 'row', 
-        alignItems: 'flex-start', gap: 1, opacity: isOptimistic ? 0.8 : 1, transition: 'opacity 0.3s ease' }}>
-        <Avatar sx={{ bgcolor: getAvatarColor(senderName), width: 24, height: 24, fontSize: '0.7rem' }}>
+const MessageSkeleton = ({ isRight = false }: { isRight?: boolean }) => (
+  <Box sx={{ 
+    display: 'flex', 
+    flexDirection: isRight ? 'row-reverse' : 'row', 
+    alignItems: 'flex-end', 
+    gap: 1, 
+    mb: 2
+  }}>
+    <Skeleton variant="circular" width={32} height={32} />
+    <Box sx={{ maxWidth: '70%' }}>
+      <Skeleton 
+        variant="rounded" 
+        width={180 + Math.random() * 120} 
+        height={60 + Math.random() * 40}
+        sx={{ borderRadius: 2 }}
+      />
+    </Box>
+  </Box>
+);
+
+// ==========================================
+// MESSAGE ITEM COMPONENT
+// ==========================================
+
+const MessageItem = React.memo<{ 
+  message: Message; 
+  customer: Customer; 
+  isMyMessage: boolean; 
+}>(({ message, customer, isMyMessage }) => {
+  const senderName = isMyMessage ? 'You' : customer.name;
+  const isOptimistic = isOptimisticMessage(message);
+  const isMediaMessage = message.message_type === 'file' || message.type !== 'text';
+
+  return (
+    <Fade in timeout={300}>
+      <Box sx={{ 
+        display: 'flex', 
+        flexDirection: isMyMessage ? 'row-reverse' : 'row', 
+        alignItems: 'flex-end', 
+        gap: 1, 
+        mb: 2,
+        opacity: isOptimistic ? 0.7 : 1
+      }}>
+        <Avatar sx={{ 
+          bgcolor: isMyMessage ? '#128c7e' : getAvatarColor(senderName), 
+          width: 32, 
+          height: 32, 
+          fontSize: '0.85rem'
+        }}>
           {getInitials(senderName)}
         </Avatar>
+        
         <Box sx={{ maxWidth: '70%' }}>
-          <Paper sx={{ p: 1.5, bgcolor: isMyMessage ? 'primary.main' : 'grey.100', 
-            color: isMyMessage ? 'white' : 'text.primary', borderRadius: 2,
-            ...(isMyMessage && message.delivery_status && { borderLeft: `4px solid ${config.color}` }),
-            ...(isOptimistic && { border: '1px dashed rgba(0,0,0,0.2)' }) }}>
-            
-            {message.content && message.content !== `[${message.type}]` && !message.content.startsWith('[Image:') && (
-              <Typography variant="body2" sx={{ mb: isMediaMessage ? 1 : 0 }}>
+          <Paper 
+            elevation={1}
+            sx={{ 
+              p: 1.5, 
+              bgcolor: isMyMessage ? '#dcf8c6' : 'white', 
+              borderRadius: isMyMessage ? '10px 10px 0 10px' : '10px 10px 10px 0',
+              position: 'relative',
+              ...(isOptimistic && { 
+                opacity: 0.8
+              })
+            }}
+          >
+            {message.content && 
+             !message.content.startsWith('[') && (
+              <Typography variant="body2" sx={{ 
+                mb: isMediaMessage ? 1 : 0, 
+                wordBreak: 'break-word',
+                color: '#303030'
+              }}>
                 {message.content}
               </Typography>
             )}
             
             {(isMediaMessage || message.fileUrl) && <MediaDisplay message={message} />}
+            
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'flex-end',
+              gap: 0.3,
+              mt: 0.5
+            }}>
+              <Typography variant="caption" sx={{ 
+                color: '#8e8e93',
+                fontSize: '0.68rem'
+              }}>
+                {formatTime(message.timestamp)}
+              </Typography>
+              {isMyMessage && <MessageStatusIcon status={message.delivery_status} />}
+            </Box>
           </Paper>
           
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5, 
-            flexDirection: isMyMessage ? 'row-reverse' : 'row' }}>
-            <Typography variant="caption" color="text.secondary">
-              {senderName} • {message.timestamp}
+          {/* Status text below message for sent messages */}
+          {isMyMessage && message.delivery_status && (
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                display: 'block',
+                textAlign: 'right',
+                mt: 0.3,
+                color: '#8e8e93',
+                fontSize: '0.65rem',
+                textTransform: 'capitalize'
+              }}
+            >
+              {message.delivery_status}
             </Typography>
-            {isMyMessage && message.delivery_status && (
-              <Chip size="small" icon={getStatusIcon(config.icon, config.color)} label={config.label}
-                sx={{ height: 20, fontSize: '0.65rem', fontWeight: 500, color: config.text,
-                  bgcolor: config.bg, border: `1px solid ${config.color}`, 
-                  '& .MuiChip-icon': { color: config.color, ml: 0.5 } }} />
-            )}
-          </Box>
+          )}
         </Box>
       </Box>
-    );
-  }
-);
+    </Fade>
+  );
+});
+
+// ==========================================
+// MAIN COMPONENT
+// ==========================================
 
 const ChatWindow: React.FC<ChatWindowProps> = ({ customer, orderId }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [connected, setConnected] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [snackbar, setSnackbar] = useState<SnackbarState>({
+    open: false,
+    message: '',
+    severity: 'info'
+  });
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const hasValidPhone = useMemo(() => customer.phone && customer.phone.replace(/\D/g, '') !== '', [customer.phone]);
+  const hasValidPhone = useMemo(() => 
+    customer.phone && customer.phone.replace(/\D/g, '') !== '', 
+    [customer.phone]
+  );
+
   const isInputDisabled = sending || uploading || !connected || !hasValidPhone;
+
   const isMyMessage = useCallback((msg: Message) => 
-    msg.direction === 'outbound' || msg.sender === 'You' || msg.sender.startsWith('You:'), []);
+    msg.direction === 'outbound' || msg.sender === 'You' || msg.sender === 'admin', 
+    []
+  );
 
-  // File validation with official Twilio WhatsApp limits
-  const validateFile = useCallback((file: File) => {
-    // Official Twilio WhatsApp file size limits (in MB)
-    const FILE_SIZE_LIMITS = {
-      'image/': 5,      // 5MB for images (Twilio limit)
-      'video/': 16,     // 16MB for videos (Twilio WhatsApp limit)
-      'audio/': 16,     // 16MB for audio (Twilio WhatsApp limit)
-      'application/': 16, // 16MB for documents (Twilio WhatsApp limit)
-      'text/': 16,      // 16MB for text files
-      'default': 16     // 16MB default for WhatsApp
-    };
+  const groupedMessages = useMemo(() => groupMessagesByDate(messages), [messages]);
 
-    const fileSizeMB = file.size / 1024 / 1024;
-    const fileType = file.type.toLowerCase();
-    
-    // Find size limit for this file type
-    const sizeLimit = Object.entries(FILE_SIZE_LIMITS).find(([type]) => 
-      fileType.startsWith(type)
-    )?.[1] || FILE_SIZE_LIMITS.default;
-
-    if (fileSizeMB > sizeLimit) {
-      return {
-        valid: false,
-        error: `File too large. Maximum size for ${fileType.split('/')[0]} files is ${sizeLimit}MB (current: ${fileSizeMB.toFixed(2)}MB)`
-      };
-    }
-
-    // Check if file type is supported by Twilio WhatsApp
-    const supportedTypes = [
-      'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
-      'video/mp4', 'video/3gpp', 'video/quicktime', 'video/avi', 'video/mov',
-      'audio/aac', 'audio/amr', 'audio/mp3', 'audio/mpeg', 'audio/ogg',
-      'application/pdf', 'application/msword', 'application/vnd.openxmlformats',
-      'application/vnd.ms-excel', 'application/vnd.ms-powerpoint',
-      'text/plain', 'text/csv'
-    ];
-    
-    const isSupported = supportedTypes.some(type => 
-      fileType === type || fileType.startsWith(type.split('/')[0] + '/')
-    );
-    
-    if (!isSupported) {
-      return {
-        valid: false,
-        error: 'Unsupported file type for WhatsApp. Supported: Images (JPG, PNG, GIF), Videos (MP4, MOV), Audio (MP3, AAC), Documents (PDF, DOC, XLS)'
-      };
-    }
-
-    return { valid: true };
+  const showSnackbar = useCallback((message: string, severity: SnackbarState['severity'] = 'info') => {
+    setSnackbar({ open: true, message, severity });
   }, []);
 
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const validation = validateFile(file);
+    const validation = validateFileForTwilio(file);
     if (!validation.valid) {
-      setError(validation.error || 'Invalid file');
+      showSnackbar(validation.error || 'Invalid file', 'error');
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
 
-    console.log('📎 File selected:', {
-      name: file.name,
-      type: file.type,
-      size: `${(file.size / 1024 / 1024).toFixed(2)}MB`
-    });
-    
     setSelectedFile(file);
-    setError(null);
-  }, [validateFile]);
+    showSnackbar(`File selected: ${file.name}`, 'info');
+  }, [showSnackbar]);
 
   const handleSendMessage = useCallback(async () => {
-    if ((!newMessage.trim() && !selectedFile) || sending || uploading || !connected) return;
-    
-    if (!customer.phone || customer.phone.replace(/\D/g, '') === '') {
-      setError("Can't send message: Customer doesn't have a phone number");
-      return;
-    }
+    if ((!newMessage.trim() && !selectedFile) || isInputDisabled) return;
     
     setSending(true);
-    setError(null);
 
     try {
       let messageData: MessageRequest;
       
       if (selectedFile) {
-        // 🔥 FIX: Actually upload the file first
-        console.log('📤 Uploading file:', selectedFile.name, selectedFile.type, `${(selectedFile.size / 1024 / 1024).toFixed(2)}MB`);
         setUploading(true);
         setUploadProgress(0);
         
@@ -270,17 +427,12 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ customer, orderId }) => {
         });
         
         setUploading(false);
-        setUploadProgress(0);
         
         if (!uploadResult.success) {
-          setError(uploadResult.error || 'Failed to upload file');
-          setSending(false);
+          showSnackbar(uploadResult.error || 'Failed to upload file', 'error');
           return;
         }
         
-        console.log('✅ File uploaded successfully:', uploadResult);
-        
-        // Create message with uploaded file data
         messageData = {
           sender: 'admin',
           content: `Sent ${selectedFile.type.startsWith('image/') ? 'an image' : 'a file'}: ${selectedFile.name}`,
@@ -290,9 +442,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ customer, orderId }) => {
           fileUrl: uploadResult.fileUrl,
           fileType: selectedFile.type
         };
-        
       } else {
-        // Text message
         messageData = {
           sender: 'admin',
           content: newMessage.trim(),
@@ -301,30 +451,24 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ customer, orderId }) => {
         };
       }
 
-      console.log('📨 Sending message:', messageData);
       const result = await sendMessage(orderId, messageData);
 
       if (result.success) {
-        console.log('✅ Message sent successfully');
-        setSuccessMessage(selectedFile ? 'File sent successfully!' : 'Message sent successfully!');
+        showSnackbar(selectedFile ? 'File sent successfully!' : 'Message sent!', 'success');
         setNewMessage('');
         setSelectedFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
       } else {
-        console.error('❌ Send failed:', result.error);
-        setError(result.error || 'Failed to send message');
+        showSnackbar(result.error || 'Failed to send', 'error');
       }
     } catch (err) {
-      console.error('❌ Send message error:', err);
-      setError('Failed to send message');
+      showSnackbar('Failed to send', 'error');
     } finally {
       setSending(false);
       setUploading(false);
       setUploadProgress(0);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
     }
-  }, [newMessage, selectedFile, sending, uploading, connected, orderId, customer.phone]);
+  }, [newMessage, selectedFile, isInputDisabled, orderId, customer.phone, showSnackbar]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -333,30 +477,34 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ customer, orderId }) => {
     }
   }, [handleSendMessage]);
 
-  // Fetch messages
+  // Effects
   useEffect(() => {
     if (!orderId) return;
     setLoading(true);
-    setError(null);
     
     getMessagesByOrderId(orderId)
       .then(setMessages)
       .catch(() => {
         setMessages([]);
-        setError('Failed to load messages');
+        showSnackbar('Failed to load messages', 'error');
       })
       .finally(() => setLoading(false));
-  }, [orderId]);
+  }, [orderId, showSnackbar]);
 
-  // WebSocket setup
   useEffect(() => {
     if (!orderId) return;
     
     socketService.connect();
     socketService.joinOrder(orderId);
 
-    const handleConnect = () => setConnected(true);
-    const handleDisconnect = () => setConnected(false);
+    const handleConnect = () => {
+      setConnected(true);
+      showSnackbar('Connected to chat', 'success');
+    };
+    const handleDisconnect = () => {
+      setConnected(false);
+      showSnackbar('Connection lost. Reconnecting...', 'warning');
+    };
     const handleNewMessage = (msg: Message) => {
       setMessages(prev => prev.find(m => m.id === msg.id) ? prev : [...prev, msg]);
     };
@@ -383,158 +531,250 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ customer, orderId }) => {
       socketService.offMessageUpdated(handleMessageUpdated);
       socketService.offMessageStatusUpdated(handleMessageStatusUpdated);
     };
-  }, [orderId]);
+  }, [orderId, showSnackbar]);
 
-  // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  if (loading) {
-    return (
-      <Box sx={{ height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-        <CircularProgress />
-        <Typography sx={{ ml: 2 }}>Loading messages...</Typography>
-      </Box>
-    );
-  }
-
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: '#e5ddd5' }}>
       {/* Header */}
-      <AppBar position="static" elevation={0} sx={{ bgcolor: 'background.paper', color: 'text.primary', borderBottom: 1, borderColor: 'divider' }}>
+      <AppBar position="static" elevation={1} sx={{ 
+        bgcolor: '#f0f0f0', 
+        color: 'text.primary',
+        position: 'relative'
+      }}>
         <Toolbar>
-          <Avatar sx={{ bgcolor: getAvatarColor(customer.name), width: 32, height: 32, mr: 2 }}>
+          <Avatar sx={{ 
+            bgcolor: getAvatarColor(customer.name), 
+            width: 40, 
+            height: 40, 
+            mr: 2 
+          }}>
             {getInitials(customer.name)}
           </Avatar>
           <Box sx={{ flexGrow: 1 }}>
-            <Typography variant="h6">{customer.name}</Typography>
+            <Typography variant="h6" sx={{ fontSize: '1.1rem', fontWeight: 600 }}>
+              {customer.name}
+            </Typography>
             <Typography variant="body2" color="text.secondary">
-              {customer.phone || 'No phone number'} • Order Number: {customer.order_number}
+              {customer.phone || 'No phone'} • Order #{customer.order_number}
             </Typography>
           </Box>
-          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: connected ? 'success.main' : 'error.main', mr: 1 }} />
-          <Typography variant="caption" color={connected ? 'success.main' : 'error.main'}>
-            {connected ? 'Connected' : 'Disconnected'}
-          </Typography>
+          <ConnectionStatus connected={connected} />
         </Toolbar>
       </AppBar>
 
-      {/* Alert Messages */}
-      {!hasValidPhone && <NoPhoneAlert customerName={customer.name} />}
-      <ConnectionAlert connected={connected} />
-
-      {/* Upload Progress */}
-      {uploading && (
-        <Box sx={{ px: 2, py: 1, bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-            <Typography variant="body2" color="primary">
-              Uploading {selectedFile?.name}...
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {uploadProgress}%
-            </Typography>
-          </Box>
-          <LinearProgress variant="determinate" value={uploadProgress} />
-        </Box>
+      {/* Alerts */}
+      {!hasValidPhone && (
+        <Fade in>
+          <Alert 
+            severity="warning" 
+            icon={<PhoneDisabled />}
+            sx={{ m: 2, borderRadius: 1 }}
+          >
+            {customer.name} doesn't have a phone number. Add one to start messaging.
+          </Alert>
+        </Fade>
       )}
 
+      {/* Upload Progress */}
+      <Backdrop open={uploading} sx={{ zIndex: 9999, color: '#fff' }}>
+        <Paper sx={{ p: 3, minWidth: 300, textAlign: 'center' }}>
+          <Typography variant="h6" gutterBottom>Uploading File</Typography>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            {selectedFile?.name}
+          </Typography>
+          <Box sx={{ mt: 2 }}>
+            <CircularProgress variant="determinate" value={uploadProgress} size={60} />
+            <Typography variant="h6" sx={{ mt: 1 }}>{uploadProgress}%</Typography>
+          </Box>
+        </Paper>
+      </Backdrop>
+
       {/* Messages Area */}
-      <Box sx={{ flexGrow: 1, overflow: 'auto', p: 2, bgcolor: 'background.default' }}>
-        {messages.length === 0 ? (
-          <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Typography color="text.secondary" sx={{ textAlign: 'center', fontSize: '1rem' }}>
-              {!hasValidPhone 
-                ? `Add a phone number for ${customer.name} to start messaging`
-                : `No messages yet. Start a conversation with ${customer.name}!`}
-            </Typography>
+      <Box sx={{ 
+        flexGrow: 1, 
+        overflow: 'auto', 
+        p: 2,
+        backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c8c8c8' fill-opacity='0.15'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+      }}>
+        {loading ? (
+          <Box>
+            {[...Array(5)].map((_, i) => (
+              <MessageSkeleton key={i} isRight={i % 2 === 0} />
+            ))}
+          </Box>
+        ) : groupedMessages.length === 0 ? (
+          <Box sx={{ 
+            height: '100%', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center' 
+          }}>
+            <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'rgba(255,255,255,0.95)' }}>
+              <Typography color="text.secondary">
+                {!hasValidPhone 
+                  ? `Add a phone number to start messaging`
+                  : `No messages yet. Start a conversation!`}
+              </Typography>
+            </Paper>
           </Box>
         ) : (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {messages.map(message => (
-              <MessageItem key={message.id} message={message} customer={customer} isMyMessage={isMyMessage(message)} />
+          <Box>
+            {groupedMessages.map(group => (
+              <Box key={group.date}>
+                <Box sx={{ display: 'flex', alignItems: 'center', my: 2 }}>
+                  <Divider sx={{ flexGrow: 1 }} />
+                  <Box sx={{ 
+                    px: 2, 
+                    py: 0.5, 
+                    bgcolor: 'rgba(225, 245, 254, 0.92)',
+                    borderRadius: 2,
+                    mx: 2
+                  }}>
+                    <Typography variant="caption" sx={{ 
+                      color: '#54656f',
+                      fontSize: '0.75rem',
+                      fontWeight: 500
+                    }}>
+                      {formatDate(group.date)}
+                    </Typography>
+                  </Box>
+                  <Divider sx={{ flexGrow: 1 }} />
+                </Box>
+                {group.messages.map(message => (
+                  <MessageItem 
+                    key={message.id} 
+                    message={message} 
+                    customer={customer} 
+                    isMyMessage={isMyMessage(message)} 
+                  />
+                ))}
+              </Box>
             ))}
             <div ref={messagesEndRef} />
           </Box>
         )}
       </Box>
 
-      {/* Selected file preview */}
+      {/* Selected File Preview */}
       {selectedFile && (
-        <Box sx={{ p: 1, bgcolor: 'grey.100', borderTop: 1, borderColor: 'divider' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography sx={{ fontSize: '1.2rem' }}>
-                {selectedFile.type.startsWith('image/') ? '📷' : 
-                 selectedFile.type.startsWith('video/') ? '🎬' :
-                 selectedFile.type.startsWith('audio/') ? '🎤' : '📎'}
-              </Typography>
-              <Typography variant="body2">{selectedFile.name}</Typography>
-              <Typography variant="caption" color="text.secondary">
-                ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
-              </Typography>
+        <Zoom in>
+          <Paper sx={{ p: 1.5, mx: 2, mb: 1, borderRadius: 2, bgcolor: '#f0f0f0' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                {selectedFile.type.startsWith('image/') ? <Image /> : 
+                 selectedFile.type.startsWith('video/') ? <VideoFile /> :
+                 selectedFile.type.startsWith('audio/') ? <AudioFile /> : <Description />}
+                <Box>
+                  <Typography variant="body2" fontWeight="medium">{selectedFile.name}</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                  </Typography>
+                </Box>
+              </Box>
+              <IconButton size="small" onClick={() => setSelectedFile(null)} disabled={uploading}>
+                <Close />
+              </IconButton>
             </Box>
-            <IconButton size="small" onClick={() => setSelectedFile(null)} disabled={uploading}>
-              <CloseIcon />
-            </IconButton>
-          </Box>
-        </Box>
+          </Paper>
+        </Zoom>
       )}
 
       {/* Input Area */}
-      <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'background.paper', 
-        borderTop: 1, borderColor: 'divider',
-        ...(isInputDisabled && { bgcolor: '#f5f5f5', opacity: 0.8 }) }}>
-        <Input type="file" inputRef={fileInputRef} onChange={handleFileSelect}
-          inputProps={{ 
-            accept: 'image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt'
-          }} 
-          sx={{ display: 'none' }} />
-        <IconButton disabled={isInputDisabled} onClick={() => fileInputRef.current?.click()}
-          sx={{ color: isInputDisabled ? '#bdbdbd' : 'action.active' }}>
-          <AttachFileIcon />
-        </IconButton>
-        <TextField fullWidth variant="outlined" size="small"
-          placeholder={!hasValidPhone ? "Add phone number to send messages" 
-            : !connected ? 'Connecting to messaging service...' 
-            : uploading ? 'Uploading file...'
-            : `Type a message to ${customer.name}...`}
-          value={newMessage} onChange={e => setNewMessage(e.target.value)}
-          onKeyPress={handleKeyPress} disabled={isInputDisabled}
-          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3,
-            bgcolor: isInputDisabled ? '#f9f9f9' : 'background.paper',
-            '& input': { color: isInputDisabled ? '#757575' : 'text.primary' },
-            '& input::placeholder': { color: isInputDisabled ? '#9e9e9e' : 'text.secondary', opacity: 1 }
-          }}}
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          p: 1.5, 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 1,
+          bgcolor: '#f0f0f0',
+          borderTop: '1px solid #e0e0e0'
+        }}
+      >
+        <input 
+          type="file" 
+          ref={fileInputRef} 
+          onChange={handleFileSelect}
+          accept="image/*,video/*,audio/*,.pdf,.doc,.docx" 
+          style={{ display: 'none' }} 
         />
-        <IconButton color="primary" onClick={handleSendMessage}
-          disabled={(!newMessage.trim() && !selectedFile) || isInputDisabled}
-          sx={{ bgcolor: isInputDisabled ? '#e0e0e0' : 'primary.main', 
-            color: isInputDisabled ? '#9e9e9e' : 'white', 
-            '&:hover': { bgcolor: isInputDisabled ? '#e0e0e0' : 'primary.dark' }, 
-            '&:disabled': { bgcolor: '#e0e0e0', color: '#9e9e9e' } }}>
-          {sending || uploading ? <CircularProgress size={20} color="inherit" /> : <SendIcon />}
+        
+        <IconButton 
+          disabled={isInputDisabled} 
+          onClick={() => fileInputRef.current?.click()}
+          sx={{ color: '#54656f' }}
+        >
+          <AttachFile />
         </IconButton>
-      </Box>
+        
+        <TextField 
+          fullWidth 
+          variant="outlined" 
+          size="small"
+          placeholder={!hasValidPhone ? "Add phone number first" 
+            : !connected ? 'Connecting...' 
+            : uploading ? 'Uploading...'
+            : `Message ${customer.name}...`}
+          value={newMessage} 
+          onChange={e => setNewMessage(e.target.value)}
+          onKeyPress={handleKeyPress} 
+          disabled={isInputDisabled}
+          sx={{ 
+            '& .MuiOutlinedInput-root': { 
+              borderRadius: 3,
+              bgcolor: 'white',
+              '& fieldset': {
+                borderColor: '#e0e0e0'
+              }
+            } 
+          }}
+        />
+        
+        <IconButton 
+          onClick={handleSendMessage}
+          disabled={(!newMessage.trim() && !selectedFile) || isInputDisabled}
+          sx={{ 
+            bgcolor: '#25d366',
+            color: 'white',
+            '&:hover': { 
+              bgcolor: '#128c7e'
+            },
+            '&:disabled': { 
+              bgcolor: '#e0e0e0',
+              color: '#a0a0a0'
+            }
+          }}
+        >
+          {sending || uploading ? <CircularProgress size={20} color="inherit" /> : <Send />}
+        </IconButton>
+      </Paper>
 
-      {/* Error/Success Snackbars */}
-      <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError(null)}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
-        <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>
+      {/* Toast Notifications - Top Left */}
+      <Snackbar 
+        open={snackbar.open} 
+        autoHideDuration={3000} 
+        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        TransitionComponent={Slide}
+        sx={{ top: 24, right: 24 }}
+      >
+        <Alert 
+          severity={snackbar.severity} 
+          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+          variant="filled"
+          sx={{ 
+            borderRadius: 1,
+            boxShadow: 3,
+            minWidth: 250
+          }}
+        >
+          {snackbar.message}
+        </Alert>
       </Snackbar>
-
-      <Snackbar open={!!successMessage} autoHideDuration={3000} onClose={() => setSuccessMessage(null)}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
-        <Alert severity="success" onClose={() => setSuccessMessage(null)}>{successMessage}</Alert>
-      </Snackbar>
-
-      {/* CSS for animations */}
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.7; }
-        }
-      `}</style>
     </Box>
   );
 };

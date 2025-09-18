@@ -1,33 +1,97 @@
 // /shared/types.ts
-// Consolidated type definitions - single source of truth
+// Optimized type definitions - single source of truth
 
-// Core Customer interface - consolidates all 3 variations from your components
+// ==========================================
+// CORE INTERFACES
+// ==========================================
+
+// Consolidated Customer interface - single version for all components
 export interface Customer {
-  // Required properties
+  // Required core properties
   order_id: number;
   name: string;
-  status: 'online' | 'offline' | 'away' | 'busy';
+  status: CustomerStatus;
   unreadCount: number;
   
   // Optional messaging properties
   lastMessage?: string;
   avatar?: string;
   lastActive?: string;
+  timestamp?: string;
   
-  // Optional order/contact data
+  // Optional contact/order data
   phone?: string;
   order_number?: string;
-  timestamp?: string;
-  message_type?: 'text' | 'image' | 'document' | 'voice';
+  message_type?: MessageType;
 }
 
-// Filter options interface
+// Message interface - moved from messageService to fix circular dependency
+export interface Message {
+  id: string;
+  order_id: number;
+  from: string;
+  to: string;
+  body: string;
+  sender: string;
+  content: string;
+  direction: 'inbound' | 'outbound';
+  message_type: 'text' | 'file';
+  created_at: string;
+  updated_at?: string;
+  delivery_status: DeliveryStatus;
+  is_read: number;
+  timestamp: string;
+  type: MessageType;
+  fileName?: string;
+  twilio_sid?: string | null;
+  fileUrl?: string;
+  fileType?: string;
+  errorCode?: string;
+  errorMessage?: string;
+  readAt?: string | null;
+}
+
+// Request/Response interfaces
+export interface MessageRequest {
+  sender: string;
+  content: string;
+  type: 'text' | 'file';
+  phone_number: number;
+  fileName?: string;
+  fileUrl?: string;
+  fileType?: string;
+}
+
+export interface MessageUpdate {
+  tempId: string;
+  message: Message;
+}
+
+export interface MessageStatusUpdate {
+  messageId: string;
+  update: {
+    delivery_status?: string;
+    twilio_sid?: string;
+  };
+}
+
+export interface SendMessageResponse {
+  success: boolean;
+  status?: 'success' | 'error';
+  message?: Message;
+  error?: string;
+  twilioStatus?: string;
+}
+
+// ==========================================
+// FILTER & STATS INTERFACES
+// ==========================================
+
 export interface FilterOptions {
   showUnreadOnly: boolean;
-  statusFilter: 'all' | Customer['status'];
+  statusFilter: 'all' | CustomerStatus;
 }
 
-// Customer list statistics
 export interface CustomerStats {
   total: number;
   filtered: number;
@@ -35,21 +99,10 @@ export interface CustomerStats {
   unread: number;
 }
 
-// Re-export Message types from messageService to avoid duplication
-export type {
-  Message,
-  MessageRequest,
-  MessageUpdate,
-  MessageStatusUpdate,
-  SendMessageResponse
-} from '../../../services/messageService';
+// ==========================================
+// COMPONENT PROP INTERFACES
+// ==========================================
 
-// Status type unions for better type safety
-export type CustomerStatus = Customer['status'];
-export type MessageType = 'text' | 'image' | 'document' | 'voice' | 'file';
-export type DeliveryStatus = 'pending' | 'sent' | 'delivered' | 'read' | 'failed' | 'sending';
-
-// Component prop interfaces
 export interface CustomerListProps {
   customers: Customer[];
   selectedCustomerId: number | null;
@@ -66,3 +119,11 @@ export interface ChatWindowProps {
   customer: Customer;
   orderId: number;
 }
+
+// ==========================================
+// TYPE UNIONS - Simplified
+// ==========================================
+
+export type CustomerStatus = 'online' | 'offline' | 'away' | 'busy';
+export type MessageType = 'text' | 'image' | 'document' | 'voice' | 'file' | 'video' | 'audio' | 'location' | 'contacts' | 'sticker' | 'unknown';
+export type DeliveryStatus = 'pending' | 'sent' | 'delivered' | 'read' | 'failed' | 'sending';
