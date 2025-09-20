@@ -1,6 +1,6 @@
-import { Request, Response } from 'express';
-import pool from "../../database";
-import { RowDataPacket } from 'mysql2';
+import { Request, Response } from "express";
+import pool from "../../config/database";
+import { RowDataPacket } from "mysql2";
 
 interface ExportRequest {
   tourIds: number[];
@@ -12,21 +12,24 @@ export const ExportTourController = async (req: Request, res: Response) => {
     const { tourIds }: ExportRequest = req.body;
     console.log("Received tour IDs for export:", tourIds);
     if (!tourIds || !Array.isArray(tourIds) || tourIds.length === 0) {
-      return res.status(400).json({ message: "Please provide valid tour IDs array" });
+      return res
+        .status(400)
+        .json({ message: "Please provide valid tour IDs array" });
     }
 
     // Convert all IDs to numbers and filter out any invalid values
     const validTourIds = tourIds
-      .map(id => Number(id))
-      .filter(id => !isNaN(id) && id > 0);
+      .map((id) => Number(id))
+      .filter((id) => !isNaN(id) && id > 0);
 
     if (validTourIds.length === 0) {
       return res.status(400).json({ message: "No valid tour IDs provided" });
     }
 
     // Fetch only the requested tours
-    const placeholders = validTourIds.map(() => '?').join(',');
-    const [tourRows] = await pool.query<RowDataPacket[]>(`
+    const placeholders = validTourIds.map(() => "?").join(",");
+    const [tourRows] = await pool.query<RowDataPacket[]>(
+      `
       SELECT 
         t.*, 
         d.name AS driver_name, 
@@ -35,10 +38,14 @@ export const ExportTourController = async (req: Request, res: Response) => {
       FROM tourinfo_master t
       JOIN driver_details d ON t.driver_id = d.id
       WHERE t.id IN (${placeholders})
-    `, validTourIds);
+    `,
+      validTourIds
+    );
 
     if (tourRows.length === 0) {
-      return res.status(404).json({ message: "No tours found with the provided IDs" });
+      return res
+        .status(404)
+        .json({ message: "No tours found with the provided IDs" });
     }
 
     // Prepare final response array
@@ -49,9 +56,10 @@ export const ExportTourController = async (req: Request, res: Response) => {
       let orderIds: number[] = [];
 
       try {
-        const rawOrderIds = typeof tour.order_ids === 'string'
-          ? JSON.parse(tour.order_ids)
-          : tour.order_ids;
+        const rawOrderIds =
+          typeof tour.order_ids === "string"
+            ? JSON.parse(tour.order_ids)
+            : tour.order_ids;
 
         if (Array.isArray(rawOrderIds)) {
           orderIds = rawOrderIds
@@ -66,26 +74,32 @@ export const ExportTourController = async (req: Request, res: Response) => {
 
       if (orderIds.length > 0) {
         // First get the orders
-        const orderPlaceholders = orderIds.map(() => '?').join(',');
-        const [orderRows] = await pool.query<RowDataPacket[]>(`
+        const orderPlaceholders = orderIds.map(() => "?").join(",");
+        const [orderRows] = await pool.query<RowDataPacket[]>(
+          `
           SELECT * FROM logistic_order
           WHERE order_id IN (${orderPlaceholders})
-        `, orderIds);
-        
+        `,
+          orderIds
+        );
+
         // Then for each order, get the items
         for (const order of orderRows) {
-          const [itemRows] = await pool.query<RowDataPacket[]>(`
+          const [itemRows] = await pool.query<RowDataPacket[]>(
+            `
             SELECT 
               slmdl_articleordernumber, 
               quantity 
             FROM logistic_order_items
             WHERE order_id = ?
-          `, [order.order_id]);
-          
+          `,
+            [order.order_id]
+          );
+
           // Add items to the order object
           orders.push({
             ...order,
-            items: itemRows
+            items: itemRows,
           });
         }
       }
@@ -101,10 +115,10 @@ export const ExportTourController = async (req: Request, res: Response) => {
         driver: {
           driver_name: tour.driver_name,
           mobile: tour.driver_mobile,
-          address: tour.driver_address
+          address: tour.driver_address,
         },
-        order_ids: tour.order_ids, 
-        orders
+        order_ids: tour.order_ids,
+        orders,
       });
     }
 

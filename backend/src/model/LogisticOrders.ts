@@ -1,8 +1,10 @@
 import { ResultSetHeader, RowDataPacket } from "mysql2";
-import pool from "../database";
+import pool from "../config/database";
 import { CheckOrderCount } from "../types/dto.types";
 import { Order } from "../types/order.types";
 import { PoolConnection } from "mysql2/promise";
+import { geocode } from "../services/hereMap.service";
+import { Location } from "../types/hereMap.types";
 
 export enum OrderStatus {
   initial = "initial",
@@ -74,6 +76,76 @@ export class LogisticOrder {
     return rows as any[];
   }
 
+  static async createOrderAsync(order: any): Promise<number> {
+    const warehouse_id = order.OrderDetails[0].warehouse_id ?? 0;
+    const expectedDelivery = new Date(order.ordertime);
+    expectedDelivery.setDate(expectedDelivery.getDate() + 14);
+
+    const conn = await pool.getConnection();
+
+    try {
+      await conn.beginTransaction();
+
+      const [result] = await conn.execute(
+        `INSERT INTO logistic_order (
+            shopware_order_id, order_number, customer_id, invoice_amount, payment_id,
+            tracking_code,order_status_id,
+            warehouse_id, order_time, expected_delivery_time, customer_number,
+            firstname, lastname, email, street, zipcode, city, phone
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          order.shopware_order_id,
+          order.ordernumber,
+          order.user_id,
+          order.invoice_amount,
+          order.paymentID,
+          order.trackingCode,
+          order.orderStatusID,
+          warehouse_id,
+          order.ordertime,
+          expectedDelivery.toISOString().slice(0, 19).replace("T", " "),
+          order.customernumber,
+          order.shipping_firstname || order.user_firstname,
+          order.shipping_lastname || order.user_lastname,
+          order.user_email,
+          order.shipping_street,
+          order.shipping_zipcode,
+          order.shipping_city,
+          order.shipping_phone,
+        ]
+      );
+
+      const orderId = (result as any).insertId;
+
+      for (const item of order.OrderDetails) {
+        await conn.execute(
+          `INSERT INTO logistic_order_items (
+              order_id, order_number, slmdl_article_id,
+              slmdl_articleordernumber, quantity, warehouse_id
+            ) VALUES (?, ?, ?, ?, ?, ?)`,
+          [
+            orderId,
+            order.ordernumber,
+            item.slmdl_article_id,
+            item.slmdl_articleordernumber,
+            item.slmdl_quantity,
+            item.warehouse_id,
+          ]
+        );
+      }
+
+      console.warn(`Created order ${order.ordernumber} with ID ${orderId}`);
+      return orderId as number;
+    } catch (error) {
+      await conn.rollback();
+      console.error(`Error while creating new Orders.`, error);
+      throw error;
+    } finally {
+      conn.release();
+    }
+  }
+
+  // Get a specific order by order_number with items and drivers information
   static async getOrder(order_number: string): Promise<any[]> {
     const [rows] = await pool.execute(
       `
@@ -274,7 +346,8 @@ export class LogisticOrder {
       params.push(sinceDate, sinceDate);
     }
 
-    query += ` ORDER BY o.updated_at DESC, o.created_at DESC`;
+    query += ` ORDER BY o.order_id`;
+    // query += ` ORDER BY o.updated_at DESC, o.created_at DESC`;
 
     try {
       const [rows] = await pool.execute(query, params);
@@ -298,10 +371,28 @@ export class LogisticOrder {
         city: raw.city,
         zipcode: raw.zipcode,
 
-        location: { lat: raw.lattitude, lng: raw.longitude },
+        location: { lat: raw.latitude, lng: raw.longitude },
 
         items: [],
       }));
+
+      console.log(
+        `***************** ${orders.length} fetched orders ${orders}`
+      );
+      console.log(`*****************`);
+
+      // filter further with WMS orders
+      const [wms_orders] = await pool.execute(
+        `SELECT order_number FROM wms_orders`
+      );
+      const wmsOrderNumbers = new Set(
+        (wms_orders as any[]).map((wo) => wo.order_number)
+      );
+
+      const logisticOrders = orders.filter((o) =>
+        wmsOrderNumbers.has(o.order_number)
+      );
+      console.log("Filtered Logistic Orders:", logisticOrders);
 
       return orders;
     } catch (error) {
@@ -324,6 +415,55 @@ export class LogisticOrder {
     } catch (error) {
       console.error("Error fetching order items count:", error);
       throw error;
+    }
+  }
+
+  static async updateOrderLocation(order: Order, location: Location) {
+    try {
+      console.warn(`Order to update location: ${JSON.stringify(order)} `);
+      const query = `
+      UPDATE logistic_order
+      SET latitude = ?, longitude = ?
+      WHERE order_id = ?
+      `;
+      const values = [location.lat, location.lng, order.order_id];
+
+      const [result]: any = await pool.execute(query, values);
+
+      if (result.affectedRows === 0) {
+        throw new Error(`No order found with ID ${order.order_id}`);
+      }
+
+      return result.affectedRows > 0;
+    } catch (error) {
+      console.error(`Error`);
+      throw new Error(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  static async getOrderLocationCords(order: Order): Promise<Location | null> {
+    try {
+      const address = `${order.street}, ${order.city}, ${order.zipcode}`;
+      console.log(
+        `Calling HERE Map geocode() for Order ${order.order_id} address: ${address} `
+      );
+
+      const location: Location = await geocode(address);
+      (order.location.lat = location.lat), (order.location.lng = location.lng);
+      const isUpdated = await LogisticOrder.updateOrderLocation(
+        order,
+        location
+      );
+      if (!isUpdated) {
+        console.error(
+          `Order ${order.order_id} update failed for Location: ${location}`
+        );
+        return null;
+      }
+      return location;
+    } catch (error) {
+      console.error(`Error`);
+      throw new Error(error instanceof Error ? error.message : String(error));
     }
   }
 }

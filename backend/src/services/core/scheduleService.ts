@@ -1,5 +1,6 @@
 import cron from "node-cron";
 import { shopwareOrderSync } from "../shopwareOrderSync";
+import { wmsOrderSync } from "../wmsOrderSync";
 import { logWithTime } from "../../utils/logging";
 
 export function scheduleRecurringSyncs() {
@@ -17,6 +18,7 @@ export function scheduleRecurringSyncs() {
   cron.schedule("*/30 * * * *", async () => {
     logWithTime("⏳ Cron: WMS sync started...");
     try {
+      await wmsOrderSync("2025-08-10");
       logWithTime("✅ WMS sync completed.");
     } catch (err) {
       logWithTime("❌ WMS sync failed:");

@@ -2,16 +2,17 @@ import { Order } from "../types/order.types";
 import { Tour } from "../types/tour.types";
 import { Warehouse } from "../types/warehouse.types";
 import { haversineKm } from "../utils/haversine";
+import { logWithTime } from "../utils/logging";
 
-const MIN_ORDERS = 5;
+const MIN_ORDERS = 3;
 const MAX_CLUSTER_SIZE = 26; // prevent oversized clusters
-const CLOSE_TO_DISTANCE_KM = 15; // threshold to keep adding Order to Cluster
+const CLOSE_TO_DISTANCE_KM = 6000; // threshold to keep adding Order to Cluster
 
 // tuning params
-const AVERAGE_SPEED_KMPH = 80; // used for cheap approximation; tune per region
+const AVERAGE_SPEED_KMPH = 100; // used for cheap approximation; tune per region
 const SERVICE_TIME_PER_STOP_MIN = 5; // average service time per stop
 const TIME_WINDOW_HOURS = 9; // max allowed duration per tour
-const MAX_DISTANCE_KM = 600;
+// const MAX_DISTANCE_KM = 600;
 
 export function clusterOrders(
   orders: Order[],
@@ -38,6 +39,8 @@ export function clusterOrders(
       )
   );
 
+  console.log(`Sorted Orders ${sorted}`);
+
   // Greedy clustering by proximity
   const clusters: Order[][] = [];
   let current: Order[] = [];
@@ -45,12 +48,21 @@ export function clusterOrders(
   for (const order of sorted) {
     if (current.length === 0) {
       current.push(order);
+      console.log(`Current Cluster first Order - ID ${order.order_id}`);
       continue;
     }
 
     // distance from last order in cluster
     const last = current.at(-1);
     if (!last) continue;
+    console.log(`Current Cluster last Order - ID ${last.order_id}`);
+
+    console.log(
+      `last.location.lat: ${last.location.lat},
+      last.location.lng: ${last.location.lng},
+      order.location.lat: ${order.location.lat},
+      order.location.lng: ${order.location.lng}`
+    );
 
     const d = haversineKm(
       last.location.lat,
@@ -58,19 +70,27 @@ export function clusterOrders(
       order.location.lat,
       order.location.lng
     );
+    console.log(
+      `Distanse from Last Order ${last.order_id} to ${order.order_id}: ${d}`
+    );
 
     // If order is reasonably close and cluster not too big → keep adding
     if (d < CLOSE_TO_DISTANCE_KM && current.length < MAX_CLUSTER_SIZE) {
       current.push(order);
+      console.log(`1- Cluster Orders: ${current.length}`);
     } else {
       // finalize current cluster
       if (current.length >= MIN_ORDERS) {
         clusters.push(current);
+        console.log(`2- Cluster Orders: ${current.length}`);
+        console.log(`2- Clustersss Length: ${clusters.length}`);
       } else {
         // merge small leftover cluster with previous one
         if (clusters.length) {
+          console.log(`3- Insufficient Cluster Orders: ${current.length}`);
           clusters[clusters.length - 1].push(...current);
         } else {
+          console.log(`4- Insufficient Cluster Orders: ${current.length}`);
           clusters.push(current);
         }
       }
@@ -135,47 +155,49 @@ export function getTourDurationSecFromTour(tour: Tour): number | null {
   return duration_sec || null;
 }
 
-/**
- * Trim cluster by removing farthest orders from warehouse until
- * estimated duration <= TIME_WINDOW_HOURS or cluster size < MIN_ORDERS.
- * Returns {fitted, trimmed}
- */
 export function trimClusterToFit(
   warehouse: Warehouse,
-  cluster: Order[]
+  orders: Order[]
 ): { fitted: Order[]; trimmed: Order[] } {
   const trimmed: Order[] = [];
-  let fitted = [...cluster];
+
+  // Sort orders by distance from warehouse
+  const fitted = [...orders].sort(
+    (a, b) =>
+      haversineKm(
+        warehouse.lat!,
+        warehouse.lng!,
+        a.location.lat!,
+        a.location.lng!
+      ) -
+      haversineKm(
+        warehouse.lat!,
+        warehouse.lng!,
+        b.location.lat!,
+        b.location.lng!
+      )
+  );
 
   while (fitted.length >= MIN_ORDERS) {
     const approxSec = secondsForApproxRoute(warehouse, fitted);
+    logWithTime(
+      `Orders ${orders.length} approxSec from Warehouse ${warehouse.id}-${warehouse.town} is: ${approxSec}`
+    );
+    logWithTime(
+      `Duration ${approxSec} is ${
+        approxSec < TIME_WINDOW_HOURS * 3600 ? "lesser" : "greater"
+      } than ${TIME_WINDOW_HOURS * 3600}`
+    );
     if (approxSec <= TIME_WINDOW_HOURS * 3600) break;
 
-    // remove farthest order from warehouse (heuristic)
-    let farthestIdx = 0;
-    let farthestDist = -Infinity;
-    for (let i = 0; i < fitted.length; i++) {
-      const o = fitted[i];
-      const d = haversineKm(
-        warehouse.lat!,
-        warehouse.lng!,
-        o.location.lat!,
-        o.location.lng!
-      );
-      if (d > farthestDist) {
-        farthestDist = d;
-        farthestIdx = i;
-      }
-    }
-    const [removed] = fitted.splice(farthestIdx, 1);
-    trimmed.push(removed);
-    // loop continues; recompute approxSec
+    // remove farthest order from warehouse (last in fitted/sorted array)
+    trimmed.push(fitted.pop()!);
   }
 
-  // if after trimming we fell below MIN_ORDERS, treat all fitted orders as trimmed:
+  // If trimming dropped below MIN_ORDERS, move all fitted orders to trimmed:
   if (fitted.length < MIN_ORDERS) {
     trimmed.push(...fitted);
-    fitted = [];
+    return { fitted: [], trimmed };
   }
 
   return { fitted, trimmed };

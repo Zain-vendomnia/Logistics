@@ -1,10 +1,10 @@
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import pool from "../database";
+import pool from "../config/database";
 import { RowDataPacket } from "mysql2";
 import { User } from "../interface/interface";
 import bcrypt from "bcryptjs";
-import config from "../config";
+import config from "../config/config";
 
 export async function signup(req: Request, res: Response) {
   try {

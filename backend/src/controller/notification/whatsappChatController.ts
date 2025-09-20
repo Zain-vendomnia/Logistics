@@ -1,6 +1,6 @@
-import twilio from 'twilio';
-import dotenv from 'dotenv';
-import pool from '../../database'; // ✅ Renamed from 'connect' for clarity
+import twilio from "twilio";
+import dotenv from "dotenv";
+import pool from "../../config/database"; // ✅ Renamed from 'connect' for clarity
 
 dotenv.config();
 
@@ -28,18 +28,17 @@ const sendWhatsAppMessageChat = async (
       process.env.TWILIO_WHATSAPP_NUMBER,
       to,
       message,
-      'outbound',
+      "outbound",
     ];
 
     await pool.query(query, values); // ✅ Use pool directly without calling it
 
     return result.sid;
-
   } catch (error: unknown) {
     if (error instanceof Error) {
       throw new Error(`Failed to send WhatsApp: ${error.message}`);
     }
-    throw new Error('Failed to send WhatsApp: Unknown error occurred.');
+    throw new Error("Failed to send WhatsApp: Unknown error occurred.");
   }
 };
 

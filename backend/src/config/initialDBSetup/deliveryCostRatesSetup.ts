@@ -3,7 +3,7 @@ import { RowDataPacket } from "mysql2";
 import {
   CREATE_Delivery_Cost_Rates_TABLE,
   INSERT_Delivery_Cost_Rates_TABLE,
-} from "../services/tableQueries";
+} from "../../services/tableQueries";
 
 const deliveryCostRatesSetup = async () => {
   try {

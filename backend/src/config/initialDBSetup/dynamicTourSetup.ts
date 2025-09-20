@@ -1,6 +1,6 @@
 import pool from "../database";
 import { RowDataPacket } from "mysql2";
-import { CREATE_DYNAMIC_TOURS_TABLE } from "../services/tableQueries";
+import { CREATE_DYNAMIC_TOURS_TABLE } from "../../services/tableQueries";
 
 const DynamicTourSetup = async () => {
   try {

@@ -1,5 +1,5 @@
 import { PoolConnection } from "mysql2/promise";
-import pool from "../database";
+import pool from "../config/database";
 import { LogisticsRoute } from "../types/tour.types";
 
 export class route_segments {
@@ -32,7 +32,7 @@ export class route_segments {
       [_insertedTourId, segmentJson, order_id]
     );
   }
-  
+
   static async getRoutesegmentRes(_tourId: number): Promise<any> {
     // Run the SQL query to get the graphhopper_route for the given tour_id
     const [rows] = await pool.execute(

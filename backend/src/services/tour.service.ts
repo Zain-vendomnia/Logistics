@@ -10,7 +10,7 @@ import { CreateTour, NotAssigned } from "../types/dto.types";
 import { DecodedRoute, Unassigned } from "../types/hereMap.types";
 import { Tour, LogisticsRoute, TourType } from "../types/tour.types";
 import hereMapService from "./hereMap.service";
-import pool from "../database";
+import pool from "../config/database";
 
 export async function getTourMapDataAsync(tourPayload: CreateTour) {
   const connection = await pool.getConnection();

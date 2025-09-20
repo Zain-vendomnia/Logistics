@@ -1,4 +1,4 @@
-import pool from "../database";
+import pool from "../config/database";
 import {
   get_LogisticsOrdersAddress,
   LogisticOrder,
@@ -102,6 +102,12 @@ export async function createDynamicTourAsync(payload: DynamicTourPayload) {
         tour_route: routes,
       },
     };
+
+    logWithTime(
+      `Dynamic Tour Created with ID: ${response.dynamicTour.id} - 
+      for warehouse: ${response.dynamicTour.warehouse_town}-${response.dynamicTour.warehouse_name} 
+      OrdersIds: ${response.dynamicTour.orderIds}`
+    );
 
     return response;
   } catch (error) {

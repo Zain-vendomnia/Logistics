@@ -3,7 +3,7 @@ import { RowDataPacket } from "mysql2";
 import {
   CREATE_WAREHOUSE_DETAILS_TABLE,
   INSERT_WAREHOUSE_DETAILS_DATA,
-} from "../services/tableQueries";
+} from "../../services/tableQueries";
 
 const warehouseDetailsSetup = async () => {
   try {

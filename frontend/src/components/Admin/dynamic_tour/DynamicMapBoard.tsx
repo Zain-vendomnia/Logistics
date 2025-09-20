@@ -23,6 +23,7 @@ import useLiveOrderUpdates from "../../../socket/useLiveOrderUpdates";
 import DynamicTourList from "./DynamicTourList";
 import DynamicTourDetails from "./DynamicTourDetails";
 import { Order } from "../../../types/order.type";
+import { count } from "console";
 
 // interface Stop {
 //   location: { lat: number; lng: number };
@@ -220,27 +221,33 @@ const DymanicMapBoard = () => {
         const now = Date.now();
         const staleAfter = 1000 * 60 * 30; // 30 minutes
         const isStale = !lastFetchedAt || now - lastFetchedAt > staleAfter;
+        console.log(`isStale: ${isStale}`);
+        console.log(`pinboard_OrderList.length: ${pinboard_OrderList.length}`);
         if (pinboard_OrderList.length === 0 || isStale) {
           const orders: Order[] =
             await adminApiService.fetchPinboardOrders(lastFetchedAt);
 
           console.error("Pin-b Orders: ", orders);
 
-          const existingIds = new Set(
-            pinboard_OrderList.map((o) => o.order_id)
-          );
-          const newOrders = orders.filter((o) => !existingIds.has(o.order_id));
-          pinboard_AddOrders(newOrders);
+          if (orders.length) {
+            const existingIds = new Set(
+              pinboard_OrderList.map((o) => o.order_id)
+            );
+            const newOrders = orders.filter(
+              (o) => !existingIds.has(o.order_id)
+            );
+            pinboard_AddOrders(newOrders);
 
-          // Update map view
-          const locations = orders.map((o) => o.location);
-          if (mapRef.current && locations.length > 0) {
-            const bounds = L.latLngBounds(locations as any);
-            mapRef.current.flyToBounds(bounds, {
-              padding: [50, 50],
-              maxZoom: 6,
-              duration: 1.5,
-            });
+            // Update map view
+            const locations = orders.map((o) => o.location);
+            if (mapRef.current && locations.length > 0) {
+              const bounds = L.latLngBounds(locations as any);
+              mapRef.current.flyToBounds(bounds, {
+                padding: [50, 50],
+                maxZoom: 6,
+                duration: 1.5,
+              });
+            }
           }
         }
       } catch (err) {

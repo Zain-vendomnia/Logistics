@@ -9,23 +9,19 @@ import {
   DecodedRoute,
   Unassigned,
 } from "../types/hereMap.types";
-import {
-  Coordinate,
-  LocationMeta,
-  MatrixResult,
-  Tour,
-} from "../types/tour.types";
+import { LocationMeta, MatrixResult, Tour } from "../types/tour.types";
 // import { LogisticOrder } from "../types/database.types";
 import {
   get_LogisticsOrdersAddress,
   LogisticOrder,
 } from "../model/LogisticOrders";
 import { getWarehouseWithVehicles } from "./warehouse.service";
+import { Warehouse } from "../types/warehouse.types";
 
 const HERE_API_KEY =
   process.env.HERE_API_KEY || "2tJpOzfdl3mgNpwKiDt-KuAQlzgEbsFkbX8byW97t1k";
 
-const geocode = async (address: string): Promise<Location> => {
+export const geocode = async (address: string): Promise<Location> => {
   try {
     const res = await axios.get(
       `https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(
@@ -37,18 +33,20 @@ const geocode = async (address: string): Promise<Location> => {
     return location;
   } catch (error) {
     logApiError(error, "geocode");
-    throw new Error("Error getting geocode.");
+    throw new Error(error instanceof Error ? error.message : String(error));
   }
 };
 
-export const prepareWarehouseDto = (warehouse: any) => {
+export const prepareWarehouseDto = (warehouse: Warehouse) => {
   console.log("Warehouse object reveived: ", warehouse);
 
   const warehouseGroupObj: WarehouseGroup = {
-    warehouseAddress: warehouse.address,
-    vehicleCount: warehouse.vehicles.length,
+    warehouseAddress: warehouse.address!,
+    vehicleCount: warehouse.vehicles?.length!,
     capacityPerVehicle:
-      warehouse.vehicles.length > 0 ? warehouse.vehicles[0].capacity : 0,
+      warehouse.vehicles && warehouse.vehicles.length > 0
+        ? warehouse.vehicles[0].capacity!
+        : 0,
   };
   console.log("warehouseDTO: ", warehouseGroupObj);
 
@@ -85,7 +83,7 @@ async function buildJobs(jobList: Job[]) {
   return await Promise.all(deliveryJobs);
 }
 
-async function buildFleet(warehouseGroups: any[]): Promise<FleetType[]> {
+async function buildFleet(warehouseGroups: Warehouse[]): Promise<FleetType[]> {
   const fleet: FleetType[] = [];
 
   for (const group of warehouseGroups) {
@@ -116,7 +114,10 @@ async function buildFleet(warehouseGroups: any[]): Promise<FleetType[]> {
 }
 
 // WarehouseGroup as DB object array
-async function PlanTourAsync(orders: LogisticOrder[], warehouseGroup: any[]) {
+async function PlanTourAsync(
+  orders: LogisticOrder[],
+  warehouseGroup: Warehouse[]
+) {
   const jobList = createJobList(orders);
 
   const jobs = await buildJobs(jobList);
@@ -164,7 +165,7 @@ async function CreateTourRouteAsync(orderIds: number[], warehouse_id: number) {
     orderIds
   )) as LogisticOrder[];
 
-  const warehouse = await getWarehouseWithVehicles(warehouse_id);
+  const warehouse: Warehouse = await getWarehouseWithVehicles(warehouse_id);
 
   const { tour, unassigned } = await PlanTourAsync(orders, [warehouse]);
 
@@ -322,58 +323,66 @@ export const matrixEstimate = async (
     );
   }
 
-  // Rare case - for later use
-  // "regionDefinition": { "type": "circle", "center": {"lat":25.27,"lng":55.29}, "radius":50000 },
-  // "matrixAttributes": ["travelTimes", "distances", "travelTimesWithTraffic"]
+  try {
+    // Rare case - for later use
+    // "regionDefinition": { "type": "circle", "center": {"lat":25.27,"lng":55.29}, "radius":50000 },
+    // "matrixAttributes": ["travelTimes", "distances", "travelTimesWithTraffic"]
 
-  const body = {
-    origins: origins.map((o) => ({ lat: o.lat, lng: o.lng })),
-    destinations: destinations.map((d) => ({ lat: d.lat, lng: d.lng })),
-    regionDefinition: {
-      type: "world",
-    },
-    matrixAttributes: ["travelTimes", "distances"],
-    transportMode,
-  };
+    const body = {
+      origins: origins.map((o) => ({ lat: o.lat, lng: o.lng })),
+      destinations: destinations.map((d) => ({ lat: d.lat, lng: d.lng })),
+      regionDefinition: {
+        type: "world",
+      },
+      matrixAttributes: ["travelTimes", "distances"],
+      transportMode,
+    };
 
-  const url = `https://matrix.router.hereapi.com/v8/matrix?apiKey=${HERE_API_KEY}`;
+    console.log(`Matrix Request send --------------------- 2`);
 
-  const res = await axios.post(url, body);
-  console.log(res.data);
+    const url = `https://matrix.router.hereapi.com/v8/matrix?apiKey=${HERE_API_KEY}`;
 
-  console.log(
-    `Matrix result: ${res.data.matrixTravelTimes.length} travel times, ${
-      res.data.matrixDistances?.length ?? 0
-    } distances`
-  );
+    const res = await axios.post(url, body);
+    console.log(`Matrix Response --------------------- 3`);
+    console.log(`Matrix Response: ${res.data}`);
 
-  // HERE response mapping
-  // https://developer.here.com/documentation/matrix-routing-api/dev_guide/topics/response.html
-  // matrixTravelTimes is always present, matrixDistances is optional
-  const estimates: MatrixResult["estimates"] = [];
-  const size = destinations.length;
+    console.log(
+      `Matrix result: ${res.data.matrixTravelTimes.length} travel times, ${
+        res.data.matrixDistances?.length ?? 0
+      } distances`
+    );
 
-  res.data.matrixTravelTimes.forEach(
-    (travelTime: number | null, idx: number) => {
-      const row = Math.floor(idx / size);
-      const col = idx % size;
+    // HERE response mapping
+    // https://developer.here.com/documentation/matrix-routing-api/dev_guide/topics/response.html
+    // matrixTravelTimes is always present, matrixDistances is optional
+    const estimates: MatrixResult["estimates"] = [];
+    const size = destinations.length;
 
-      estimates.push({
-        origin: origins[row],
-        destination: destinations[col],
-        distanceKm: res.data.matrixDistances
-          ? res.data.matrixDistances[idx]
-          : null,
-        duration: travelTime,
-      });
-    }
-  );
+    res.data.matrixTravelTimes.forEach(
+      (travelTime: number | null, idx: number) => {
+        const row = Math.floor(idx / size);
+        const col = idx % size;
 
-  return {
-    origins,
-    destinations,
-    estimates,
-  } as MatrixResult;
+        estimates.push({
+          origin: origins[row],
+          destination: destinations[col],
+          distanceKm: res.data.matrixDistances
+            ? res.data.matrixDistances[idx]
+            : null,
+          duration: travelTime,
+        });
+      }
+    );
+
+    return {
+      origins,
+      destinations,
+      estimates,
+    } as MatrixResult;
+  } catch (error) {
+    console.error(`[Metrix Request Failed]: ${error}`);
+    throw new Error(error instanceof Error ? error.message : String(error));
+  }
 };
 
 const hereMapService = {

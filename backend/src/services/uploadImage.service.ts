@@ -1,14 +1,13 @@
 // services/uploadImage.service.ts
 
-import pool from "../database";
-import { ImageFor } from "../enums";
+import pool from "../config/database";
+import { ImageFor } from "../types/enums";
 
 export const insertOrUpdateImageByType = async (
   imageFor: ImageFor,
   imageBuffer: Buffer,
   referenceId?: string // now optional
 ) => {
- 
   let query = "";
   let params: any[] = [];
 

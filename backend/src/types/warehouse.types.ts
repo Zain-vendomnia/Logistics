@@ -14,20 +14,19 @@ export type WarehouseVehicle = {
 
 export interface Warehouse {
   id: number;
-  warehouse_name?: string;
   name?: string;
+  town: string;
+  zipcode?: string;
+  address?: string;
+  lat: number;
+  lng: number;
+  zip_codes_delivering: string;
+  colorCode: string;
+  email?: string;
   clerk_name?: string;
   clerkName?: string;
   clerk_mob?: number;
   clerkMob?: number;
-  address?: string;
-  zipcode?: string;
-  lat?: number;
-  lng?: number;
-  town?: string;
-  colorCode?: string;
-  zip_codes_delivering?: string;
-  email?: string;
   is_active?: boolean;
   createdAt?: string;
   updatedAt?: string;

@@ -1,9 +1,8 @@
 import pool from "../database";
 import { RowDataPacket } from "mysql2";
-import { LOGIC_ORDER_ITEMS_TABLE } from "../services/tableQueries";
+import { LOGIC_ORDER_ITEMS_TABLE } from "../../services/tableQueries";
 
 const logisticOrderItemsSetup = async () => {
-  
   try {
     console.log("Checking if 'logistic_order_items' table exists...");
 
@@ -12,7 +11,9 @@ const logisticOrderItemsSetup = async () => {
     );
 
     if (rows.length > 0) {
-      console.log("Table 'logistic_order_items' exists. Verifying structure...");
+      console.log(
+        "Table 'logistic_order_items' exists. Verifying structure..."
+      );
       // Optional: Add structure verification here
       return;
     }

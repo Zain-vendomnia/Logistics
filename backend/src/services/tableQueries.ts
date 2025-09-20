@@ -2,19 +2,20 @@ export const CREATE_WAREHOUSE_DETAILS_TABLE = `
 CREATE TABLE IF NOT EXISTS warehouse_details (
     warehouse_id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     warehouse_name VARCHAR(100) NOT NULL,
-    clerk_name VARCHAR(45) NOT NULL,
-    clerk_mob VARCHAR(20) NOT NULL,
+    latitude DECIMAL(10,7) DEFAULT NULL,
+    longitude DECIMAL(10,7) DEFAULT NULL,
+    zip_code VARCHAR(12) NOT NULL,
+    zip_codes_delivering TEXT DEFAULT NULL,
+    color_code VARCHAR(7) DEFAULT NULL,
+    town VARCHAR(60) NOT NULL,
     address VARCHAR(110) NOT NULL,
     email VARCHAR(45) NOT NULL,
+    clerk_name VARCHAR(45) NOT NULL,
+    clerk_mob VARCHAR(20) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
-    updated_by VARCHAR(45) DEFAULT NULL,
-    zip_code VARCHAR(12) NOT NULL,
-    town VARCHAR(60) NOT NULL,
-    zip_codes_delivering TEXT DEFAULT NULL
-    color_code VARCHAR(7) DEFAULT NULL
-);
-  
+    updated_by VARCHAR(45) DEFAULT NULL
+);  
 `;
 
 export const INSERT_WAREHOUSE_DETAILS_DATA = `
@@ -84,8 +85,8 @@ export const CREATE_DRIVER_LOCATIONS_TABLE = `
     id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     tour_id INT NOT NULL,
     driver_id INT NOT NULL,
-    latitude DECIMAL(10,8) NOT NULL,
-    longitude DECIMAL(11,8) NOT NULL,
+    latitude DECIMAL(10,7) NOT NULL,
+    longitude DECIMAL(10,7) NOT NULL,
     route_segment_id INT NOT NULL,
     comments VARCHAR(45),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -131,7 +132,9 @@ export const CREATE_TOUR_INFO_MASTER_TABLE = `
     graphhopper_route JSON,
     heremap_route JSON,
     tour_status ENUM('pending', 'live', 'confirmed', 'completed') DEFAULT 'pending',
+    created_by VARCHAR(45) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_by VARCHAR(45) NOT NULL,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
     tour_total_estimate_time TIME,
     overall_performance_rating DECIMAL(2,1) DEFAULT 0.00,
@@ -145,8 +148,8 @@ export const CREATE_ROUTE_UPDATES_TABLE = `
     id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     tour_id INT NOT NULL,
     driver_id INT NOT NULL,
-    latitude VARCHAR(45) NOT NULL,
-    longitude VARCHAR(45) NOT NULL,
+    latitude DECIMAL(10,7) NOT NULL,
+    longitude DECIMAL(10,7) NOT NULL,
     current_location VARCHAR(45) NOT NULL,
     customer_id VARCHAR(45) NOT NULL,
     status VARCHAR(45) NOT NULL,
@@ -214,13 +217,13 @@ export const LOGIC_ORDER_TABLE = `
     zipcode VARCHAR(10) NOT NULL,
     city VARCHAR(45) NOT NULL,
     phone VARCHAR(45) NOT NULL,
-    lattitude DECIMAL(10,7),
+    latitude DECIMAL(10,7),
     longitude DECIMAL(10,7),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
     status ENUM('initial', 'unassigned', 'assigned', 'inTransit', 'delivered', 'rescheduled', 'canceled') NOT NULL DEFAULT 'initial',
-    tracking_code    VARCHAR(100),
-    order_status_id  INT
+    tracking_code VARCHAR(100),
+    order_status_id INT
   );
 `;
 
@@ -320,16 +323,16 @@ export const CREATE_WHATSAPPCHATS_TABLE = `
 export const CREATE_DYNAMIC_TOURS_TABLE = `
   CREATE TABLE IF NOT EXISTS dynamic_tours (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, 
-    tour_name VARCHAR(45) NOT NULL UNIQUE,
+    tour_name VARCHAR(45) UNIQUE,
     tour_route JSON NOT NULL,
     tour_data JSON NOT NULL,
     orderIds TEXT NOT NULL, 
     warehouse_id INT NOT NULL,
     approved_by VARCHAR(45) DEFAULT NULL, 
-    approved_at DATETIME DEFAULT NULL
+    approved_at DATETIME DEFAULT NULL,
     updated_by VARCHAR(45) DEFAULT NULL, 
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, 
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP, 
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 `;
 

@@ -1,6 +1,6 @@
 import pool from "../database";
 import { RowDataPacket } from "mysql2";
-import { CREATE_TOUR_TRACES_TABLE } from "../services/tableQueries";
+import { CREATE_TOUR_TRACES_TABLE } from "../../services/tableQueries";
 
 const TourTracesSetup = async () => {
   try {

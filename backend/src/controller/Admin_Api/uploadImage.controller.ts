@@ -1,7 +1,7 @@
 // controller/Admin_Api/uploadImage.controller.ts
 
 import { Request, Response } from "express";
-import { ImageFor } from "../../enums";
+import { ImageFor } from "../../types/enums";
 import { base64ToBuffer } from "../../utils/imageConverter";
 import { insertOrUpdateImageByType } from "../../services/uploadImage.service";
 
@@ -10,8 +10,8 @@ export const uploadImageController = async (req: Request, res: Response) => {
     const { image_base64, image_for, reference_id } = req.body;
 
     if (!image_base64 || !image_for) {
-      return res.status(400).json({ 
-        message: "image_base64 and image_for are required" 
+      return res.status(400).json({
+        message: "image_base64 and image_for are required",
       });
     }
 

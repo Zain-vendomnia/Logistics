@@ -9,6 +9,11 @@ export async function getWarehouseToOrdersMetrix(
   orders: Order[]
 ) {
   try {
+    console.log(`Begin Matrix Call --------------------- 1`);
+    console.log(
+      `Warehouse ${warehouse.id} Orders ${orders.map((o) => o.order_id)}`
+    );
+
     const origins: LocationMeta[] = [
       {
         lat: warehouse.lat!,
@@ -24,7 +29,16 @@ export async function getWarehouseToOrdersMetrix(
       zipcode: o.zipcode!,
     }));
 
+    console.log(`Matrix Request send --------------------- 2`);
     const matrixRes = await matrixEstimate(origins, destinations);
+
+    console.log(`Matrix Response --------------------- 3`);
+    console.log(
+      `Matrix from WH ${warehouse.id} to ${orders.length} orders:`,
+      matrixRes
+    );
+
+    debugger;
 
     // total duration ≈ max travel time from warehouse to farthest destination
     const tourDurationSec = Math.max(

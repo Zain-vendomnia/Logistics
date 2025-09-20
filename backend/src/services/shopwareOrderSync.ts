@@ -1,7 +1,9 @@
 import axios from "axios";
 import dotenv from "dotenv";
 import { RowDataPacket } from "mysql2";
-import pool from "../database"; // adjust if needed
+import pool from "../config/database";
+import { LogisticOrder } from "../model/LogisticOrders";
+import { enqueueOrder } from "../config/eventBus";
 
 dotenv.config();
 
@@ -26,11 +28,14 @@ export async function shopwareOrderSync() {
     let params: any = {};
 
     if (!rows.length || rows[0].maxOrderId === null) {
-      params = { from_date: "2025-08-10" }; // adjust as needed
-      console.log("Date condition is running...")
+      params = { from_date: "2024-08-10" }; // adjust as needed
+      console.log("Date condition is running...");
     } else {
       params = { last_order_id: rows[0].maxOrderId };
-      console.log("last order number condition is running... ", rows[0].maxOrderId);
+      console.log(
+        "last order number condition is running... ",
+        rows[0].maxOrderId
+      );
     }
 
     // Step 2: Call Shopware API
@@ -74,7 +79,7 @@ export async function shopwareOrderSync() {
           shipping_zipcode: item.shipping_zipcode,
           shipping_city: item.shipping_city,
           shipping_phone: item.shipping_phone,
-          OrderDetails: []
+          OrderDetails: [],
         });
       }
 
@@ -84,11 +89,17 @@ export async function shopwareOrderSync() {
             slmdl_article_id: detail.slmdl_article_id,
             slmdl_articleordernumber: detail.slmdl_articleordernumber,
             slmdl_quantity: detail.slmdl_quantity,
-            warehouse_id: detail.warehouse_id
+            warehouse_id: detail.warehouse_id,
           });
         });
       }
     }
+
+    console.warn(
+      `Fetched Orders [][] ${Array.from(ordersMap.entries())
+        .map(([key, value]) => `${key}: ${JSON.stringify(value)}`)
+        .join(", ")}`
+    );
 
     const orders = Array.from(ordersMap.values());
     console.log(`🗃️ Found ${orders.length} unique orders.`);
@@ -97,8 +108,12 @@ export async function shopwareOrderSync() {
     const [existingOrders] = await pool.query<RowDataPacket[]>(
       "SELECT order_number FROM logistic_order"
     );
-    const existingOrderNumbers = new Set(existingOrders.map(o => o.order_number));
-    const newOrders = orders.filter(order => !existingOrderNumbers.has(order.ordernumber));
+    const existingOrderNumbers = new Set(
+      existingOrders.map((o) => o.order_number)
+    );
+    const newOrders = orders.filter(
+      (order) => !existingOrderNumbers.has(order.ordernumber)
+    );
 
     if (newOrders.length === 0) {
       console.log("✔️ No new orders to insert.");
@@ -111,75 +126,37 @@ export async function shopwareOrderSync() {
     try {
       for (const order of newOrders) {
         if (!order.OrderDetails || order.OrderDetails.length === 0) {
-          console.warn(`⚠️ Skipping order ${order.ordernumber} due to missing OrderDetails.`);
+          console.warn(
+            `⚠️ Skipping order ${order.ordernumber} due to missing OrderDetails.`
+          );
           continue;
         }
 
-        const warehouse_id = order.OrderDetails[0].warehouse_id ?? 0;
-        const expectedDelivery = new Date(order.ordertime);
-        expectedDelivery.setDate(expectedDelivery.getDate() + 14);
+        const orderId = await LogisticOrder.createOrderAsync(order);
 
-        const [result] = await pool.query(
-          `INSERT INTO logistic_order (
-            shopware_order_id, order_number, customer_id, invoice_amount, payment_id,
-            tracking_code,order_status_id,
-            warehouse_id, order_time, expected_delivery_time, customer_number,
-            firstname, lastname, email, street, zipcode, city, phone
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [
-            order.shopware_order_id,
-            order.ordernumber,
-            order.user_id,
-            order.invoice_amount,
-            order.paymentID,
-            order.trackingCode,
-            order.orderStatusID,
-            warehouse_id,
-            order.ordertime,
-            expectedDelivery.toISOString().slice(0, 19).replace("T", " "),
-            order.customernumber,
-            order.shipping_firstname || order.user_firstname,
-            order.shipping_lastname || order.user_lastname,
-            order.user_email,
-            order.shipping_street,
-            order.shipping_zipcode,
-            order.shipping_city,
-            order.shipping_phone
-          ]
+        console.log(
+          `✅ Inserted order Id: ${orderId} - 
+          ${order.ordernumber} with ${order.OrderDetails.length} items.`
         );
 
-        const orderId = (result as any).insertId;
-
-        for (const item of order.OrderDetails) {
-          await pool.query(
-            `INSERT INTO logistic_order_items (
-              order_id, order_number, slmdl_article_id,
-              slmdl_articleordernumber, quantity, warehouse_id
-            ) VALUES (?, ?, ?, ?, ?, ?)`,
-            [
-              orderId,
-              order.ordernumber,
-              item.slmdl_article_id,
-              item.slmdl_articleordernumber,
-              item.slmdl_quantity,
-              item.warehouse_id
-            ]
-          );
-        }
-
-        console.log(`✅ Inserted order ${order.ordernumber} with ${order.OrderDetails.length} items.`);
+        enqueueOrder(orderId);
       }
 
       await pool.query("COMMIT");
       console.log(`🎉 Successfully inserted ${newOrders.length} new orders.`);
     } catch (err) {
       await pool.query("ROLLBACK");
-      console.error("❌ Rolled back transaction due to error:", err instanceof Error ? err.message : String(err));
+      console.error(
+        "❌ Rolled back transaction due to error:",
+        err instanceof Error ? err.message : String(err)
+      );
       throw err;
     }
-
   } catch (error: any) {
-    console.error("❌ Error during Shopware order sync:", error?.response?.data || error.message);
-    return null;
+    console.error(
+      "❌ Error during Shopware order sync:",
+      error?.response?.data || error.message
+    );
+    throw error;
   }
 }

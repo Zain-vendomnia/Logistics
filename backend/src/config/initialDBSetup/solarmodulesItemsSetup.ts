@@ -1,6 +1,6 @@
 import pool from "../database";
 import { RowDataPacket } from "mysql2";
-import { CREATE_SOLARMODULES_ITEMS_TABLE } from "../services/tableQueries";
+import { CREATE_SOLARMODULES_ITEMS_TABLE } from "../../services/tableQueries";
 
 const defaultSolarItems = [
   { slmdl_code: "SLMDL550P-00-00-00", weight: 26.5 },
@@ -18,7 +18,9 @@ const solarItemsSetup = async () => {
   try {
     console.log("Checking if 'solarmodules_items' table exists...");
 
-    const [tables] = await pool.query<RowDataPacket[]>("SHOW TABLES LIKE 'solarmodules_items'");
+    const [tables] = await pool.query<RowDataPacket[]>(
+      "SHOW TABLES LIKE 'solarmodules_items'"
+    );
     if (tables.length === 0) {
       console.log("Table not found. Creating 'solarmodules_items' table...");
       await pool.query(CREATE_SOLARMODULES_ITEMS_TABLE);
@@ -28,17 +30,23 @@ const solarItemsSetup = async () => {
     }
 
     // Check if the table has any rows
-    const [rows] = await pool.query<RowDataPacket[]>("SELECT COUNT(*) as count FROM solarmodules_items");
+    const [rows] = await pool.query<RowDataPacket[]>(
+      "SELECT COUNT(*) as count FROM solarmodules_items"
+    );
     const rowCount = rows[0]?.count || 0;
 
     if (rowCount === 0) {
       console.log("Table is empty. Inserting default solar module items...");
-      
+
       const insertQuery = `
         INSERT INTO solarmodules_items (module_name, weight, updated_by)
         VALUES ?
       `;
-      const values = defaultSolarItems.map(item => [item.slmdl_code, item.weight, 'system']);
+      const values = defaultSolarItems.map((item) => [
+        item.slmdl_code,
+        item.weight,
+        "system",
+      ]);
 
       await pool.query(insertQuery, [values]);
       console.log("Default solar module items inserted.");
@@ -46,7 +54,10 @@ const solarItemsSetup = async () => {
       console.log("Table already has data. No items inserted.");
     }
   } catch (error) {
-    console.error("Error during solarItemsSetup:", error instanceof Error ? error.message : String(error));
+    console.error(
+      "Error during solarItemsSetup:",
+      error instanceof Error ? error.message : String(error)
+    );
   }
 };
 

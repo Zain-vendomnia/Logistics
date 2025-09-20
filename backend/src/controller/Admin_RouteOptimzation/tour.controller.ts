@@ -3,7 +3,7 @@ import { deleteTours, updateTour } from "../../model/tourModel";
 import { tourInfo_master } from "../../model/TourinfoMaster";
 // import { createRoutedata } from "../../services/createRoutedata";
 import { route_segments } from "../../model/routeSegments";
-import pool from "../../database";
+import pool from "../../config/database";
 import { CreateTour } from "../../types/dto.types";
 import { ResultSetHeader } from "mysql2";
 import {

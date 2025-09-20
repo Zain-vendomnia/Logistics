@@ -1,6 +1,6 @@
 import pool from "../database";
 import { RowDataPacket } from "mysql2";
-import { CREATE_VEHICLE_DETAILS_TABLE } from "../services/tableQueries";
+import { CREATE_VEHICLE_DETAILS_TABLE } from "../../services/tableQueries";
 
 const vehicleDetailsSetup = async () => {
   try {

@@ -1,8 +1,8 @@
-import pool from "../database";
+import pool from "../config/database";
 import { WarehouseDetailsDto } from "../types/dto.types";
-import { LocationMeta } from "../types/tour.types";
 import { Warehouse, WarehouseZipcodes } from "../types/warehouse.types";
 import { geocode } from "./hereMap.service";
+import { Location } from "../types/hereMap.types";
 
 export const getAllWarehouses = async () => {
   const [rows] = await pool.query("SELECT * FROM warehouse_details");
@@ -38,7 +38,7 @@ export const getWarehouseWithVehicles = async (
 ): Promise<Warehouse> => {
   const [rows]: any = await pool.execute(
     `SELECT
-       wd.*
+       wd.*,
        vd.vehicle_id,
        vd.capacity,
        vd.license_plate,
@@ -61,6 +61,8 @@ export const getWarehouseWithVehicles = async (
     address: rows[0].address,
     zipcode: rows[0].zip_code,
     town: rows[0].town,
+    lat: rows[0].latitude,
+    lng: rows[0].longitude,
     colorCode: rows[0].color_code,
     zip_codes_delivering: rows[0].zip_codes_delivering,
     email: rows[0].email,
@@ -83,49 +85,49 @@ export const getActiveWarehousesWithVehicles = async (): Promise<
 > => {
   const [rows]: any = await pool.execute(
     `SELECT
-       wd.warehouse_id,
-       wd.warehouse_name,
-       wd.clerk_name,
-       wd.clerk_mob,
-       wd.address,
-       wd.email,
-       wd.created_at,
-       wd.updated_at,
+       wd.*,
        vd.vehicle_id,
        vd.capacity,
        vd.license_plate,
        vd.driver_id
      FROM warehouse_details wd
-     LEFT JOIN vehicle_details vd
+     LEFT JOIN vehicle_details vd 
      ON wd.warehouse_id = vd.warehouse_id
-     WHERE wd.is_active = 1`
+     WHERE is_active = 1`
   );
 
   if (!rows.length) return [];
 
   const warehouses = new Map<number, any>();
 
-  for (const row of rows) {
-    if (!warehouses.has(row.warehouse_id)) {
-      warehouses.set(row.warehouse_id, {
-        id: row.warehouse_id as number,
-        name: row.warehouse_name,
-        clerkName: row.clerk_name,
-        clerkMob: row.clerk_mob,
-        address: row.address,
-        email: row.email,
-        createdAt: row.created_at,
-        updatedAt: row.updated_at,
+  for (let i = 0; i < rows.length; i++) {
+    if (!warehouses.has(rows[i].warehouse_id)) {
+      warehouses.set(rows[i].warehouse_id, {
+        id: rows[i].warehouse_id,
+        name: rows[i].warehouse_name,
+        clerkName: rows[i].clerk_name,
+        clerkMob: rows[i].clerk_mob,
+        address: rows[i].address,
+        zipcode: rows[i].zip_code,
+        town: rows[i].town,
+        lat: rows[i].latitude,
+        lng: rows[i].longitude,
+        colorCode: rows[i].color_code,
+        zip_codes_delivering: rows[i].zip_codes_delivering,
+        email: rows[i].email,
+        createdAt: rows[i].created_at,
+        updatedAt: rows[i].updated_at,
+        updatedBy: rows[i].updated_by,
         vehicles: [],
       });
     }
 
-    if (row.vehicle_id) {
-      warehouses.get(row.warehouse_id).vehicles.push({
-        id: row.vehicle_id,
-        capacity: row.capacity,
-        licensePlate: row.license_plate,
-        driverId: row.driver_id,
+    if (rows[i].vehicle_id) {
+      warehouses.get(rows[i].warehouse_id).vehicles.push({
+        id: rows[i].vehicle_id,
+        capacity: rows[i].capacity,
+        licensePlate: rows[i].license_plate,
+        driverId: rows[i].driver_id,
       });
     }
   }
@@ -159,6 +161,7 @@ export const createWarehouse = async (warehouse: {
     throw err;
   }
 };
+
 export const updateWarehouse = async (
   id: number,
   warehouse: Warehouse
@@ -170,12 +173,22 @@ export const updateWarehouse = async (
 
     const [result] = await connection.query(
       `UPDATE warehouse_details 
-       SET clerk_name = ?, clerk_mob = ?, address = ?, email = ?, is_active = ? 
+       SET warehouse_name = ?, address = ?, town = ?,
+       latitude = ?, longitude = ?,
+       zip_code = ?, zip_codes_delivering = ?, color_code = ?,
+       clerk_name = ?, clerk_mob = ?, email = ?, is_active = ? 
        WHERE warehouse_id = ?`,
       [
+        warehouse.name,
+        warehouse.address,
+        warehouse.town,
+        warehouse.lat,
+        warehouse.lng,
+        warehouse.zipcode,
+        warehouse.zip_codes_delivering,
+        warehouse.colorCode,
         warehouse.clerk_name,
         warehouse.clerk_mob,
-        warehouse.address,
         warehouse.email,
         warehouse.is_active,
         id,
@@ -375,6 +388,32 @@ export const getWarehouseZipcodesRecord = async (
 
   return result;
 };
+
+export async function getWarehouseLocationCords(
+  warehouse: Warehouse
+): Promise<Location | null> {
+  try {
+    const address = `${warehouse.address}, ${warehouse.town}`;
+    console.log(
+      `Calling HERE Map geocode() for Warehouse ${warehouse.id} address: ${address} `
+    );
+
+    const location: Location = await geocode(address);
+    (warehouse.lat = location.lat), (warehouse.lng = location.lng);
+    const isUpdated = await updateWarehouse(warehouse.id, warehouse);
+    if (!isUpdated) {
+      console.error(
+        `Warehouse ${warehouse.id} update failed for Location: ${location}`
+      );
+      return null;
+    }
+
+    return location;
+  } catch (error) {
+    console.error(`Error`);
+    throw new Error(error instanceof Error ? error.message : String(error));
+  }
+}
 
 // export const estimateWarehouseDeliveryTimes = async (warehouseId: number) => {
 //   // 1. Fetch warehouse + zipcodes

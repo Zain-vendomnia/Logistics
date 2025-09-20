@@ -35,6 +35,7 @@ export interface DynamicTourPayload {
 
   warehouse_id: number;
   warehouse_name?: string;
+  warehouse_town?: string;
   warehouse_colorCode?: string;
 
   created_at?: string | null;

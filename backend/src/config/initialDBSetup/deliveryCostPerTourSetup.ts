@@ -1,6 +1,6 @@
 import pool from "../database";
 import { RowDataPacket } from "mysql2";
-import { CREATE_Delivery_Cost_Per_Tour_Table } from "../services/tableQueries";
+import { CREATE_Delivery_Cost_Per_Tour_Table } from "../../services/tableQueries";
 
 const deliveryCostPerToursSetup = async () => {
   try {
