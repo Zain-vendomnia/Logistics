@@ -13,8 +13,6 @@ declare module "socket.io" {
 }
 
 let io: Server;
-
-// Store admin connections for broadcasting customer updates
 const adminConnections = new Set<string>();
 
 export const initSocket = (app: express.Application) => {
@@ -22,7 +20,7 @@ export const initSocket = (app: express.Application) => {
 
   io = new Server(server, {
     cors: {
-      origin: "*", // adjust to your frontend origin in production
+      origin: "*",
       methods: ["GET", "POST"],
     },
   });
@@ -39,7 +37,7 @@ export const initSocket = (app: express.Application) => {
       const decoded = jwt.verify(token, config.SECRET) as any;
       socket.user = decoded;
       socket.userId = decoded.id;
-      socket.userRole = decoded.role || 'admin'; // Default to admin for now
+      socket.userRole = decoded.role || 'admin';
       next();
     } catch (error) {
       next(new Error("Invalid authentication token"));
@@ -54,81 +52,42 @@ export const initSocket = (app: express.Application) => {
       if (socket.userRole === 'admin' || socket.userRole === 'support') {
         socket.join('admin-room');
         adminConnections.add(socket.id);
-        console.log(`Admin ${socket.id} joined admin room`);
-      } else {
-        console.log(`Non-admin user ${socket.id} attempted to join admin room`);
+        socket.emit('request-initial-customer-list', {
+          socketId: socket.id,
+          timestamp: new Date().toISOString()
+        });
       }
     });
 
-    // Handle leaving admin room
     socket.on("leave-admin-room", () => {
       socket.leave('admin-room');
       adminConnections.delete(socket.id);
-      console.log(`Admin ${socket.id} left admin room`);
+    });
+
+    // Handle customer list refresh requests - OPTIMIZED
+    socket.on("refresh-customer-list", () => {
+      if (socket.userRole !== 'admin' && socket.userRole !== 'support') {
+        socket.emit('customer-list-error', {
+          error: 'Unauthorized',
+          timestamp: new Date().toISOString()
+        });
+        return;
+      }
+      socket.emit('request-customer-list-refresh', {
+        socketId: socket.id,
+        timestamp: new Date().toISOString()
+      });
     });
 
     // Join order-specific room
     socket.on("join-order", (orderId: string) => {
-      if (!orderId) {
-        console.error("No orderId provided for join-order");
-        return;
-      }
-      const roomName = `order-${orderId}`;
-      socket.join(roomName);
-      console.log(`Socket ${socket.id} joined room: ${roomName}`);
+      if (!orderId) return;
+      socket.join(`order-${orderId}`);
     });
 
-    // Leave order-specific room
     socket.on("leave-order", (orderId: string) => {
-      if (!orderId) {
-        console.error("No orderId provided for leave-order");
-        return;
-      }
-      const roomName = `order-${orderId}`;
-      socket.leave(roomName);
-      console.log(`Socket ${socket.id} left room: ${roomName}`);
-    });
-
-    // Handle customer status updates
-    socket.on("update-customer-status", (data: { orderId: number; status: string }) => {
-      const { orderId, status } = data;
-      
-      // Broadcast to all admins
-      socket.to('admin-room').emit('customer-status-update', {
-        orderId,
-        status,
-        lastSeen: new Date().toISOString()
-      });
-      
-      console.log(`Customer status updated: Order ${orderId} -> ${status}`);
-    });
-
-    // Handle direct message sending via socket
-    socket.on("send-message", (data: { orderId: string; sender: string; content: string; type: string }) => {
-      const { orderId, sender, content, type } = data;
-
-      if (!orderId || !sender || !content) {
-        socket.emit("message-error", { error: "Missing required fields" });
-        return;
-      }
-
-      const roomName = `order-${orderId}`;
-      const message = {
-        id: `temp-${Date.now()}`, // temporary ID, replace with DB ID when saving
-        orderId,
-        sender,
-        content,
-        type: type || "text",
-        timestamp: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        created_at: new Date().toISOString(),
-      };
-
-      // Broadcast to all clients in the room
-      io.to(roomName).emit("new-message", message);
-      console.log(`Message sent to room ${roomName}:`, message);
+      if (!orderId) return;
+      socket.leave(`order-${orderId}`);
     });
 
     // Cleanup on disconnect
@@ -141,15 +100,12 @@ export const initSocket = (app: express.Application) => {
   return server;
 };
 
-// Export function to get IO instance
 export const getIO = (): Server => {
-  if (!io) {
-    throw new Error('Socket.io not initialized');
-  }
+  if (!io) throw new Error('Socket.io not initialized');
   return io;
 };
 
-// Global event emitter
+// Global event emitter - KEEPING FOR OTHER FEATURES
 export const emitEvent = (event: string, payload: any) => {
   if (!io) {
     console.warn(`Socket.IO not initialized. Event '${event}' not emitted.`);
@@ -159,103 +115,76 @@ export const emitEvent = (event: string, payload: any) => {
   console.log(`Event emitted: ${event}`, payload);
 };
 
-// newOrder event emitter
+// newOrder event emitter - KEEPING FOR OTHER FEATURES
 export const emitNewOrder = (order: any) => {
   emitEvent("new-order", order);
 };
 
-// Join order room programmatically
-export const joinOrderRoom = (socketId: string, orderId: string) => {
+// OPTIMIZED: Helper for room emissions
+const emitToRoom = (room: string, event: string, data: any) => {
   if (!io) return;
-  const socket = io.sockets.sockets.get(socketId);
-  if (socket) {
-    const roomName = `order-${orderId}`;
-    socket.join(roomName);
-    console.log(`Socket ${socketId} programmatically joined room: ${roomName}`);
-  }
+  io.to(room).emit(event, data);
 };
 
-// Leave order room programmatically
-export const leaveOrderRoom = (socketId: string, orderId: string) => {
-  if (!io) return;
-  const socket = io.sockets.sockets.get(socketId);
-  if (socket) {
-    const roomName = `order-${orderId}`;
-    socket.leave(roomName);
-    console.log(`Socket ${socketId} programmatically left room: ${roomName}`);
-  }
-};
+// OPTIMIZED: Chat message functions
+export const emitMessageToOrder = (orderId: string, message: any) => 
+  emitToRoom(`order-${orderId}`, "new-message", message);
 
-// Emit message to specific order room with consistent room naming
-export const emitMessageToOrder = (orderId: string, message: any) => {
-  if (!io) {
-    console.warn('Socket.IO not initialized. Message not emitted.');
-    return;
-  }
-  
-  // Use consistent room naming: order-{orderId} (matching your existing pattern)
-  const roomName = `order-${orderId}`;
-  io.to(roomName).emit("new-message", message);
-  console.log(`Message emitted to room ${roomName}:`, message.id);
-};
+export const emitMessageUpdate = (orderId: string, tempId: string, updatedMessage: any) =>
+  emitToRoom(`order-${orderId}`, "message-updated", { tempId, message: updatedMessage });
 
-// Emit message updates (for optimistic UI updates)
-export const emitMessageUpdate = (orderId: string, tempId: string, updatedMessage: any) => {
-  if (!io) {
-    console.warn('Socket.IO not initialized. Message update not emitted.');
-    return;
-  }
-  
-  const roomName = `order-${orderId}`;
-  io.to(roomName).emit("message-updated", {
-    tempId,
-    message: updatedMessage
+export const emitMessageStatusUpdate = (orderId: string, messageId: string, statusUpdate: any) =>
+  emitToRoom(`order-${orderId}`, "message-status-updated", { messageId, update: statusUpdate });
+
+// OPTIMIZED: Customer list functions
+export const sendInitialCustomerList = (socketId: string, customers: any[]) => {
+  const socket = io?.sockets.sockets.get(socketId);
+  socket?.emit('customer-list-initial', {
+    customers,
+    timestamp: new Date().toISOString()
   });
-  console.log(`Message update emitted to room ${roomName}:`, { tempId, messageId: updatedMessage.id });
 };
 
-// Emit message status updates (for delivery status changes)
-export const emitMessageStatusUpdate = (orderId: string, messageId: string, statusUpdate: any) => {
-  if (!io) {
-    console.warn('Socket.IO not initialized. Status update not emitted.');
-    return;
-  }
-  
-  const roomName = `order-${orderId}`;
-  io.to(roomName).emit("message-status-updated", {
-    messageId,
-    update: statusUpdate
+export const sendCustomerListRefresh = sendInitialCustomerList;
+
+export const sendCustomerListError = (socketId: string, errorMessage: string, triggerReason?: string) => {
+  const socket = io?.sockets.sockets.get(socketId);
+  socket?.emit('customer-list-error', {
+    error: errorMessage,
+    timestamp: new Date().toISOString(),
+    triggerReason
   });
-  console.log(`Status update emitted to room ${roomName}:`, { messageId, statusUpdate });
 };
 
-// MAIN FUNCTION: Single customer update broadcast (replaces multiple events)
+export const broadcastCustomerList = (customers: any[], triggerReason?: string) =>
+  emitToRoom('admin-room', 'customer-list-update', {
+    customers,
+    timestamp: new Date().toISOString(),
+    triggerReason
+  });
+
+export const broadcastSingleCustomerUpdate = (customer: any, updateType: string, additionalData?: any) =>
+  emitToRoom('admin-room', 'customer-single-update', {
+    customer,
+    updateType,
+    timestamp: new Date().toISOString(),
+    additionalData
+  });
+
+// KEEPING BUT SIMPLIFIED: Legacy customer update function
 export const broadcastCustomerUpdate = (
   orderId: number,
   message: any,
   customerInfo: any,
   unreadCount: number
 ) => {
-  if (!io) {
-    console.warn('Socket.IO not initialized. Customer update not broadcasted.');
-    return;
-  }
-
-  // Check if admin room has any connections
-  const adminRoom = io.sockets.adapter.rooms.get('admin-room');
-  if (!adminRoom || adminRoom.size === 0) {
-    console.warn('No admins connected to broadcast customer update');
-    return;
-  }
-
-  const updateData = {
+  emitToRoom('admin-room', 'customer-list-update', {
     orderId,
     customerName: customerInfo.name,
     customerPhone: customerInfo.phone,
-    // Message data
     message: {
       id: message.id,
-      content: message.content || message.body || '', // Handle empty content
+      content: message.content || message.body,
       timestamp: message.timestamp || message.created_at,
       direction: message.direction,
       type: message.type,
@@ -264,51 +193,33 @@ export const broadcastCustomerUpdate = (
       fileUrl: message.fileUrl,
       fileType: message.fileType
     },
-    // Unread count
     unreadCount,
-    // Timestamp for sorting
     lastActive: message.timestamp || message.created_at
-  };
-
-  // Single event for all admin updates
-  io.to('admin-room').emit('customer-list-update', updateData);
-  
-  console.log(`📡 Customer update broadcasted to ${adminRoom.size} admins: Order ${orderId}, Message: "${message.content || message.body || '[no content]'}", Unread: ${unreadCount}`);
+  });
 };
 
-// Broadcast customer status changes (online/offline)
-export const broadcastCustomerStatusUpdate = (orderId: number, status: string, lastSeen?: string) => {
-  if (!io) {
-    console.warn('Socket.IO not initialized. Customer status update not broadcasted.');
-    return;
-  }
-  
-  io.to('admin-room').emit('customer-status-update', {
+export const broadcastCustomerStatusUpdate = (orderId: number, status: string, lastSeen?: string) =>
+  emitToRoom('admin-room', 'customer-status-update', {
     orderId,
     status,
     lastSeen: lastSeen || new Date().toISOString()
   });
-  
-  console.log(`Broadcasting customer status: Order ${orderId} -> ${status}`);
+
+export const broadcastGlobalMessageStatus = (messageId: string, orderId: number, status: string) =>
+  emitToRoom('admin-room', 'global-message-status', { messageId, orderId, status });
+
+// OPTIMIZED: Utility functions
+export const getConnectedAdminSockets = (): string[] => {
+  const room = io?.sockets.adapter.rooms.get('admin-room');
+  return room ? Array.from(room) : [];
 };
 
-// Broadcast global message status updates (delivery status)
-export const broadcastGlobalMessageStatus = (messageId: string, orderId: number, status: string) => {
-  if (!io) {
-    console.warn('Socket.IO not initialized. Global message status not broadcasted.');
-    return;
-  }
-  
-  io.to('admin-room').emit('global-message-status', {
-    messageId,
-    orderId,
-    status
-  });
-  
-  console.log(`Broadcasting global message status: Message ${messageId} -> ${status}`);
+export const hasConnectedAdmins = (): boolean => {
+  const room = io?.sockets.adapter.rooms.get('admin-room');
+  return !!(room && room.size > 0);
 };
 
-// Get room information (for debugging)
+// KEEPING FOR DEBUGGING PURPOSES
 export const getOrderRoomInfo = (orderId: string) => {
   if (!io) return null;
   const roomName = `order-${orderId}`;
@@ -320,7 +231,6 @@ export const getOrderRoomInfo = (orderId: string) => {
   };
 };
 
-// Get admin room information (for debugging)
 export const getAdminRoomInfo = () => {
   if (!io) return null;
   const room = io.sockets.adapter.rooms.get('admin-room');
@@ -332,20 +242,23 @@ export const getAdminRoomInfo = () => {
   };
 };
 
-// Debug function for monitoring customer updates
-export const debugCustomerUpdates = () => {
-  if (!io) return { error: 'Socket.IO not initialized' };
-  
-  const adminRoom = io.sockets.adapter.rooms.get('admin-room');
-  
-  return {
-    adminRoomExists: !!adminRoom,
-    adminRoomSize: adminRoom?.size || 0,
-    adminConnections: Array.from(adminConnections),
-    events: {
-      singleEvent: 'customer-list-update', // The single event we're using
-      // Note: Removed old events: global-new-message, unread-count-update
-    },
-    totalSockets: io.sockets.sockets.size
-  };
+// Join/Leave order room programmatically - KEEPING FOR OTHER FEATURES
+export const joinOrderRoom = (socketId: string, orderId: string) => {
+  if (!io) return;
+  const socket = io.sockets.sockets.get(socketId);
+  if (socket) {
+    const roomName = `order-${orderId}`;
+    socket.join(roomName);
+    console.log(`Socket ${socketId} programmatically joined room: ${roomName}`);
+  }
+};
+
+export const leaveOrderRoom = (socketId: string, orderId: string) => {
+  if (!io) return;
+  const socket = io.sockets.sockets.get(socketId);
+  if (socket) {
+    const roomName = `order-${orderId}`;
+    socket.leave(roomName);
+    console.log(`Socket ${socketId} programmatically left room: ${roomName}`);
+  }
 };

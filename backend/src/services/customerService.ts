@@ -1,4 +1,12 @@
 import pool from "../database";
+import { 
+  broadcastCustomerList, 
+  broadcastSingleCustomerUpdate,
+  sendInitialCustomerList,
+  sendCustomerListError,
+  hasConnectedAdmins,
+  getIO
+} from "../socket";
 
 export interface Customer {
   order_id: string;
@@ -12,14 +20,24 @@ export interface Customer {
   unreadCount: number;
 }
 
-// API Response interface for consistency
+interface DatabaseRow {
+  order_id: string;
+  order_number: string;
+  name: string;
+  phone?: string;
+  status?: string;
+  message_type?: string;
+  body?: string;
+  message_created_at?: Date;
+  unread_count: number;
+}
+
 interface ServiceResponse<T = any> {
   status: 'success' | 'error' | 'warning';
   message: string;
   data: T;
 }
 
-// Common base SQL query without WHERE clause
 const baseCustomerQuery = `
   SELECT 
     l.order_id,
@@ -27,90 +45,123 @@ const baseCustomerQuery = `
     TRIM(CONCAT(COALESCE(l.firstname, ''), ' ', COALESCE(l.lastname, ''))) AS name,
     l.phone,
     l.status,
-    
     wc.message_type,
     wc.body,
     wc.created_at AS message_created_at,
-    
     COALESCE(unread.unread_count, 0) AS unread_count
   FROM logistic_order l
   LEFT JOIN (
-    SELECT 
-      order_id,
-      message_type,
-      body,
-      created_at,
-      ROW_NUMBER() OVER (PARTITION BY order_id ORDER BY created_at DESC) AS rn
+    SELECT order_id, message_type, body, created_at,
+           ROW_NUMBER() OVER (PARTITION BY order_id ORDER BY created_at DESC) AS rn
     FROM whatsapp_chats 
     WHERE order_id IS NOT NULL AND order_id != ''
   ) wc ON l.order_id = wc.order_id AND wc.rn = 1
   LEFT JOIN (
-    SELECT 
-      order_id,
-      COUNT(*) AS unread_count
+    SELECT order_id, COUNT(*) AS unread_count
     FROM whatsapp_chats 
-    WHERE is_read = 0 
-      AND direction = 'inbound'
+    WHERE is_read = 0 AND direction = 'inbound'
     GROUP BY order_id
   ) unread ON l.order_id = unread.order_id
 `;
 
-// Map database row to Customer interface
-const mapRowToCustomer = (row: any): Customer => ({
+const mapRowToCustomer = (row: DatabaseRow): Customer => ({
   order_id: row.order_id,
   order_number: row.order_number,
   name: row.name || "Unknown Customer",
   phone: row.phone,
   message_type: row.message_type,
   status: row.status,
-  lastMessage: row.body,
-  timestamp: row.message_created_at,
+  lastMessage: row.body || "",
+  timestamp: row.message_created_at?.toISOString(),
   unreadCount: row.unread_count || 0,
 });
 
-// Get all customers (returns array directly for backward compatibility)
+export const initializeCustomerServiceSocketListeners = () => {
+  try {
+    const io = getIO();
+    io.on('connection', (socket) => {
+      socket.on('request-initial-customer-list', async (data) => {
+        try {
+          const customers = await getAllCustomers();
+          sendInitialCustomerList(data.socketId, customers);
+        } catch (error) {
+          sendCustomerListError(data.socketId, 'Failed to load initial customer list', 'initial_load');
+        }
+      });
+
+      socket.on('request-customer-list-refresh', async (data) => {
+        try {
+          const customers = await getAllCustomers();
+          sendInitialCustomerList(data.socketId, customers);
+        } catch (error) {
+          sendCustomerListError(data.socketId, 'Failed to refresh customer list', 'manual_refresh');
+        }
+      });
+    });
+  } catch (error) {
+    console.error('Error initializing customer service socket listeners:', error);
+  }
+};
+
 export const getAllCustomers = async (): Promise<Customer[]> => {
   try {
+    // Combined query for both inTransit and unread messages
     const query = `
       ${baseCustomerQuery}
       WHERE l.order_id IS NOT NULL 
         AND l.order_id != '' 
-        AND l.status = 'inTransit'
+        AND (
+          l.status = 'inTransit' OR
+          EXISTS (
+            SELECT 1 FROM whatsapp_chats wc_unread 
+            WHERE wc_unread.order_id = l.order_id 
+              AND wc_unread.is_read = 0 
+              AND wc_unread.direction = 'inbound'
+          )
+        )
       ORDER BY COALESCE(wc.created_at, l.created_at) DESC
     `;
 
-    console.log("Executing getAllCustomers query...");
-    const [rows]: any = await pool.query(query);
-    
+    const [rows] = await pool.query(query) as [DatabaseRow[], any];
     const customers = rows.map(mapRowToCustomer);
-    console.log(`Retrieved ${customers.length} customers from database`);
     
+    console.log(`Total customers: ${customers.length} (InTransit + Unread)`);
     return customers;
+    
   } catch (error) {
     console.error("Error fetching customers:", error);
     throw new Error("Failed to fetch customers from database");
   }
 };
 
-// Search customers with enhanced error handling and logging
+export const handleNewMessage = async (messageData: any, orderId: string) => {
+  try {
+    if (!hasConnectedAdmins()) return;
+
+    const customer = await getCustomerById(orderId);
+    if (customer) {
+      broadcastSingleCustomerUpdate(customer, 'message_received', {
+        messageId: messageData.id,
+        messageContent: messageData.body || messageData.content,
+        messageType: messageData.message_type
+      });
+    }
+  } catch (error) {
+    console.error('Error handling new message for customer list:', error);
+  }
+};
+
 export const searchCustomers = async (searchTerm: string): Promise<Customer[]> => {
   try {
-    console.log(`Starting customer search for term: "${searchTerm}"`);
-    
-    // Validate search term at service level as well
     if (!searchTerm || searchTerm.trim().length < 2) {
-      console.warn("Invalid search term provided to service layer");
       throw new Error("Search term must be at least 2 characters long");
     }
 
     const sanitizedSearchTerm = searchTerm.trim();
-    
-    // Enhanced search query - searching in name, order_number, and phone
     const query = `
       ${baseCustomerQuery}
       WHERE l.order_id IS NOT NULL 
         AND l.order_id != '' 
-      
         AND (
           l.order_number LIKE ? 
           OR l.phone LIKE ? 
@@ -120,40 +171,20 @@ export const searchCustomers = async (searchTerm: string): Promise<Customer[]> =
     `;
 
     const likeTerm = `%${sanitizedSearchTerm}%`;
-    console.log(`Executing search query with term: "${likeTerm}"`);
+    const [rows] = await pool.query(query, [likeTerm, likeTerm, likeTerm]) as [DatabaseRow[], any];
     
-    const [rows]: any = await pool.query(query, [likeTerm, likeTerm, likeTerm]);
-    
-    const customers = rows.map(mapRowToCustomer);
-    console.log(`Search completed. Found ${customers.length} customers matching "${sanitizedSearchTerm}"`);
-    
-    return customers;
+    return rows.map(mapRowToCustomer);
   } catch (error) {
     console.error("Error searching customers:", error);
-    
-    // Re-throw with more specific error message
-    if (error instanceof Error) {
-      throw error;
-    }
-    
-    throw new Error("Failed to search customers in database");
+    throw error instanceof Error ? error : new Error("Failed to search customers");
   }
 };
 
-// Optional: Enhanced search with response wrapper (if needed for future use)
 export const searchCustomersWithResponse = async (searchTerm: string): Promise<ServiceResponse<Customer[]>> => {
   try {
-    // Validate search term
-    if (!searchTerm || typeof searchTerm !== 'string') {
-      return {
-        status: "error",
-        message: "Search term must be a non-empty string.",
-        data: []
-      };
-    }
+    const trimmedSearchTerm = searchTerm?.trim();
     
-    const trimmedSearchTerm = searchTerm.trim();
-    if (trimmedSearchTerm.length < 2) {
+    if (!trimmedSearchTerm || trimmedSearchTerm.length < 2) {
       return {
         status: "error",
         message: "Search term must be at least 2 characters long.",
@@ -169,27 +200,17 @@ export const searchCustomersWithResponse = async (searchTerm: string): Promise<S
       };
     }
 
-    // Perform search
     const customers = await searchCustomers(trimmedSearchTerm);
-    
-    // Return success response
-    if (customers.length === 0) {
-      return {
-        status: "success",
-        message: `No customers found matching "${trimmedSearchTerm}"`,
-        data: []
-      };
-    }
     
     return {
       status: "success",
-      message: `Found ${customers.length} customer(s) matching "${trimmedSearchTerm}"`,
+      message: customers.length === 0 
+        ? `No customers found matching "${trimmedSearchTerm}"`
+        : `Found ${customers.length} customer(s) matching "${trimmedSearchTerm}"`,
       data: customers
     };
     
   } catch (error) {
-    console.error("Error in searchCustomersWithResponse:", error);
-    
     return {
       status: "error",
       message: "Internal server error occurred while searching customers.",
@@ -198,24 +219,27 @@ export const searchCustomersWithResponse = async (searchTerm: string): Promise<S
   }
 };
 
-// Get customer by ID (utility function)
 export const getCustomerById = async (orderId: string): Promise<Customer | null> => {
   try {
-    const query = `
-      ${baseCustomerQuery}
-      WHERE l.order_id = ?
-      LIMIT 1
-    `;
-
-    const [rows]: any = await pool.query(query, [orderId]);
-    
-    if (rows.length === 0) {
-      return null;
-    }
-    
-    return mapRowToCustomer(rows[0]);
+    const query = `${baseCustomerQuery} WHERE l.order_id = ? LIMIT 1`;
+    const [rows] = await pool.query(query, [orderId]) as [DatabaseRow[], any];
+    return rows.length > 0 ? mapRowToCustomer(rows[0]) : null;
   } catch (error) {
     console.error("Error fetching customer by ID:", error);
     throw new Error("Failed to fetch customer");
   }
+};
+
+// Simplified periodic refresh
+export const periodicCustomerListRefresh = async () => {
+  if (!hasConnectedAdmins()) return;
+  const customers = await getAllCustomers();
+  broadcastCustomerList(customers, 'periodic_refresh');
+};
+
+// Simplified broadcast refresh
+export const broadcastCustomerListRefresh = async (triggerReason?: string) => {
+  if (!hasConnectedAdmins()) return;
+  const customers = await getAllCustomers();
+  broadcastCustomerList(customers, triggerReason);
 };

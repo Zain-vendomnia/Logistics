@@ -90,7 +90,10 @@ export const sendMessage = async (req: Request, res: Response) => {
       ...(fileType && { fileType }),
     };
 
+    console.log("--------------------------------------------------------")
     console.log('Sending message:', { orderId, type, hasFileUrl: !!fileUrl });
+    console.log('Message data:', messageData);
+    console.log("--------------------------------------------------------")
 
     const result = await messageService.sendMessage(orderId, messageData);
 

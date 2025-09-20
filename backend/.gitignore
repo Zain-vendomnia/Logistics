@@ -2,3 +2,4 @@ node_modules
 build
 # Ignore .env files containing sensitive information
 .env
+.uploads/
