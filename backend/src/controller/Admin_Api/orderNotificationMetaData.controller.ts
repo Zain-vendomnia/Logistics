@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { getNotificationData } from "../../services/notificationMeta.service";
+import { getNotificationData, updateNotificationData } from "../../services/notificationMeta.service";
 
 export const getOrderNotificationMetaData = async (req: Request, res: Response) => {
   try {
@@ -17,6 +17,27 @@ export const getOrderNotificationMetaData = async (req: Request, res: Response) 
 
     return res.status(500).json({
       message: "Something went wrong while getting the notification data.",
+    });
+  }
+};
+
+export const updateOrderNotificationMetaData = async (req: Request, res: Response) => {
+
+  try {
+    const { orderNumber, meta_key, meta_value } = req.body;
+
+    // // Pass the orderNumber directly to updateNotificationData function
+    const result = await updateNotificationData(orderNumber, meta_key, meta_value);
+
+    return res.status(200).json({
+      message: "success",
+      data: result,
+    });
+  } catch (error) {
+    console.error("❌ Error updating notification meta data:", error);
+
+    return res.status(500).json({
+      message: "Something went wrong while updating the notification data.",
     });
   }
 };

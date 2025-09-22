@@ -6,7 +6,7 @@ import validateToken from "../middlewares/validateToken";
 import { optimizeRouteController } from "../controller/Admin_RouteOptimzation/optimizeRouteController";
 import { updatelatlngController } from "../controller/Admin_RouteOptimzation/updatelatlngController";
 import * as OrderCtrl from "../controller/Admin_RouteOptimzation/order.controller";
-import * as TourCtrl from "../controller/Admin_RouteOptimzation/tourController";
+import * as TourCtrl from "../controller/Admin_RouteOptimzation/tour.controller";
 import { ExportTourController } from "../controller/Admin_RouteOptimzation/exportTourController";
 import { getAllTourController } from "../controller/Admin_RouteOptimzation/getAllTourController";
 import { updateCustomerInfoController } from "../controller/Admin_RouteOptimzation/updateCustomerInfo.controller";
@@ -17,6 +17,7 @@ import { uploadImageController } from "../controller/Admin_Api/uploadImage.contr
 import { sendEmail } from "../controller/Admin_Api/sendEmail.controller";
 import { insertParkingPermit } from "../controller/Admin_Api/insertParkingPermit.controller";
 import { getOrderNotificationMetaData } from "../controller/Admin_Api/orderNotificationMetaData.controller";
+import { updateOrderNotificationMetaData } from "../controller/Admin_Api/orderNotificationMetaData.controller";
 import { getWarehouseById } from "../controller/Admin_Api/warehouseController";
 
 import { HandleOrderDelivery } from "../controller/AdminDriverApi/HandleOrderDelivery";
@@ -46,9 +47,16 @@ adminRouter.use("/messages", messagesRoutes);
 // Public routes (no authentication required)
 adminRouter.get("/customer/updatelatlng", updatelatlngController);
 adminRouter.post("/sendEmail", sendEmail);
-adminRouter.post("/routeoptimize/getOrder", OrderCtrl.getAllLogisticOrder);
+adminRouter.post("/routeoptimize/getOrder", OrderCtrl.getAllLogisticOrders);
+// adminRouter.post("/picklistEmail", picklistEmail);
+adminRouter.get("/routeoptimize/getOrder", OrderCtrl.getLgsticOrderById);
+adminRouter.get("/routeoptimize/ordersWithItems", OrderCtrl.getOrdersWithItems);
 adminRouter.post("/insertParkingPermit", insertParkingPermit);
 adminRouter.post("/getOrderNotificationMetaData", getOrderNotificationMetaData);
+adminRouter.post(
+  "/updateOrderNotificationMetaData",
+  updateOrderNotificationMetaData
+);
 adminRouter.post("/Runtour", runTourController);
 
 adminRouter.post("/uploadexcel", upload.single("file"), async (req, res) => {
@@ -77,7 +85,11 @@ adminRouter.use(validateToken, roleCheck(["admin"]));
 
 adminRouter.post("/hereMapController", hereMapController);
 // adminRouter.post("/dynamicTourController", dynamicTourCtrl.create_dynamicTour);
+
 adminRouter.get("/dynamicTours", dynamicTourCtrl.getDynamicTours);
+adminRouter.post("/createDynamicTour", dynamicTourCtrl.createDynamicTour);
+adminRouter.post("/acceptDynamicTour", dynamicTourCtrl.acceptDynamicTour);
+adminRouter.post("/rejectDynamicTour", dynamicTourCtrl.rejectDynamicTour);
 
 adminRouter.get("/pinboardOrders", OrderCtrl.getPinboardOrders);
 adminRouter.get("/tours", getFilteredToursController);
@@ -136,7 +148,12 @@ adminRouter.post("/driver/tour/:tourId/order", HandleOrderDelivery);
 adminRouter.get("/newShopwareOrder", shopware.newShopOrder);
 
 adminRouter.use("/drivers", validateToken, roleCheck(["admin"]), driverRoutes);
-adminRouter.use("/vehicles", validateToken, roleCheck(["admin"]), vehicleRoutes);
+adminRouter.use(
+  "/vehicles",
+  validateToken,
+  roleCheck(["admin"]),
+  vehicleRoutes
+);
 adminRouter.use("/warehouses", warehouseRoutes);
 adminRouter.use("/customers", validateToken, roleCheck(["admin"]), customerRoutes);
 

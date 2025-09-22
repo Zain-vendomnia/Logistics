@@ -1,6 +1,8 @@
 import { ResultSetHeader, RowDataPacket } from "mysql2";
 import pool from "../database";
-import { CheckOrderCount, pinboardOrder } from "../types/dto.types";
+import { CheckOrderCount } from "../types/dto.types";
+import { Order } from "../types/order.types";
+import { PoolConnection } from "mysql2/promise";
 
 export enum OrderStatus {
   initial = "initial",
@@ -131,9 +133,9 @@ export class LogisticOrder {
   }
 
   static async checkOrdersRecentUpdatesAsync(): Promise<CheckOrderCount> {
-  // 1️⃣ Query for the latest updated order today and total order count
-  const [rows] = await pool.execute<RowDataPacket[]>(
-    `
+    // 1️⃣ Query for the latest updated order today and total order count
+    const [rows] = await pool.execute<RowDataPacket[]>(
+      `
     SELECT 
       (SELECT COUNT(*) FROM logistic_order) AS total_orders,
       lo.updated_at
@@ -142,31 +144,30 @@ export class LogisticOrder {
     ORDER BY lo.updated_at DESC
     LIMIT 1
     `
-  );
+    );
 
-  if (rows.length > 0) {
+    if (rows.length > 0) {
+      return {
+        count: Number(rows[0].total_orders) || 0,
+        lastUpdated: rows[0].updated_at
+          ? new Date(rows[0].updated_at).toISOString()
+          : undefined,
+      };
+    }
+
+    // 2️⃣ If no orders updated today, just get the total order count
+    const [countRows] = await pool.execute<RowDataPacket[]>(
+      `SELECT COUNT(*) AS total_orders FROM logistic_order`
+    );
+
     return {
-      count: Number(rows[0].total_orders) || 0,
-      lastUpdated: rows[0].updated_at
-        ? new Date(rows[0].updated_at).toISOString()
-        : undefined,
+      count:
+        countRows.length > 0 && countRows[0].total_orders
+          ? Number(countRows[0].total_orders)
+          : 0,
+      lastUpdated: undefined,
     };
   }
-
-  // 2️⃣ If no orders updated today, just get the total order count
-  const [countRows] = await pool.execute<RowDataPacket[]>(
-    `SELECT COUNT(*) AS total_orders FROM logistic_order`
-  );
-
-  return {
-    count:
-      countRows.length > 0 && countRows[0].total_orders
-        ? Number(countRows[0].total_orders)
-        : 0,
-    lastUpdated: undefined,
-  };
-}
-
 
   static async getAllcustomerAddress(): Promise<LogisticOrder[]> {
     const [rows] = await pool.execute("SELECT * FROM `logistic_order`");
@@ -192,6 +193,39 @@ export class LogisticOrder {
     return rows as LogisticOrder[];
   }
 
+  static async getOrdersWithItemsAsync(orderIds: number[]): Promise<any[]> {
+    if (orderIds.length === 0) return [];
+
+    const placeholders = orderIds.map(() => "?").join(", ");
+
+    const [orders] = await pool.execute(
+      `SELECT * FROM logistic_order WHERE order_id IN (${placeholders})`,
+      orderIds
+    );
+
+    const [items] = await pool.execute(
+      `SELECT * FROM logistic_order_items WHERE order_id IN (${placeholders})`,
+      orderIds
+    );
+
+    const orderWithItems = (orders as any[]).map((order) => ({
+      ...order,
+      items: (items as any[])
+        .filter((item) => item.order_id === order.order_id)
+        .map((item) => ({
+          id: item.id,
+          order_id: item.order_id,
+          order_number: item.order_number,
+          quantity: item.quantity,
+          article: item.slmdl_articleordernumber,
+          article_id: item.slmdl_article_id,
+          warehouse_id: item.warehouse_id,
+        })),
+    }));
+
+    return orderWithItems;
+  }
+
   static async getOrdersByStatus(
     status: OrderStatus
   ): Promise<LogisticOrder[]> {
@@ -206,13 +240,14 @@ export class LogisticOrder {
   }
 
   static async updateOrdersStatus(
+    conn: PoolConnection,
     orderIds: number[],
     status: OrderStatus
   ): Promise<Boolean> {
-    if (!status) throw new Error("Invalis order status provided");
+    if (!status) throw new Error("Invalid order status provided");
 
     const placeholders = orderIds.map(() => "?").join(", ");
-    const [result] = await pool.execute(
+    const [result] = await conn.execute(
       `UPDATE logistic_order SET status = ?, updated_at = NOW() WHERE order_id IN (${placeholders})`,
       [status, ...orderIds]
     );
@@ -220,43 +255,86 @@ export class LogisticOrder {
     return (result as ResultSetHeader).affectedRows > 0;
   }
 
-  static async getPinboardOrdersAsync(): Promise<pinboardOrder[]> {
-    const [rows] = await pool.execute(`
+  static async getPinboardOrdersAsync(since?: string): Promise<Order[]> {
+    let query = `
       SELECT 
-        order_id , order_number, order_time, expected_delivery_time, invoice_amount,
-        city, zipcode, street, lattitude, longitude, warehouse_id
-      FROM logistic_order
-      WHERE status IN ('initial', 'unassigned')
-      ORDER BY updated_at DESC, created_at DESC;
-    `);
-    const orders = (rows as any[]).map((raw: any) => ({
-      id: raw.order_id,
-      order_number: raw.order_number,
-      order_time: raw.order_time,
-      delivery_time: raw.expected_delivery_time,
-      amount: raw.invoice_amount,
-      city: raw.city,
-      zipcode: raw.zipcode,
-      street: raw.street,
-      location: {
-        lat: raw.lattitude || null,
-        lng: raw.longitude || null,
-      },
-      warehouse_id: raw.warehouse_id,
-    })) as pinboardOrder[];
+          o.*,
+          wh.warehouse_name, wh.town
+      FROM logistic_order o
+      JOIN warehouse_details wh
+        ON o.warehouse_id = wh.warehouse_id
+      WHERE o.status IN ('initial', 'unassigned', 'rescheduled')
+  `;
 
-    return orders;
+    const params: any[] = [];
+
+    if (since) {
+      const sinceDate = new Date(since);
+      query += ` AND (o.updated_at > ? OR o.created_at > ?)`;
+      params.push(sinceDate, sinceDate);
+    }
+
+    query += ` ORDER BY o.updated_at DESC, o.created_at DESC`;
+
+    try {
+      const [rows] = await pool.execute(query, params);
+
+      const orders: Order[] = (rows as any[]).map((raw: any) => ({
+        order_id: raw.order_id,
+        order_number: raw.order_number,
+        status: raw.status,
+
+        payment_id: raw.payment_id,
+
+        order_time: raw.order_time,
+        expected_delivery_time: raw.expected_delivery_time,
+
+        warehouse_id: raw.warehouse_id,
+        warehouse_name: raw.warehouse_name,
+        warehouse_town: raw.town,
+
+        phone: raw.phone,
+        street: raw.street,
+        city: raw.city,
+        zipcode: raw.zipcode,
+
+        location: { lat: raw.lattitude, lng: raw.longitude },
+
+        items: [],
+      }));
+
+      return orders;
+    } catch (error) {
+      console.error("Error fetching pin-b orders:", error);
+      throw error;
+    }
+  }
+
+  static async getOrderItemsCount(orderIds: string[]): Promise<number> {
+    if (!orderIds || orderIds.length === 0) return 0;
+
+    const placeholders = orderIds.map(() => "?").join(",");
+    const query = `SELECT quantity FROM logistic_order_items WHERE order_id IN (${placeholders})`;
+
+    try {
+      const [rows] = await pool.execute(query, orderIds);
+      const items = rows as { quantity: number }[];
+
+      return items.reduce((acc, item) => acc + item.quantity, 0);
+    } catch (error) {
+      console.error("Error fetching order items count:", error);
+      throw error;
+    }
   }
 }
 
 export async function get_LogisticsOrdersAddress(orderIds: number[]) {
-  console.log("-------------------------------- STEP 2 GETTING ORDER ADDRESS  ----------------------------------------------------")
   const placeholders = orderIds.map(() => "?").join(",");
   const [orderRows] = await pool.query(
-    `SELECT order_id, street, city, zipcode FROM logistic_order WHERE order_id IN (${placeholders})`,
+    `SELECT order_id, order_number, street, city, zipcode FROM logistic_order WHERE order_id IN (${placeholders})`,
     orderIds
   );
-  console.log("Order Address:", orderRows);
-  console.log("-------------------------------------------------------------------------------------------------------------------")
+  console.log("Orders Addresses:", orderRows);
+
   return orderRows;
 }

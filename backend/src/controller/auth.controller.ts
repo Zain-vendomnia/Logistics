@@ -17,7 +17,9 @@ export async function signup(req: Request, res: Response) {
     );
 
     if (existingUser.length > 0) {
-      return res.status(200).json({ message: "Username or email already in use" });
+      return res
+        .status(200)
+        .json({ message: "Username or email already in use" });
     }
 
     // 2. Check if the driver exists in driver_details table
@@ -45,10 +47,9 @@ export async function signup(req: Request, res: Response) {
     };
 
     // 5. Insert into users table
-    const [insertResult] = await pool.query<any>(
-      "INSERT INTO users SET ?",
-      [newUser]
-    );
+    const [insertResult] = await pool.query<any>("INSERT INTO users SET ?", [
+      newUser,
+    ]);
     const userId = insertResult.insertId;
 
     // 6. Update driver_details with user_id
@@ -67,7 +68,6 @@ export async function signup(req: Request, res: Response) {
       message: "User created successfully",
       token,
     });
-
   } catch (error: unknown) {
     if (error instanceof Error) {
       return res.status(400).json({ message: error.message });
@@ -76,7 +76,6 @@ export async function signup(req: Request, res: Response) {
     }
   }
 }
-
 
 export async function login(req: Request, res: Response) {
   try {
@@ -96,7 +95,9 @@ export async function login(req: Request, res: Response) {
 
     // 2) Check if the user is active
     if (user.is_active === 0) {
-      return res.status(403).json({ message: "Account is inactive. Please contact support." });
+      return res
+        .status(403)
+        .json({ message: "Account is inactive. Please contact support." });
     }
 
     // 3) Verify password
@@ -114,9 +115,11 @@ export async function login(req: Request, res: Response) {
 
     // ✅ declare in outer scope so it’s available for the final response
     let driverId: number | null = null;
-    let todayTour:
-      | { tour_id: number | null; tour_date: string | null; message?: string }
-      | null = null;
+    let todayTour: {
+      tour_id: number | null;
+      tour_date: string | null;
+      message?: string;
+    } | null = null;
 
     // 5) If driver, fetch today’s tour
     if (user.role === "driver") {
@@ -144,10 +147,18 @@ export async function login(req: Request, res: Response) {
             tour_date: tours[0].tour_date as string,
           };
         } else {
-          todayTour = { tour_id: null, tour_date: null, message: "No tour assigned for today" };
+          todayTour = {
+            tour_id: null,
+            tour_date: null,
+            message: "No tour assigned for today",
+          };
         }
       } else {
-        todayTour = { tour_id: null, tour_date: null, message: "Driver profile not found" };
+        todayTour = {
+          tour_id: null,
+          tour_date: null,
+          message: "Driver profile not found",
+        };
       }
     }
 

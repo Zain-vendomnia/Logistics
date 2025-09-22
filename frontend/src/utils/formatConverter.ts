@@ -45,21 +45,33 @@ export const formatTime_hrs = (ms: number): string => {
 
 // Helper function to format dates
 export const formatDate = (dateString: string) => {
-  if (!dateString) return '';
-  
+  if (!dateString) return "";
+
   try {
     const date = new Date(dateString);
     // Format as: Nov 12, 2024 04:13 AM
-    return date.toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
+    return date.toLocaleString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
     });
   } catch (error) {
-    console.error('Error formatting date:', error);
+    console.error("Error formatting date:", error);
     return dateString; // Return original if formatting fails
   }
+};
+
+export const getDaysLeft = (endDate: Date, startDate: Date) => {
+  const diffInTime = endDate.getTime() - startDate.getTime();
+  const diffInDays = Math.ceil(diffInTime / (1000 * 60 * 60 * 24));
+
+  const daysLeft =
+    diffInDays > 0
+      ? `${diffInDays} day${diffInDays !== 1 ? "s" : ""} left`
+      : `Overdue by ${Math.abs(diffInDays)} day${Math.abs(diffInDays) !== 1 ? "s" : ""}`;
+
+  return daysLeft;
 };

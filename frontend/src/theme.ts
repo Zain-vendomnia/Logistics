@@ -1,4 +1,4 @@
-import { createTheme, PaletteColor, ThemeOptions } from "@mui/material/styles";
+import { createTheme, PaletteColor, Theme, ThemeOptions } from "@mui/material/styles";
 // import { PaletteOptions } from "@mui/material/styles/createPalette";
 // theme.ts
 
@@ -120,14 +120,15 @@ const themeOptions: ThemeOptions = {
             },
             "&:focus, &:active": {
               backgroundColor: palette.dark,
-              color: palette.contrastText,
+              color: isContained ? palette.contrastText : palette.main, // contained = white text, outlined = colored text
               border: isOutlined ? `1px solid ${palette.dark}` : undefined,
             },
 
             // 🛠 Very important: AFTER hover/focus/active, outlined must reset back to transparent
             "&:not(:hover):not(:focus):not(:active)": isOutlined
               ? {
-                  color: palette.contrastText,
+                  // color: palette.contrastText,
+                  color: isContained ? palette.contrastText : palette.main,
                   border: `1px solid ${palette.main}`,
                 }
               : {},
@@ -150,3 +151,22 @@ const themeOptions: ThemeOptions = {
 
 const theme = createTheme(themeOptions);
 export default theme;
+
+export const scrollStyles = (theme: Theme) => ({
+  overflowY: "auto",
+  overflowX: "hidden",
+  "&::-webkit-scrollbar": { width: 6 },
+  "&::-webkit-scrollbar-track": {
+    backgroundColor: theme.palette.grey[100],
+    borderRadius: 3,
+  },
+  "&::-webkit-scrollbar-thumb": {
+    backgroundColor: theme.palette.grey[500],
+    borderRadius: 3,
+  },
+  "&::-webkit-scrollbar-thumb:hover": {
+    backgroundColor: theme.palette.grey[700],
+  },
+  scrollbarWidth: "thin",
+  scrollbarColor: `${theme.palette.grey[500]} ${theme.palette.grey[100]}`,
+});

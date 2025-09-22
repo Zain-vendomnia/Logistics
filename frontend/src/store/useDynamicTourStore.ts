@@ -1,24 +1,28 @@
 import { StateCreator, create } from "zustand";
-import { DynamicTourPayload, pinboardOrder } from "../types/tour.type";
+import { DynamicTourPayload } from "../types/tour.type";
+import { createJSONStorage, persist } from "zustand/middleware";
+import { Order } from "../types/order.type";
 
 type DynamicTourStore = {
-  orderList: pinboardOrder[]; // List of order IDs
-  addOrders: (orders: pinboardOrder[]) => void;
+  pinboard_OrderList: Order[]; // List of order IDs
+  lastFetchedAt: number | null;
+  pinboard_AddOrders: (orders: Order[]) => void;
 
   // State for dynamic tours
   dynamicTours: DynamicTourPayload[];
   setDynamicTours: (dTours: DynamicTourPayload[]) => void;
 
   selectedTour: DynamicTourPayload | null;
-  setSelectedTour: (dTour: DynamicTourPayload) => void;
+  setSelectedTour: (dTour: DynamicTourPayload | null) => void;
 };
 
 const createDynamicTourStore: StateCreator<DynamicTourStore> = (set, get) => ({
-  orderList: [],
-
-  addOrders: (orders) =>
+  pinboard_OrderList: [],
+  lastFetchedAt: null,
+  pinboard_AddOrders: (orders) =>
     set((state) => ({
-      orderList: [...state.orderList, ...orders],
+      pinboard_OrderList: [...state.pinboard_OrderList, ...orders],
+      lastFetchedAt: Date.now(),
     })),
 
   dynamicTours: [],
@@ -28,6 +32,17 @@ const createDynamicTourStore: StateCreator<DynamicTourStore> = (set, get) => ({
   setSelectedTour: (dTour) => set({ selectedTour: dTour }),
 });
 
-const useDynamicTourStore = create<DynamicTourStore>(createDynamicTourStore);
+const useDynamicTourStore = create<DynamicTourStore>()(
+  persist(createDynamicTourStore, {
+    name: "dynamic-mapboard",
+    storage: createJSONStorage(() => localStorage),
+    version: 1,
+    partialize: (state) => ({
+      pOrderList: state.pinboard_OrderList,
+      dynamicTours: state.dynamicTours,
+      selectedTour: state.selectedTour,
+    }),
+  })
+);
 
 export default useDynamicTourStore;

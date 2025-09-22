@@ -27,7 +27,7 @@ import ProofdeliveryImage from "./components/Admin/ProofdeliveryImage";
 import TestCrashRender from "./components/pages/TestCrashRender";
 import TestUnhandledPromise from "./components/pages/TestUnhandledPromise";
 import TestRuntimeError from "./components/pages/TestRuntimeError";
-import Admin_dynamicHereMap from "./components/Admin/Admin_dynamicHereMap";
+import Admin_dynamicHereMap from "./components/Admin/dynamic_tour/DynamicMapBoard";
 import AdminHereMap from "./components/Admin/MapRoutesViewer";
 import CustomersChat from "./components/notification/CustomersChat";
 

@@ -1,28 +1,36 @@
 export const CREATE_WAREHOUSE_DETAILS_TABLE = `
-  CREATE TABLE IF NOT EXISTS warehouse_details (
+CREATE TABLE IF NOT EXISTS warehouse_details (
     warehouse_id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
-    warehouse_name VARCHAR(45) NOT NULL,
+    warehouse_name VARCHAR(100) NOT NULL,
     clerk_name VARCHAR(45) NOT NULL,
     clerk_mob VARCHAR(20) NOT NULL,
-    address VARCHAR(225) NOT NULL,
+    address VARCHAR(110) NOT NULL,
     email VARCHAR(45) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
-  );
+    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+    updated_by VARCHAR(45) DEFAULT NULL,
+    zip_code VARCHAR(12) NOT NULL,
+    town VARCHAR(60) NOT NULL,
+    zip_codes_delivering TEXT DEFAULT NULL
+    color_code VARCHAR(7) DEFAULT NULL
+);
   
 `;
 
 export const INSERT_WAREHOUSE_DETAILS_DATA = `
-INSERT INTO warehouse_details (warehouse_name, address)
+INSERT INTO warehouse_details
+  (warehouse_id, warehouse_name, clerk_name, clerk_mob, email, address, zip_code, town, zip_codes_delivering, color_code)
 VALUES
-('WeltZiel Logistic GmbH', 'WeltZiel Logistic GmbH., Rudolf-Diesel-Straße 40 , Nufringen, 71154'),
-('Plischka und Schmeling', 'Plischka und Schmeling, Fokkerstr. 8, Schkeuditz, 04435'),
-('Sunniva GmbH', 'Honer Str. 49, Eschwege, 37269'),
-('Geis Eurocargo GmbH', 'Geis Eurocargo GmbH, Ipsheimer Straße 19, Nürnberg, 90431'),
-('Zahn Logistics GmbH', 'Zahn Logistics GmbH, Christof-Ruthof-Weg 7, Mainz-Kastel, 55252'),
-('ILB Transit & Logistik GmbH & Co. KG', 'ILB Transit & Logistik GmbH & Co. KG, Bonifatiusstraße 391, Rheine, 48432'),
-('AdL Logistic GmbH', 'AdL Logistic GmbH, Gerlinger Str. 34, Berlin, 12349'),
-('Recht Logistik Gruppe', 'Recht Logistik Gruppe, Weetfelder Str., Bönen, 59199');
+  (1, 'Sunniva GmbH', 'Sam', '+496786863655', 'sam@gmail.com', 'Honer Str. 49', '37269', 'Eschwege', '30,31,34,36,37,38,98,99', '#F7941D'),
+  (2, 'AdL Logistic GmbH', 'Tom', '8098075454', 'tom@gmail.com', 'Gerlinger Str. 34', '12349', 'Berlin', '10,11,12,13,14,15,16,17,39', '#1ABC9C'),
+  (3, 'Frankfurt', 'Ken', '87987579', 'ken@gmail.com', 'Fokkerstr. 8', '04435', 'Schkeuditz', '01,02,03,04,05,06,07,08,09', '#2ECC71'),
+  (4, 'Zahn Logistics GmbH', 'Clerk Name', '0000000000', 'zahn@example.com', 'Christof-Ruthof-Weg 7', '55252', 'Mainz-Kastel', '60,61,62,63,64,65,66,67,68,69,54,55,56,35', '#3498DB'),
+  (5, 'Plischka und Schmeling', 'Clerk Name', '0000000000', 'plischka@example.com', 'Fokkerstr. 8', '04435', 'Schkeuditz', '01,02,03,04,05,06,07,08,09', '#9B59B6'),
+  (6, 'ILB Transit & Logistik GmbH & Co. KG', 'Clerk Name', '0000000000', 'ilb@example.com', 'Bonifatiusstraße 391', '48432', 'Rheine', '48,49,32,33,26,27,28', '#34495E'),
+  (7, 'Recht Logistik Gruppe', 'Clerk Name', '0000000000', 'recht@example.com', 'Weetfelder Str.', '59199', 'Bönen', '40,41,42,43,44,45,46,47,50,51,52,53,57,58,59', '#E74C3C'),
+  (8, 'Geis Eurocargo GmbH', 'Clerk Name', '0000000000', 'geis@example.com', 'Ipsheimer Straße 19', '90431', 'Nürnberg', '90,91,92,93,94,95,96,97', '#F1C40F'),
+  (9, 'LINTHER SPEDITION GmbH', 'Clerk Name', '0000000000', 'linther@example.com', 'Kronwinkler Str. 31', '81245', 'Muenchen', '80,81,82,83,84,85,86,87', '#E67E22'),
+  (10, 'NL - LOGISTICS GmbH', 'Clerk Name', '0000000000', 'nl@example.com', 'Halskestraße 38', '22113', 'Hamburg', '20,21,22,23,24,25,29,18,19', '#8E44AD');
 `;
 
 export const CREATE_DRIVER_DETAILS_TABLE = `
@@ -216,7 +224,6 @@ export const LOGIC_ORDER_TABLE = `
   );
 `;
 
-
 export const LOGIC_ORDER_ITEMS_TABLE = `
   CREATE TABLE IF NOT EXISTS logistic_order_items (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -335,15 +342,43 @@ export const CREATE_WHATSAPPCHATS_TABLE = `
 export const CREATE_DYNAMIC_TOURS_TABLE = `
   CREATE TABLE IF NOT EXISTS dynamic_tours (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, 
-    tour_number VARCHAR(25) NOT NULL UNIQUE,
+    tour_name VARCHAR(45) NOT NULL UNIQUE,
     tour_route JSON NOT NULL,
+    tour_data JSON NOT NULL,
     orderIds TEXT NOT NULL, 
-    warehouse_id INT NOT NULL, 
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP, 
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, 
+    warehouse_id INT NOT NULL,
     approved_by VARCHAR(45) DEFAULT NULL, 
     approved_at DATETIME DEFAULT NULL
+    updated_by VARCHAR(45) DEFAULT NULL, 
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, 
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP, 
   );
+`;
+
+export const CREATE_TOUR_TRACES_TABLE = `
+  CREATE TABLE IF NOT EXISTS tour_traces (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    
+    source_table ENUM('dynamic_tours', 'tourinfo_master') NOT NULL,
+
+    source_id INT NOT NULL,
+    tour_name VARCHAR(100) NOT NULL,
+    tour_route JSON NULL,
+    tour_data JSON NULL,
+    orderIds TEXT NOT NULL,
+    warehouse_id INT NOT NULL,
+
+    status ENUM('rejected', 'pending', 'live', 'confirmed', 'completed') DEFAULT NULL,
+    
+ 
+    removed_reason VARCHAR(255) DEFAULT NULL,
+    removed_by VARCHAR(45) DEFAULT NULL,
+    removed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
 `;
 
 export const CREATE_NOTIFICATION_TABLE = `
@@ -356,4 +391,3 @@ export const CREATE_NOTIFICATION_TABLE = `
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
   );
 `;
-
