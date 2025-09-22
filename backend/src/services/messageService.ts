@@ -3,7 +3,9 @@ import {
   emitMessageToOrder, 
   emitMessageUpdate, 
   emitMessageStatusUpdate,
-  broadcastGlobalMessageStatus
+  broadcastGlobalMessageStatus,
+  updateTotalUnreadCount,
+  setTotalUnreadCount,
 } from "../socket";
 import { handleNewMessage as handleCustomerListUpdate } from "./customerService";
 import twilio from "twilio";
@@ -124,6 +126,30 @@ const mapDbRowToMessage = (r: DBRow): Message => ({
     fileName: r.media_content_type ? `attachment.${r.media_content_type.split('/')[1] || 'file'}` : "attachment"
   }),
 });
+
+// NEW: Get total unread messages count from database
+export const getTotalUnreadCountFromDB = async (): Promise<number> => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT COUNT(*) as total_unread FROM whatsapp_chats WHERE direction = 'inbound' AND is_read = 0`
+    ) as [{ total_unread: number }[], any];
+    return rows[0]?.total_unread || 0;
+  } catch (error) {
+    console.error("getTotalUnreadCountFromDB error:", error);
+    return 0;
+  }
+};
+
+// NEW: Initialize total unread count on server start
+export const initializeTotalUnreadCount = async (): Promise<void> => {
+  try {
+    const totalUnread = await getTotalUnreadCountFromDB();
+    setTotalUnreadCount(totalUnread);
+    console.log(`Initialized total unread count: ${totalUnread}`);
+  } catch (error) {
+    console.error("Failed to initialize total unread count:", error);
+  }
+};
 
 export const getMessagesByOrderId = async (orderId: string): Promise<Message[]> => {
   try {
@@ -253,11 +279,25 @@ export const updateCustomerUnreadCount = async (
 ): Promise<{ status: "success" | "error"; message: string; data?: any }> => {
   try {
     if (unreadCount === 0) {
+      // Get count of unread messages before marking as read
+      const [unreadRows] = await pool.query(
+        `SELECT COUNT(*) as unread_count FROM whatsapp_chats 
+         WHERE order_id = ? AND direction = 'inbound' AND is_read = 0`,
+        [orderId]
+      ) as [{ unread_count: number }[], any];
+      
+      const previousUnreadCount = unreadRows[0]?.unread_count || 0;
+
       const [result] = await pool.query(
         `UPDATE whatsapp_chats SET is_read = 1, updated_at = CURRENT_TIMESTAMP 
          WHERE order_id = ? AND direction = 'inbound' AND is_read = 0`,
         [orderId]
       ) as [{ affectedRows: number }, any];
+
+      // Decrease total unread count by the number of messages marked as read
+      if (previousUnreadCount > 0) {
+        updateTotalUnreadCount(-previousUnreadCount);
+      }
 
       // Trigger customer list update
       const [latestMessage] = await pool.query(
@@ -313,6 +353,9 @@ export const handleIncomingMessage = async (data: IncomingMessageData): Promise<
 
     if (!result.insertId) throw new Error("Failed to insert message");
 
+    // Increment total unread count for new inbound message
+    updateTotalUnreadCount(1);
+
     const newMessage: Message = {
       id: result.insertId.toString(),
       order_id: orderId,
@@ -345,5 +388,15 @@ export const handleIncomingMessage = async (data: IncomingMessageData): Promise<
   } catch (error: any) {
     console.error("Error processing incoming message:", error);
     return { success: false, error: error.message || "Failed to process incoming message" };
+  }
+};
+
+// NEW: Sync total unread count with database (call this periodically or on demand)
+export const syncTotalUnreadCount = async (): Promise<void> => {
+  try {
+    const totalUnread = await getTotalUnreadCountFromDB();
+    setTotalUnreadCount(totalUnread);
+  } catch (error) {
+    console.error("Failed to sync total unread count:", error);
   }
 };

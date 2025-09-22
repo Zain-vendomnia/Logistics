@@ -14,6 +14,7 @@ declare module "socket.io" {
 
 let io: Server;
 const adminConnections = new Set<string>();
+let globalUnreadCount = 0; // Track total unread messages
 
 export const initSocket = (app: express.Application) => {
   const server = http.createServer(app);
@@ -56,6 +57,11 @@ export const initSocket = (app: express.Application) => {
           socketId: socket.id,
           timestamp: new Date().toISOString()
         });
+        // Send current total unread count to newly connected admin
+        socket.emit('total-unread-update', {
+          totalUnreadCount: globalUnreadCount,
+          timestamp: new Date().toISOString()
+        });
       }
     });
 
@@ -77,6 +83,16 @@ export const initSocket = (app: express.Application) => {
         socketId: socket.id,
         timestamp: new Date().toISOString()
       });
+    });
+
+    // Request current total unread count
+    socket.on("request-total-unread", () => {
+      if (socket.userRole === 'admin' || socket.userRole === 'support') {
+        socket.emit('total-unread-update', {
+          totalUnreadCount: globalUnreadCount,
+          timestamp: new Date().toISOString()
+        });
+      }
     });
 
     // Join order-specific room
@@ -198,15 +214,53 @@ export const broadcastCustomerUpdate = (
   });
 };
 
-export const broadcastCustomerStatusUpdate = (orderId: number, status: string, lastSeen?: string) =>
-  emitToRoom('admin-room', 'customer-status-update', {
-    orderId,
-    status,
-    lastSeen: lastSeen || new Date().toISOString()
-  });
-
 export const broadcastGlobalMessageStatus = (messageId: string, orderId: number, status: string) =>
   emitToRoom('admin-room', 'global-message-status', { messageId, orderId, status });
+
+// NEW: Total unread messages functions
+export const broadcastTotalUnreadCount = (totalUnreadCount: number) => {
+  emitToRoom('admin-room', 'total-unread-update', {
+    totalUnreadCount,
+    timestamp: new Date().toISOString()
+  });
+  globalUnreadCount = totalUnreadCount;
+};
+
+export const updateTotalUnreadCount = (increment: number) => {
+  globalUnreadCount = Math.max(0, globalUnreadCount + increment);
+  broadcastTotalUnreadCount(globalUnreadCount);
+};
+
+export const setTotalUnreadCount = (count: number) => {
+  globalUnreadCount = Math.max(0, count);
+  broadcastTotalUnreadCount(globalUnreadCount);
+};
+
+export const getTotalUnreadCount = (): number => {
+  return globalUnreadCount;
+};
+
+export const calculateAndBroadcastTotalUnread = (customers: any[]) => {
+  const total = customers.reduce((sum, customer) => {
+    return sum + (customer.unreadCount || 0);
+  }, 0);
+  setTotalUnreadCount(total);
+  return total;
+};
+
+export const handleMessageRead = (orderId: number, readCount: number = 1) => {
+  updateTotalUnreadCount(-readCount);
+  emitToRoom(`order-${orderId}`, "messages-read", {
+    orderId,
+    readCount,
+    timestamp: new Date().toISOString()
+  });
+};
+
+export const handleNewUnreadMessage = (orderId: number, message: any) => {
+  updateTotalUnreadCount(1);
+  emitMessageToOrder(orderId.toString(), message);
+};
 
 // OPTIMIZED: Utility functions
 export const getConnectedAdminSockets = (): string[] => {
