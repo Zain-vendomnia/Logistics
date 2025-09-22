@@ -365,7 +365,7 @@ const DynamicTourDetails = () => {
                     key="icon"
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    exit={{ apacity: 0, scale: 0.6 }}
+                    exit={{ opacity: 0, scale: 0.6 }}
                     transition={{ duration: 0.25 }}
                   >
                     <IconButton
@@ -381,7 +381,7 @@ const DynamicTourDetails = () => {
                     initial={{ width: 0, opacity: 0 }}
                     animate={{ width: "170px", opacity: 1 }}
                     exit={{ width: 0, opacity: 0 }}
-                    transition={{ duraion: 0.3 }}
+                    transition={{ duration: 0.3 }}
                     style={{ overflow: "hidden", maxWidth: "180px" }}
                   >
                     <Autocomplete
