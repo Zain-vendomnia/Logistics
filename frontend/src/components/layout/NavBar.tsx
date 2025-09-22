@@ -3,53 +3,30 @@ import { AppBar, Box, Button, Stack, Toolbar, Badge } from "@mui/material";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../providers/AuthProvider";
 import EventBus from "../../common/EventBus";
-import PersonIcon from "@mui/icons-material/Person";
-import DashboardIcon from "@mui/icons-material/Dashboard";
-import ChatIcon from "@mui/icons-material/Chat";
-import GroupIcon from "@mui/icons-material/Group";
-import AccountBoxIcon from "@mui/icons-material/AccountBox";
-import LogoutIcon from "@mui/icons-material/Logout";
-import { useLayoutNavigator } from "../../hooks/useLayoutNavigator";
 import { socketService } from "../../services/unreadCountService";
-
-const style = {
-  navButton: {
-    color: "#fff",
-    fontSize: "1rem",
-    fontWeight: 500,
-    textTransform: "none",
-    backgroundColor: "transparent",
-    border: "none",
-    boxShadow: "none",
-    padding: "6px 12px",
-    letterSpacing: 0.25,
-    minWidth: 0,
-    lineHeight: 1.75,
-    display: "flex",
-    alignItems: "center",
-    gap: 0.5,
-    "&:hover, &:focus, &:active": {
-      textDecoration: "underline",
-      textUnderlineOffset: "6px",
-      backgroundColor: "transparent",
-    },
-  },
-};
+import {
+  Person as PersonIcon,
+  Dashboard as DashboardIcon,
+  Chat as ChatIcon,
+  Group as GroupIcon,
+  AccountBox as AccountBoxIcon,
+  Logout as LogoutIcon,
+} from "@mui/icons-material";
+import { useLayoutNavigator } from "../../hooks/useLayoutNavigator";
 
 const NavBar = () => {
   const { user, showDriverBoard, showAdminBoard, showSuperAdminBoard, logout } = useAuth();
+  const { clearSessionStack } = useLayoutNavigator();
   const location = useLocation();
   const navigate = useNavigate();
+  const [totalUnreadCount, setTotalUnreadCount] = useState(0);
   const logo = "/sunniva_white.svg";
-  
-  // State for total unread messages count
-  const [totalUnreadCount, setTotalUnreadCount] = useState<number>(0);
+  const path = location.pathname;
 
-  const isActive = (path: string) => location.pathname === path;
-
-  const getNavButtonStyles = (path: string) => ({
-    backgroundColor: isActive(path) ? "white" : "transparent",
-    color: isActive(path) ? "#f7941d" : "inherit",
+  const isActive = (p: string) => path === p;
+  const navStyle = (p: string) => ({
+    color: isActive(p) ? "#f7941d !important" : "#fff !important",
+    backgroundColor: isActive(p) ? "white !important" : "transparent !important",
     textTransform: "none",
     fontSize: "1rem",
     fontWeight: 500,
@@ -58,186 +35,89 @@ const NavBar = () => {
     alignItems: "center",
     gap: 0.5,
     "&:hover": {
-      backgroundColor: isActive(path)
-        ? "secondary.dark"
-        : "rgba(255,255,255,0.1)",
+      backgroundColor: isActive(p) ? "red !important" : "red !important",
+      color: isActive(p) ? "#fff !important" : "#fff !important",
     },
   });
 
-  // Socket connection for total unread count
+  // Socket for unread messages
   useEffect(() => {
     if (showAdminBoard && user) {
       socketService.connect();
-      const socket = socketService.getSocket();
-      
-      // Listen for total unread count updates
+
+      // Handler for unread count updates
       const handleTotalUnreadUpdate = (data: any) => {
         setTotalUnreadCount(data.totalUnreadCount || 0);
       };
 
-      socket?.on('total-unread-update', handleTotalUnreadUpdate);
-      
-      // Request initial total unread count
-      socket?.emit('request-total-unread');
+      const socket = socketService.getSocket();
+      socket?.on("total-unread-update", handleTotalUnreadUpdate);
 
+      // Request initial unread count
+      socket?.emit("request-total-unread");
+
+      // Cleanup function for useEffect
       return () => {
-        socket?.off('total-unread-update', handleTotalUnreadUpdate);
+        socket?.off("total-unread-update", handleTotalUnreadUpdate);
       };
     }
   }, [showAdminBoard, user]);
 
-  useEffect(() => {
-    const cleanup = EventBus.on("logout", () => {
-      logout();
-      navigate("/login");
-    });
-    return () => cleanup();
-  }, [logout, navigate]);
 
-  const { clearSessionStack } = useLayoutNavigator();
+  useEffect(() => EventBus.on("logout", () => {
+    logout();
+    navigate("/login");
+  }), [logout, navigate]);
 
   const handleLogout = () => {
     clearSessionStack();
     EventBus.dispatch("logout");
   };
 
-  const isParkingPermitFormPage = location.pathname === "/ParkingPermitForm";
-  
+  const isParkingForm = path === "/ParkingPermitForm";
+
   return (
-    <AppBar
-      position="sticky"
-      sx={(theme) => ({
-        background: theme.palette.primary.headerGradient,
-        height: 50,
-        boxShadow: "0px 2px 4px rgba(0,0,0,0.1)",
-      })}
-    >
+    <AppBar position="sticky" sx={{ background: (theme) => theme.palette.primary.headerGradient, height: 50, boxShadow: "0px 2px 4px rgba(0,0,0,0.1)" }}>
       <Toolbar sx={{ minHeight: "50px !important", px: 2 }}>
         <Box display="flex" flexGrow={1} alignItems="center" gap={2}>
-          <Box
-            component="img"
-            src={logo}
-            alt="Logo"
-            sx={{ height: 36, width: "auto", cursor: "pointer" }}
-            onClick={() => navigate("/")}
-          />
+          <Box component="img" src={logo} alt="Logo" sx={{ height: 36, cursor: "pointer" }} onClick={() => navigate("/")} />
         </Box>
 
-        {/* Only show menu if not on ParkingPermitForm */}
-        {!isParkingPermitFormPage && user && (
+        {!isParkingForm && user && (
           <Stack direction="row" spacing={1} alignItems="center">
             {showSuperAdminBoard && (
               <>
-                <Button
-                  component={Link}
-                  to="/register"
-                  color="inherit"
-                  sx={getNavButtonStyles("/register")}
-                >
-                  <GroupIcon sx={{ fontSize: '1.1rem' }} />
-                  Employees
-                </Button>
-                <Button
-                  component={Link}
-                  to="/register"
-                  color="inherit"
-                  sx={getNavButtonStyles("/register")}
-                >
-                  <PersonIcon sx={{ fontSize: '1.1rem' }} />
-                  Drivers
-                </Button>
+                <Button component={Link} to="/register" sx={navStyle("/register")}><GroupIcon sx={{ fontSize: '1.1rem' }} />Employees</Button>
+                <Button component={Link} to="/register" sx={navStyle("/register")}><PersonIcon sx={{ fontSize: '1.1rem' }} />Drivers</Button>
               </>
             )}
 
             {showAdminBoard && (
               <>
-                <Button
-                  component={Link}
-                  to="/admin-drivers"
-                  color="inherit"
-                  sx={getNavButtonStyles("/admin-drivers")}
-                >
-                  <PersonIcon sx={{ fontSize: '1.1rem' }} />
-                  Drivers
-                </Button>
-                <Button
-                  component={Link}
-                  to="/profile"
-                  color="inherit"
-                  sx={getNavButtonStyles("/profile")}
-                >
-                  <AccountBoxIcon sx={{ fontSize: '1.1rem' }} />
-                  Profile
-                </Button>
-               
-                {/* Chat button with unread count badge */}
+                <Button component={Link} to="/admin-drivers" sx={navStyle("/admin-drivers")}><PersonIcon sx={{ fontSize: '1.1rem' }} />Drivers</Button>
+                <Button component={Link} to="/profile" sx={navStyle("/profile")}><AccountBoxIcon sx={{ fontSize: '1.1rem' }} />Profile</Button>
                 <Box sx={{ position: 'relative' }}>
-                  <Button
-                    component={Link}
-                    to="/chat"
-                    color="inherit"
-                    sx={getNavButtonStyles("/chat")}
-                  >
-                    <ChatIcon sx={{ fontSize: '1.1rem' }} />
-                    Chat
-                  </Button>
+                  <Button component={Link} to="/chat" sx={navStyle("/chat")}><ChatIcon sx={{ fontSize: '1.1rem' }} />Chat</Button>
                   {totalUnreadCount > 0 && (
-                    <Badge 
-                      badgeContent={totalUnreadCount} 
-                      color="error"
-                      sx={{
-                        position: 'absolute',
-                        top: '5px',
-                        right: '8px',
-                        '& .MuiBadge-badge': {
-                          backgroundColor: '#ff1744',
-                          color: 'white',
-                          fontSize: '0.7rem',
-                          fontWeight: 'bold',
-                          minWidth: '16px',
-                          height: '16px',
-                          borderRadius: '8px',
-                          border: '1px solid white',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                        }
-                      }}
-                    />
+                    <Badge badgeContent={totalUnreadCount} color="error" sx={{
+                      position: 'absolute', top: 5, right: 8,
+                      '& .MuiBadge-badge': { backgroundColor: '#ff1744', color: 'white', fontSize: '0.7rem', fontWeight: 'bold', minWidth: 16, height: 16, borderRadius: 8, border: '1px solid white', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }
+                    }} />
                   )}
                 </Box>
               </>
             )}
 
-            {showDriverBoard && (
-              <>
-                {location.pathname !== "/driver" && (
-                  <Button sx={style.navButton} component={Link} to="/driver">
-                    <DashboardIcon sx={{ fontSize: '1.1rem' }} />
-                    Dashboard
-                  </Button>
-                )}
-                <Button sx={style.navButton} component={Link} to="/profile">
-                  <PersonIcon sx={{ fontSize: '1.1rem' }} />
-                  Profile
-                </Button>
-              </>
+            {showDriverBoard && path !== "/driver" && (
+              <Button component={Link} to="/driver" sx={{ color: "#fff", textTransform: "none", display: "flex", alignItems: "center", gap: 0.5 }}><DashboardIcon sx={{ fontSize: '1.1rem' }} />Dashboard</Button>
             )}
-            <Button sx={style.navButton} onClick={handleLogout}>
-              <LogoutIcon sx={{ fontSize: '1.1rem' }} />
-              Log Out
-            </Button>
+            {showDriverBoard && <Button component={Link} to="/profile" sx={{ color: "#fff", textTransform: "none", display: "flex", alignItems: "center", gap: 0.5 }}><PersonIcon sx={{ fontSize: '1.1rem' }} />Profile</Button>}
+
+            <Button sx={{ color: "#fff", textTransform: "none", display: "flex", alignItems: "center", gap: 0.5 }} onClick={handleLogout}><LogoutIcon sx={{ fontSize: '1.1rem' }} />Log Out</Button>
           </Stack>
         )}
 
-        {!isParkingPermitFormPage && !user && (
-          <Button
-            component={Link}
-            to="/login"
-            color="inherit"
-            sx={getNavButtonStyles("/login")}
-          >
-            Login
-          </Button>
-        )}
+        {!isParkingForm && !user && <Button component={Link} to="/login" sx={navStyle("/login")}>Login</Button>}
       </Toolbar>
     </AppBar>
   );
