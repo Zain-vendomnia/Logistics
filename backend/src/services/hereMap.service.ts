@@ -9,7 +9,7 @@ import {
   DecodedRoute,
   Unassigned,
 } from "../types/hereMap.types";
-import { LocationMeta, MatrixResult, Tour } from "../types/tour.types";
+import { LocationMeta, MatrixResult, Stop, Tour } from "../types/tour.types";
 // import { LogisticOrder } from "../types/database.types";
 import {
   get_LogisticsOrdersAddress,
@@ -296,7 +296,7 @@ async function getRoutesForTour(tour: Tour): Promise<DecodedRoute | null> {
 function extractTourOrderIds(tour: Tour): string {
   const ids: number[] = [];
 
-  tour.stops.forEach((stop) => {
+  tour.stops.forEach((stop: Stop) => {
     stop.activities.forEach((act) => {
       if (act.jobId.includes("_")) {
         const parts = act.jobId.split("_");

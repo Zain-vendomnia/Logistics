@@ -1,6 +1,5 @@
-// Haversine formula
-// Calculates the distance in kilometers between two lat/lng points
-
+// Calculates the distance in kilometers
+// between two lat/lng points
 export function haversineKm(
   lat1: number,
   lon1: number,

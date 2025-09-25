@@ -1,126 +1,147 @@
 import pool from "../config/database";
+import { PoolConnection } from "mysql2/promise";
+
+import hereMapService from "./hereMap.service";
 import {
-  get_LogisticsOrdersAddress,
-  LogisticOrder,
-  OrderStatus,
-} from "../model/LogisticOrders";
+  createDeliveryCostForTour,
+  getRouteSegments_mapApi,
+  saveRouteSegments,
+} from "./tour.service";
+
+import { createTourAsync } from "../model/tourModel";
+import { tourInfo_master } from "../model/TourinfoMaster";
+import { LogisticOrder, OrderStatus } from "../model/LogisticOrders";
 import {
   CreateTour,
   DynamicTourPayload,
   DynamicTourRes,
   rejectDynamicTour_Req,
-  UnassignedRes,
 } from "../types/dto.types";
-import { DecodedRoute } from "../types/hereMap.types";
-import { logWithTime } from "../utils/logging";
-import hereMapService from "./hereMap.service";
-
-import { createTourAsync } from "../model/tourModel";
-import { tourInfo_master } from "../model/TourinfoMaster";
-import { getRouteSegments_mapApi, saveRouteSegments } from "./tour.service";
-import { PoolConnection } from "mysql2/promise";
 import { TourStatus, TourTracePayload, TourType } from "../types/tour.types";
 
-async function generateTourNumber(orderIds: number[]): Promise<string> {
-  const orders = (await get_LogisticsOrdersAddress(
-    orderIds
-  )) as LogisticOrder[];
+import { logWithTime } from "../utils/logging";
+import {
+  buildUnassignedOrders,
+  handleExistingTour,
+  persistDynamicTour,
+  validatePayload,
+} from "./helpers/dynamicTour.helpers";
+import { generateTourName } from "../helpers/tour.helper";
 
-  const zipcodePrefixes = Array.from(
-    new Set(orders.map((o) => o.zipcode?.substring(0, 2) || "00"))
-  );
+// export async function createDynamicTourWithCostEvaluationAsync(
+//   payload: DynamicTourPayload
+// ) {
+//   try {
+//     const res = await createDynamicTourAsync(payload);
 
-  const zipcodeString = zipcodePrefixes.join("-");
-  return `PLZ-${zipcodeString}`;
-}
+//     console.info("res?.dynamicTour?.id!", res?.dynamicTour?.id!);
+//     console.info("Triggering createDeliveryCostForTour...");
+//     await createDeliveryCostForTour(res?.dynamicTour?.id!);
+
+//     console.info(
+//       `Successfully created tour for
+//       warehouse ${payload.warehouse_id}, Orders: ${payload.orderIds}`
+//     );
+
+//   } catch (err) {
+//     console.error(
+//       `Failed to create tour for warehouse ${warehouseId}, Orders: ${orders.map(
+//         (o) => o.order_id
+//       )}`,
+//       err
+//     );
+//   }
+// }
 
 export async function createDynamicTourAsync(payload: DynamicTourPayload) {
   const connection = await pool.getConnection();
 
-  logWithTime(`[Create Dynamic Tour]:", ${payload}`);
+  logWithTime(`[Create Dynamic Tour]:", ${JSON.stringify(payload)}`);
 
-  if (!payload || !payload.orderIds || !payload.warehouse_id) {
-    throw new Error(
-      "Missing required tour data. Operation cannot be performed."
-    );
-  }
+  validatePayload(payload);
+
   try {
-    const orderIds = payload.orderIds.split(",").map((o) => Number(o));
+    const payload_orderIds = payload.orderIds.split(",").map((o) => Number(o));
 
     const { tour, unassigned, orders } =
-      await hereMapService.CreateTourRouteAsync(orderIds, payload.warehouse_id);
-    console.log(tour, unassigned);
+      await hereMapService.CreateTourRouteAsync(
+        payload_orderIds,
+        payload.warehouse_id
+      );
+    console.log("Map CreateTourRouteAsync Response: ", tour, unassigned);
 
-    const routes: DecodedRoute | null = await hereMapService.getRoutesForTour(
-      tour
-    );
+    const routes = await hereMapService.getRoutesForTour(tour);
+    if (!routes)
+      throw new Error("Null Response from Here Map - Routes creation");
 
-    const xOrderIds = hereMapService.extractTourOrderIds(tour);
+    const txnOrderIds = hereMapService.extractTourOrderIds(tour);
 
     await connection.beginTransaction();
 
-    if (routes) {
-      const dynamicTour: DynamicTourPayload = {
-        ...payload,
-        tour_data: { tour, unassigned },
-        // tour_data: JSON.stringify({ tour, unassigned }),
-        tour_route: routes,
-        orderIds: xOrderIds,
-      };
-
-      await saveDynamicTour(connection, dynamicTour);
-
-      const xOrder_ids: number[] = xOrderIds.split(",").map((o) => Number(o));
-      await LogisticOrder.updateOrdersStatus(
-        connection,
-        xOrder_ids,
-        OrderStatus.assigned
-      );
-    } else {
-      logWithTime(`Null Response from Here Map - Routes creation`);
-      throw Error("Null Response from Here Map - Routes creation");
+    // In case of update, unassign orders that meant to remove from dTour
+    if (payload.id && payload.tour_name) {
+      await handleExistingTour(connection, payload, payload_orderIds);
     }
 
-    const order_number_map = new Map<number, string>(
-      orders.map((o) => [o.order_id, o.order_number])
+    await persistDynamicTour(
+      connection,
+      payload,
+      tour,
+      routes,
+      unassigned,
+      txnOrderIds
     );
-    const unassignedOrders: UnassignedRes[] = unassigned.map((unassigned) => {
-      const order_id = Number(unassigned.jobId.split("_")[1]);
-      return {
-        orderId: order_id,
-        order_number: order_number_map.get(order_id) ?? "",
-        reasons: unassigned.reasons.map((r) => `${r.code}:${r.description}`),
-      };
-    });
+
+    const unassignedOrders = buildUnassignedOrders(unassigned, orders);
 
     const response: DynamicTourRes = {
       tour: tour,
       unassigned: unassignedOrders,
       dynamicTour: {
         ...payload,
-        orderIds: xOrderIds,
+        orderIds: txnOrderIds,
         tour_route: routes,
       },
     };
 
     logWithTime(
-      `Dynamic Tour Created with ID: ${response.dynamicTour.id} - 
-      for warehouse: ${response.dynamicTour.warehouse_town}-${response.dynamicTour.warehouse_name} 
-      OrdersIds: ${response.dynamicTour.orderIds}`
+      `Dynamic Tour Created with ID: ${response.dynamicTour?.id ?? "UNKNOWN"} - 
+   for warehouse: ${response.dynamicTour?.warehouse_town ?? ""} - ${
+        response.dynamicTour?.warehouse_name ?? ""
+      } 
+   OrdersIds: ${response.dynamicTour?.orderIds ?? ""}`
     );
+
+    try {
+      console.info("res?.dynamicTour?.id!", response?.dynamicTour?.id!);
+      console.info("Triggering createDeliveryCostForTour...");
+      await createDeliveryCostForTour(response?.dynamicTour?.id!);
+    } catch (err) {
+      console.error(
+        `Failed to create delivery cost for tour ${response.dynamicTour.id}:`,
+        err
+      );
+    }
 
     return response;
   } catch (error) {
-    connection.rollback();
+    try {
+      await connection.rollback();
+    } catch (rbErr) {
+      console.error("Rollback failed:", rbErr);
+    }
+    console.error("Error in createDynamicTourAsync:", error);
+    throw error;
   } finally {
     connection.release();
   }
 }
 
-const saveDynamicTour = async (
+export const saveDynamicTour = async (
   conn: PoolConnection,
   payload: DynamicTourPayload
 ) => {
+  console.log("Entered saveDynamicTour");
   const {
     id,
     tour_name,
@@ -128,74 +149,89 @@ const saveDynamicTour = async (
     tour_data,
     orderIds,
     warehouse_id,
+    total_weight_kg,
+    total_distance_km,
+    total_duration_hrs,
     approved_by = null,
     approved_at = null,
     updated_by = null,
   } = payload;
 
+  // Create new tour name
+  const order_ids = orderIds.split(",").map((o) => Number(o));
+  const new_tourName = await generateTourName(order_ids);
+
+  let query = "";
+  let values = [];
+
   const isNew = !id && !tour_name;
   if (isNew) {
-    // Create new
-    const order_ids = orderIds.split(",").map((o) => Number(o));
-    const new_tourNumber = await generateTourNumber(order_ids);
-
-    const query = `
+    query = `
       INSERT INTO dynamic_tours (
-        tour_name, tour_route, tour_data, orderIds, warehouse_id, approved_by, approved_at, updated_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        tour_name, tour_route, tour_data, orderIds, warehouse_id,
+        total_weight_kg, total_distance_km, total_duration_hrs,
+        approved_by, approved_at, updated_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-    const values = [
-      new_tourNumber,
+    values = [
+      new_tourName,
       JSON.stringify(tour_route),
       JSON.stringify(tour_data),
       orderIds,
       warehouse_id,
+      total_weight_kg,
+      total_distance_km,
+      total_duration_hrs,
       approved_by,
       approved_at,
       updated_by,
     ];
-
-    try {
-      const [result]: any = await conn.execute(query, values);
-      return { ...result, id: result.insertId, tour_number: new_tourNumber };
-    } catch (error) {
-      console.error("Error inserting dynamic tour:", error);
-      throw error;
-    }
   } else {
     // Update existing
-    const query = `
+    query = `
       UPDATE dynamic_tours
       SET
       tour_name = ?,
         tour_route = ?,
         tour_data = ?,
         orderIds = ?,
+        total_weight_kg = ?,
+        total_distance_km = ?,
+        total_duration_hrs = ?,
         approved_by = ?,
         approved_at = ?,
         updated_by = ?
       WHERE ${id ? "id = ?" : "tour_name = ?"}
     `;
 
-    const values = [
-      tour_name,
+    values = [
+      new_tourName,
       JSON.stringify(tour_route),
       JSON.stringify(tour_data ?? {}),
       orderIds,
+      total_weight_kg,
+      total_distance_km,
+      total_duration_hrs,
       approved_by,
       approved_at,
       updated_by,
       id || tour_name,
     ];
+  }
 
-    try {
-      const [result] = await conn.execute(query, values);
-      return result;
-    } catch (error) {
-      console.error("Error updating dynamic tour:", error);
-      throw error;
-    }
+  try {
+    const [result]: any = await conn.execute(query, values);
+    console.error(
+      `Dynamic Tour ${isNew ? "Inserted" : "Updated"} Successfully`
+    );
+    return { ...result, id: result.insertId, tour_name: new_tourName };
+  } catch (error) {
+    console.error(
+      `Error ${isNew ? "Inserting" : "Updating"} Dynamic Tour:`,
+      error
+    );
+    throw error;
   }
 };
 

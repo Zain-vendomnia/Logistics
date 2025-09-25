@@ -125,6 +125,10 @@ export interface DynamicTourPayload {
   orderIds: string; // Comma-separated
   totalOrdersItemsQty: number;
 
+  total_weight_kg?: number;
+  toal_distance_km?: number;
+  total_duration_hrs?: number;
+
   warehouse_id: number;
   warehouse_name?: string;
   warehouse_colorCode?: string;

@@ -46,7 +46,7 @@ adminRouter.get("/customer/updatelatlng", updatelatlngController);
 adminRouter.post("/sendEmail", sendEmail);
 adminRouter.post("/routeoptimize/getOrder", OrderCtrl.getAllLogisticOrders);
 // adminRouter.post("/picklistEmail", picklistEmail);
-adminRouter.get("/routeoptimize/getOrder", OrderCtrl.getLgsticOrderById);
+adminRouter.get("/routeoptimize/getOrder", OrderCtrl.getLogisticOrderById);
 adminRouter.get("/routeoptimize/ordersWithItems", OrderCtrl.getOrdersWithItems);
 adminRouter.post("/insertParkingPermit", insertParkingPermit);
 adminRouter.post("/getOrderNotificationMetaData", getOrderNotificationMetaData);

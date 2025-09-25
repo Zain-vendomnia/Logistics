@@ -146,7 +146,7 @@ export class LogisticOrder {
   }
 
   // Get a specific order by order_number with items and drivers information
-  static async getOrder(order_number: string): Promise<any[]> {
+  static async getOrder(order_number: string): Promise<LogisticOrder[]> {
     const [rows] = await pool.execute(
       `
     SELECT 
@@ -176,10 +176,10 @@ export class LogisticOrder {
     WHERE lo.order_number = ?
     GROUP BY lo.order_id;
     `,
-      [order_number] // ✅ Provide the value for the placeholder
+      [order_number]
     );
 
-    return rows as any[];
+    return rows as LogisticOrder[];
   }
 
   static async getWmsOrderNumbers(): Promise<string[]> {
@@ -265,7 +265,7 @@ export class LogisticOrder {
     return rows as LogisticOrder[];
   }
 
-  static async getOrdersWithItemsAsync(orderIds: number[]): Promise<any[]> {
+  static async getOrdersWithItemsAsync(orderIds: number[]): Promise<Order[]> {
     if (orderIds.length === 0) return [];
 
     const placeholders = orderIds.map(() => "?").join(", ");
@@ -295,7 +295,24 @@ export class LogisticOrder {
         })),
     }));
 
-    return orderWithItems;
+    return orderWithItems as Order[];
+  }
+
+  static async getOrderItemsCount(orderIds: string[]): Promise<number> {
+    if (!orderIds || orderIds.length === 0) return 0;
+
+    const placeholders = orderIds.map(() => "?").join(",");
+    const query = `SELECT quantity FROM logistic_order_items WHERE order_id IN (${placeholders})`;
+
+    try {
+      const [rows] = await pool.execute(query, orderIds);
+      const items = rows as { quantity: number }[];
+
+      return items.reduce((acc, item) => acc + item.quantity, 0);
+    } catch (error) {
+      console.error("Error fetching order items count:", error);
+      throw error;
+    }
   }
 
   static async getOrdersByStatus(
@@ -316,6 +333,9 @@ export class LogisticOrder {
     orderIds: number[],
     status: OrderStatus
   ): Promise<Boolean> {
+    if (!orderIds || orderIds.length === 0) {
+      return false;
+    }
     if (!status) throw new Error("Invalid order status provided");
 
     const placeholders = orderIds.map(() => "?").join(", ");
@@ -379,7 +399,6 @@ export class LogisticOrder {
       console.log(
         `***************** ${orders.length} fetched orders ${orders}`
       );
-      console.log(`*****************`);
 
       // filter further with WMS orders
       const [wms_orders] = await pool.execute(
@@ -397,23 +416,6 @@ export class LogisticOrder {
       return orders;
     } catch (error) {
       console.error("Error fetching pin-b orders:", error);
-      throw error;
-    }
-  }
-
-  static async getOrderItemsCount(orderIds: string[]): Promise<number> {
-    if (!orderIds || orderIds.length === 0) return 0;
-
-    const placeholders = orderIds.map(() => "?").join(",");
-    const query = `SELECT quantity FROM logistic_order_items WHERE order_id IN (${placeholders})`;
-
-    try {
-      const [rows] = await pool.execute(query, orderIds);
-      const items = rows as { quantity: number }[];
-
-      return items.reduce((acc, item) => acc + item.quantity, 0);
-    } catch (error) {
-      console.error("Error fetching order items count:", error);
       throw error;
     }
   }

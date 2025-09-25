@@ -23,7 +23,7 @@ export const getAllLogisticOrders = async (_req: Request, res: Response) => {
   }
 };
 
-export const getLgsticOrderById = async (_req: Request, res: Response) => {
+export const getLogisticOrderById = async (_req: Request, res: Response) => {
   const { order_number } = _req.query;
 
   try {

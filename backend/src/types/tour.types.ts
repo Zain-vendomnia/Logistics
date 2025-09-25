@@ -1,3 +1,5 @@
+import { Statistic } from "./hereMap.types";
+
 export type RouteResponse = {
   from: any;
   to: any;
@@ -81,7 +83,7 @@ export type Tour = {
   vehicleId: string;
   typeId: string;
   stops: Stop[];
-  statistic: any;
+  statistic: Statistic;
   shiftIndex: number;
 };
 

@@ -180,14 +180,13 @@ export function trimClusterToFit(
 
   while (fitted.length >= MIN_ORDERS) {
     const approxSec = secondsForApproxRoute(warehouse, fitted);
-    logWithTime(
-      `Orders ${orders.length} approxSec from Warehouse ${warehouse.id}-${warehouse.town} is: ${approxSec}`
-    );
+
     logWithTime(
       `Duration ${approxSec} is ${
         approxSec < TIME_WINDOW_HOURS * 3600 ? "lesser" : "greater"
       } than ${TIME_WINDOW_HOURS * 3600}`
     );
+    
     if (approxSec <= TIME_WINDOW_HOURS * 3600) break;
 
     // remove farthest order from warehouse (last in fitted/sorted array)

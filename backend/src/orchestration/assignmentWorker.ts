@@ -65,10 +65,14 @@ export async function processBatch() {
   const warehouse_zipMap = await getWarehouseZipcodesRecord(
     warehouses.map((w) => w.id)
   ); // Record<warehouseId, Set<zipcode>>
-  //   console.log("Warehouses Zipcode Map:", warehouse_zipMap);
 
   const assignments = new Map<number, Order[]>();
   let accepted_Maps = new Map<number, Order[][]>(); // warehouseId -> clusters
+  // let accepted_Maps = new Map<
+  //   number,
+  //   { cluster: Order[]; approxHrs: number }[]
+  // >();
+
   let trimmed_Maps = new Map<number, Order[]>();
 
   // ASSIGN orders to warehouses
@@ -84,21 +88,12 @@ export async function processBatch() {
         order.location.lat,
         order.location.lng
       );
-      //   console.log(
-      //     `Warehouse ${wh.id} - order ${order.order_id} distance: ${d}`
-      //   );
 
       if (d < bestDist) {
         bestDist = d;
         best = wh;
       }
     }
-
-    // if (best) {
-    //   console.log(
-    //     `Best Warehouse for order ${order.order_id}: warehouseId: ${best.id} - ${best.town}`
-    //   );
-    // }
 
     const zipcodeOwner = warehouses.find((w) =>
       warehouse_zipMap?.[w.id].zip_codes_delivering.includes(
@@ -108,10 +103,6 @@ export async function processBatch() {
 
     const chosenWarehouses: (typeof warehouses)[0][] = [];
     if (zipcodeOwner) {
-      //   console.log(
-      //     `Warehouse zipcodeOwner for order ${order.order_id}: warehouseId: ${zipcodeOwner.id} - ${zipcodeOwner.town}`
-      //   );
-
       if (
         best!.id !== zipcodeOwner.id &&
         bestDist + 0.1 <=
@@ -143,7 +134,7 @@ export async function processBatch() {
   }
 
   // -- Process clusters per warehouse --
-  logWithTime(`Total assignments.entries(): ${assignments.size}`);
+  logWithTime(`Total assignments size: ${assignments.size}`);
 
   for (const [warehouseId, candidateOrders] of assignments.entries()) {
     logWithTime(
@@ -152,17 +143,12 @@ export async function processBatch() {
       }: ${candidateOrders.map((o) => o.order_id)})`
     );
 
-    logWithTime(
-      `Warehouse ${warehouseId} has ${candidateOrders.length} candidate orders`
-    );
-
     if (candidateOrders.length < MIN_ORDERS) continue;
 
     const warehouse = warehouses.find((w) => w.id === warehouseId)!;
     if (!warehouse) continue;
 
-    logWithTime(`processWarehouseClusters Round 1`);
-
+    logWithTime(`Process Clusters for Warehouse: ${warehouseId} - Round 1`);
     const { ACCEPTED_CLUSTERS, TRIMMED_ORDERS } =
       await processWarehouseClusters(warehouse, candidateOrders);
 
@@ -185,7 +171,7 @@ export async function processBatch() {
       const warehouse = warehouses.find((w) => w.id === warehouseId)!;
       if (!warehouse) continue;
 
-      logWithTime(`processWarehouseClusters Round 2`);
+      logWithTime(`Process Clusters for Warehouse: ${warehouseId} - Round 2`);
       const { ACCEPTED_CLUSTERS: accept2 } = await processWarehouseClusters(
         warehouse,
         trimmedList
@@ -226,9 +212,11 @@ async function createDynamicTourForCluster(
       totalOrdersItemsQty: 0,
     };
 
-    const res = await createDynamicTourAsync(tourPayload);
+    await createDynamicTourAsync(tourPayload);
 
-    await createDeliveryCostForTour(res?.dynamicTour?.id!);
+    // console.info("res?.dynamicTour?.id!", res?.dynamicTour?.id!);
+    // console.info("Triggering createDeliveryCostForTour...");
+    // await createDeliveryCostForTour(res?.dynamicTour?.id!);
 
     console.info(
       `Successfully created tour for warehouse ${warehouseId}, Orders: ${orders.map(
@@ -251,14 +239,12 @@ export async function processWarehouseClusters(
 ) {
   const TRIMMED_ORDERS = new Map<number, Order[]>();
   const ACCEPTED_CLUSTERS = new Map<number, Order[][]>();
-
-  //   for (const candidateOrders of jaggedOrders) {
-  // if (jaggedOrders.length < MIN_ORDERS) continue;
+  // const ACCEPTED_CLUSTERS = new Map<
+  //   number,
+  //   { cluster: Order[]; approxHrs: number }[]
+  // >();
 
   const clusters = helper.clusterOrders(jaggedOrders, warehouse);
-
-  logWithTime(`Order Clusters Length, ${clusters.length}`);
-  logWithTime(`Order Clusters, ${clusters}`);
 
   for (let cluster of clusters) {
     if (cluster.length < MIN_ORDERS) {
@@ -286,19 +272,12 @@ export async function processWarehouseClusters(
       logWithTime(`Fitted Orders, ${fitted.length} : ${fitted}`);
       logWithTime(`Trimmed Orders, ${trimmed.length} : ${trimmed}`);
       logWithTime(
-        `Fitted Order Clusters Length, ${fitted.length} : ${fitted
-          .map((o) => o.order_id)
-          .join(",")}`
+        `Fitted: ${fitted.length} and Removed: ${trimmed.length} Orders from Cluster`
       );
+      logWithTime(`Fitted Order : ${fitted.map((o) => o.order_id).join(",")}`);
 
       cluster = fitted;
-      logWithTime(
-        `Fress Order Clusters Length, ${clusters.length} : ${cluster
-          .map((o) => o.order_id)
-          .join(",")}`
-      );
     }
-
     if (!cluster.length || cluster.length < MIN_ORDERS) continue;
 
     try {
@@ -325,12 +304,12 @@ export async function processWarehouseClusters(
       //   trimmedLocal.push(toRemove);
 
       //   console.log(`Matrix Call --------------------- 2`);
-      //   const { tourDurationSec: dur2 } = await getWarehouseToOrdersMetrix(
+      //   const { tourDurationSec: durMatrix_2 } = await getWarehouseToOrdersMetrix(
       //     warehouse,
       //     fitted
       //   );
 
-      //   if (dur2 != null && dur2 <= TIME_WINDOW_HOURS * 3600) {
+      //   if (durMatrix_2 != null && durMatrix_2 <= TIME_WINDOW_HOURS * 3600) {
       //     const prev = ACCEPTED_CLUSTERS.get(warehouse.id) ?? [];
       //     ACCEPTED_CLUSTERS.set(warehouse.id, [...prev, fitted]);
       //     break;
@@ -348,7 +327,6 @@ export async function processWarehouseClusters(
       TRIMMED_ORDERS.set(warehouse.id, prev.concat(cluster));
     }
   }
-  //   }
 
   console.warn(
     `processWarehouseClusters result for warehouse ${warehouse.id}:`,

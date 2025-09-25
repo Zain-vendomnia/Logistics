@@ -258,6 +258,8 @@ export async function createDeliveryCostForTour(
 ): Promise<any> {
   const connection = await pool.getConnection();
   try {
+    console.info("function createDeliveryCostForTour Starting...");
+
     await connection.beginTransaction();
 
     // Fetch delivery cost rates
@@ -309,6 +311,8 @@ export async function createDeliveryCostForTour(
 
     const insertedId = insertResult.insertId;
 
+    console.info("Tour Cost created with Id: ", insertedId);
+
     // Return the new row
     const [rows]: any = await connection.execute(
       `SELECT * FROM delivery_cost_per_tour WHERE id = ?`,
@@ -316,13 +320,13 @@ export async function createDeliveryCostForTour(
     );
 
     await connection.commit();
-
     return rows[0];
   } catch (error) {
     await connection.rollback();
     console.error("Error creating delivery cost for tour:", error);
     throw error;
   } finally {
+    console.info("function createDeliveryCostForTour Ending...");
     connection.release();
   }
 }

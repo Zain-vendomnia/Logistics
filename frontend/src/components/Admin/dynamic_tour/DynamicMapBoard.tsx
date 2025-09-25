@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 
-import { Badge, Box, IconButton, Paper, Typography } from "@mui/material";
+import { Box, IconButton, Typography } from "@mui/material";
 import CircularProgress from "@mui/material/CircularProgress";
 import GpsFixedIcon from "@mui/icons-material/GpsFixed";
 
@@ -23,35 +23,6 @@ import useLiveOrderUpdates from "../../../socket/useLiveOrderUpdates";
 import DynamicTourList from "./DynamicTourList";
 import DynamicTourDetails from "./DynamicTourDetails";
 import { Order } from "../../../types/order.type";
-import { count } from "console";
-
-// interface Stop {
-//   location: { lat: number; lng: number };
-//   time: { arrival: string; departure: string };
-//   activities: { jobId: string; type: string }[];
-// }
-
-// interface RouteSection {
-//   coordinates: [number, number][];
-//   summary: any;
-// }
-
-// interface VehicleTour {
-//   vehicleId: string;
-//   sections: RouteSection[];
-//   stops: Stop[];
-// }
-
-// interface DynamicTourPayload {
-//   id?: number;
-//   tour_number: string;
-//   tour_route: VehicleTour;
-//   orderIds: string; // Comma-separated
-//   warehouse_id: number;
-// }
-
-// functions
-// Marker Icons
 
 const defaultIcon = new L.Icon({
   iconUrl:
@@ -126,6 +97,7 @@ const DymanicMapBoard = () => {
     lastFetchedAt,
     pinboard_AddOrders,
     selectedTour,
+    dynamicTours,
     setDynamicTours,
   } = useDynamicTourStore();
 

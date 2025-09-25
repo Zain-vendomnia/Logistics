@@ -18,25 +18,12 @@ import {
 } from "../store/useNotificationStore";
 import { getCurrentUser } from "../services/auth.service";
 import { Order } from "../types/order.type";
-
-const getOrders = () => [
-  { id: 1, name: 213 },
-  { id: 2, name: 214 },
-  { id: 3, name: 215 },
-  { id: 4, name: 216 },
-  { id: 5, name: 217 },
-  { id: 6, name: 218 },
-  { id: 7, name: 219 },
-  { id: 8, name: 220 },
-  { id: 9, name: 221 },
-  { id: 11, name: 222 },
-  { id: 12, name: 223 },
-  { id: 13, name: 224 },
-];
+import { number } from "yup";
 
 export const useDynamicTourService = () => {
   const { showNotification } = useNotificationStore();
-  const { selectedTour, setSelectedTour } = useDynamicTourStore();
+  const { selectedTour, setSelectedTour, setDynamicTours } =
+    useDynamicTourStore();
 
   const theme = useTheme<Theme>();
 
@@ -50,13 +37,12 @@ export const useDynamicTourService = () => {
 
   const [selectedPinbOrders, setSelectedPinbOrders] = useState<Order[]>([]);
 
+  // for Order details - expanded
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
-  // const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
-  const [removeOrderId, setRemoveOrderId] = useState<number | null>(null);
-
-  const [showRejectModal, setShowRejectModal] = useState(false);
-
   const orderRef = useRef<HTMLDivElement | null>(null);
+
+  const [removeOrderId, setRemoveOrderId] = useState<number | null>(null);
+  const [showRejectModal, setShowRejectModal] = useState(false);
 
   // Form fields states
   const today = new Date().toISOString().split("T")[0];
@@ -116,25 +102,23 @@ export const useDynamicTourService = () => {
     fetchEligibleDrivers(formData.tourDate);
   }, [selectedTour?.warehouse_id, formData.tourDate]);
 
-  // Fetch Selected Tour details
+  // Fetch Selected Tour Details and Orders
   useEffect(() => {
     if (!selectedTour) return;
 
-    // get warehouse details
     const fetchData = async () => {
       try {
+        // get warehouse details
         const warehouseRes: WarehouseDetails =
           await adminApiService.getWarehouse(selectedTour.warehouse_id);
         setWarehouse(warehouseRes);
 
+        // get Tour Orders
         const orderIds = selectedTour.orderIds;
         const orders: Order[] =
           await adminApiService.fetchOrdersWithItems(orderIds);
-        console.log("selectedTour Order Details: ", orders);
-
-        // const orders = getOrders();
-
         setTourOrders(orders);
+
         setShouldUpdateTourRoute(false);
         setLoading(false);
       } catch (error) {
@@ -148,7 +132,7 @@ export const useDynamicTourService = () => {
     setFormData(initialFormState);
   }, [selectedTour]);
 
-  // Set OrderRef
+  // Set OrderRef to show order details - expanded
   useEffect(() => {
     if (!selectedOrderId || !orderRef.current) return;
     orderRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -179,19 +163,6 @@ export const useDynamicTourService = () => {
     setRemoveOrderId(null);
   };
   const orderToDelete = tourOrders.find((o) => o.order_id === removeOrderId);
-
-  // const handleSelectPinbOrder = async (e: any) => {
-  //   console.log("Hit!!");
-  //   const value = e.target.value;
-
-  //   console.log("handleSelectPinbOrder orders: ", value);
-
-  //   const orderIds = Array.isArray(value) ? value.join(",") : value;
-
-  //   const orders: Order[] =
-  //     await adminApiService.fetchOrdersWithItems(orderIds);
-  //   setSelectedPinbOrders(orders);
-  // };
 
   const handleSelectPinbOrder = async (newValue: Order[]) => {
     if (newValue.length === 0) {
@@ -235,6 +206,7 @@ export const useDynamicTourService = () => {
 
   const updateDynamicTour = async () => {
     setLoading(true);
+
     try {
       const torders = tourOrders.map((o) => o.order_id.toString()).join(",");
       const porders = selectedPinbOrders
@@ -246,26 +218,51 @@ export const useDynamicTourService = () => {
         tour_route: [],
         orderIds: [torders, porders].filter(Boolean).join(","),
         updated_by: getCurrentUser().email,
-        // approved_by: getCurrentUser().user_id,
-        // approved_at: new Date().toISOString(),
       };
-      console.log("Update D-Tour Request: ", request);
-      const res: DynamicTourRes =
+      // console.log("Update D-Tour Request: ", request);
+
+      const dTour_res: DynamicTourRes =
         await adminApiService.requestDynamicTour(request);
-      console.log("Update D-Tour Response: ", res);
+      // console.log("Update D-Tour Response: ", dTour_res);
 
-      notifyUnassignedOrders(res.unassigned as UnassignedRes[]);
+      if (!dTour_res || !dTour_res.dynamicTour) {
+        throw new Error("Invalid response: missing dynamicTour");
+      }
 
-      const unassignedOrderIds = new Set(res.unassigned.map((u) => u.orderId));
+      // debugger;
 
-      // console.log("unassigned order ids: ", unassignedOrderIds);
-      setTourOrders((prev) =>
-        prev.filter((o) => !unassignedOrderIds.has(o.order_id))
-      );
+      const updated_dTour = dTour_res.dynamicTour;
+      setSelectedTour({ ...updated_dTour });
 
-      setSelectedTour(res.dynamicTour);
-      // selectedTourOrders will be populated in UseEffect above
+      // setDynamicTours  update tours list
+
+      const updatedOrders = updated_dTour.orderIds.split(",").map(Number);
+      const trueOrders = [
+        ...tourOrders.filter((o) => updatedOrders.includes(o.order_id)),
+        ...selectedPinbOrders.filter((o) => updatedOrders.includes(o.order_id)),
+      ];
+      setTourOrders(trueOrders);
       setSelectedPinbOrders([]);
+
+      if (dTour_res.unassigned) {
+        notifyUnassignedOrders(dTour_res.unassigned);
+        const unassignedOrderIds = new Set(
+          dTour_res.unassigned.map((u) => u.orderId)
+        );
+
+        setTourOrders((prev) =>
+          prev.filter((o) => !unassignedOrderIds.has(o.order_id))
+        );
+      }
+
+      adminApiService
+        .fetchOrdersWithItems(updated_dTour.orderIds)
+        .then((freshOrders) => {
+          setTourOrders(freshOrders);
+        })
+        .catch((error) => {
+          console.error("Background fetch of tour orders failed:", error);
+        });
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.error("Original error:", error);

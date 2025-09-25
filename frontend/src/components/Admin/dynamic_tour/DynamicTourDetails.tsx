@@ -166,7 +166,7 @@ const DynamicTourDetails = () => {
                 Name: {warehouse?.name}
               </Typography>
               <Typography variant="subtitle2">
-                Add: {warehouse?.address}
+                Address: {warehouse?.address}
               </Typography>
             </Stack>
           </Box>
