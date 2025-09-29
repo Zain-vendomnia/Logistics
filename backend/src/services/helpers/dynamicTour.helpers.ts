@@ -73,30 +73,16 @@ async function persistDynamicTour(
   routes: DecodedRoute,
   unassigned: any[],
   txnOrderIds: string
-) {
+): Promise<DynamicTourPayload> {
   try {
-    const orderWithItems = await LogisticOrder.getOrdersWithItemsAsync(
-      payload.orderIds.split(",").map(Number)
-    );
-
-    const totalWeightKg = orderWithItems.reduce(
-      (acc, order) => acc + calculateOrderWeight(order),
-      0
-    );
-
-    const { totalDistanceKm, totalDurationHrs } = extractTourStats(tour);
-
     const dynamicTour: DynamicTourPayload = {
       ...payload,
-      total_distance_km: totalDistanceKm,
-      total_duration_hrs: totalDurationHrs,
-      total_weight_kg: totalWeightKg,
       tour_data: { tour, unassigned },
       tour_route: routes,
       orderIds: txnOrderIds,
     };
 
-    const { tour_name } = await saveDynamicTour(connection, dynamicTour);
+    const { id, tour_name } = await saveDynamicTour(connection, dynamicTour);
 
     const txnOrder_ids: number[] = txnOrderIds.split(",").map(Number);
     await LogisticOrder.updateOrdersStatus(
@@ -119,6 +105,14 @@ async function persistDynamicTour(
     }
 
     console.log("Updated Dynamic Tour Name", tour_name);
+
+    return {
+      ...payload,
+      id,
+      tour_name,
+      orderIds: txnOrderIds,
+      tour_route: routes,
+    } as DynamicTourPayload;
   } catch (error) {
     const err = new Error(
       `persistDynamicTour failed for tour_id=${payload.id} | txnOrderIds = ${txnOrderIds}`,
@@ -144,7 +138,7 @@ type TourStats = {
   servingHrs?: number;
 };
 
-export function extractTourStats(tour: any): TourStats {
+function extractTourStats(tour: any): TourStats {
   let response: TourStats = {
     totalDistanceKm: 0,
     totalDurationHrs: 0,
@@ -201,4 +195,6 @@ export {
   buildUnassignedOrders,
   handleExistingTour,
   persistDynamicTour,
+  extractTourStats,
+  calculateOrderWeight,
 };

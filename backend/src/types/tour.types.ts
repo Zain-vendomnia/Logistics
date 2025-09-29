@@ -126,3 +126,24 @@ export type MatrixResult = {
     duration: number | null;
   }[];
 };
+
+export type DeliveryCostRates = {
+  personnel_costs_per_hour: number;
+  diesel_costs_per_liter: number;
+  consumption_l_per_100km: number;
+  van_costs_per_day: number;
+
+  storage_cost_per_BKW: number;
+  bkw_per_tour: number;
+  avg_tour_duration_hrs: number;
+  avg_tour_length_km: number;
+  avg_number_tour_days: number;
+
+  hotel_costs: number;
+
+  handling_inbound_cost_tour: number;
+  handling_inbound_cost_panel: number;
+  handling_outbound_cost_pal: number;
+  handling_outbound_costs_tour: number;
+  currency_code?: "EUR" | "USD";
+};

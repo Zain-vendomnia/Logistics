@@ -1,7 +1,7 @@
 import pLimit from "p-limit";
 
 import { createDynamicTourAsync } from "../services/dynamicTour.service";
-import { createDeliveryCostForTour } from "../services/tour.service";
+// import { createDeliveryCostForTour } from "../services/tour.service";
 import {
   getActiveWarehousesWithVehicles,
   getWarehouseLocationCords,

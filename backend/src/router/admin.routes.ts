@@ -28,7 +28,7 @@ import { hereMapController } from "../controller/HERE_API/hereMapController";
 import driverRoutes from "./driver.routes";
 import vehicleRoutes from "./vehicle.routes";
 import warehouseRoutes from "./warehouse.routes";
-import * as dynamicTourCtrl from "../controller/HERE_API/dynamicTour.controller";
+import * as dTourControler from "../controller/HERE_API/dynamicTour.controller";
 
 import { upload } from "../middlewares/upload";
 import { parseExcelToJobs } from "../utils/parseExcel";
@@ -65,7 +65,7 @@ adminRouter.post("/uploadexcel", upload.single("file"), async (req, res) => {
     const jobList = parseExcelToJobs(req.file.path);
 
     // Pass jobList to the controller
-    await dynamicTourCtrl.create_dynamicTour(req, res, jobList);
+    await dTourControler.create_dynamicTour(req, res, jobList);
   } catch (err) {
     console.error(err);
     res.status(500).json({
@@ -83,10 +83,10 @@ adminRouter.use(validateToken, roleCheck(["admin"]));
 adminRouter.post("/hereMapController", hereMapController);
 // adminRouter.post("/dynamicTourController", dynamicTourCtrl.create_dynamicTour);
 
-adminRouter.get("/dynamicTours", dynamicTourCtrl.getDynamicTours);
-adminRouter.post("/createDynamicTour", dynamicTourCtrl.createDynamicTour);
-adminRouter.post("/acceptDynamicTour", dynamicTourCtrl.acceptDynamicTour);
-adminRouter.post("/rejectDynamicTour", dynamicTourCtrl.rejectDynamicTour);
+adminRouter.get("/dynamicTours", dTourControler.getDynamicTours);
+adminRouter.post("/createDynamicTour", dTourControler.createDynamicTour);
+adminRouter.post("/acceptDynamicTour", dTourControler.acceptDynamicTour);
+adminRouter.post("/rejectDynamicTour", dTourControler.rejectDynamicTour);
 
 adminRouter.get("/pinboardOrders", OrderCtrl.getPinboardOrders);
 adminRouter.get("/tours", getFilteredToursController);

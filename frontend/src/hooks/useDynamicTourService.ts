@@ -18,12 +18,15 @@ import {
 } from "../store/useNotificationStore";
 import { getCurrentUser } from "../services/auth.service";
 import { Order } from "../types/order.type";
-import { number } from "yup";
 
 export const useDynamicTourService = () => {
   const { showNotification } = useNotificationStore();
-  const { selectedTour, setSelectedTour, setDynamicTours } =
-    useDynamicTourStore();
+  const {
+    selectedTour,
+    setSelectedTour,
+    updateDynamicToursList,
+    pinboard_removeOrders,
+  } = useDynamicTourStore();
 
   const theme = useTheme<Theme>();
 
@@ -215,7 +218,7 @@ export const useDynamicTourService = () => {
 
       const request: DynamicTourPayload = {
         ...selectedTour!,
-        tour_route: [],
+        tour_route: null,
         orderIds: [torders, porders].filter(Boolean).join(","),
         updated_by: getCurrentUser().email,
       };
@@ -229,12 +232,12 @@ export const useDynamicTourService = () => {
         throw new Error("Invalid response: missing dynamicTour");
       }
 
-      // debugger;
-
       const updated_dTour = dTour_res.dynamicTour;
+      console.log("updated_dTour", updated_dTour);
+      updateDynamicToursList(updated_dTour);
       setSelectedTour({ ...updated_dTour });
-
-      // setDynamicTours  update tours list
+      // setSelectedTour({ ...updated_dTour });
+      pinboard_removeOrders(updated_dTour.orderIds.split(",").map(Number));
 
       const updatedOrders = updated_dTour.orderIds.split(",").map(Number);
       const trueOrders = [

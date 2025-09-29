@@ -78,7 +78,7 @@ const getStopIcon = (stop: Stop) => {
   return defaultIcon;
 };
 
-const extract_Coords = (tours: Geometry[]): [number, number][] => {
+const extract_Coords = (tours: Geometry[] | Geometry): [number, number][] => {
   const array = Array.isArray(tours) ? tours : [tours];
 
   return array.flatMap((v) => [
@@ -91,14 +91,15 @@ const colors = ["blue", "green", "red", "purple", "orange", "brown"];
 
 const DymanicMapBoard = () => {
   const mapRef = useRef<L.Map | null>(null);
+  const focusedTourIdRef = useRef<string | null>(null);
 
   const {
     pinboard_OrderList,
     lastFetchedAt,
     pinboard_AddOrders,
     selectedTour,
-    dynamicTours,
-    setDynamicTours,
+    dynamicToursList,
+    setDynamicToursList,
   } = useDynamicTourStore();
 
   useLiveOrderUpdates((new_order) => {
@@ -119,7 +120,6 @@ const DymanicMapBoard = () => {
     [52.520008, 13.404954], // Berlin Germany
     // [50.110924, 8.682127], // Frankfurt Germany
   ];
-
   let allCoords: [number, number][] = fallbackCoords;
 
   const flyToBoundsOptions = {
@@ -135,6 +135,8 @@ const DymanicMapBoard = () => {
         // const res = await adminApiService.plotheremap();
         const dynamic_tours = await adminApiService.fetchDynamicTours();
 
+        console.log(`Dynamic Tours Fetched - Map Board: `, dynamicToursList);
+
         const tours_route: Geometry[] = dynamic_tours.flatMap(
           (tour: DynamicTourPayload) => tour.tour_route || []
         );
@@ -148,7 +150,7 @@ const DymanicMapBoard = () => {
         // }));
 
         // console.log('Dynamic Tours: ', dynamic_tours)
-        setDynamicTours(dynamic_tours as DynamicTourPayload[]);
+        setDynamicToursList(dynamic_tours as DynamicTourPayload[]);
         setVehicleTours(tours_route);
       } catch (err) {
         console.error("API call failed", err);
@@ -164,9 +166,12 @@ const DymanicMapBoard = () => {
   useEffect(() => {
     if (!mapRef.current) return;
 
-    if (!isLoading && vehicleTours.length > 0) {
+    if (
+      !isLoading &&
+      vehicleTours.length > 0 &&
+      focusedTourIdRef.current === null
+    ) {
       allCoords = extract_Coords(vehicleTours);
-
       const bounds = L.latLngBounds(allCoords);
       mapRef.current.flyToBounds(bounds, flyToBoundsOptions as any);
 
@@ -174,7 +179,8 @@ const DymanicMapBoard = () => {
       //   mapRef.current?.setZoom(mapRef.current.getZoom() - 1); // zoom out 1 level
       // }, 1600);
     }
-  }, [isLoading, vehicleTours]);
+  }, []);
+  // }, [isLoading, vehicleTours]);
 
   // mapRef to selected tour
   useEffect(() => {
@@ -182,8 +188,34 @@ const DymanicMapBoard = () => {
 
     allCoords = extract_Coords(selectedTour.tour_route);
 
-    const bounds = L.latLngBounds(allCoords);
-    mapRef.current.flyToBounds(bounds, flyToBoundsOptions as any);
+    setVehicleTours((prev) => {
+      const idx = prev.findIndex(
+        (v) => v.vehicleId === selectedTour.tour_route?.vehicleId
+      );
+      if (idx === -1 || prev[idx] !== selectedTour.tour_route) {
+        const newArr = [...prev];
+        idx === -1
+          ? newArr.push(selectedTour.tour_route!)
+          : (newArr[idx] = selectedTour.tour_route!);
+        return newArr;
+      }
+      return prev;
+    });
+    // setVehicleTours((prev) =>
+    //   prev.map((route) =>
+    //     route.vehicleId === selectedTour.tour_route?.vehicleId
+    //       ? selectedTour.tour_route
+    //       : route
+    //   )
+    // );
+
+    if (focusedTourIdRef.current !== selectedTour.tour_route.vehicleId) {
+      focusedTourIdRef.current = selectedTour.tour_route.vehicleId;
+
+      const bounds = L.latLngBounds(allCoords);
+      mapRef.current.flyToBounds(bounds, flyToBoundsOptions as any);
+      console.log(`UPdating Map ref for Selected Tour`);
+    }
   }, [selectedTour]);
 
   // Fetch pinboard orders
@@ -299,9 +331,7 @@ const DymanicMapBoard = () => {
             style={{ height: "100%", width: "100%" }}
           >
             <MapReady
-              onMapReady={(mapInstance) => {
-                mapRef.current = mapInstance;
-              }}
+              onMapReady={(mapInstance) => (mapRef.current = mapInstance)}
             />
 
             <TileLayer
@@ -342,6 +372,7 @@ const DymanicMapBoard = () => {
 
             {vehicleTours.map((vehicle, idx) => {
               const pathColor = colors[idx % colors.length];
+              const isFocused = focusedTourIdRef.current === vehicle.vehicleId;
               return (
                 <React.Fragment key={vehicle.vehicleId}>
                   {vehicle.sections.map((section, secIdx) => (
@@ -352,6 +383,8 @@ const DymanicMapBoard = () => {
                         positions={section.coordinates}
                         color={pathColor}
                         weight={4}
+                        // weight={isFocused ? 6 : 3}
+                        opacity={isFocused ? 1 : 0.7}
                       />
                       <PolylineDecoratorWrapper
                         positions={section.coordinates}
@@ -379,7 +412,7 @@ const DymanicMapBoard = () => {
                       );
                     }
                     if (isLastStop) return null;
-                    // ✅ All other stops → numbered icon (starting from 1)
+
                     const numberedIcon = L.divIcon({
                       className: "",
                       html: `

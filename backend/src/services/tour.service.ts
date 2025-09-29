@@ -6,11 +6,20 @@ import {
   createTourAsync,
   removeUnassignedOrdersFromTour,
 } from "../model/tourModel";
-import { CreateTour, NotAssigned } from "../types/dto.types";
+import { CreateTour, NotAssigned, TourMatrix } from "../types/dto.types";
 import { DecodedRoute, Unassigned } from "../types/hereMap.types";
-import { Tour, LogisticsRoute, TourType } from "../types/tour.types";
+import {
+  Tour,
+  LogisticsRoute,
+  TourType,
+  DeliveryCostRates,
+} from "../types/tour.types";
 import hereMapService from "./hereMap.service";
 import pool from "../config/database";
+import {
+  calculateOrderWeight,
+  extractTourStats,
+} from "./helpers/dynamicTour.helpers";
 
 export async function getTourMapDataAsync(tourPayload: CreateTour) {
   const connection = await pool.getConnection();
@@ -255,72 +264,171 @@ export async function getTourDetailsById(tourId: number) {
 export async function createDeliveryCostForTour(
   tourId: number,
   type: TourType = TourType.dynamicTour
-): Promise<any> {
+): Promise<TourMatrix> {
   const connection = await pool.getConnection();
   try {
     console.info("function createDeliveryCostForTour Starting...");
 
     await connection.beginTransaction();
 
-    // Fetch delivery cost rates
-    const [ratesRows]: any = await connection.execute(`
-    SELECT personnel_costs_per_hour, diesel_costs_per_liter, 
-           consumption_l_per_100km, van_costs_per_day, hotel_costs
-    FROM delivery_cost_rates
-    ORDER BY id DESC
-    LIMIT 1
-  `);
+    // 1️⃣ Get tour data
+    let tourData: any;
+    if (type === TourType.dynamicTour) {
+      const [rows]: any = await connection.execute(
+        `SELECT orderIds, tour_data FROM dynamic_tours WHERE id = ?`,
+        [tourId]
+      );
+      tourData = rows[0];
+    } else {
+      const [rows]: any = await connection.execute(
+        `SELECT order_ids AS orderIds, tour_data FROM tourinfo_master WHERE id = ?`,
+        [tourId]
+      );
+      tourData = rows[0];
+    }
 
-    const rates = ratesRows[0];
+    if (!tourData) throw new Error(`Tour ${tourId} not found`);
+
+    // 2️⃣ Compute totals
+    const orderWithItems = await LogisticOrder.getOrdersWithItemsAsync(
+      tourData.orderIds.split(",").map(Number)
+    );
+    const totalWeightKg = orderWithItems.reduce(
+      (acc, order) => acc + calculateOrderWeight(order),
+      0
+    );
+
+    const tour = tourData.tour_data.tour as Tour;
+    const { totalDistanceKm, totalDurationHrs } = extractTourStats(tour);
+
+    // 3️⃣ Get delivery cost rates
+    const [ratesRows]: any = await connection.execute(`
+      SELECT * FROM delivery_cost_rates
+      ORDER BY id DESC
+      LIMIT 1
+    `);
+    const rates = ratesRows[0] as DeliveryCostRates;
     if (!rates) throw new Error("No delivery cost rates found");
 
-    // Compute costs
-    const personnelCost = rates.personnel_costs_per_hour * 8; // 8 tour hours
+    // 4️⃣ Compute costs
+    const personnelCost = rates.personnel_costs_per_hour * totalDurationHrs;
     const dieselCost =
-      rates.diesel_costs_per_liter * rates.consumption_l_per_100km;
+      (rates.diesel_costs_per_liter *
+        rates.consumption_l_per_100km *
+        totalDistanceKm) /
+      100;
     const vanCost = rates.van_costs_per_day;
-    const totalCost = rates.hotel_costs + vanCost + dieselCost + personnelCost;
+    const totalCost: number =
+      +rates.hotel_costs + +vanCost + +dieselCost + +personnelCost;
 
-    const costPerStop = totalCost / 10; // tour Stops
-    const costPerBkw = totalCost / 5; // tour BKW
-    const costPerSlmd = totalCost / 5; // tour SLMD
+    const costPerStop = totalCost / orderWithItems.length; // Order stops
+    const costPerBkw = totalCost / 5; // TODO: real bkw count
+    const costPerSlmd = totalCost / 5; // TODO: real slmd count
 
+    console.log("orderWithItems: ", orderWithItems);
+    console.log("orderWithItems[0] items: ", orderWithItems[0].items);
+
+    console.log("totalWeightKg: ", totalWeightKg);
+    console.log("totalDistanceKm: ", totalDistanceKm);
+    console.log("totalDurationHrs: ", totalDurationHrs);
+
+    console.log("personnelCost: ", personnelCost);
+    console.log("dieselCost: ", dieselCost);
+    console.log("vanCost: ", vanCost);
+    console.log("rates.hotel_costs: ", rates.hotel_costs);
+    console.log("totalCost: ", totalCost);
+
+    console.log("costPerStop: ", costPerStop);
+    console.log("costPerBkw: ", costPerBkw);
+    console.log("costPerSlmd: ", costPerSlmd);
+
+    // 5️⃣ Check if already exists
     const idColumn =
       type === TourType.masterTour ? "tour_id" : "dynamic_tour_id";
+    const [matrixRows]: any = await connection.execute(
+      `SELECT * FROM delivery_cost_per_tour WHERE ${idColumn} = ?`,
+      [tourId]
+    );
+    const isExist = matrixRows[0];
 
-    // Insert into delivery_cost_per_tour
-    const [insertResult]: any = await connection.execute<ResultSetHeader>(
-      `INSERT INTO delivery_cost_per_tour (
-      ${idColumn}, hotel_cost, van_tour_cost, diesel_tour_cost,
-      personnel_tour_cost, total_cost,
-      delivery_cost_per_stop, delivery_cost_per_bkw, delivery_cost_per_slmd,
-      warehouse_tour_cost, infeed_tour_cost, we_tour_cost, wa_tour_cost
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0)`,
-      [
+    // 6️⃣ Insert or update
+    let query_matrix = "";
+    let params: any[] = [];
+
+    if (!isExist) {
+      query_matrix = `
+        INSERT INTO delivery_cost_per_tour (
+          ${idColumn}, hotel_cost, van_tour_cost, diesel_tour_cost,
+          personnel_tour_cost, total_cost,
+          delivery_cost_per_stop, delivery_cost_per_bkw, delivery_cost_per_slmd,
+          total_distance_km, total_duration_hrs, total_weight_kg,
+          warehouse_tour_cost, infeed_tour_cost, we_tour_cost, wa_tour_cost
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0)
+      `;
+      params = [
         tourId,
         rates.hotel_costs,
-        rates.van_costs_per_day,
+        vanCost,
         dieselCost,
         personnelCost,
         totalCost,
         costPerStop,
         costPerBkw,
         costPerSlmd,
-      ]
+        totalDistanceKm,
+        totalDurationHrs,
+        totalWeightKg,
+      ];
+    } else {
+      query_matrix = `
+        UPDATE delivery_cost_per_tour
+        SET hotel_cost = ?,
+            van_tour_cost = ?,
+            diesel_tour_cost = ?,
+            personnel_tour_cost = ?,
+            total_cost = ?,
+            delivery_cost_per_stop = ?,
+            delivery_cost_per_bkw = ?,
+            delivery_cost_per_slmd = ?,
+            total_distance_km = ?,
+            total_duration_hrs = ?,
+            total_weight_kg = ?
+        WHERE ${idColumn} = ?
+      `;
+      params = [
+        rates.hotel_costs,
+        vanCost,
+        dieselCost,
+        personnelCost,
+        totalCost,
+        costPerStop,
+        costPerBkw,
+        costPerSlmd,
+        totalDistanceKm,
+        totalDurationHrs,
+        totalWeightKg,
+        tourId,
+      ];
+    }
+
+    const [result]: any = await connection.execute<ResultSetHeader>(
+      query_matrix,
+      params
     );
 
-    const insertedId = insertResult.insertId;
+    const targetId = isExist ? isExist.id : result.insertId;
+    console.info(isExist ? "Tour cost UPDATED: " : "Tour cost CREATED: ", {
+      targetId,
+    });
 
-    console.info("Tour Cost created with Id: ", insertedId);
-
-    // Return the new row
+    // 7️⃣ Return row
     const [rows]: any = await connection.execute(
       `SELECT * FROM delivery_cost_per_tour WHERE id = ?`,
-      [insertedId]
+      [targetId]
     );
 
     await connection.commit();
-    return rows[0];
+    return rows[0] as TourMatrix;
   } catch (error) {
     await connection.rollback();
     console.error("Error creating delivery cost for tour:", error);
@@ -328,5 +436,25 @@ export async function createDeliveryCostForTour(
   } finally {
     console.info("function createDeliveryCostForTour Ending...");
     connection.release();
+  }
+}
+
+export async function getTourMatrix(
+  tourId: number,
+  type: TourType = TourType.dynamicTour
+): Promise<TourMatrix> {
+  try {
+    const idColumn =
+      type === TourType.masterTour ? "tour_id" : "dynamic_tour_id";
+
+    const [rows]: any = await pool.execute(
+      `SELECT * FROM delivery_cost_per_tour  WHERE ${idColumn} = ?`,
+      [tourId]
+    );
+
+    return rows[0] as TourMatrix;
+  } catch (error) {
+    console.error(`Error fetching Tour Matrix for tour Id: ${tourId}:`, error);
+    throw error;
   }
 }

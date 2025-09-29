@@ -5,6 +5,7 @@ import hereMapService from "./hereMap.service";
 import {
   createDeliveryCostForTour,
   getRouteSegments_mapApi,
+  getTourMatrix,
   saveRouteSegments,
 } from "./tour.service";
 
@@ -16,6 +17,7 @@ import {
   DynamicTourPayload,
   DynamicTourRes,
   rejectDynamicTour_Req,
+  TourMatrix,
 } from "../types/dto.types";
 import { TourStatus, TourTracePayload, TourType } from "../types/tour.types";
 
@@ -83,7 +85,7 @@ export async function createDynamicTourAsync(payload: DynamicTourPayload) {
       await handleExistingTour(connection, payload, payload_orderIds);
     }
 
-    await persistDynamicTour(
+    const new_dTour = await persistDynamicTour(
       connection,
       payload,
       tour,
@@ -94,16 +96,32 @@ export async function createDynamicTourAsync(payload: DynamicTourPayload) {
 
     const unassignedOrders = buildUnassignedOrders(unassigned, orders);
 
+    let matrix: TourMatrix | null = null;
+    try {
+      if (!new_dTour?.id) {
+        throw new Error(
+          "new_dTour.id is undefined, cannot create delivery cost matrix"
+        );
+      }
+      console.info("New Dynamic Tour ID: ", new_dTour?.id);
+      console.info("Triggering createDeliveryCostForTour...");
+      matrix = await createDeliveryCostForTour(new_dTour?.id);
+    } catch (err) {
+      console.error(
+        `Failed to create delivery cost for tour ${new_dTour.id}:`,
+        err
+      );
+    }
+
+    // matrix = await getTourMatrix(new_dTour.id!);
     const response: DynamicTourRes = {
       tour: tour,
       unassigned: unassignedOrders,
       dynamicTour: {
-        ...payload,
-        orderIds: txnOrderIds,
-        tour_route: routes,
+        ...new_dTour,
+        matrix: matrix ?? undefined,
       },
     };
-
     logWithTime(
       `Dynamic Tour Created with ID: ${response.dynamicTour?.id ?? "UNKNOWN"} - 
    for warehouse: ${response.dynamicTour?.warehouse_town ?? ""} - ${
@@ -111,17 +129,6 @@ export async function createDynamicTourAsync(payload: DynamicTourPayload) {
       } 
    OrdersIds: ${response.dynamicTour?.orderIds ?? ""}`
     );
-
-    try {
-      console.info("res?.dynamicTour?.id!", response?.dynamicTour?.id!);
-      console.info("Triggering createDeliveryCostForTour...");
-      await createDeliveryCostForTour(response?.dynamicTour?.id!);
-    } catch (err) {
-      console.error(
-        `Failed to create delivery cost for tour ${response.dynamicTour.id}:`,
-        err
-      );
-    }
 
     return response;
   } catch (error) {
@@ -149,9 +156,6 @@ export const saveDynamicTour = async (
     tour_data,
     orderIds,
     warehouse_id,
-    total_weight_kg,
-    total_distance_km,
-    total_duration_hrs,
     approved_by = null,
     approved_at = null,
     updated_by = null,
@@ -169,9 +173,8 @@ export const saveDynamicTour = async (
     query = `
       INSERT INTO dynamic_tours (
         tour_name, tour_route, tour_data, orderIds, warehouse_id,
-        total_weight_kg, total_distance_km, total_duration_hrs,
         approved_by, approved_at, updated_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     values = [
@@ -180,9 +183,6 @@ export const saveDynamicTour = async (
       JSON.stringify(tour_data),
       orderIds,
       warehouse_id,
-      total_weight_kg,
-      total_distance_km,
-      total_duration_hrs,
       approved_by,
       approved_at,
       updated_by,
@@ -196,9 +196,6 @@ export const saveDynamicTour = async (
         tour_route = ?,
         tour_data = ?,
         orderIds = ?,
-        total_weight_kg = ?,
-        total_distance_km = ?,
-        total_duration_hrs = ?,
         approved_by = ?,
         approved_at = ?,
         updated_by = ?
@@ -210,9 +207,6 @@ export const saveDynamicTour = async (
       JSON.stringify(tour_route),
       JSON.stringify(tour_data ?? {}),
       orderIds,
-      total_weight_kg,
-      total_distance_km,
-      total_duration_hrs,
       approved_by,
       approved_at,
       updated_by,
@@ -223,9 +217,14 @@ export const saveDynamicTour = async (
   try {
     const [result]: any = await conn.execute(query, values);
     console.error(
-      `Dynamic Tour ${isNew ? "Inserted" : "Updated"} Successfully`
+      `Dynamic Tour ${isNew ? "Inserted" : "Updated"} Successfully:`,
+      new_tourName
     );
-    return { ...result, id: result.insertId, tour_name: new_tourName };
+    return {
+      ...result,
+      id: isNew ? result.insertId : payload.id,
+      tour_name: new_tourName,
+    };
   } catch (error) {
     console.error(
       `Error ${isNew ? "Inserting" : "Updating"} Dynamic Tour:`,
@@ -245,34 +244,39 @@ export async function getUnapprovedDynamicTours(): Promise<
   JOIN warehouse_details AS wh 
     ON dt.warehouse_id = wh.warehouse_id
   WHERE approved_at IS NULL`;
-  // "SELECT id, tour_name, tour_route, orderIds, warehouse_id FROM dynamic_tours WHERE approved_at IS NULL";
 
   try {
     const [rows] = await pool.execute(query);
 
-    const dTours = (rows as DynamicTourPayload[]).map((row) => ({
-      id: row.id,
-      tour_name: row.tour_name,
-      tour_route:
-        typeof row.tour_route === "string"
-          ? JSON.parse(row.tour_route)
-          : row.tour_route,
-      orderIds: row.orderIds,
-      totalOrdersItemsQty: 0,
-      warehouse_id: row.warehouse_id,
-      warehouse_name: row.warehouse_name,
-      warehouse_colorCode: row.warehouse_colorCode,
-      created_at: row.created_at,
-      updated_at: row.updated_at,
-      updated_by: row.updated_by,
-    }));
+    const dTours: DynamicTourPayload[] = (rows as DynamicTourPayload[]).map(
+      (row) => ({
+        id: row.id,
+        tour_name: row.tour_name,
+        tour_route:
+          typeof row.tour_route === "string"
+            ? JSON.parse(row.tour_route)
+            : row.tour_route,
+        orderIds: row.orderIds,
+        totalOrdersItemsQty: 0,
+        warehouse_id: row.warehouse_id,
+        warehouse_name: row.warehouse_name,
+        warehouse_colorCode: row.warehouse_colorCode,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+        updated_by: row.updated_by,
+      })
+    );
 
     for (const tour of dTours) {
       const order_ids = tour.orderIds.split(",");
       tour.totalOrdersItemsQty = await LogisticOrder.getOrderItemsCount(
         order_ids
       );
+      const tourMatrix = await getTourMatrix(tour.id!);
+      console.log(`tourMatrix for dTour Id: ${tour.id}: ${tourMatrix}`);
+      tour.matrix = tourMatrix;
     }
+    console.warn(`Tours with Matrix`, dTours);
 
     return dTours;
   } catch (error) {
@@ -288,8 +292,9 @@ export async function getDynamicTour(
 
   try {
     const [rows] = await pool.execute(query, [dTourId]);
-    const data = (rows as DynamicTourPayload[])[0];
-    return data || null;
+    const tour = (rows as DynamicTourPayload[])[0];
+    tour.matrix = await getTourMatrix(tour.id!);
+    return tour || null;
   } catch (error) {
     console.error("Dynamic tour not found:", error);
     throw error;

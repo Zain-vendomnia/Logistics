@@ -1,4 +1,4 @@
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import Box from "@mui/material/Box/Box";
 import {
   Chip,
@@ -38,11 +38,24 @@ import { useDynamicTourService } from "../../../hooks/useDynamicTourService";
 const DynamicTourList = () => {
   const fontsize = "0.95rem";
   const { theme } = useDynamicTourService();
-  const { dynamicTours, selectedTour, setSelectedTour } = useDynamicTourStore();
-  console.log("dynamicTours", dynamicTours);
+  const { dynamicToursList, selectedTour, setSelectedTour } =
+    useDynamicTourStore();
+
+  console.log("dynamicTours", dynamicToursList);
+
+  const [selectedTourItem, setSelectedTOurItem] = useState(selectedTour);
+
+  const [searchItem, setSearchItem] = useState("");
+
+  // const [dynamicTourList, setDynamicTourList] = useState(dynamicTours);
+  let filteredTours: DynamicTourPayload[] = dynamicToursList;
+
+  useEffect(() => {
+    setSelectedTOurItem(selectedTour);
+  }, [selectedTour]);
 
   const handleTourSelect = (tour: DynamicTourPayload) => {
-    if (tour.id === selectedTour?.id) {
+    if (tour.id === selectedTourItem?.id) {
       setSelectedTour(null);
       return;
     } else {
@@ -54,31 +67,35 @@ const DynamicTourList = () => {
     return orderIds.split(",").length;
   };
 
-  const [dynamicTourList, setDynamicTourList] = useState(dynamicTours);
-
-  const [searchItem, setSearchItem] = useState("");
-
   const handleTourSearch = (e: ChangeEvent<HTMLInputElement>) => {
     const searchString = e.target.value;
     setSearchItem(searchString);
 
     if (!searchString) {
-      setDynamicTourList(dynamicTours);
+      // setDynamicTourList(dynamicTours);
+      filteredTours = dynamicToursList;
+
       return;
     }
 
-    let resultArray: DynamicTourPayload[] = dynamicTours.filter((t) =>
+    filteredTours = dynamicToursList.filter((t) =>
       t.tour_name
         ?.toString()
         .toLocaleLowerCase()
         .includes(searchString.toLocaleLowerCase())
     );
+    // let resultArray: DynamicTourPayload[] = dynamicTours.filter((t) =>
+    //   t.tour_name
+    //     ?.toString()
+    //     .toLocaleLowerCase()
+    //     .includes(searchString.toLocaleLowerCase())
+    // );
 
     // if (resultArray.length === 0 ){
     // dynamicTours.filter(t => t.warehouse_name || t.locationName)
     // }
 
-    if (resultArray.length > 0) setDynamicTourList(resultArray);
+    // if (resultArray.length > 0) setDynamicTourList(resultArray);
   };
 
   // ########
@@ -131,13 +148,13 @@ const DynamicTourList = () => {
           </FormControl>
 
           <List disablePadding sx={{ ...scrollStyles(theme) }}>
-            {dynamicTourList.map((tour) => (
+            {filteredTours.map((tour) => (
               <>
                 <ListItem
                   disablePadding
-                  key={tour.tour_name}
+                  key={tour.id}
                   sx={
-                    selectedTour?.id === tour.id
+                    selectedTourItem?.id === tour.id
                       ? {
                           display: "flex",
                           flexDirection: "column",
@@ -155,7 +172,7 @@ const DynamicTourList = () => {
                       padding: 1,
                       width: "100%",
                       borderRadius: 2,
-                      ...(selectedTour?.id === tour.id
+                      ...(selectedTourItem?.id === tour.id
                         ? {
                             backgroundColor: "#f0f0f0",
                             cursor: "pointer",
@@ -228,7 +245,7 @@ const DynamicTourList = () => {
                     </Stack>
                   </ListItemButton>
 
-                  {selectedTour?.id === tour.id && (
+                  {selectedTourItem?.id === tour.id && (
                     <Box
                       display={"flex"}
                       flexDirection={"column"}
@@ -269,19 +286,25 @@ const DynamicTourList = () => {
                       >
                         <span>
                           <Typography>Total Weight</Typography>
-                          <Typography>227.5 kg</Typography>
+                          <Typography>
+                            {tour?.matrix?.total_weight_kg ?? "---"}
+                          </Typography>
                         </span>
                         {/* <Typography>Total Weight 227.5 kg</Typography> */}
                         <Divider orientation="vertical" flexItem />
                         <span>
                           <Typography>Total Distance</Typography>
-                          <Typography>850 km</Typography>
+                          <Typography>
+                            {tour?.matrix?.total_distance_km ?? "---"}
+                          </Typography>
                         </span>
                         {/* <Typography>Total Distance 850 km</Typography> */}
                         <Divider orientation="vertical" flexItem />
                         <span>
                           <Typography>Total Duration</Typography>
-                          <Typography>9.25 hrs</Typography>
+                          <Typography>
+                            {tour?.matrix?.total_duration_hrs ?? "---"}
+                          </Typography>
                         </span>
                         {/* <Typography>Total Duration 9.25 hrs</Typography> */}
                       </Stack>
@@ -296,7 +319,9 @@ const DynamicTourList = () => {
                           <Typography variant="subtitle2" fontWeight={"bold"}>
                             Total Cost:
                           </Typography>
-                          <Typography variant="subtitle2">Є 2500</Typography>
+                          <Typography variant="subtitle2">
+                            Є {tour?.matrix?.total_cost ?? "---"}
+                          </Typography>
                         </span>
                         <Stack
                           spacing={0.2}
@@ -311,21 +336,27 @@ const DynamicTourList = () => {
                             justifyContent={"space-between"}
                           >
                             <Typography>Cost / Stop:</Typography>
-                            <Typography>250</Typography>
+                            <Typography>
+                              {tour?.matrix?.delivery_cost_per_stop ?? "---"}
+                            </Typography>
                           </Box>
                           <Box
                             display={"flex"}
                             justifyContent={"space-between"}
                           >
                             <Typography>Cost / BKW:</Typography>
-                            <Typography>80</Typography>
+                            <Typography>
+                              {tour?.matrix?.delivery_cost_per_bkw ?? "---"}
+                            </Typography>
                           </Box>
                           <Box
                             display={"flex"}
                             justifyContent={"space-between"}
                           >
                             <Typography>Cost / SLMD:</Typography>
-                            <Typography>15</Typography>
+                            <Typography>
+                              {tour?.matrix?.delivery_cost_per_slmd ?? "---"}
+                            </Typography>
                           </Box>
                         </Stack>
                         <Stack spacing={0.2}>
@@ -349,7 +380,7 @@ const DynamicTourList = () => {
       </Paper>
 
       {/* Right Panel: Tour Insights */}
-      {expandDetailsPanel && selectedTour && (
+      {expandDetailsPanel && selectedTourItem && (
         <Paper
           elevation={2}
           sx={{
@@ -375,7 +406,7 @@ const DynamicTourList = () => {
             Insights Pane
           </Typography>
           <Typography variant="subtitle1" fontWeight={"bold"}>
-            {selectedTour.tour_name}-60-53-50-70
+            {selectedTourItem.tour_name}
           </Typography>
           {/* Duration */}
           <Box
@@ -387,7 +418,9 @@ const DynamicTourList = () => {
               <Typography variant="subtitle2" fontWeight={"bold"}>
                 Duration
               </Typography>
-              <Typography variant="subtitle1">9.25 hrs</Typography>
+              <Typography variant="subtitle1">
+                {selectedTourItem.matrix?.total_duration_hrs ?? "---"} hrs
+              </Typography>
             </span>
 
             <Paper elevation={1}>
@@ -488,7 +521,7 @@ const DynamicTourList = () => {
             <Typography variant="subtitle2" fontWeight={"bold"}>
               Cost Breakdown
             </Typography>
-            {SideHeaderTable()}
+            {SideHeaderTable(selectedTourItem)}
           </Stack>
 
           {/* Section End */}
@@ -500,22 +533,36 @@ const DynamicTourList = () => {
 
 export default DynamicTourList;
 
-export function SideHeaderTable() {
+export function SideHeaderTable(tour: DynamicTourPayload) {
   const headers = [
     "Cost/Stop",
     "Cost/BKW",
     "Cost/SLMD",
-    "Van Tour",
-    "Diesel Tour",
-    "Personal Tour",
-    "Warehouse Tour",
-    "Infeed Tour",
+    "Vehicle/Van",
+    "Diesel",
+    "Personnel",
+    "Warehouse",
+    "Infeed",
     "Hotel",
     "WE Tour",
     "WA Tour",
   ];
 
-  const dataSet = [225, 850, 12, 65, 65, 65, 65, 65, 65, 65, 65];
+  console.log("selectedTour.matrix: ", tour.matrix);
+
+  const dataSet = [
+    tour.matrix?.delivery_cost_per_stop,
+    tour.matrix?.delivery_cost_per_bkw,
+    tour.matrix?.delivery_cost_per_slmd,
+    tour.matrix?.van_tour_cost,
+    tour.matrix?.diesel_tour_cost,
+    tour.matrix?.personnel_tour_cost,
+    tour.matrix?.warehouse_tour_cost,
+    tour.matrix?.infeed_tour_cost,
+    tour.matrix?.hotel_cost,
+    tour.matrix?.we_tour_cost,
+    tour.matrix?.wa_tour_cost,
+  ];
   return (
     <TableContainer>
       <Table
@@ -545,7 +592,6 @@ export function SideHeaderTable() {
                 {header}
               </TableCell>
               {/* Values for each row */}
-              {/* const values = [row.calories, row.fat, row.carbs, row.protein]; */}
               <TableCell align="center">{dataSet[i]}</TableCell>
             </TableRow>
           ))}
@@ -553,7 +599,7 @@ export function SideHeaderTable() {
             <TableCell component="th" scope="row" align="left">
               Total
             </TableCell>
-            <TableCell align="center">Є 2500</TableCell>
+            <TableCell align="center">Є {tour.matrix?.total_cost}</TableCell>
           </TableRow>
         </TableBody>
       </Table>

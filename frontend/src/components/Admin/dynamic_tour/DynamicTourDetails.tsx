@@ -82,7 +82,6 @@ const DynamicTourDetails = () => {
 
     selectedPinbOrders,
     handleSelectPinbOrder,
-    pinboardOrderSearch,
 
     handleOrderRemove,
 

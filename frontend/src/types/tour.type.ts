@@ -1,3 +1,5 @@
+import { number } from "yup";
+
 export type NotAssigned = {
   id: string;
   orderNumber: string | null;
@@ -118,10 +120,29 @@ export type Tour = {
   shiftIndex: number;
 };
 
+export interface TourMatrix {
+  tourId: number;
+  total_weight_kg: number;
+  total_distance_km: number;
+  total_duration_hrs: number;
+  delivery_cost_per_stop: number;
+  delivery_cost_per_bkw: number;
+  delivery_cost_per_slmd: number;
+  total_cost: number;
+  hotel_cost: number;
+  van_tour_cost: number;
+  diesel_tour_cost: number;
+  personnel_tour_cost: number;
+  warehouse_tour_cost: number;
+  infeed_tour_cost: number;
+  we_tour_cost: number;
+  wa_tour_cost: number;
+}
+
 export interface DynamicTourPayload {
   id?: number;
   tour_name?: string;
-  tour_route?: Geometry[] | null; // object;
+  tour_route?: Geometry | null; // object;
   orderIds: string; // Comma-separated
   totalOrdersItemsQty: number;
 
@@ -139,6 +160,8 @@ export interface DynamicTourPayload {
 
   approved_by?: string | null;
   approved_at?: string | null;
+
+  matrix?: TourMatrix;
 }
 
 export type UnassignedRes = {
