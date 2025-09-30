@@ -30,7 +30,7 @@ import vehicleRoutes from "./vehicle.routes";
 import warehouseRoutes from "./warehouse.routes";
 import * as dTourControler from "../controller/HERE_API/dynamicTour.controller";
 
-import { upload } from "../middlewares/upload";
+import { uploadDisk, uploadMemory } from "../middlewares/upload";
 import { parseExcelToJobs } from "../utils/parseExcel";
 
 import { notFoundHandler } from "../middlewares/notFoundHandler";
@@ -56,24 +56,28 @@ adminRouter.post(
 );
 adminRouter.post("/Runtour", runTourController);
 
-adminRouter.post("/uploadexcel", upload.single("file"), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ message: "Excel file is required." });
-    }
-    //console.log("testing");
-    const jobList = parseExcelToJobs(req.file.path);
+adminRouter.post(
+  "/uploadexcel",
+  uploadDisk.single("file"),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "Excel file is required." });
+      }
+      //console.log("testing");
+      const jobList = parseExcelToJobs(req.file.path);
 
-    // Pass jobList to the controller
-    await dTourControler.create_dynamicTour(req, res, jobList);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      message: "Failed to process uploaded Excel.",
-      error: (err as Error).message,
-    });
+      // Pass jobList to the controller
+      await dTourControler.create_dynamicTour(req, res, jobList);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({
+        message: "Failed to process uploaded Excel.",
+        error: (err as Error).message,
+      });
+    }
   }
-});
+);
 
 adminRouter.post("/order-sync", shopwareAuth, orderSyncFromShopwareController);
 
@@ -84,6 +88,11 @@ adminRouter.post("/hereMapController", hereMapController);
 // adminRouter.post("/dynamicTourController", dynamicTourCtrl.create_dynamicTour);
 
 adminRouter.get("/dynamicTours", dTourControler.getDynamicTours);
+adminRouter.post(
+  "/orders/upload",
+  uploadMemory.single("file"),
+  dTourControler.uploadOrdersFromFile
+);
 adminRouter.post("/createDynamicTour", dTourControler.createDynamicTour);
 adminRouter.post("/acceptDynamicTour", dTourControler.acceptDynamicTour);
 adminRouter.post("/rejectDynamicTour", dTourControler.rejectDynamicTour);

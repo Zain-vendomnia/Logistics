@@ -11,7 +11,7 @@ import {
 import { haversineKm } from "../utils/haversine";
 import { logWithTime } from "../utils/logging";
 
-import * as helper from "../helpers/assignmentWorker.helper";
+import * as helper from "./assignmentWorker.helper";
 // import { getWarehouseToOrdersMetrix } from "../helpers/tour.helper";
 
 import { LogisticOrder } from "../model/LogisticOrders";
@@ -19,9 +19,9 @@ import { Order } from "../types/order.types";
 import { Warehouse } from "../types/warehouse.types";
 import { DynamicTourPayload } from "../types/dto.types";
 
-const MIN_ORDERS = 3;
+const MIN_ORDERS = 15;
 const CLOSE_DISTANCE_OVERRIDE_KM = 10;
-const TIME_WINDOW_HOURS = 9;
+const TIME_WINDOW_HOURS = 10;
 
 export async function processBatch() {
   // Fetch new orders

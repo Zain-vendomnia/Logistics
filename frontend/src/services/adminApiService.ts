@@ -195,6 +195,17 @@ const newShopOrder = (id: number) =>
 //     params: { id },
 //   });
 
+const uploadOrdersFile = async (file: File) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await axios.post(`${API_BaseUrl_Admin}orders/upload`, formData, {
+    headers: { ...authHeader(), "Content-Type": "multipart/form-data" },
+  });
+
+  return res.data;
+};
+
 const fetchDynamicTours = async (): Promise<DynamicTourPayload[]> => {
   const res = await axios.get(`${API_BaseUrl_Admin}dynamicTours`, {
     headers: authHeader(),
@@ -294,6 +305,7 @@ const adminApiService = {
   updateCustomerInfo,
   insertParkingPermit,
   plotheremap,
+  uploadOrdersFile,
   fetchDynamicTours,
   requestDynamicTour,
   acceptDynamicTour,

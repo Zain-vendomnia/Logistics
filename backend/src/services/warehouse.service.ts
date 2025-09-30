@@ -4,9 +4,18 @@ import { Warehouse, WarehouseZipcodes } from "../types/warehouse.types";
 import { geocode } from "./hereMap.service";
 import { Location } from "../types/hereMap.types";
 
-export const getAllWarehouses = async () => {
+export const getAllWarehouses = async (): Promise<Warehouse[]> => {
   const [rows] = await pool.query("SELECT * FROM warehouse_details");
-  return rows;
+
+  if (!rows || (rows as any[]).length === 0)
+    throw new Error("No warehouse exist in Database");
+
+  const warehouses: Warehouse[] = (rows as any[]).map((row) => ({
+    id: row.warehouse_id,
+    ...row,
+  }));
+
+  return warehouses;
 };
 
 export const getWarehouseById = async (

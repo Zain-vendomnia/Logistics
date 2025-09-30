@@ -4,9 +4,9 @@ import { Warehouse } from "../types/warehouse.types";
 import { haversineKm } from "../utils/haversine";
 import { logWithTime } from "../utils/logging";
 
-const MIN_ORDERS = 3;
-const MAX_CLUSTER_SIZE = 26; // prevent oversized clusters
-const CLOSE_TO_DISTANCE_KM = 6000; // threshold to keep adding Order to Cluster
+const MIN_ORDERS = 15;
+const MAX_CLUSTER_SIZE = 50; // prevent oversized clusters
+const CLOSE_TO_DISTANCE_KM = 60; // threshold to keep adding Order to Cluster
 
 // tuning params
 const AVERAGE_SPEED_KMPH = 100; // used for cheap approximation; tune per region

@@ -14,6 +14,9 @@ import {
   DynamicTourPayload,
   rejectDynamicTour_Req,
 } from "../../types/dto.types";
+import { LogisticOrder } from "../../model/LogisticOrders";
+import { parseExcelBufferToOrders } from "../../utils/parseExcel";
+import { getAllWarehouses } from "../../services/warehouse.service";
 
 const HERE_API_KEY =
   process.env.HERE_API_KEY || "2tJpOzfdl3mgNpwKiDt-KuAQlzgEbsFkbX8byW97t1k";
@@ -259,6 +262,49 @@ export const create_dynamicTour = async (
         error: err instanceof Error ? err.message : String(err),
       });
     }
+  }
+};
+
+export const uploadOrdersFromFile = async (_req: Request, res: Response) => {
+  try {
+    if (!_req.file) return res.status(400).json({ error: "File is required" });
+
+    const logisticsOrders = await LogisticOrder.getAllLogisticOrders();
+    const warehouseList = await getAllWarehouses();
+    const excelOrders = parseExcelBufferToOrders(
+      _req.file.buffer,
+      warehouseList
+    );
+
+    const createdOrderIds: number[] = [];
+
+    for (const excelOrder of excelOrders) {
+      const orderExists = logisticsOrders.some(
+        (o) => o.order_number === excelOrder.order_number
+      );
+
+      if (!orderExists) {
+        try {
+          const orderId = await LogisticOrder.createOrderAsync(excelOrder);
+          createdOrderIds.push(orderId);
+        } catch (err) {
+          console.error(`Order did not saved for reason: `, err);
+        }
+      }
+    }
+
+    console.log(`Added ${createdOrderIds.length} new Orders.`);
+    console.log(
+      `Skipped ${excelOrders.length - createdOrderIds.length} Orders.`
+    );
+
+    return res.json({
+      message: `Processed ${createdOrderIds.length} orders successfully`,
+      orderIds: createdOrderIds,
+    });
+  } catch (error) {
+    console.error("Error processing file:", error);
+    return res.status(500).json({ error: "Failed to process file" });
   }
 };
 

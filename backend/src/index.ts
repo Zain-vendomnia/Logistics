@@ -5,7 +5,6 @@ import { runInitialSyncs } from "./services/core/syncService";
 import { scheduleRecurringSyncs } from "./services/core/scheduleService";
 import { logWithTime } from "./utils/logging";
 import { processBatch } from "./orchestration/assignmentWorker";
-// import { processBatch } from "./orchestration/assignmentWorker";
 
 async function main() {
   try {

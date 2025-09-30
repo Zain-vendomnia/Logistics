@@ -1,7 +1,7 @@
 import { ResultSetHeader, RowDataPacket } from "mysql2";
 import pool from "../config/database";
 import { CheckOrderCount } from "../types/dto.types";
-import { Order } from "../types/order.types";
+import { Order, OrderDetails } from "../types/order.types";
 import { PoolConnection } from "mysql2/promise";
 import { geocode } from "../services/hereMap.service";
 import { Location } from "../types/hereMap.types";
@@ -19,11 +19,15 @@ export enum OrderStatus {
 export class LogisticOrder {
   public order_id!: number;
   public order_number!: string;
+  public shopware_order_id!: number | string;
   public customer_id!: string;
+  public tracking_code!: string;
+  public order_status_id!: number;
+
   public invoice_amount!: string;
   public payment_id!: number;
   public order_time!: Date;
-  public expected_delivery_time!: Date;
+  public expected_delivery_time?: Date;
   public warehouse_id!: number;
   public quantity!: number;
   public article_order_number!: string;
@@ -35,11 +39,12 @@ export class LogisticOrder {
   public zipcode!: string;
   public city!: string;
   public phone!: string;
-  public lattitude!: number | null;
-  public longitude!: number | null;
-  public created_at!: Date;
-  public updated_at!: Date | null;
-  public status: OrderStatus = OrderStatus.initial;
+  public lattitude: number | null = null;
+  public longitude: number | null = null;
+  public created_at?: Date;
+  public updated_at?: Date | null;
+  public status?: OrderStatus = OrderStatus.initial;
+  public OrderDetails: OrderDetails[] = [];
 
   // Get all logistic orders with items information
   static async getAll(): Promise<any[]> {
@@ -76,9 +81,31 @@ export class LogisticOrder {
     return rows as any[];
   }
 
-  static async createOrderAsync(order: any): Promise<number> {
-    const warehouse_id = order.OrderDetails[0].warehouse_id ?? 0;
-    const expectedDelivery = new Date(order.ordertime);
+  static async getAllLogisticOrders(): Promise<LogisticOrder[]> {
+    const [rows] = await pool.execute(`SELECT * FROM logistic_order`);
+
+    return rows as LogisticOrder[];
+  }
+
+  static async checkLastCreatedAt(): Promise<string | null> {
+    const query = `
+    SELECT created_at AS lastCreatedAt
+    FROM logistic_order
+    ORDER BY created_at DESC, order_id DESC
+    LIMIT 1;
+   `;
+
+    const [rows]: any = await pool.execute(query);
+
+    if (rows.length === 0) {
+      return null;
+    }
+
+    return rows[0].lastCreatedAt as string;
+  }
+
+  static async createOrderAsync(order: LogisticOrder): Promise<number> {
+    const expectedDelivery = new Date(order.order_time);
     expectedDelivery.setDate(expectedDelivery.getDate() + 14);
 
     const conn = await pool.getConnection();
@@ -95,23 +122,23 @@ export class LogisticOrder {
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           order.shopware_order_id,
-          order.ordernumber,
-          order.user_id,
+          order.order_number,
+          order.customer_id,
           order.invoice_amount,
-          order.paymentID,
-          order.trackingCode,
-          order.orderStatusID,
-          warehouse_id,
-          order.ordertime,
+          order.payment_id,
+          order.tracking_code,
+          order.order_status_id,
+          order.warehouse_id,
+          order.order_time,
           expectedDelivery.toISOString().slice(0, 19).replace("T", " "),
-          order.customernumber,
-          order.shipping_firstname || order.user_firstname,
-          order.shipping_lastname || order.user_lastname,
-          order.user_email,
-          order.shipping_street,
-          order.shipping_zipcode,
-          order.shipping_city,
-          order.shipping_phone,
+          order.customer_number,
+          order.firstname,
+          order.lastname,
+          order.email,
+          order.street,
+          order.zipcode,
+          order.city,
+          order.phone,
         ]
       );
 
@@ -125,7 +152,7 @@ export class LogisticOrder {
             ) VALUES (?, ?, ?, ?, ?, ?)`,
           [
             orderId,
-            order.ordernumber,
+            order.order_number,
             item.slmdl_article_id,
             item.slmdl_articleordernumber,
             item.slmdl_quantity,
@@ -134,7 +161,7 @@ export class LogisticOrder {
         );
       }
 
-      console.warn(`Created order ${order.ordernumber} with ID ${orderId}`);
+      console.warn(`Created order ${order.order_number} with ID ${orderId}`);
       return orderId as number;
     } catch (error) {
       await conn.rollback();

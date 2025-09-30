@@ -4,6 +4,11 @@ import { RowDataPacket } from "mysql2";
 import pool from "../config/database";
 import { LogisticOrder } from "../model/LogisticOrders";
 import { enqueueOrder } from "../config/eventBus";
+import {
+  mapShopwareOrderToLogisticOrder,
+  ShopwareOrder,
+  ShopwareOrderDetails,
+} from "../types/order.types";
 
 dotenv.config();
 
@@ -48,6 +53,8 @@ export async function shopwareOrderSync() {
 
     const ordersData = response.data?.data;
 
+    console.log("Shopware Orders response: ", ordersData);
+
     if (!Array.isArray(ordersData)) {
       console.error("❌ Invalid data format from API");
       return;
@@ -56,11 +63,11 @@ export async function shopwareOrderSync() {
     console.log(`📦 Received ${ordersData.length} order records.`);
 
     // Step 3: Group orders
-    const ordersMap = new Map<string, any>();
+    const ordersMap = new Map<string, ShopwareOrder>();
     for (const item of ordersData) {
       if (!ordersMap.has(item.orderID)) {
         ordersMap.set(item.orderID, {
-          shopware_order_id: item.orderID,
+          orderID: item.orderID,
           ordernumber: item.ordernumber,
           invoice_amount: item.invoice_amount,
           paymentID: item.paymentID,
@@ -84,13 +91,16 @@ export async function shopwareOrderSync() {
       }
 
       if (item.OrderDetails && Array.isArray(item.OrderDetails)) {
-        item.OrderDetails.forEach((detail: any) => {
-          ordersMap.get(item.orderID).OrderDetails.push({
-            slmdl_article_id: detail.slmdl_article_id,
-            slmdl_articleordernumber: detail.slmdl_articleordernumber,
-            slmdl_quantity: detail.slmdl_quantity,
-            warehouse_id: detail.warehouse_id,
-          });
+        item.OrderDetails.forEach((detail: ShopwareOrderDetails) => {
+          const order = ordersMap.get(item.orderID);
+          if (order) {
+            order.OrderDetails.push({
+              slmdl_article_id: detail.slmdl_article_id,
+              slmdl_articleordernumber: detail.slmdl_articleordernumber,
+              slmdl_quantity: detail.slmdl_quantity,
+              warehouse_id: detail.warehouse_id,
+            });
+          }
         });
       }
     }
@@ -132,7 +142,8 @@ export async function shopwareOrderSync() {
           continue;
         }
 
-        const orderId = await LogisticOrder.createOrderAsync(order);
+        const orderReq = mapShopwareOrderToLogisticOrder(order);
+        const orderId = await LogisticOrder.createOrderAsync(orderReq);
 
         console.log(
           `✅ Inserted order Id: ${orderId} - 
