@@ -65,13 +65,13 @@ export class tourInfo_master {
   static async getRouteResponse(_tourId: number): Promise<any> {
     // Run the SQL query to get the graphhopper_route for the given tour_id
     const [rows] = await pool.execute(
-      `SELECT graphhopper_route FROM tourinfo_master WHERE id = ?`,
+      `SELECT heremap_route FROM tourinfo_master WHERE id = ?`,
       [_tourId]
     );
     // TypeScript type assertion to ensure we're dealing with RowDataPacket[]
     if (Array.isArray(rows) && rows.length > 0) {
-      const row = rows[0] as { graphhopper_route: JSON }; // Explicitly assert the correct type
-      return row.graphhopper_route; // Return the graphhopper_route field
+      const row = rows[0] as { heremap_route: JSON }; // Explicitly assert the correct type
+      return row.heremap_route; // Return the heremap_route field
     } else {
       throw new Error("Tour not found.");
     }

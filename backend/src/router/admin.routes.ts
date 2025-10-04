@@ -19,6 +19,7 @@ import { insertParkingPermit } from "../controller/Admin_Api/insertParkingPermit
 import { getOrderNotificationMetaData } from "../controller/Admin_Api/orderNotificationMetaData.controller";
 import { updateOrderNotificationMetaData } from "../controller/Admin_Api/orderNotificationMetaData.controller";
 import { getWarehouseById } from "../controller/Admin_Api/warehouseController";
+import { getDriverById } from "../controller/Admin_Api/driverController";
 
 import { HandleOrderDelivery } from "../controller/AdminDriverApi/HandleOrderDelivery";
 import { getFilteredToursController } from "../controller/tourManagement.controller";
@@ -44,16 +45,15 @@ const adminRouter = Router();
 // Public routes (no authentication required)
 adminRouter.get("/customer/updatelatlng", updatelatlngController);
 adminRouter.post("/sendEmail", sendEmail);
-adminRouter.post("/routeoptimize/getOrder", OrderCtrl.getAllLogisticOrders);
+// adminRouter.post("/routeoptimize/getOrder", OrderCtrl.getAllLogisticOrders);
 // adminRouter.post("/picklistEmail", picklistEmail);
 adminRouter.get("/routeoptimize/getOrder", OrderCtrl.getLgsticOrderById);
 adminRouter.get("/routeoptimize/ordersWithItems", OrderCtrl.getOrdersWithItems);
 adminRouter.post("/insertParkingPermit", insertParkingPermit);
 adminRouter.post("/getOrderNotificationMetaData", getOrderNotificationMetaData);
-adminRouter.post(
-  "/updateOrderNotificationMetaData",
-  updateOrderNotificationMetaData
-);
+adminRouter.post("/updateOrderNotificationMetaData", updateOrderNotificationMetaData);
+adminRouter.post("/getDriverById", getDriverById);
+
 adminRouter.post("/Runtour", runTourController);
 
 adminRouter.post("/uploadexcel", upload.single("file"), async (req, res) => {
@@ -83,10 +83,10 @@ adminRouter.use(validateToken, roleCheck(["admin"]));
 adminRouter.post("/hereMapController", hereMapController);
 // adminRouter.post("/dynamicTourController", dynamicTourCtrl.create_dynamicTour);
 
-adminRouter.get("/dynamicTours", dynamicTourCtrl.getDynamicTours);
-adminRouter.post("/createDynamicTour", dynamicTourCtrl.createDynamicTour);
-adminRouter.post("/acceptDynamicTour", dynamicTourCtrl.acceptDynamicTour);
-adminRouter.post("/rejectDynamicTour", dynamicTourCtrl.rejectDynamicTour);
+// adminRouter.get("/dynamicTours", dynamicTourCtrl.getDynamicTours);
+// adminRouter.post("/createDynamicTour", dynamicTourCtrl.createDynamicTour);
+// adminRouter.post("/acceptDynamicTour", dynamicTourCtrl.acceptDynamicTour);
+// adminRouter.post("/rejectDynamicTour", dynamicTourCtrl.rejectDynamicTour);
 
 adminRouter.get("/pinboardOrders", OrderCtrl.getPinboardOrders);
 adminRouter.get("/tours", getFilteredToursController);
@@ -109,6 +109,7 @@ adminRouter.post("/routeoptimize/createtour", TourCtrl.createTourController);
 adminRouter.get("/routeoptimize/getTour", TourCtrl.getTourDetails);
 adminRouter.get("/routeoptimize/getWarehouse/:id", getWarehouseById);
 adminRouter.post("/routeoptimize/createtourHereApi", runTourController);
+
 /* adminRouter.post(
   "/routeoptimize/dynamictourHereApi",
   validateToken,
@@ -130,7 +131,8 @@ adminRouter.post(
   "/routeoptimize/getGraphhopperRoute",
   TourCtrl.getgraphhopperRoute
 );
-adminRouter.get("/routeoptimize/getSegmentRoute", TourCtrl.getSegmentRoutes);
+adminRouter.post("/routeoptimize/getSegmentRoute", TourCtrl.getSegmentRoutes);
+adminRouter.post("/routeoptimize/getRoutesSegmentImages", TourCtrl.getRoutesSegmentImages);
 adminRouter.put("/routeoptimize/updateCustomer", updateCustomerInfoController);
 adminRouter.get("/orderCount", getOrderCount);
 adminRouter.get("/routeoptimize/gettourStatushistory", getAllTourhistory);

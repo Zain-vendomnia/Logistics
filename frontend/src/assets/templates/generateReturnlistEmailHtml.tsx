@@ -1,4 +1,4 @@
-type PicklistData = {
+type ReturnlistData = {
   tour_date: string;
   warehouseName: string;
   driver: {
@@ -22,19 +22,19 @@ type AggregatedItems = {
   [key: string]: number;
 };
 
-export const generatePicklistEmailHtml = (
-  picklistData: PicklistData,
+export const generateReturnlistEmailHtml = (
+  returnlistData: ReturnlistData,
   aggregatedItems: AggregatedItems,
   totalQuantity: number
 ) => {
   const headerColor = "#ef972e";
-  const formattedTourDate = picklistData?.tour_date
-    ? new Date(picklistData.tour_date).toLocaleDateString('en-GB')
+  const formattedTourDate = returnlistData?.tour_date
+    ? new Date(returnlistData.tour_date).toLocaleDateString('en-GB')
     : 'N/A';
 
   // ZIP Code formatting logic
   const formattedZipCodes = (() => {
-    const uniqueZips = picklistData?.orders
+    const uniqueZips = returnlistData?.orders
       ?.map((order: { zipcode: string }) => order.zipcode)
       .filter((zip: string, index: number, self: string[]) => zip && self.indexOf(zip) === index);
 
@@ -50,7 +50,7 @@ export const generatePicklistEmailHtml = (
     [key: string]: { order_number: string; article: string; quantity: number };
   } = {};
 
-  picklistData.orders.forEach(order => {
+  returnlistData.orders.forEach(order => {
     order.items.forEach(item => {
       const key = `${order.order_number}_${item.slmdl_articleordernumber}`;
       if (mergedItems[key]) {
@@ -74,16 +74,16 @@ export const generatePicklistEmailHtml = (
       </div>
 
     <h2 style="margin-left:265px; margin-bottom: 10px text-align: center; color: #000; font-size: 14px; font-weight: bold; display: inline-block; border-bottom: 1px solid #000; padding-bottom: 0.5px;">
-      PICK LIST
+      RETURN LIST
     </h2>
 
       <div style="font-family: 'Raleway', Arial, sans-serif; color: #000; font-size: 13px; width: 430px;">
           <p style="font-family: Raleway, sans-serif; line-height: normal;">
-            <strong>Location &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> ${picklistData.warehouseName ?? 'N/A'}<br />
-            <strong>Driver &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> ${picklistData.driver.driver_name}<br />
-            <strong>Licence plate &nbsp;&nbsp;&nbsp;:</strong> ${picklistData.driver.licenceplate  ?? 'N/A'}<br />
-            <strong>Email &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> ${picklistData.driver.email   ?? 'N/A'}<br />
-            <strong>Phone &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> ${picklistData.driver.mobile ?? 'N/A'}<br />
+            <strong>Location &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> ${returnlistData.warehouseName ?? 'N/A'}<br />
+            <strong>Driver &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> ${returnlistData.driver.driver_name}<br />
+            <strong>Licence plate &nbsp;&nbsp;&nbsp;:</strong> ${returnlistData.driver.licenceplate  ?? 'N/A'}<br />
+            <strong>Email &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> ${returnlistData.driver.email   ?? 'N/A'}<br />
+            <strong>Phone &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> ${returnlistData.driver.mobile ?? 'N/A'}<br />
             <strong>ZIP Code &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> ${formattedZipCodes}<br />
             <strong>Date &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</strong> ${formattedTourDate}
           </p>
@@ -94,14 +94,12 @@ export const generatePicklistEmailHtml = (
           <tr style="background-color: ${headerColor};">
             <th style="border: 1.5px solid #000; padding: 14px 20px 0px; color: white; text-align: center;">ITEM</th>
             <th style="border: 1.5px solid #000; padding: 14px 20px 0px; color: white; text-align: center;">QUANTITY</th>
-            <th style="border: 1.5px solid #000; padding: 14px 20px 0px; color: white; text-align: center;">CHECK</th>
           </tr>
         </thead>
         <tbody>
           ${Object.entries(aggregatedItems).map(([articleNumber, qty]) => `
             <tr>
               <td style="border: 1.5px solid #000; padding: 33px 8px; font-family: 'Raleway';">${articleNumber}</td>
-              <td style="border: 1.5px solid #000; padding: 33px 8px; text-align: center; font-family: 'Raleway';">${qty}</td>
               <td style="border: 1.5px solid #000; padding: 33px 8px; text-align: center; font-family: 'Raleway';"></td>
             </tr>
           `).join('')}
@@ -158,7 +156,7 @@ export const generatePicklistEmailHtml = (
       <head>
         <meta charset="UTF-8" />
     <link src="https://fonts.googleapis.com/css2?family=Raleway&display=swap"/>
-        <title>Picklist Email</title>
+        <title>Return List Email</title>
       </head>
       <body>
         ${emailContent}

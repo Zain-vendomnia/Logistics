@@ -5,12 +5,13 @@ import { Tabs, Tab } from '@mui/material';
 
 
 import { generatePicklistEmailHtml} from '../../assets/templates/generatePicklistEmailHtml'; // Default Import
+import { generateReturnlistEmailHtml} from '../../assets/templates/generateReturnlistEmailHtml'; // Default Import
 import { generateOrderDetailsEmailHtml} from '../../assets/templates/generateOrderDetailsEmailHtml'; // Default Import
 import { renderToStaticMarkup } from 'react-dom/server';
 import latestOrderServices from './AdminServices/latestOrderServices';
 
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
+import { generatePdfFromElement, blobToBase64  } from '../../utils/handleHelper';
+
 
 const modalStyle = {
   overflow: 'auto',
@@ -188,12 +189,12 @@ const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
   const handleSendEmail = async () => {
     if (!picklistData) return;
 
-    const emailHtml = generatePicklistEmailHtml(picklistData, aggregatedItems, totalQuantity);
-
-    const orderDetailsHtml = generateOrderDetailsEmailHtml(picklistData);
+    const picklistDocHtml   = generatePicklistEmailHtml(picklistData, aggregatedItems, totalQuantity);
+    const returnDocHtml     = generateReturnlistEmailHtml(picklistData, aggregatedItems, totalQuantity);
+    const orderDetailsHtml  = generateOrderDetailsEmailHtml(picklistData);
 
     let fullEmailHtml = 'Dear,<br><br> Please find attached Picklist for your reference.' + emailSignatureHtml;
-    fullEmailHtml = orderDetailsHtml + emailSignatureHtml;
+        fullEmailHtml = orderDetailsHtml + emailSignatureHtml;
 
     setBtnloading(true);
     
@@ -202,7 +203,7 @@ const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
 
       // 🔁 1. Create a hidden container
       let element = document.createElement('div');
-      element.innerHTML = emailHtml;
+      element.innerHTML = picklistDocHtml;
       element.style.position = 'absolute';
       element.style.left = '-9999px';
       element.style.top = '0';
@@ -246,14 +247,42 @@ const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
        // Wait a bit in case it's just rendered
 
 
+
+       // 🔁 1. Create a hidden container
+       element = document.createElement('div');
+       element.innerHTML = returnDocHtml;
+       element.style.position = 'absolute';
+       element.style.left = '-9999px';
+       element.style.top = '0';
+       element.style.width = '800px'; // match your content width
+       element.style.backgroundColor = 'white'; // avoid transparency issues
+       document.body.appendChild(element);
+
+
+       config ={
+         orientation: 'p',  // Potrait orientation
+         unit: 'mm',                 // Points as the unit
+         format: 'a4',               // A4 size format
+       };
+
+        pdfBlob = await generatePdfFromElement(element,config);
+
+        let third_attachment = await blobToBase64(pdfBlob); // use FileReader
+        let third_attachment_name = 'return-list.pdf'; // use FileReader
+        // Wait a bit in case it's just rendered
+
+
+
       await adminApiService.sendEmail({
         to: 'muhammad.jahanzaibbaloch@vendomnia.com', // Update with actual email
-        subject: 'Picklist',
+        subject: 'Picklist Documents',
         html: fullEmailHtml,
         attachment,
         attachment_name,
         second_attachment,
-        second_attachment_name
+        second_attachment_name,
+        third_attachment,
+        third_attachment_name
       });
 
       // On success
@@ -269,59 +298,7 @@ const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
       setBtnloading(false);
     }
   };
-  // Helper to convert Blob to base64
-const blobToBase64 = (blob: Blob): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-};
 
-const generatePdfFromElement = async (element: HTMLElement,config: any): Promise<Blob> => {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-      });
-
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF(config);
-
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-
-      const imgProps = {
-        width: canvas.width,
-        height: canvas.height
-      };
-
-      const ratio = imgProps.height / imgProps.width;
-      const pdfWidth = pageWidth;
-      const pdfHeight = pdfWidth * ratio;
-
-      let position = 0;
-
-      if (pdfHeight < pageHeight) {
-        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      } else {
-        while (position < pdfHeight) {
-          pdf.addImage(imgData, 'PNG', 0, -position, pdfWidth, pdfHeight);
-          position += pageHeight;
-          if (position < pdfHeight) pdf.addPage();
-        }
-      }
-
-      const pdfBlob = pdf.output('blob');
-      resolve(pdfBlob);
-    } catch (err) {
-      reject(err);
-    }
-  });
-};
   // Helper: Merge logic
   const getMergedOrderItems = (orders: Order[]) => {
     const mergedMap = new Map<string, { order_number: string; slmdl_articleordernumber: string; quantity: number }>();
@@ -403,7 +380,7 @@ const generatePdfFromElement = async (element: HTMLElement,config: any): Promise
 
           {/* PICKLIST TAB */}
           {activeTab === 0 && (
-            <Box id="pdf-content">
+            <Box id="pdf-content-picklist">
               <Box sx={{ textAlign: 'center', mb: '25px' }}>
                 <img
                   src={`https://sunniva-solar.de/wp-content/uploads/2025/01/Sunniva_1600x500_transparent-min.png`}

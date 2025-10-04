@@ -18,6 +18,7 @@ import WhatsappChatsSetup from "../../initialDBSetup/whatsappChat";
 import NotificationsTrackSetup from "../../initialDBSetup/notifications_track";
 import DynamicTourSetup from "../../initialDBSetup/dynamicTourSetup";
 import TourTracesSetup from "../../initialDBSetup/tourTracesSetup";
+import OrderImagesSetup from "../../initialDBSetup/orderImagesSetup";
 
 export async function runInitialDbSetup() {
   await initialSetup();
@@ -40,4 +41,5 @@ export async function runInitialDbSetup() {
   await NotificationsTrackSetup();
   await DynamicTourSetup();
   await TourTracesSetup();
+  await OrderImagesSetup();
 }

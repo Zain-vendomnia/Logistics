@@ -5,7 +5,8 @@ import nodemailer from 'nodemailer';
 export const sendEmail = async (req: Request, res: Response) => {
   try {
     const { to, subject, html, attachment,attachment_name, second_attachment,
-      second_attachment_name } = req.body;
+      second_attachment_name, third_attachment,
+      third_attachment_name } = req.body;
 
 
     // Configure nodemailer
@@ -42,6 +43,14 @@ export const sendEmail = async (req: Request, res: Response) => {
       mailOptions.attachments.push({
         filename: second_attachment_name,
         content: second_attachment.split(',')[1],
+        encoding: 'base64',
+      });
+    }
+    // Conditionally add the third attachment if available
+    if (third_attachment && third_attachment_name) {
+      mailOptions.attachments.push({
+        filename: third_attachment_name,
+        content: third_attachment.split(',')[1],
         encoding: 'base64',
       });
     }

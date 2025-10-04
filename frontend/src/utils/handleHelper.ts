@@ -1,8 +1,11 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
 import adminApiService from "../services/adminApiService";
 import latestOrderServices from "../components/Admin/AdminServices/latestOrderServices";
 // import { showSnackbar } from './utils';  // Assuming you have a showSnackbar utility function
 import { getOrderInitialEmailHTML } from "../assets/templates/OrderInitialEmails";
+
+// For PDF  
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 // Function to handle sending parking permit emails
 export const handlePermit = async (permitTourIds: string[]) => {
@@ -119,4 +122,55 @@ export const formatDeliveryWindow = (isoString: string): string => {
   const endTime = formatTime(endDate);
 
   return `${formattedDate} (${startTime}) zwischen ${endTime}`;
+};
+
+
+  // Helper to convert Blob to base64 For PDF
+export const blobToBase64 = (blob: Blob): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
+
+// Generate PDF From Element method 
+export const generatePdfFromElement = async (element: HTMLElement, config: any): Promise<Blob> => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const canvas = await html2canvas(element, {
+        scale: 2,             // ⬅️ Lower resolution
+        useCORS: true,
+        allowTaint: true,
+      });
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.8); // ⬅️ JPEG instead of PNG
+      const pdf = new jsPDF(config);
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      const ratio = canvas.height / canvas.width;
+      const pdfWidth = pageWidth;
+      const pdfHeight = pdfWidth * ratio;
+
+      let position = 0;
+
+      if (pdfHeight < pageHeight) {
+        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+      } else {
+        while (position < pdfHeight) {
+          pdf.addImage(imgData, 'JPEG', 0, -position, pdfWidth, pdfHeight);
+          position += pageHeight;
+          if (position < pdfHeight) pdf.addPage();
+        }
+      }
+
+      const pdfBlob = pdf.output('blob');
+      resolve(pdfBlob);
+    } catch (err) {
+      reject(err);
+    }
+  });
 };

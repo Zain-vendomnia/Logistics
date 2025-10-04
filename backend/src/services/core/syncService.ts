@@ -9,7 +9,7 @@ export async function runInitialSyncs() {
     logWithTime("✅ Shopware sync completed.");
     
     logWithTime("⏳ Running initial WMS order sync...");
-    await wmsOrderSync("2025-08-10");
+    await wmsOrderSync("2024-01-10");
     logWithTime("✅ WMS order sync completed.");
   } catch (error) {
     logWithTime("❌ Initial sync failed:");

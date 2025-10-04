@@ -15,9 +15,11 @@ import '../Admin/css/Admin_TourTemplate.css';
 import adminApiService from '../../services/adminApiService';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { getOrderInitialEmailHTML } from '../../assets/templates/OrderInitialEmails';
+import { PODEmailHtml } from '../../assets/templates/PODEmailTemplate';
 
 import { sendSMS, sendWhatsAppMessage, sendEmail, EmailTemplate } from '../../services/notificationService';
-import { handlePermit, formatDeliveryWindow } from '../../utils/handleHelper';
+import { handlePermit, formatDeliveryWindow, generatePdfFromElement, blobToBase64  } from '../../utils/handleHelper';
+
 
 interface Tour {
   id: string;
@@ -261,6 +263,67 @@ const AdminTourTemplates = () => {
   };
 
 
+  const handlePOD = async (orderNumber: string, TourId: any,driverId: number) => {
+    if (!TourId) {
+      console.log("Tour ID is required.");
+      return;
+    }
+
+    try {
+      const routeRes = await adminApiService.fetchRouteSegmentData(TourId);
+      const routeImagesRes = await adminApiService.fetchRouteSegmentImages(TourId, orderNumber);
+      const orderDetailsRes = await adminApiService.fetchSpecifiedOrder(orderNumber);
+      // const driverDetailsRes = await adminApiService.getDriverData(driverId);
+
+      // console.log(driverDetailsRes);
+      const orderDetail = orderDetailsRes.data;
+
+      const orderData = {
+        orderDetails: orderDetail[0],
+        orderImages: routeImagesRes.data,
+        segmentData: routeRes.data,
+        // driverData: driverDetailsRes.data
+      };
+
+      console.log(orderData);
+      const emailHtml = await PODEmailHtml(orderData); // ✅ unwrap Promise<string>
+      let fullEmailHtml = 'Dear,<br><br> Please find attached POD for your reference.';
+
+      // 🔁 1. Create a hidden container
+      let element = document.createElement('div');
+      element.innerHTML = emailHtml; // ✅ now `element` is declared
+      element.style.position = 'absolute';
+      element.style.left = '-9999px';
+      element.style.top = '0';
+      element.style.width = '800px'; // match your content width
+      element.style.backgroundColor = 'white'; // avoid transparency issues
+      document.body.appendChild(element);
+
+      let config = {
+        orientation: 'p',  // Portrait orientation
+        unit: 'mm',
+        format: 'a4',
+      };
+
+      let pdfBlob = await generatePdfFromElement(element, config);
+      let attachment = await blobToBase64(pdfBlob);
+      let attachment_name = 'POD.pdf';
+
+      await adminApiService.sendEmail({
+        to: 'muhammad.jahanzaibbaloch@vendomnia.com',
+        subject: 'POD',
+        html: fullEmailHtml,
+        attachment,
+        attachment_name,
+      });
+
+      // console.log(routeImagesRes);
+
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+    }
+  };
+
   const handleSendEmail = async () => {
     try {
         const data: EmailTemplate = {
@@ -465,7 +528,14 @@ const AdminTourTemplates = () => {
                 setAnchorEl(null);
                 handleOnlyParkingPermit();
               }
-            }}>{loading ? 'Sending...' : 'Single Permit'}</Button>
+            }}>{loading ? 'Sending...' : 'Single Permit'}</Button>    
+            <Divider />
+             <Button color="primary" disabled={loading} onClick={() => {
+              if (currentTour) {
+                setAnchorEl(null);
+                handlePOD('400098164',currentTour.id,4);
+              }
+            }}>{loading ? 'Sending...' : 'Send POD'}</Button>
           </Menu>
 
           <EditTourModal

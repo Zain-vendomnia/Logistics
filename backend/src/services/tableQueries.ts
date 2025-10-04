@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS warehouse_details (
     updated_by VARCHAR(45) DEFAULT NULL,
     zip_code VARCHAR(12) NOT NULL,
     town VARCHAR(60) NOT NULL,
-    zip_codes_delivering TEXT DEFAULT NULL
+    zip_codes_delivering TEXT DEFAULT NULL,
     color_code VARCHAR(7) DEFAULT NULL
 );
   
@@ -179,12 +179,7 @@ export const CREATE_ROUTE_SEGMENTS_TABLE = `
     tour_id INT NOT NULL,
     route_response JSON,
     status ENUM('pending', 'in-progress', 'delivered', 'tour-completed', 'return') DEFAULT 'pending',
-    doorstep_pic BLOB,
-    delivered_item_pic BLOB,
-    customer_signature BLOB,
     parking_place VARCHAR(255),
-    neighbour_signature BLOB,
-    delivered_pic_neighbour BLOB,
     order_id VARCHAR(45),
     comments VARCHAR(45) DEFAULT NULL,
     delivery_time TIMESTAMP,
@@ -326,10 +321,10 @@ export const CREATE_DYNAMIC_TOURS_TABLE = `
     orderIds TEXT NOT NULL, 
     warehouse_id INT NOT NULL,
     approved_by VARCHAR(45) DEFAULT NULL, 
-    approved_at DATETIME DEFAULT NULL
+    approved_at DATETIME DEFAULT NULL,
     updated_by VARCHAR(45) DEFAULT NULL, 
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, 
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP, 
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 `;
 
@@ -367,5 +362,20 @@ export const CREATE_NOTIFICATION_TABLE = `
     meta_value VARCHAR(25) NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP, 
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  );
+`;
+
+export const CREATE_ORDER_IMAGES_TABLE = `
+  CREATE TABLE IF NOT EXISTS order_images (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, 
+    tour_id VARCHAR(25) NOT NULL,
+    order_id VARCHAR(25) NOT NULL,
+    order_number VARCHAR(25) NOT NULL,
+    route_segment_id VARCHAR(25) NOT NULL,
+    type ENUM('customer_door_step', 'customer_delivered_item', 'customer_delivered_item_modal', 'customer_signature','neighbour_door_step', 'neighbour_delivered_item', 'neighbour_delivered_item_modal', 'neighbour_signature', 'damaged') NOT NULL DEFAULT 'customer_door_step',
+    image VARCHAR(999) NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP, 
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (route_segment_id) REFERENCES route_segments(id) ON DELETE CASCADE
   );
 `;

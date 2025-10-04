@@ -93,6 +93,19 @@ const fetchRouteSegmentData = (tour_id: number) =>
     { headers: authHeader() }
   );
 
+  const fetchRouteSegmentImages = (
+    tour_id?: number,
+    order_number?: string
+  ) => {
+
+    return axios.post(
+      `${API_BaseUrl}getRoutesSegmentImages`,
+      { tour_id, order_number },
+      { headers: authHeader() }
+    );
+  };
+
+
 const updateTour = (tourData: Record<string, any>) =>
   axios.put(`${API_BaseUrl}updateTour`, tourData, { headers: authHeader() });
 
@@ -269,6 +282,13 @@ export const uploadexcel = (formData: FormData) =>
     });
   };
 
+
+  const getDriverData = (driverId: any) => {
+    return axios.post(API_BaseUrl_Admin + "getDriverData", {
+      headers: authHeader(),
+    });
+  };
+
 const adminApiService = {
   fetchRouteData,
   fetchOrderTourCount,
@@ -305,6 +325,8 @@ const adminApiService = {
   newShopOrder,
   getOrderNotificationMetaData,
   updateOrderNotificationMetaData,
+  fetchRouteSegmentImages,
+  getDriverData,
 };
 
 export default adminApiService;

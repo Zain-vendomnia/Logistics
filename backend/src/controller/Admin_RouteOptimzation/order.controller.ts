@@ -9,8 +9,8 @@ export const getAllLogisticOrders = async (_req: Request, res: Response) => {
     const orders = await LogisticOrder.getAll(); // Shopware orders
     const wmsOrderNumbers = await LogisticOrder.getWmsOrderNumbers(); // WMS order numbers
 
-    // console.log("shopware Orders:", orders);
-    // console.log("WMS Order Numbers:", wmsOrderNumbers);
+    console.log("shopware Orders:", orders);
+    console.log("WMS Order Numbers:", wmsOrderNumbers);
     // Filter Shopware orders where order_number exists in WMS
     const matchedOrders = orders.filter((order) =>
       wmsOrderNumbers.includes(order.order_number)
