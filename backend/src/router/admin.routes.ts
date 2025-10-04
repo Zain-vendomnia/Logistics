@@ -27,6 +27,8 @@ import { runTourController } from "../controller/HERE_API/runTourController";
 import { hereMapController } from "../controller/HERE_API/hereMapController";
 
 import driverRoutes from "./driver.routes";
+import customerRoutes from "./customers.routes";
+import messagesRoutes from "./messages.routes";
 import vehicleRoutes from "./vehicle.routes";
 import warehouseRoutes from "./warehouse.routes";
 import * as dynamicTourCtrl from "../controller/HERE_API/dynamicTour.controller";
@@ -41,6 +43,7 @@ import { orderSyncFromShopwareController } from "../controller/Admin_Api/orderSy
 import { shopwareAuth } from "../middlewares/shopwareAuth";
 
 const adminRouter = Router();
+adminRouter.use("/messages", messagesRoutes);
 
 // Public routes (no authentication required)
 adminRouter.get("/customer/updatelatlng", updatelatlngController);
@@ -154,6 +157,7 @@ adminRouter.use(
   vehicleRoutes
 );
 adminRouter.use("/warehouses", warehouseRoutes);
+adminRouter.use("/customers", validateToken, roleCheck(["admin"]), customerRoutes);
 
 adminRouter.use(notFoundHandler);
 

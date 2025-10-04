@@ -29,7 +29,7 @@ import TestUnhandledPromise from "./components/pages/TestUnhandledPromise";
 import TestRuntimeError from "./components/pages/TestRuntimeError";
 import Admin_dynamicHereMap from "./components/Admin/dynamic_tour/DynamicMapBoard";
 import AdminHereMap from "./components/Admin/MapRoutesViewer";
-import MultiUserChat from './components/notification/MultiUserChat';
+import CustomersChat from "./components/notification/CustomersChat";
 
 // Role-based route guard
 const ProtectedRoute = ({
@@ -154,11 +154,12 @@ const AppRoutes = () => {
           />
         }
       />
+     
       <Route
         path="/chat"
         element={
           <ProtectedRoute
-            element={<MultiUserChat />}
+            element={<CustomersChat />}
             allowedRoles={["admin"]}
           />
         }

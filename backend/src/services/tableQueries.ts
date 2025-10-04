@@ -304,11 +304,33 @@ export const CREATE_SOLARMODULES_ITEMS_TABLE = `
 export const CREATE_WHATSAPPCHATS_TABLE = `
   CREATE TABLE IF NOT EXISTS whatsapp_chats (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT NOT NULL,
+    twilio_sid VARCHAR(255) NULL COMMENT 'Twilio Message SID for tracking',
     \`from\` VARCHAR(50) NOT NULL,
     \`to\` VARCHAR(50) NOT NULL,
-    body TEXT NOT NULL,
+    body TEXT NULL,
     direction ENUM('inbound', 'outbound') NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    message_type ENUM('text','image','video','audio' ,'document','location','contacts','sticker', 'unknown','file') DEFAULT 'text' COMMENT 'text=regular message, file/media=attachments',
+    media_url TEXT NULL COMMENT 'Twilio media URL if media message',
+    media_content_type VARCHAR(100) NULL COMMENT 'image/jpeg, application/pdf, etc',
+    delivery_status ENUM('pending', 'queued', 'sent', 'delivered', 'read', 'failed', 'undelivered') 
+      DEFAULT 'pending' 
+      COMMENT 'pending=initial, queued=twilio accepted, sent=to carrier, delivered=to phone, read=user read, failed=error',
+    error_code VARCHAR(50) NULL COMMENT 'Twilio error code if failed',
+    error_message TEXT NULL COMMENT 'Error description if failed',
+    is_read BOOLEAN DEFAULT FALSE COMMENT 'Manually marked as read by admin',
+    read_at TIMESTAMP NULL COMMENT 'When manually marked as read by admin',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_order_id (order_id),
+    INDEX idx_direction (direction),
+    INDEX idx_created_at (created_at),
+    INDEX idx_delivery_status (delivery_status),
+    INDEX idx_twilio_sid (twilio_sid),
+    INDEX idx_message_type (message_type),
+    CONSTRAINT fk_order_id_logistic_order
+      FOREIGN KEY (order_id) REFERENCES logistic_order(order_id)
+      ON DELETE CASCADE ON UPDATE CASCADE
   );
 `;
 

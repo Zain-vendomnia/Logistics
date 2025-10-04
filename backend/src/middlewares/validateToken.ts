@@ -18,7 +18,7 @@ const validateToken = async (
       return res.status(400).json({ message: "Token Invalid" });
     }
   } else {
-    return res.status(401).json({ message: "Access denied" });
+    return res.status(401).json({ message: "Access denied no token provided" });
   }
 };
 

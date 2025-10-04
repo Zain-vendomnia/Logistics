@@ -348,7 +348,7 @@ const AdminTourTemplates = () => {
   };
   const handleSendWhatsApp = async () => {
     try {
-      const response = await sendWhatsAppMessage('+971501084381', 'customer-notification', { name: 'Jahanzaib Baloch' });
+      const response = await sendWhatsAppMessage('+971551246787', 'customer-notification', { name: 'Nagaraj' });
       alert(`WhatsApp Sent: ${response}`);
     } catch (error) {
       alert('Failed to send WhatsApp message');

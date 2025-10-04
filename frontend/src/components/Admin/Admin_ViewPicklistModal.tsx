@@ -613,7 +613,7 @@ const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
 
                       return (
                         <tr key={index}>
-                          <td style={{ border: '1px solid #ccc', padding: '8px' }}>{index + 1 ?? ''}</td>
+                          <td style={{ border: '1px solid #ccc', padding: '8px' }}>{index + 1}</td>
                           <td style={{ border: '1px solid #ccc', padding: '8px' }}>{order.street ?? ''}</td>
                           <td style={{ border: '1px solid #ccc', padding: '8px' }}>{order.phone ?? ''}</td>
                           <td style={{ border: '1px solid #ccc', padding: '8px' }}>{order.zipcode ?? ''}</td>
