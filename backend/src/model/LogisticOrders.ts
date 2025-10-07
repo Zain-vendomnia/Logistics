@@ -384,7 +384,6 @@ export class LogisticOrder {
         ON o.warehouse_id = wh.warehouse_id
       WHERE o.status IN ('initial', 'unassigned', 'rescheduled')
   `;
-
     const params: any[] = [];
 
     if (since) {
@@ -393,7 +392,7 @@ export class LogisticOrder {
       params.push(sinceDate, sinceDate);
     }
 
-    query += ` ORDER BY o.order_id`;
+    query += ` ORDER BY o.order_id LIMIT 100`;
     // query += ` ORDER BY o.updated_at DESC, o.created_at DESC`;
 
     try {
@@ -423,9 +422,7 @@ export class LogisticOrder {
         items: [],
       }));
 
-      console.log(
-        `***************** ${orders.length} fetched orders ${orders}`
-      );
+      console.log(`***************** ${orders.length} fetched orders`);
 
       // filter further with WMS orders
       const [wms_orders] = await pool.execute(

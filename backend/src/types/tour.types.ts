@@ -111,22 +111,6 @@ export type TourTracePayload = {
   removed_by?: string;
 };
 
-export type LocationMeta = Coordinate & {
-  area: string;
-  zipcode: string;
-};
-
-export type MatrixResult = {
-  origins: LocationMeta[];
-  destinations: LocationMeta[];
-  estimates: {
-    origin: LocationMeta;
-    destination: LocationMeta;
-    distanceKm: number | null;
-    duration: number | null;
-  }[];
-};
-
 export type DeliveryCostRates = {
   personnel_costs_per_hour: number;
   diesel_costs_per_liter: number;

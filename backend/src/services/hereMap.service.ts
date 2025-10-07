@@ -8,8 +8,12 @@ import {
   DeliveryJob,
   DecodedRoute,
   Unassigned,
+  MatrixRequestBody,
+  MatrixResponse,
+  MatrixResult,
+  LatLng,
 } from "../types/hereMap.types";
-import { LocationMeta, MatrixResult, Stop, Tour } from "../types/tour.types";
+import { Stop, Tour } from "../types/tour.types";
 // import { LogisticOrder } from "../types/database.types";
 import {
   get_LogisticsOrdersAddress,
@@ -311,79 +315,92 @@ function extractTourOrderIds(tour: Tour): string {
   return [...new Set(ids)].join(",");
 }
 
-// Estimate distance/duration between multiple origins and destinations.
-export const matrixEstimate = async (
-  origins: LocationMeta[],
-  destinations: LocationMeta[],
-  transportMode: "car" | "truck" | "pedestrian" = "truck"
-): Promise<MatrixResult> => {
-  if (!origins.length || !destinations.length) {
-    throw new Error(
-      "matrixEstimate requires at least one origin and one destination."
-    );
+async function submitMatrix(body: MatrixRequestBody): Promise<MatrixResponse> {
+  // https://developer.here.com/documentation/matrix-routing-api/dev_guide/topics/response.html
+  // matrixTravelTimes is always present, matrixDistances is optional
+
+  // regionDefinition: { type: "autoCircle", margin: 1000 },
+  // "regionDefinition": { "type": "circle", "center": {"lat":25.27,"lng":55.29}, "radius":50000 },
+
+  const url = `https://matrix.router.hereapi.com/v8/matrix`;
+
+  const res = await axios.post(url, body, {
+    headers: { "Content-Type": "application/json" },
+    params: { apiKey: HERE_API_KEY },
+  });
+
+  return res.data;
+}
+
+async function pollMatrixStatus(
+  statusUrl: string,
+  intervalMs = 2000
+): Promise<MatrixResponse> {
+  while (true) {
+    const res = await axios.get(statusUrl, {
+      headers: { "Content-Type": "application/json" },
+      params: { apiKey: HERE_API_KEY },
+      maxRedirects: 0, // prevent auto-follow of S3 URL
+      validateStatus: (status) => status === 200 || status === 303,
+    });
+
+    if (res.status === 303) {
+      // Completed → Location header contains result URL
+      const resultUrl = res.headers["location"];
+      return { ...res.data, resultUrl };
+    }
+
+    if (res.data.status === "failed") {
+      throw new Error(
+        `Matrix calculation failed: ${JSON.stringify(res.data.error)}`
+      );
+    }
+
+    // Still in progress
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
   }
+}
+
+async function downloadMatrixResult(resultUrl: string): Promise<MatrixResult> {
+  const urlWithKey = resultUrl.includes("?")
+    ? `${resultUrl}&apiKey=${HERE_API_KEY}`
+    : `${resultUrl}?apiKey=${HERE_API_KEY}`;
+
+  const res = await axios.get(urlWithKey, {
+    headers: { "Accept-Encoding": "gzip" },
+  });
+
+  return res.data;
+}
+
+export async function matrixEstimate(
+  origins: LatLng[],
+  destinations: LatLng[],
+  transportMode: "car" | "truck" | "pedestrian" = "truck"
+): Promise<MatrixResult | undefined> {
+  const body: MatrixRequestBody = {
+    origins,
+    destinations,
+    regionDefinition: { type: "world" },
+    transportMode,
+    matrixAttributes: ["travelTimes", "distances"],
+  };
 
   try {
-    // Rare case - for later use
-    // "regionDefinition": { "type": "circle", "center": {"lat":25.27,"lng":55.29}, "radius":50000 },
-    // "matrixAttributes": ["travelTimes", "distances", "travelTimesWithTraffic"]
+    const submitResponse = await submitMatrix(body);
+    // console.log("Matrix submitted:", submitResponse.matrixId);
 
-    const body = {
-      origins: origins.map((o) => ({ lat: o.lat, lng: o.lng })),
-      destinations: destinations.map((d) => ({ lat: d.lat, lng: d.lng })),
-      regionDefinition: {
-        type: "world",
-      },
-      matrixAttributes: ["travelTimes", "distances"],
-      transportMode,
-    };
+    const statusResponse = await pollMatrixStatus(submitResponse.statusUrl);
+    // console.log("Matrix completed! Result URL:", statusResponse.resultUrl);
 
-    console.log(`Matrix Request send --------------------- 2`);
+    const matrixResult = await downloadMatrixResult(statusResponse.resultUrl!);
+    // console.log("Matrix result:", matrixResult);
 
-    const url = `https://matrix.router.hereapi.com/v8/matrix?apiKey=${HERE_API_KEY}`;
-
-    const res = await axios.post(url, body);
-    console.log(`Matrix Response --------------------- 3`);
-    console.log(`Matrix Response: ${res.data}`);
-
-    console.log(
-      `Matrix result: ${res.data.matrixTravelTimes.length} travel times, ${
-        res.data.matrixDistances?.length ?? 0
-      } distances`
-    );
-
-    // HERE response mapping
-    // https://developer.here.com/documentation/matrix-routing-api/dev_guide/topics/response.html
-    // matrixTravelTimes is always present, matrixDistances is optional
-    const estimates: MatrixResult["estimates"] = [];
-    const size = destinations.length;
-
-    res.data.matrixTravelTimes.forEach(
-      (travelTime: number | null, idx: number) => {
-        const row = Math.floor(idx / size);
-        const col = idx % size;
-
-        estimates.push({
-          origin: origins[row],
-          destination: destinations[col],
-          distanceKm: res.data.matrixDistances
-            ? res.data.matrixDistances[idx]
-            : null,
-          duration: travelTime,
-        });
-      }
-    );
-
-    return {
-      origins,
-      destinations,
-      estimates,
-    } as MatrixResult;
-  } catch (error) {
-    console.error(`[Metrix Request Failed]: ${error}`);
-    throw new Error(error instanceof Error ? error.message : String(error));
+    return matrixResult;
+  } catch (err) {
+    console.error("HERE Matrix error:", err);
   }
-};
+}
 
 const hereMapService = {
   geocode,

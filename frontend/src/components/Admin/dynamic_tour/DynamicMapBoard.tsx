@@ -111,6 +111,7 @@ const DymanicMapBoard = () => {
   });
 
   const [vehicleTours, setVehicleTours] = useState<Geometry[]>([]);
+  const [mapBoardTours, setMapBoardTours] = useState<Geometry[]>([]);
 
   const [isLoading, setIsLoading] = useState<boolean>(
     vehicleTours.length === 0
@@ -152,6 +153,7 @@ const DymanicMapBoard = () => {
         // console.log('Dynamic Tours: ', dynamic_tours)
         setDynamicToursList(dynamic_tours as DynamicTourPayload[]);
         setVehicleTours(tours_route);
+        setMapBoardTours(tours_route);
       } catch (err) {
         console.error("API call failed", err);
       } finally {
@@ -179,8 +181,8 @@ const DymanicMapBoard = () => {
       //   mapRef.current?.setZoom(mapRef.current.getZoom() - 1); // zoom out 1 level
       // }, 1600);
     }
-  }, []);
-  // }, [isLoading, vehicleTours]);
+    // }, []);
+  }, [isLoading, vehicleTours]);
 
   // mapRef to selected tour
   useEffect(() => {
@@ -188,26 +190,26 @@ const DymanicMapBoard = () => {
 
     allCoords = extract_Coords(selectedTour.tour_route);
 
-    setVehicleTours((prev) => {
-      const idx = prev.findIndex(
-        (v) => v.vehicleId === selectedTour.tour_route?.vehicleId
-      );
-      if (idx === -1 || prev[idx] !== selectedTour.tour_route) {
-        const newArr = [...prev];
-        idx === -1
-          ? newArr.push(selectedTour.tour_route!)
-          : (newArr[idx] = selectedTour.tour_route!);
-        return newArr;
-      }
-      return prev;
-    });
-    // setVehicleTours((prev) =>
-    //   prev.map((route) =>
-    //     route.vehicleId === selectedTour.tour_route?.vehicleId
-    //       ? selectedTour.tour_route
-    //       : route
-    //   )
-    // );
+    // setVehicleTours((prev) => {
+    //   const idx = prev.findIndex(
+    //     (v) => v.vehicleId === selectedTour.tour_route?.vehicleId
+    //   );
+    //   if (idx === -1 || prev[idx] !== selectedTour.tour_route) {
+    //     const newArr = [...prev];
+    //     idx === -1
+    //       ? newArr.push(selectedTour.tour_route!)
+    //       : (newArr[idx] = selectedTour.tour_route!);
+    //     return newArr;
+    //   }
+    //   return prev;
+    // });
+    setVehicleTours((prev) =>
+      prev.map((route) =>
+        route.vehicleId === selectedTour.tour_route?.vehicleId
+          ? selectedTour.tour_route
+          : route
+      )
+    );
 
     if (focusedTourIdRef.current !== selectedTour.tour_route.vehicleId) {
       focusedTourIdRef.current = selectedTour.tour_route.vehicleId;
@@ -382,9 +384,9 @@ const DymanicMapBoard = () => {
                       <Polyline
                         positions={section.coordinates}
                         color={pathColor}
-                        weight={4}
-                        // weight={isFocused ? 6 : 3}
-                        opacity={isFocused ? 1 : 0.7}
+                        // weight={4}
+                        weight={isFocused ? 12 : 4}
+                        opacity={isFocused ? 1.2 : 0.9}
                       />
                       <PolylineDecoratorWrapper
                         positions={section.coordinates}

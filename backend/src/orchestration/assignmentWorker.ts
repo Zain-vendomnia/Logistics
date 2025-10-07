@@ -1,94 +1,321 @@
-import pLimit from "p-limit";
-
-import { createDynamicTourAsync } from "../services/dynamicTour.service";
-// import { createDeliveryCostForTour } from "../services/tour.service";
 import {
-  getActiveWarehousesWithVehicles,
   getWarehouseLocationCords,
   getWarehouseZipcodesRecord,
+  getWarehouseToOrdersMatrix,
+  getActiveWarehousesWithVehicles,
 } from "../services/warehouse.service";
+import { createDynamicTourAsync } from "../services/dynamicTour.service";
 
-import { haversineKm } from "../utils/haversine";
-import { logWithTime } from "../utils/logging";
-
-import * as helper from "./assignmentWorker.helper";
-// import { getWarehouseToOrdersMetrix } from "../helpers/tour.helper";
-
-import { LogisticOrder } from "../model/LogisticOrders";
 import { Order } from "../types/order.types";
 import { Warehouse } from "../types/warehouse.types";
+import { MatrixData } from "../types/hereMap.types";
+import { LogisticOrder } from "../model/LogisticOrders";
 import { DynamicTourPayload } from "../types/dto.types";
 
-const MIN_ORDERS = 15;
-const CLOSE_DISTANCE_OVERRIDE_KM = 10;
+import * as helper from "./assignmentWorker.helper";
+import { haversineKm } from "../helpers/tour.helper";
+
+// const SECTOR_ANGLE_DEG = 30;
+// const SECTOR_ANGLE_RAD = (SECTOR_ANGLE_DEG * Math.PI) / 180;
+const MATRIX_CONCURRENCY = 3; // Concurrent calls
+
+const MIN_ORDERS = 10;
+// const MAX_CLUSTER_SIZE = 32;
+const CLOSE_TO_DISTANCE_KM = 25; // between consecutive orders (your local value)
 const TIME_WINDOW_HOURS = 10;
+const MAX_TOUR_DISTANCE_METERS = 600 * 1000; // 600 km -> meters
+// const SERVICE_TIME_PER_STOP_MIN = 5;
+// const AVERAGE_SPEED_KMPH = 100;
+
+// Replace with Redis/DB distributed lock implementation
+// async function acquireLock(key: string, ttlMs = 30_000): Promise<boolean> {
+//   // implement: return true if lock acquired, false if not
+//   return true;
+// }
+// async function releaseLock(key: string): Promise<void> {
+//   // implement
+// }
+
+// Replace with caching (Redis recommended)
+const simpleCache = new Map<string, any>();
+async function cacheGet<T>(k: string): Promise<T | undefined> {
+  return simpleCache.get(k);
+}
+async function cacheSet(k: string, v: any, ttlSeconds?: number) {
+  simpleCache.set(k, v);
+
+  console.log("ttl Secondes: ", ttlSeconds);
+  // ignore TTL in this simple impl
+}
+
+// Useing caching + concurrency limiting + retries.
+async function trimClusterToFitUsingMatrix(
+  warehouse: Warehouse,
+  cluster: Order[]
+): Promise<{ fitted: Order[]; trimmed: Order[] }> {
+  const trimmed: Order[] = [];
+  if (!cluster.length) return { fitted: [], trimmed };
+
+  // generate cache key
+  const clusterKey = `matrix:${warehouse.id}:${cluster
+    .map((o) => o.order_id)
+    .join(",")}`;
+
+  // concurrency control
+  await matrixSemaphore.enter();
+  try {
+    // caching
+    let matrix = await cacheGet<MatrixData | undefined>(clusterKey);
+
+    if (!matrix) {
+      matrix = await getWarehouseToOrdersMatrix(warehouse, cluster);
+
+      if (matrix && (!matrix.errorCodes || matrix.errorCodes.length === 0)) {
+        await cacheSet(clusterKey, matrix, 60 * 5); // cache for 5 minutes
+      } else {
+        matrix = undefined;
+        console.warn("Matrix Empty, no response form Here API");
+      }
+    }
+
+    if (!matrix) {
+      // fallback to approximate
+      const approxSec = helper.secondsForApproxRoute(warehouse, cluster);
+
+      console.warn(
+        `secondsForApproxRoute(${warehouse.town}, cluster ${cluster.length})`
+      );
+      console.warn(`approxSec: ${approxSec}`);
+
+      if (approxSec <= TIME_WINDOW_HOURS * 3600)
+        return { fitted: cluster, trimmed: [] };
+
+      // const sortedByDist = [...cluster].sort(
+      //   (a, b) =>
+      //     haversineKm(
+      //       warehouse.lat!,
+      //       warehouse.lng!,
+      //       a.location.lat!,
+      //       a.location.lng!
+      //     ) -
+      //     haversineKm(
+      //       warehouse.lat!,
+      //       warehouse.lng!,
+      //       b.location.lat!,
+      //       b.location.lng!
+      //     )
+      // );
+      // const fitted = [...sortedByDist];
+      let fitted = cluster;
+      while (fitted.length >= MIN_ORDERS) {
+        trimmed.push(fitted.pop()!);
+        const approxNow = helper.secondsForApproxRoute(warehouse, fitted);
+        if (approxNow <= TIME_WINDOW_HOURS * 3600)
+          return {
+            fitted,
+            trimmed: trimmed.concat(cluster.filter((o) => !fitted.includes(o))),
+          };
+      }
+
+      return { fitted: [], trimmed: trimmed.concat(fitted) };
+    }
+
+    // matrix exists, compute tour duration
+    const durationSec = helper.computeTourDurationUsingMatrix(matrix!, cluster);
+    console.warn(
+      `Matrix Duration: ${durationSec / 3600}h for cluster size ${
+        cluster.length
+      }`
+    );
+    // compute distance meters
+    const distanceMeters = helper.computeTourDistanceUsingMatrix(
+      matrix!,
+      cluster
+    );
+    console.warn(
+      `Matrix Distance: ${distanceMeters / 1000}Km for cluster size ${
+        cluster.length
+      }`
+    );
+
+    if (
+      durationSec <= TIME_WINDOW_HOURS * 3600 &&
+      distanceMeters <= MAX_TOUR_DISTANCE_METERS
+    ) {
+      console.warn("Round 1st: Cluster Accepted as is");
+      console.warn(
+        `Cluster Accepted: warehouse ${warehouse.town} legnth ${cluster.length}`
+      );
+
+      return { fitted: cluster, trimmed: [] };
+    }
+
+    // trimming loop: remove farthest-from-warehouse until fits or below MIN_ORDERS
+
+    //   const sortedByDist = [...cluster].sort(
+    //   (a, b) =>
+    //     haversineKm(
+    //       warehouse.lat!,
+    //       warehouse.lng!,
+    //       a.location.lat!,
+    //       a.location.lng!
+    //     ) -
+    //     haversineKm(
+    //       warehouse.lat!,
+    //       warehouse.lng!,
+    //       b.location.lat!,
+    //       b.location.lng!
+    //     )
+    // );
+    // let fitted = [...sortedByDist];
+
+    let fitted = cluster;
+    while (fitted.length >= MIN_ORDERS) {
+      trimmed.push(fitted.pop()!);
+
+      const newKey = `matrix:${warehouse.id}:${fitted
+        .map((o) => o.order_id)
+        .join(",")}`;
+
+      let matrix2 = await cacheGet<MatrixData | undefined>(newKey);
+      if (!matrix2) {
+        try {
+          matrix2 = await getWarehouseToOrdersMatrix(warehouse, fitted);
+          if (
+            matrix2 &&
+            (!matrix2.errorCodes || matrix2.errorCodes.length === 0)
+          ) {
+            await cacheSet(newKey, matrix2, 60 * 5);
+          } else {
+            matrix2 = undefined;
+          }
+        } catch (err) {
+          matrix2 = undefined;
+        }
+      }
+      if (!matrix2) {
+        const approxSec = helper.secondsForApproxRoute(warehouse, fitted);
+        if (approxSec <= TIME_WINDOW_HOURS * 3600) {
+          return { fitted, trimmed };
+        } else {
+          continue;
+        }
+      } else {
+        const dur_sec_2 = helper.computeTourDurationUsingMatrix(
+          matrix2,
+          fitted
+        );
+        const dis_mtr_2 = helper.computeTourDistanceUsingMatrix(
+          matrix2,
+          fitted
+        );
+        if (
+          dur_sec_2 <= TIME_WINDOW_HOURS * 3600 &&
+          dis_mtr_2 <= MAX_TOUR_DISTANCE_METERS
+        ) {
+          return { fitted, trimmed };
+        } else {
+          continue;
+        }
+      }
+    }
+
+    return { fitted: [], trimmed: trimmed.concat(fitted) };
+  } finally {
+    matrixSemaphore.leave();
+  }
+}
+
+export async function processWarehouseClusters(
+  warehouse: Warehouse,
+  candidateOrders: Order[]
+) {
+  const TRIMMED_ORDERS = new Map<number, Order[]>();
+  const ACCEPTED_CLUSTERS = new Map<number, Order[][]>();
+
+  const candidateClusters = helper.clusterOrdersBySector(
+    candidateOrders,
+    warehouse
+  );
+
+  for (const cluster of candidateClusters) {
+    if (cluster.length < MIN_ORDERS) {
+      const prev = TRIMMED_ORDERS.get(warehouse.id) ?? [];
+      TRIMMED_ORDERS.set(warehouse.id, prev.concat(cluster));
+      continue;
+    }
+
+    try {
+      const { fitted, trimmed } = await trimClusterToFitUsingMatrix(
+        warehouse,
+        cluster
+      );
+      if (trimmed.length) {
+        const prev = TRIMMED_ORDERS.get(warehouse.id) ?? [];
+        TRIMMED_ORDERS.set(warehouse.id, prev.concat(trimmed));
+      }
+
+      if (fitted.length >= MIN_ORDERS) {
+        const prevAcc = ACCEPTED_CLUSTERS.get(warehouse.id) ?? [];
+        ACCEPTED_CLUSTERS.set(warehouse.id, prevAcc.concat([fitted]));
+      } else {
+        // all were trimmed
+      }
+    } catch (err) {
+      console.error("Error trimming cluster", err);
+      const prev = TRIMMED_ORDERS.get(warehouse.id) ?? [];
+      TRIMMED_ORDERS.set(warehouse.id, prev.concat(cluster));
+    }
+  }
+
+  return { ACCEPTED_CLUSTERS, TRIMMED_ORDERS };
+}
 
 export async function processBatch() {
-  // Fetch new orders
+  // 1) fetch orders, warehouses
   const orders: Order[] = await LogisticOrder.getPendingOrdersAsync();
   if (!orders.length) return;
 
-  //   console.log(`Fetched ${orders.length} pending DB orders:`, orders);
+  debugger;
 
-  // Fetch active warehouses and zip mappings
   const warehouses: Warehouse[] = await getActiveWarehousesWithVehicles();
-  //   console.log("Active Warehouses:", warehouses);
-  if (!warehouses.length) {
-    logWithTime("No active warehouses with vehicles found.");
-    return;
-  }
+  if (!warehouses.length) return;
 
+  // ensure coords
   for (const wh of warehouses) {
     if (!wh.lat || !wh.lng) {
       const location = await getWarehouseLocationCords(wh);
       if (location) {
         wh.lat = location.lat;
         wh.lng = location.lng;
-      } else {
-        continue;
-      }
+      } else continue;
     }
   }
-
   for (const order of orders) {
     if (!order.location.lat || !order.location.lng) {
       const location = await LogisticOrder.getOrderLocationCords(order);
       if (location) {
         order.location.lat = location.lat;
         order.location.lng = location.lng;
-      } else {
-        continue;
-      }
+      } else continue;
     }
   }
 
+  // assign to warehouses
+  const assignments = new Map<number, Order[]>();
   const warehouse_zipMap = await getWarehouseZipcodesRecord(
     warehouses.map((w) => w.id)
-  ); // Record<warehouseId, Set<zipcode>>
-
-  const assignments = new Map<number, Order[]>();
-  let accepted_Maps = new Map<number, Order[][]>(); // warehouseId -> clusters
-  // let accepted_Maps = new Map<
-  //   number,
-  //   { cluster: Order[]; approxHrs: number }[]
-  // >();
-
-  let trimmed_Maps = new Map<number, Order[]>();
-
-  // ASSIGN orders to warehouses
-  console.log("ASSIGNING orders to warehouses");
+  );
   for (const order of orders) {
-    let best: (typeof warehouses)[0] | null = null;
+    let best = null;
     let bestDist = Infinity;
-
     for (const wh of warehouses) {
       const d = haversineKm(
-        wh.lat,
-        wh.lng,
-        order.location.lat,
-        order.location.lng
+        wh.lat!,
+        wh.lng!,
+        order.location.lat!,
+        order.location.lng!
       );
-
       if (d < bestDist) {
         bestDist = d;
         best = wh;
@@ -101,7 +328,7 @@ export async function processBatch() {
       )
     );
 
-    const chosenWarehouses: (typeof warehouses)[0][] = [];
+    const chosenWarehouses: Warehouse[] = [];
     if (zipcodeOwner) {
       if (
         best!.id !== zipcodeOwner.id &&
@@ -112,7 +339,7 @@ export async function processBatch() {
             order.location.lat!,
             order.location.lng!
           ) -
-            CLOSE_DISTANCE_OVERRIDE_KM
+            CLOSE_TO_DISTANCE_KM
       ) {
         chosenWarehouses.push(best!);
       } else {
@@ -122,84 +349,74 @@ export async function processBatch() {
       chosenWarehouses.push(best!);
     }
 
-    if (chosenWarehouses !== null) {
-      for (const wh of chosenWarehouses) {
-        console.log(
-          `chosen warehouse for order ${order.order_id}: ${wh.id}-${wh.town}`
-        );
-        if (!assignments.has(wh.id)) assignments.set(wh.id, []);
-        assignments.get(wh.id)!.push(order);
-      }
+    for (const wh of chosenWarehouses) {
+      if (!assignments.has(wh.id)) assignments.set(wh.id, []);
+      assignments.get(wh.id)!.push(order);
     }
   }
 
-  // -- Process clusters per warehouse --
-  logWithTime(`Total assignments size: ${assignments.size}`);
-
+  // process warehouses (per-warehouse lock)
+  console.log(`Creating Dynamic Tours for ${assignments.size} Clusters`);
   for (const [warehouseId, candidateOrders] of assignments.entries()) {
-    logWithTime(
-      `Assignment Cluster: ${warehouseId} - Candidate Orders ( Count: ${
-        candidateOrders.length
-      }: ${candidateOrders.map((o) => o.order_id)})`
-    );
-
     if (candidateOrders.length < MIN_ORDERS) continue;
 
     const warehouse = warehouses.find((w) => w.id === warehouseId)!;
-    if (!warehouse) continue;
 
-    logWithTime(`Process Clusters for Warehouse: ${warehouseId} - Round 1`);
+    // const lockKey = `proc:warehouse:${warehouseId}`;
+    // const locked = await acquireLock(lockKey, 120_000);
+    // if (!locked) {
+    //   console.warn(
+    //     `Could not acquire lock for warehouse ${warehouseId}, skipping`
+    //   );
+    //   continue;
+    // }
+    // try {
     const { ACCEPTED_CLUSTERS, TRIMMED_ORDERS } =
       await processWarehouseClusters(warehouse, candidateOrders);
 
-    if (ACCEPTED_CLUSTERS.size) {
-      accepted_Maps.set(warehouseId, ACCEPTED_CLUSTERS.get(warehouseId)!);
-    }
-
-    if (TRIMMED_ORDERS.size) {
-      trimmed_Maps = new Map([...trimmed_Maps, ...TRIMMED_ORDERS]);
-    }
-  }
-
-  // Retry trimmed orders once
-  if (trimmed_Maps.size) {
-    logWithTime(
-      `trimmed_Maps.entries(): ${JSON.stringify(trimmed_Maps.entries())}`
-    );
-
-    for (const [warehouseId, trimmedList] of trimmed_Maps.entries()) {
-      const warehouse = warehouses.find((w) => w.id === warehouseId)!;
-      if (!warehouse) continue;
-
-      logWithTime(`Process Clusters for Warehouse: ${warehouseId} - Round 2`);
-      const { ACCEPTED_CLUSTERS: accept2 } = await processWarehouseClusters(
-        warehouse,
-        trimmedList
+    // upsert trimmed orders for retry (persist to DB or queue)
+    for (const [wid, trimmedOrders] of TRIMMED_ORDERS.entries()) {
+      // save trimmedOrders somewhere for next pass
+      console.warn(
+        `Warehouse ${wid} has ${trimmedOrders.length} trimmed Orders.`
       );
-
-      if (accept2.size) {
-        const prev = accepted_Maps.get(warehouseId) ?? [];
-        accepted_Maps.set(warehouseId, prev.concat(accept2.get(warehouseId)!));
-      }
-      // leaving trimmed2 for next batch
     }
+
+    // Creating dynamic tours for ACCEPTED_CLUSTERS
+    for (const clusters of ACCEPTED_CLUSTERS.values()) {
+      for (const cluster of clusters) {
+        console.log(
+          `Warehouse ${warehouse.town} total clusters:${clusters.length}| cluster:${cluster.length}`
+        );
+        await createDynamicTourForCluster(warehouseId, cluster);
+      }
+    }
+
+    // } finally {
+    //   await releaseLock(lockKey);
+    // }
   }
-
-  console.warn(`Proceeding towards Dynamic Tower Creation................`);
-  console.warn("accepted_Maps size:", accepted_Maps.size);
-  const limit = pLimit(5);
-  const promises = Array.from(accepted_Maps.entries()).flatMap(
-    ([warehouseId, clusters]) =>
-      clusters.map((cluster) =>
-        limit(async () => {
-          await createDynamicTourForCluster(warehouseId, cluster);
-        })
-      )
-  );
-  await Promise.all(promises);
-
-  console.warn(`Terminating towards Dynamic Tower Creation................`);
 }
+
+export function semaphore(max: number) {
+  let current = 0;
+  const queue: (() => void)[] = [];
+  async function enter() {
+    if (current < max) {
+      current++;
+      return;
+    }
+    await new Promise<void>((res) => queue.push(res));
+    current++;
+  }
+  function leave() {
+    current--;
+    const next = queue.shift();
+    if (next) next();
+  }
+  return { enter, leave };
+}
+const matrixSemaphore = semaphore(MATRIX_CONCURRENCY);
 
 async function createDynamicTourForCluster(
   warehouseId: number,
@@ -231,109 +448,4 @@ async function createDynamicTourForCluster(
       err
     );
   }
-}
-
-export async function processWarehouseClusters(
-  warehouse: Warehouse,
-  jaggedOrders: Order[]
-) {
-  const TRIMMED_ORDERS = new Map<number, Order[]>();
-  const ACCEPTED_CLUSTERS = new Map<number, Order[][]>();
-  // const ACCEPTED_CLUSTERS = new Map<
-  //   number,
-  //   { cluster: Order[]; approxHrs: number }[]
-  // >();
-
-  const clusters = helper.clusterOrders(jaggedOrders, warehouse);
-
-  for (let cluster of clusters) {
-    if (cluster.length < MIN_ORDERS) {
-      logWithTime(
-        `Order Clusters Length is not sufficient for cluster process`
-      );
-      const prev = TRIMMED_ORDERS.get(warehouse.id) ?? [];
-      TRIMMED_ORDERS.set(warehouse.id, prev.concat(cluster));
-      continue;
-    }
-
-    // quick approximate check
-    let approxSec = helper.secondsForApproxRoute(warehouse, cluster);
-    logWithTime(
-      `Orders Cluster ${cluster.length} approx Sec duration from Warehouse ${warehouse.id} - ${warehouse.town} is: ${approxSec}`
-    );
-
-    if (approxSec > TIME_WINDOW_HOURS * 3600) {
-      const { fitted, trimmed } = helper.trimClusterToFit(warehouse, cluster);
-      if (trimmed.length) {
-        const prev = TRIMMED_ORDERS.get(warehouse.id) ?? [];
-        TRIMMED_ORDERS.set(warehouse.id, prev.concat(trimmed));
-      }
-
-      logWithTime(`Fitted Orders, ${fitted.length} : ${fitted}`);
-      logWithTime(`Trimmed Orders, ${trimmed.length} : ${trimmed}`);
-      logWithTime(
-        `Fitted: ${fitted.length} and Removed: ${trimmed.length} Orders from Cluster`
-      );
-      logWithTime(`Fitted Order : ${fitted.map((o) => o.order_id).join(",")}`);
-
-      cluster = fitted;
-    }
-    if (!cluster.length || cluster.length < MIN_ORDERS) continue;
-
-    try {
-      console.log(`Matrix Call --------------------- 1`);
-
-      //   const { tourDurationSec } = await getWarehouseToOrdersMetrix(
-      //     warehouse,
-      //     cluster
-      //   );
-      //   console.log(`tourDurationSec From METRIX : ${tourDurationSec}`);
-
-      if (
-        (approxSec == null && approxSec <= TIME_WINDOW_HOURS * 3600) ||
-        (approxSec != null && approxSec <= TIME_WINDOW_HOURS * 3600)
-      ) {
-        const prev = ACCEPTED_CLUSTERS.get(warehouse.id) ?? [];
-        ACCEPTED_CLUSTERS.set(warehouse.id, [...prev, cluster]);
-      }
-      //   else {
-      //     let fitted = [...cluster];
-      //     const trimmedLocal: Order[] = [];
-      // while (fitted.length >= MIN_ORDERS) {
-      //   const toRemove = fitted.pop()!;
-      //   trimmedLocal.push(toRemove);
-
-      //   console.log(`Matrix Call --------------------- 2`);
-      //   const { tourDurationSec: durMatrix_2 } = await getWarehouseToOrdersMetrix(
-      //     warehouse,
-      //     fitted
-      //   );
-
-      //   if (durMatrix_2 != null && durMatrix_2 <= TIME_WINDOW_HOURS * 3600) {
-      //     const prev = ACCEPTED_CLUSTERS.get(warehouse.id) ?? [];
-      //     ACCEPTED_CLUSTERS.set(warehouse.id, [...prev, fitted]);
-      //     break;
-      //   }
-      // }
-
-      //     if (trimmedLocal.length) {
-      //       const prev = TRIMMED_ORDERS.get(warehouse.id) ?? [];
-      //       TRIMMED_ORDERS.set(warehouse.id, prev.concat(trimmedLocal));
-      //     }
-      //   }
-    } catch (err) {
-      console.error("getWarehouseToOrdersMetrix failed", err);
-      const prev = TRIMMED_ORDERS.get(warehouse.id) ?? [];
-      TRIMMED_ORDERS.set(warehouse.id, prev.concat(cluster));
-    }
-  }
-
-  console.warn(
-    `processWarehouseClusters result for warehouse ${warehouse.id}:`,
-    "ACCEPTED_CLUSTERS:",
-    ACCEPTED_CLUSTERS.size,
-    "TRIMMED_ORDERS:",
-    TRIMMED_ORDERS.size
-  );
-  return { ACCEPTED_CLUSTERS, TRIMMED_ORDERS };
 }

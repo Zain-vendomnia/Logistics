@@ -1,8 +1,12 @@
 import pool from "../config/database";
+import { geocode, matrixEstimate } from "./hereMap.service";
+
 import { WarehouseDetailsDto } from "../types/dto.types";
 import { Warehouse, WarehouseZipcodes } from "../types/warehouse.types";
-import { geocode } from "./hereMap.service";
-import { Location } from "../types/hereMap.types";
+import { Location, MatrixData, MatrixResult } from "../types/hereMap.types";
+import { Order } from "../types/order.types";
+
+import { logWithTime } from "../utils/logging";
 
 export const getAllWarehouses = async (): Promise<Warehouse[]> => {
   const [rows] = await pool.query("SELECT * FROM warehouse_details");
@@ -447,3 +451,128 @@ export async function getWarehouseLocationCords(
 
 //   return result;
 // };
+
+export async function getWarehouseToOrdersMatrix(
+  warehouse: Warehouse,
+  orders: Order[]
+): Promise<MatrixData | undefined> {
+  try {
+    const validOrders = orders.filter(
+      (o) => o && o.location && o.location.lat != null && o.location.lng != null
+    );
+
+    if (!warehouse || !validOrders.length) {
+      throw new Error(
+        "matrixEstimate requires at least one Warehouse and one Order."
+      );
+    }
+
+    console.log(`Begin Matrix Call --------------------- 1`);
+    console.log(
+      `Matrix Call: WH ${warehouse.id} - ${warehouse.town} for ${
+        orders.length
+      } Orders: ${orders.map((o) => o.order_id).join(",")}`
+    );
+
+    const destinations = validOrders.map((o) => ({
+      lat: +o.location.lat,
+      lng: +o.location.lng,
+    }));
+
+    if (!destinations.length) {
+      throw new Error("No valid origins or destinations for matrix request.");
+    }
+
+    const origins = [
+      {
+        lat: +warehouse.lat!,
+        lng: +warehouse.lng!,
+      },
+      ...destinations,
+    ];
+
+    const allDestinations = [
+      ...destinations,
+      {
+        lat: +warehouse.lat!,
+        lng: +warehouse.lng!,
+      },
+    ];
+
+    const originBatches = [];
+    for (let i = 0; i < origins.length; i += 15) {
+      originBatches.push(origins.slice(i, i + 15));
+    }
+
+    let allTravelTimes: number[] = [];
+    let allDistances: number[] = [];
+    let allErrors: number[] = [];
+
+    console.log(`Matrix Request send --------------------- 2`);
+    for (const batch of originBatches) {
+      const matrixRes = await callMatrixWithTimeout(batch, allDestinations);
+
+      if (matrixRes && !matrixRes.error) {
+        allTravelTimes.push(...matrixRes?.matrix.travelTimes);
+        allDistances.push(...matrixRes?.matrix.distances);
+      } else {
+        console.error(
+          `Matrix API returned error: ${JSON.stringify(matrixRes?.error)}`
+        );
+        allErrors.push(...(matrixRes?.matrix.errorCodes || []));
+
+        return undefined;
+      }
+    }
+
+    return {
+      travelTimes: allTravelTimes,
+      distances: allDistances,
+      numOrigins: origins.length,
+      numDestinations: allDestinations.length,
+      errorCodes: allErrors.length ? allErrors : undefined,
+    } as MatrixData;
+  } catch (error) {
+    logWithTime(`Error in Matrix API Call: ${error}`);
+    throw error;
+  }
+}
+
+async function callMatrixWithTimeout(
+  batch: { lat: number; lng: number }[],
+  allDestinations: { lat: number; lng: number }[],
+  retries = 2,
+  timeoutMs = 20000
+): Promise<MatrixResult | undefined> {
+  const matrixCall = async () => {
+    const timeoutPromise = new Promise<undefined>((resolve) =>
+      setTimeout(() => resolve(undefined), timeoutMs)
+    );
+
+    const result = await Promise.race([
+      matrixEstimate(batch, allDestinations),
+      timeoutPromise,
+    ]);
+
+    return result;
+  };
+
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const result = await matrixCall();
+      if (result) return result;
+    } catch (error) {
+      console.error(`Matrix call failed on attempt ${i + 1}: ${error}`);
+
+      if (i <= retries) {
+        continue;
+      } else {
+        throw error;
+      }
+    }
+
+    await new Promise((r) => setTimeout(r, 500));
+  }
+
+  return undefined;
+}

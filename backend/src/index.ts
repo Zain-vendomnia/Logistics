@@ -4,7 +4,7 @@ import { runInitialDbSetup } from "./services/core/dbSetupService";
 import { runInitialSyncs } from "./services/core/syncService";
 import { scheduleRecurringSyncs } from "./services/core/scheduleService";
 import { logWithTime } from "./utils/logging";
-import { processBatch } from "./orchestration/assignmentWorker";
+// import { processBatch } from "./orchestration/assignmentWorker";
 
 async function main() {
   try {
@@ -18,7 +18,7 @@ async function main() {
 
       await runInitialSyncs();
       scheduleRecurringSyncs();
-      await processBatch();
+      // await processBatch();
     });
   } catch (error) {
     logWithTime("Startup error:");

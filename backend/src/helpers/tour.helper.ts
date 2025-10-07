@@ -2,59 +2,6 @@ import {
   get_LogisticsOrdersAddress,
   LogisticOrder,
 } from "../model/LogisticOrders";
-import { matrixEstimate } from "../services/hereMap.service";
-import { Order } from "../types/order.types";
-import { LocationMeta } from "../types/tour.types";
-import { Warehouse } from "../types/warehouse.types";
-import { logWithTime } from "../utils/logging";
-
-export async function getWarehouseToOrdersMetrix(
-  warehouse: Warehouse,
-  orders: Order[]
-) {
-  try {
-    console.log(`Begin Matrix Call --------------------- 1`);
-    console.log(
-      `Warehouse ${warehouse.id} Orders ${orders.map((o) => o.order_id)}`
-    );
-
-    const origins: LocationMeta[] = [
-      {
-        lat: warehouse.lat!,
-        lng: warehouse.lng!,
-        area: warehouse.town!,
-        zipcode: warehouse.zipcode!,
-      },
-    ];
-    const destinations: LocationMeta[] = orders.map((o) => ({
-      lat: o.location.lat!,
-      lng: o.location.lng!,
-      area: o.city!,
-      zipcode: o.zipcode!,
-    }));
-
-    console.log(`Matrix Request send --------------------- 2`);
-    const matrixRes = await matrixEstimate(origins, destinations);
-
-    console.log(`Matrix Response --------------------- 3`);
-    console.log(
-      `Matrix from WH ${warehouse.id} to ${orders.length} orders:`,
-      matrixRes
-    );
-
-    debugger;
-
-    // total duration ≈ max travel time from warehouse to farthest destination
-    const tourDurationSec = Math.max(
-      ...matrixRes.estimates.map((e) => e.duration ?? 0)
-    );
-
-    return { matrixRes, tourDurationSec };
-  } catch (error) {
-    logWithTime(`Error in getWarehouseToOrdersMetrix: ${error}`);
-    throw error;
-  }
-}
 
 export async function generateTourName(orderIds: number[]): Promise<string> {
   const orders = (await get_LogisticsOrdersAddress(
@@ -67,4 +14,29 @@ export async function generateTourName(orderIds: number[]): Promise<string> {
 
   const zipcodeString = zipcodePrefixes.join("-");
   return `PLZ-${zipcodeString}`;
+}
+
+// Calculates the distance in kilometers between two lat/lng points
+export function haversineKm(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number {
+  const R = 6371; // Earth radius in km
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c;
 }

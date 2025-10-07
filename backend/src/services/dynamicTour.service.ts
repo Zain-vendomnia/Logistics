@@ -276,7 +276,7 @@ export async function getUnapprovedDynamicTours(): Promise<
       console.log(`tourMatrix for dTour Id: ${tour.id}: ${tourMatrix}`);
       tour.matrix = tourMatrix;
     }
-    console.warn(`Tours with Matrix`, dTours);
+    // console.warn(`Tours with Matrix`, dTours);
 
     return dTours;
   } catch (error) {
