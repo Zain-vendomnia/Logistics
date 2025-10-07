@@ -1,11 +1,11 @@
-import pool from "../database";
+import pool from "../config/database";
 import {
   emitMessageToOrder,
   emitMessageUpdate,
   emitMessageStatusUpdate,
   broadcastGlobalMessageStatus,
   updateGlobalUnreadCount,
-} from "../socket";
+} from "../config/socket";
 import { handleNewMessage as handleCustomerListUpdate } from "./customerService";
 import twilio from "twilio";
 import dotenv from "dotenv";
