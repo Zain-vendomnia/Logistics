@@ -1,6 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 
-import { Badge, Box, IconButton, Paper, Typography,
+import {
+  Badge,
+  Box,
+  IconButton,
+  Paper,
+  Typography,
   List,
   ListItem,
   Divider,
@@ -9,7 +14,8 @@ import { Badge, Box, IconButton, Paper, Typography,
   Button,
   Chip,
   ListItemIcon,
-  ListItemText, } from "@mui/material";
+  ListItemText,
+} from "@mui/material";
 import CircularProgress from "@mui/material/CircularProgress";
 import GpsFixedIcon from "@mui/icons-material/GpsFixed";
 
@@ -30,11 +36,15 @@ import { DynamicTourPayload, Geometry, Stop } from "./../../types/tour.type";
 import useDynamicTourStore from "./../../store/useDynamicTourStore";
 import useLiveOrderUpdates from "./../../socket/useLiveOrderUpdates";
 import { Order } from "./../../types/order.type";
-import Tooltip from '@mui/material/Tooltip';
-import { AccessTime, Article, ProductionQuantityLimits } from '@mui/icons-material';
-import NoteAltIcon from '@mui/icons-material/NoteAlt';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import { useParams } from 'react-router-dom';
+import Tooltip from "@mui/material/Tooltip";
+import {
+  AccessTime,
+  Article,
+  ProductionQuantityLimits,
+} from "@mui/icons-material";
+import NoteAltIcon from "@mui/icons-material/NoteAlt";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import { useParams } from "react-router-dom";
 
 import DynamicTourList from "./dynamic_tour/DynamicTourList";
 
@@ -141,7 +151,7 @@ const TourMapPage = () => {
     lastFetchedAt,
     pinboard_AddOrders,
 
-    setDynamicTours,
+    setDynamicToursList,
   } = useDynamicTourStore();
 
   useLiveOrderUpdates((new_order) => {
@@ -295,15 +305,15 @@ const TourMapPage = () => {
     );
   };
 
-    const formattedDate = new Date();
-  const cleanDate = formattedDate.toISOString().split('T')[0]; // Extract YYYY-MM-DD
+  const formattedDate = new Date();
+  const cleanDate = formattedDate.toISOString().split("T")[0]; // Extract YYYY-MM-DD
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     return `${hours}h ${minutes}m`;
   };
 
-   const [stops, setStops] = useState<Stop[]>([]);
+  const [stops, setStops] = useState<Stop[]>([]);
 
   // Format the tour start time (remove trailing :00)
   // const cleanStartTime = selectedTour.tour_startTime.replace(/:00$/, '');
@@ -318,14 +328,12 @@ const TourMapPage = () => {
   const { tour_id } = useParams<{ tour_id: string }>();
   const parsedTourId = tour_id ? parseInt(tour_id, 10) : null;
 
-
   const fetchRouteData = async () => {
-
     try {
       if (parsedTourId !== null) {
         const response = await adminApiService.getRouteResponse(parsedTourId);
         const data = response.data;
-    console.log('----> ',data);
+        console.log("----> ", data);
         if (data && data.solution && data.solution.routes.length > 0) {
           const route = data.solution.routes[0];
 
@@ -337,25 +345,26 @@ const TourMapPage = () => {
           const time = data.solution.time; // in seconds
 
           setRouteTime(time);
-          const formattedRoutes = route.points.map((routePoint: { coordinates: [number, number][] }) =>
-            routePoint.coordinates.map(([lon, lat]) => [lat, lon])
+          const formattedRoutes = route.points.map(
+            (routePoint: { coordinates: [number, number][] }) =>
+              routePoint.coordinates.map(([lon, lat]) => [lat, lon])
           );
           setRoutePoints(formattedRoutes);
 
-          const mappedStops: Stop[] = route.activities.map((activity: any, index: number) => ({
-            id: `${index + 1}`,
-            location_id: activity.location_id,
-            lat: activity.address.lat,
-            lon: activity.address.lon,
-            arrival: activity.arr_date_time,
-            type: activity.type
-          }));
-          console.log('mappedStops : ', route);
+          const mappedStops: Stop[] = route.activities.map(
+            (activity: any, index: number) => ({
+              id: `${index + 1}`,
+              location_id: activity.location_id,
+              lat: activity.address.lat,
+              lon: activity.address.lon,
+              arrival: activity.arr_date_time,
+              type: activity.type,
+            })
+          );
+          console.log("mappedStops : ", route);
           setStops(mappedStops);
-
         }
         setLoading(false);
-
       }
     } catch (error) {
       console.error("Error fetching route data:", error);
@@ -368,34 +377,34 @@ const TourMapPage = () => {
   }, [parsedTourId]);
 
   const blink = {
-    animation: 'blinker 1.5s linear infinite',
-    '@keyframes blinker': {
-      '50%': { opacity: 0.5 }
-    }
+    animation: "blinker 1.5s linear infinite",
+    "@keyframes blinker": {
+      "50%": { opacity: 0.5 },
+    },
   };
   const livePulse = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    '&::before': {
+    display: "inline-flex",
+    alignItems: "center",
+    "&::before": {
       content: '""',
-      width: '8px',
-      height: '8px',
-      borderRadius: '50%',
-      backgroundColor: '#00e676',
-      marginRight: '8px',
-      animation: 'pulse 1.2s infinite ease-in-out',
+      width: "8px",
+      height: "8px",
+      borderRadius: "50%",
+      backgroundColor: "#00e676",
+      marginRight: "8px",
+      animation: "pulse 1.2s infinite ease-in-out",
     },
-    '@keyframes pulse': {
-      '0%': {
-        transform: 'scale(0.8)',
+    "@keyframes pulse": {
+      "0%": {
+        transform: "scale(0.8)",
         opacity: 0.7,
       },
-      '50%': {
-        transform: 'scale(1.2)',
+      "50%": {
+        transform: "scale(1.2)",
         opacity: 1,
       },
-      '100%': {
-        transform: 'scale(0.8)',
+      "100%": {
+        transform: "scale(0.8)",
         opacity: 0.7,
       },
     },
@@ -425,7 +434,7 @@ const TourMapPage = () => {
       <Box display="flex" height="100%" width="100%">
         {/* Left Panel */}
         <DynamicTourList />
-        
+
         {/* Right Map */}
         <Box flexGrow={1} position="relative">
           {isLoading && (
@@ -443,22 +452,43 @@ const TourMapPage = () => {
             </Box>
           )}
 
-          <Paper sx={{ width: 340, p: 2, overflowY: 'auto', borderRight: '1px solid #ddd', backgroundColor: '#f9f9f9' }} elevation={3}>
+          <Paper
+            sx={{
+              width: 340,
+              p: 2,
+              overflowY: "auto",
+              borderRight: "1px solid #ddd",
+              backgroundColor: "#f9f9f9",
+            }}
+            elevation={3}
+          >
             <Typography variant="h6">
               {/*{selectedTour.tour_name} - {cleanDate} {cleanStartTime}*/}
             </Typography>
 
             <Box mt={1} display="flex" flexWrap="wrap" gap={1}>
-              <Typography variant="caption" sx={{ bgcolor: '#86d160', px: 1, py: 0.5, borderRadius: 1 }}>
+              <Typography
+                variant="caption"
+                sx={{ bgcolor: "#86d160", px: 1, py: 0.5, borderRadius: 1 }}
+              >
                 {stops.length} Ziele
               </Typography>
-              <Typography variant="caption" sx={{ bgcolor: '#41d7eb', px: 1, py: 0.5, borderRadius: 1 }}>
+              <Typography
+                variant="caption"
+                sx={{ bgcolor: "#41d7eb", px: 1, py: 0.5, borderRadius: 1 }}
+              >
                 {routeDistance} km
               </Typography>
-              <Typography variant="caption" sx={{ bgcolor: '#f1aae9', px: 1, py: 0.5, borderRadius: 1 }}>
+              <Typography
+                variant="caption"
+                sx={{ bgcolor: "#f1aae9", px: 1, py: 0.5, borderRadius: 1 }}
+              >
                 {formatTime(routeTime)}
               </Typography>
-              <Typography variant="caption" sx={{ bgcolor: '#dec1ff', px: 1, py: 0.5, borderRadius: 1 }}>
+              <Typography
+                variant="caption"
+                sx={{ bgcolor: "#dec1ff", px: 1, py: 0.5, borderRadius: 1 }}
+              >
                 {/*{selectedTour.tour_startTime}*/}
               </Typography>
             </Box>
@@ -466,7 +496,7 @@ const TourMapPage = () => {
             <Divider sx={{ my: 2 }} />
             <List disablePadding>
               {stops.map((stop, index) => {
-                console.log('stops : ', stop);
+                console.log("stops : ", stop);
                 // const isWarehouse = stop.location_id === "v1";
                 const isWarehouse = 1;
                 const matchedOrder = selectedTour?.orders?.find(
@@ -475,28 +505,26 @@ const TourMapPage = () => {
                 );
                 // console.log("matchedOrder"+ JSON.stringify(matchedOrder));
 
-
                 // Skip rendering if not a warehouse and there's no matching order
                 if (!isWarehouse && !matchedOrder) return null;
 
                 return (
-
                   <ListItem
                     key={index}
                     disableGutters
                     sx={{
                       mb: 1,
-                      borderBottom: '1px dashed #ccc',
+                      borderBottom: "1px dashed #ccc",
                       pb: 1,
-                      alignItems: 'flex-start',
-                      position: 'relative', // Enable absolute positioning inside
+                      alignItems: "flex-start",
+                      position: "relative", // Enable absolute positioning inside
                     }}
                   >
                     {/* === Top-right Button Stack === */}
                     {!isWarehouse && matchedOrder && (
                       <Box
                         sx={{
-                          position: 'absolute',
+                          position: "absolute",
                           top: 8,
                           right: 8,
                           zIndex: 2,
@@ -506,10 +534,10 @@ const TourMapPage = () => {
                           direction="row"
                           spacing={0.5}
                           sx={{
-                            '& .MuiIconButton-root:hover': {
-                              backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                              transform: 'scale(1.05)',
-                              transition: 'all 0.2s ease',
+                            "& .MuiIconButton-root:hover": {
+                              backgroundColor: "rgba(0, 0, 0, 0.04)",
+                              transform: "scale(1.05)",
+                              transition: "all 0.2s ease",
                             },
                           }}
                         >
@@ -518,10 +546,11 @@ const TourMapPage = () => {
                             placement="top"
                             title={
                               <Typography variant="caption">
-                                Total Qty:{' '}
+                                Total Qty:{" "}
                                 <strong>
                                   {matchedOrder.items.reduce(
-                                    (total: number, item: any) => total + Number(item.quantity),
+                                    (total: number, item: any) =>
+                                      total + Number(item.quantity),
                                     0
                                   )}
                                 </strong>
@@ -537,14 +566,27 @@ const TourMapPage = () => {
                             arrow
                             placement="top"
                             title={
-                              <ul style={{ margin: 0, padding: '4px 8px', listStyle: 'none' }}>
-                                {matchedOrder.items.map((item: any, i: number) => (
-                                  <li key={i}>
-                                    <Typography component="span" variant="caption">
-                                      <strong>{item.slmdl_articleordernumber}</strong>
-                                    </Typography>
-                                  </li>
-                                ))}
+                              <ul
+                                style={{
+                                  margin: 0,
+                                  padding: "4px 8px",
+                                  listStyle: "none",
+                                }}
+                              >
+                                {matchedOrder.items.map(
+                                  (item: any, i: number) => (
+                                    <li key={i}>
+                                      <Typography
+                                        component="span"
+                                        variant="caption"
+                                      >
+                                        <strong>
+                                          {item.slmdl_articleordernumber}
+                                        </strong>
+                                      </Typography>
+                                    </li>
+                                  )
+                                )}
                               </ul>
                             }
                           >
@@ -563,7 +605,13 @@ const TourMapPage = () => {
                     )}
 
                     {/* === Main Content === */}
-                    <Box sx={{ display: 'flex', alignItems: 'flex-start', width: '100%' }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        width: "100%",
+                      }}
+                    >
                       <Avatar
                         sx={{
                           bgcolor: selectedTour?.tour_route_color,
@@ -594,7 +642,8 @@ const TourMapPage = () => {
                         >
                           {isWarehouse ? (
                             <Typography variant="body2" fontWeight="bold">
-                              {selectedTour?.warehouseaddress || 'Warehouse Address Not Available'}
+                              {selectedTour?.warehouseaddress ||
+                                "Warehouse Address Not Available"}
                             </Typography>
                           ) : (
                             <Typography fontWeight="bold" variant="body2">
@@ -604,31 +653,59 @@ const TourMapPage = () => {
 
                           {matchedOrder && (
                             <>
-                              <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
-                                <Box component="span" color="text.secondary">{matchedOrder.firstname}</Box>
+                              <Typography
+                                variant="caption"
+                                display="block"
+                                sx={{ mt: 0.5 }}
+                              >
+                                <Box component="span" color="text.secondary">
+                                  {matchedOrder.firstname}
+                                </Box>
                               </Typography>
                               <Typography variant="caption" display="block">
-                                <Box component="span" color="text.secondary">{matchedOrder.lastname}</Box>
+                                <Box component="span" color="text.secondary">
+                                  {matchedOrder.lastname}
+                                </Box>
                               </Typography>
                               <Typography variant="caption" display="block">
-                                <Box component="span" color="text.secondary">{matchedOrder.street}</Box>
+                                <Box component="span" color="text.secondary">
+                                  {matchedOrder.street}
+                                </Box>
                               </Typography>
                               <Typography variant="caption" display="block">
-                                <Box component="span" color="text.secondary">{matchedOrder.city}</Box>
+                                <Box component="span" color="text.secondary">
+                                  {matchedOrder.city}
+                                </Box>
                               </Typography>
                               <Typography variant="caption" display="block">
-                                <Box component="span" color="text.secondary">{matchedOrder.zipcode}</Box>
+                                <Box component="span" color="text.secondary">
+                                  {matchedOrder.zipcode}
+                                </Box>
                               </Typography>
-                              <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
-                                <Box component="span" fontWeight="bold">Order Number: </Box>
-                                <Box component="span" color="text.secondary">{matchedOrder.order_number}</Box>
+                              <Typography
+                                variant="caption"
+                                display="block"
+                                sx={{ mt: 0.5 }}
+                              >
+                                <Box component="span" fontWeight="bold">
+                                  Order Number:{" "}
+                                </Box>
+                                <Box component="span" color="text.secondary">
+                                  {matchedOrder.order_number}
+                                </Box>
                               </Typography>
                             </>
                           )}
 
-                          <Typography variant="caption" display="block" mt={0.5}>
-                            <Box component="span" fontWeight="bold">Arrival Time: </Box>
-        {/*                    <Box component="span" color="text.secondary">
+                          <Typography
+                            variant="caption"
+                            display="block"
+                            mt={0.5}
+                          >
+                            <Box component="span" fontWeight="bold">
+                              Arrival Time:{" "}
+                            </Box>
+                            {/*                    <Box component="span" color="text.secondary">
                               {stop?.arrival
                                 ? new Date(stop.arrival).toLocaleTimeString([], {
                                   hour: '2-digit',
@@ -636,11 +713,12 @@ const TourMapPage = () => {
                                 })
                                 : 'Time Not Set'}
                             </Box>
-*/}                          </Typography>
+*/}{" "}
+                          </Typography>
                         </Box>
 
                         {/* Status Log Box without zoom */}
-         {/*               {stop.type !== 'start' && stop.type !== 'end' && (
+                        {/*               {stop.type !== 'start' && stop.type !== 'end' && (
                           <Box sx={{ mt: 2 }}>
                             <Divider sx={{ mb: 2 }} />
 
@@ -717,15 +795,11 @@ const TourMapPage = () => {
                           </Box>
                         )}*/}
                       </Box>
-
-
                     </Box>
                   </ListItem>
-
                 );
               })}
             </List>
-
           </Paper>
           <MapContainer
             bounds={L.latLngBounds(allCoords)}
