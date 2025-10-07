@@ -324,7 +324,7 @@ const EmailSignature = '<div class=rd-mail-signature style=font-family:Helvetica
 
 export const getOrderInitialEmailHTML = (orderData:any, finalUrl:string, condition:number): string => {
 
-  let template: JSX.Element | string = '';  // Declare template as a string or JSX element
+  let template: React.ReactElement;
 
   if (condition === 2) {
     template = <OrderInitialEmailTemplate2 orderData={orderData} finalUrl={finalUrl} condition={condition} />;
@@ -332,11 +332,12 @@ export const getOrderInitialEmailHTML = (orderData:any, finalUrl:string, conditi
   else if (condition === 3) {
     template = <OrderInitialEmailTemplate3 orderData={orderData} finalUrl={finalUrl} condition={condition} />;
   } 
-
   else if (condition === 4) {
     template = <OrderInitialEmailTemplate4 orderData={orderData} finalUrl={finalUrl} condition={condition} />;
   } 
-
+  else {
+    template = <React.Fragment />;
+  }
 
   const htmlString = ReactDOMServer.renderToStaticMarkup(template);
   return `<!DOCTYPE html>

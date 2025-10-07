@@ -1,3 +1,5 @@
+import { Statistic } from "./hereMap.types";
+
 export type RouteResponse = {
   from: any;
   to: any;
@@ -46,7 +48,7 @@ export interface SectionSummary {
 export interface Coordinate {
   lat: number;
   lng: number;
-  z: number;
+  z?: number;
 }
 
 export interface Section {
@@ -81,7 +83,7 @@ export type Tour = {
   vehicleId: string;
   typeId: string;
   stops: Stop[];
-  statistic: any;
+  statistic: Statistic;
   shiftIndex: number;
 };
 
@@ -107,4 +109,25 @@ export type TourTracePayload = {
   status: TourStatus;
   removed_reason?: string;
   removed_by?: string;
+};
+
+export type DeliveryCostRates = {
+  personnel_costs_per_hour: number;
+  diesel_costs_per_liter: number;
+  consumption_l_per_100km: number;
+  van_costs_per_day: number;
+
+  storage_cost_per_BKW: number;
+  bkw_per_tour: number;
+  avg_tour_duration_hrs: number;
+  avg_tour_length_km: number;
+  avg_number_tour_days: number;
+
+  hotel_costs: number;
+
+  handling_inbound_cost_tour: number;
+  handling_inbound_cost_panel: number;
+  handling_outbound_cost_pal: number;
+  handling_outbound_costs_tour: number;
+  currency_code?: "EUR" | "USD";
 };

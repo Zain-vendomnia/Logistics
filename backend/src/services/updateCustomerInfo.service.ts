@@ -1,4 +1,4 @@
-import pool from "../database";
+import pool from "../config/database";
 
 export const updateCustomerInfoService = async (data: {
   order_id: number;
@@ -7,12 +7,22 @@ export const updateCustomerInfoService = async (data: {
   city: string;
   phone: string;
   notice: string;
-  tourId: number; 
+  tourId: number;
   latitude: number;
   longitude: number;
 }) => {
   console.log("Updating customer info with data:", data);
-  const { order_id, street, zipcode, city, phone, notice , tourId, latitude, longitude } = data;
+  const {
+    order_id,
+    street,
+    zipcode,
+    city,
+    phone,
+    notice,
+    tourId,
+    latitude,
+    longitude,
+  } = data;
 
   try {
     const query = `
@@ -29,24 +39,26 @@ export const updateCustomerInfoService = async (data: {
       latitude,
       longitude,
       order_id,
-      tourId
+      tourId,
     ]);
 
-    
     if ((result as any).affectedRows === 0) {
       throw new Error(`No customer found with order_id: ${order_id}`);
     }
-    
-      const updateRouteSegmentQuery = `
+
+    const updateRouteSegmentQuery = `
         UPDATE route_segments
         SET comments = ?
         WHERE order_id = ? and tour_id = ?
       `;
-      await pool.query(updateRouteSegmentQuery, [notice, order_id, tourId]);
+    await pool.query(updateRouteSegmentQuery, [notice, order_id, tourId]);
 
-console.log('SQL Query Preview:', updateRouteSegmentQuery);
-console.log('With values:', [notice, order_id, tourId]);
-    return { message: "Customer updated successfully", affectedRows: (result as any).affectedRows };
+    console.log("SQL Query Preview:", updateRouteSegmentQuery);
+    console.log("With values:", [notice, order_id, tourId]);
+    return {
+      message: "Customer updated successfully",
+      affectedRows: (result as any).affectedRows,
+    };
   } catch (err) {
     console.error("❌ DB Update Error in updateCustomerInfoService:", err);
     throw err;

@@ -1,5 +1,5 @@
 import { PoolConnection } from "mysql2/promise";
-import pool from "../database";
+import pool from "../config/database";
 import { Tour } from "../types/tour.types";
 
 export class tourInfo_master {

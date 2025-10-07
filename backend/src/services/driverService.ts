@@ -1,4 +1,4 @@
-import pool from "../database";
+import pool from "../config/database";
 import bcrypt from "bcryptjs";
 interface DriverBasic {
   id: number;
@@ -35,16 +35,17 @@ export const getAllDrivers = async () => {
     JOIN users u ON d.user_id = u.user_id
     JOIN warehouse_details w ON d.warehouse_id = w.warehouse_id
   `);
-  
+
   return rows;
 };
-
 
 export const getAvailableDrivers = async (
   tourDate: string,
   warehouseId: number
 ): Promise<AvailabilityResult> => {
-  console.log(`Fetching available drivers for date: ${tourDate}, warehouseId: ${warehouseId}`);
+  console.log(
+    `Fetching available drivers for date: ${tourDate}, warehouseId: ${warehouseId}`
+  );
   const [allDriversRows]: any = await pool.query(
     `
       SELECT d.id, d.name, d.mob, d.address, d.email, d.warehouse_id
@@ -82,7 +83,7 @@ export const getAvailableDrivers = async (
     if (sameDay.length > 0) {
       unavailable.push({
         driver: drv,
-        reason: "Driver already has a trip scheduled on that date."
+        reason: "Driver already has a trip scheduled on that date.",
       });
       continue;
     }
@@ -119,7 +120,7 @@ export const getAvailableDrivers = async (
     if (totalHours >= 40) {
       unavailable.push({
         driver: drv,
-        reason: `Worked ${totalHours}h ${remainingMin}m this week (≥ 40h).`
+        reason: `Worked ${totalHours}h ${remainingMin}m this week (≥ 40h).`,
       });
       continue;
     }
@@ -131,7 +132,10 @@ export const getAvailableDrivers = async (
 };
 
 export const getDriverById = async (id: number) => {
-  const [rows]: any = await pool.query("SELECT * FROM driver_details WHERE id = ?", [id]);
+  const [rows]: any = await pool.query(
+    "SELECT * FROM driver_details WHERE id = ?",
+    [id]
+  );
   return rows[0];
 };
 
@@ -140,13 +144,12 @@ export const createDriver = async (driver: {
   mob: string;
   address: string;
   email: string;
-  status:number;
+  status: number;
   password: string;
   warehouse_id: number;
 }) => {
   const conn = await pool.getConnection();
   try {
-    
     await conn.beginTransaction();
 
     // 1. Check if email exists in users table
@@ -166,7 +169,7 @@ export const createDriver = async (driver: {
     // 3. Insert into users table
     const [userResult]: any = await conn.query(
       `INSERT INTO users (username, email, password, role,is_active) VALUES (?, ?, ?, ?,?)`,
-      [driver.name, driver.email, hashedPassword, "driver",driver.status]
+      [driver.name, driver.email, hashedPassword, "driver", driver.status]
     );
 
     const userId = userResult.insertId;
@@ -274,7 +277,11 @@ export const updateDriver = async (
 
 export const disableDriver = async (
   id: number
-): Promise<{ status: "success" | "warning" | "error"; message: string; data?: any }> => {
+): Promise<{
+  status: "success" | "warning" | "error";
+  message: string;
+  data?: any;
+}> => {
   if (!Number.isInteger(id) || id <= 0) {
     return { status: "error", message: `Invalid driver ID: ${id}` };
   }
@@ -301,9 +308,9 @@ export const disableDriver = async (
     const driver = rows[0];
     if (driver.is_active === 0) {
       await connection.rollback();
-      return { 
-        status: "warning", 
-        message: `Driver ID - ${id} (${driver.name}) is already inactive` 
+      return {
+        status: "warning",
+        message: `Driver ID - ${id} (${driver.name}) is already inactive`,
       };
     }
 
@@ -330,7 +337,7 @@ export const disableDriver = async (
         driverId: id,
         driverName: driver.name,
         userId: driver.user_id,
-        status: "disabled"
+        status: "disabled",
       },
     };
   } catch (err) {
@@ -349,15 +356,25 @@ export const disableDriver = async (
 // Disable multiple drivers
 export const disableMultipleDrivers = async (
   ids: number[]
-): Promise<{ status: "success" | "warning" | "error"; message: string; data?: any }> => {
+): Promise<{
+  status: "success" | "warning" | "error";
+  message: string;
+  data?: any;
+}> => {
   if (!Array.isArray(ids) || ids.length === 0) {
-    return { status: "error", message: "'ids' must be a non-empty array of numbers" };
+    return {
+      status: "error",
+      message: "'ids' must be a non-empty array of numbers",
+    };
   }
 
   // Validate individual IDs
-  const invalidIds = ids.filter(id => !Number.isInteger(id) || id <= 0);
+  const invalidIds = ids.filter((id) => !Number.isInteger(id) || id <= 0);
   if (invalidIds.length > 0) {
-    return { status: "error", message: `Invalid driver IDs: ${invalidIds.join(", ")}` };
+    return {
+      status: "error",
+      message: `Invalid driver IDs: ${invalidIds.join(", ")}`,
+    };
   }
 
   let connection;
@@ -376,7 +393,10 @@ export const disableMultipleDrivers = async (
 
     if (rows.length === 0) {
       await connection.rollback();
-      return { status: "error", message: "No drivers found with the provided IDs" };
+      return {
+        status: "error",
+        message: "No drivers found with the provided IDs",
+      };
     }
 
     const activeDrivers = rows.filter((r: any) => r.is_active === 1);
@@ -420,17 +440,19 @@ export const disableMultipleDrivers = async (
     if (connection) await connection.rollback();
     return {
       status: "error",
-      message: `Failed to disable drivers: ${err instanceof Error ? err.message : String(err)}`,
+      message: `Failed to disable drivers: ${
+        err instanceof Error ? err.message : String(err)
+      }`,
     };
   } finally {
     if (connection) connection.release();
   }
 };
 
-
-
 export const evaluateDriverEligibility = async (driverId: number) => {
-  console.log(`[Service] Evaluating driver eligibility for driver ID: ${driverId}`);
+  console.log(
+    `[Service] Evaluating driver eligibility for driver ID: ${driverId}`
+  );
 
   // Step 1: Calculate start of the current week (Monday)
   const now = new Date();
@@ -439,7 +461,9 @@ export const evaluateDriverEligibility = async (driverId: number) => {
   const monday = new Date(now);
   monday.setDate(now.getDate() - diffToMonday);
   monday.setHours(0, 0, 0, 0);
-console.log(`[Step 1] Start of current week (Monday): ${monday.toLocaleString()}`);
+  console.log(
+    `[Step 1] Start of current week (Monday): ${monday.toLocaleString()}`
+  );
 
   // Step 2: Fetch tours for this driver from this week's Monday to now
   const [rows]: any = await pool.query(
@@ -467,7 +491,7 @@ console.log(`[Step 1] Start of current week (Monday): ${monday.toLocaleString()}
       totalWorkedHours: 0,
       lastTourEndTime: null,
       eligible: true,
-      message: "Driver has no tours this week. Eligible for assignment."
+      message: "Driver has no tours this week. Eligible for assignment.",
     };
   }
 
@@ -475,16 +499,20 @@ console.log(`[Step 1] Start of current week (Monday): ${monday.toLocaleString()}
   let totalMinutes = 0;
   for (const row of rows) {
     if (row.duration_minutes !== null && !isNaN(row.duration_minutes)) {
-      console.log(row.duration_minutes)
+      console.log(row.duration_minutes);
       totalMinutes += row.duration_minutes;
-      console.log(`[Step 4] Tour ID ${row.tour_id}: added ${row.duration_minutes} minutes`);
+      console.log(
+        `[Step 4] Tour ID ${row.tour_id}: added ${row.duration_minutes} minutes`
+      );
     } else {
       console.warn(`[Step 4] Tour ID ${row.tour_id} has invalid duration.`);
     }
   }
   const totalHours = Math.floor(totalMinutes / 60);
   const remainingMinutes = totalMinutes % 60;
-  console.log(`[Step 4] Total worked time this week: ${totalHours}h ${remainingMinutes}m`);
+  console.log(
+    `[Step 4] Total worked time this week: ${totalHours}h ${remainingMinutes}m`
+  );
 
   // Step 5: Get last tour end time (safely parse DATETIME + TIME)
   const lastTour = rows[0];
@@ -516,34 +544,37 @@ console.log(`[Step 1] Start of current week (Monday): ${monday.toLocaleString()}
     eligible,
     message: eligible
       ? "Driver is eligible: has not worked 40 hours this week."
-      : "Driver is not eligible: worked 40 or more hours this week."
+      : "Driver is not eligible: worked 40 or more hours this week.",
   };
 };
 
-
 /* 1.  Weightage table  (edit here if priorities change) */
 const KPI_WEIGHT = {
-  imageUpload:      1,   // KPI-1  Start/End photos
-  deliveryAccuracy: 10,  // KPI-2  Deliveries Count
-  pod:              1,   // KPI-3  Proof of Deliveries
-  kmEfficiency:     3,   // KPI-4  KM Efficiency
-  timeManagement:   7,   // KPI-5  Time Management
-  fuelEfficiency:   3,   // KPI-6  Fuel Efficiency
-  customerRating:   4    // KPI-7  Customer Rating
+  imageUpload: 1, // KPI-1  Start/End photos
+  deliveryAccuracy: 10, // KPI-2  Deliveries Count
+  pod: 1, // KPI-3  Proof of Deliveries
+  kmEfficiency: 3, // KPI-4  KM Efficiency
+  timeManagement: 7, // KPI-5  Time Management
+  fuelEfficiency: 3, // KPI-6  Fuel Efficiency
+  customerRating: 4, // KPI-7  Customer Rating
 } as const;
 
-const MAX_KPI_SCORE = 5;          // every KPI is scored 0-5
-const TOTAL_WEIGHT   = Object.values(KPI_WEIGHT).reduce((a, b) => a + b, 0);
+const MAX_KPI_SCORE = 5; // every KPI is scored 0-5
+const TOTAL_WEIGHT = Object.values(KPI_WEIGHT).reduce((a, b) => a + b, 0);
 const MAX_WEIGHT_SUM = TOTAL_WEIGHT * MAX_KPI_SCORE;
 
 /* 2.  Main function */
 export const getDriverPerformanceData = async (
   startDate: string,
-  endDate:   string,
+  endDate: string,
   driver_id: number | undefined
 ) => {
-  console.log("------------------------------------------------------------------------------------------------------------");
-  console.log(`Fetching performance data from ${startDate} to ${endDate} for driver_id: ${driver_id}`);
+  console.log(
+    "------------------------------------------------------------------------------------------------------------"
+  );
+  console.log(
+    `Fetching performance data from ${startDate} to ${endDate} for driver_id: ${driver_id}`
+  );
 
   const driverParam = driver_id ?? null;
 
@@ -641,45 +672,50 @@ export const getDriverPerformanceData = async (
     [startDate, endDate, driverParam, driverParam]
   );
 
-  console.log("------------------------------------------------------------------------------------------------------------");
+  console.log(
+    "------------------------------------------------------------------------------------------------------------"
+  );
 
   /* ---------- mapping & KPI calculations ------------------------------ */
   return (rows as any[]).map((row) => {
     /* raw counts ------------------------------------------------------- */
-    const completedTours      = Number(row.completed)                 || 0;
-    const totalImagesUploaded = Number(row.totalImagesUploaded)       || 0;
-    const expectedDeliveries  = Number(row.totalExpectedDeliveries)   || 0;
-    const actualDeliveries    = Number(row.totalActualDeliveries)     || 0;
-    const validPODs           = Number(row.totalValidPODs)            || 0;
-    const plannedKM           = Number(row.totalPlannedKM)            || 0;
-    const actualKM            = Number(row.totalActualKM)             || 0;
-    const undeliveredCount    = expectedDeliveries - actualDeliveries;
+    const completedTours = Number(row.completed) || 0;
+    const totalImagesUploaded = Number(row.totalImagesUploaded) || 0;
+    const expectedDeliveries = Number(row.totalExpectedDeliveries) || 0;
+    const actualDeliveries = Number(row.totalActualDeliveries) || 0;
+    const validPODs = Number(row.totalValidPODs) || 0;
+    const plannedKM = Number(row.totalPlannedKM) || 0;
+    const actualKM = Number(row.totalActualKM) || 0;
+    const undeliveredCount = expectedDeliveries - actualDeliveries;
 
-    const plannedSeconds      = Number(row.totalPlannedSeconds)       || 0;
-    const actualSeconds       = Number(row.totalActualSeconds)        || 0;
-    const totalCustomerRating = Number(row.totalCustomerRating)       || 0;
+    const plannedSeconds = Number(row.totalPlannedSeconds) || 0;
+    const actualSeconds = Number(row.totalActualSeconds) || 0;
+    const totalCustomerRating = Number(row.totalCustomerRating) || 0;
 
     /* KPI-1  Image upload score (0-5) ---------------------------------- */
-    const maxPossibleImages   = completedTours * 9;
-    const kpi1ImageUploadScore = maxPossibleImages > 0
-      ? parseFloat(((totalImagesUploaded / maxPossibleImages) * 5).toFixed(2))
-      : 0;
+    const maxPossibleImages = completedTours * 9;
+    const kpi1ImageUploadScore =
+      maxPossibleImages > 0
+        ? parseFloat(((totalImagesUploaded / maxPossibleImages) * 5).toFixed(2))
+        : 0;
 
     /* KPI-2  Delivery accuracy (0-5) ----------------------------------- */
-    const kpi2DeliveryScore = expectedDeliveries > 0
-      ? parseFloat(((actualDeliveries / expectedDeliveries) * 5).toFixed(2))
-      : 0;
+    const kpi2DeliveryScore =
+      expectedDeliveries > 0
+        ? parseFloat(((actualDeliveries / expectedDeliveries) * 5).toFixed(2))
+        : 0;
 
     /* KPI-3  POD score (0-5) ------------------------------------------- */
-    const kpi3PODScore = expectedDeliveries > 0
-      ? parseFloat(((validPODs / expectedDeliveries) * 5).toFixed(2))
-      : 0;
+    const kpi3PODScore =
+      expectedDeliveries > 0
+        ? parseFloat(((validPODs / expectedDeliveries) * 5).toFixed(2))
+        : 0;
 
     /* KPI-4  KM efficiency (0-5) --------------------------------------- */
     let kpi4KmEfficiencyScore = 0;
     if (plannedKM > 0) {
       const ratio = actualKM / plannedKM;
-      if      (ratio <= 1.00) kpi4KmEfficiencyScore = 5;
+      if (ratio <= 1.0) kpi4KmEfficiencyScore = 5;
       else if (ratio <= 1.01) kpi4KmEfficiencyScore = 4.5;
       else if (ratio <= 1.02) kpi4KmEfficiencyScore = 4;
       else if (ratio <= 1.03) kpi4KmEfficiencyScore = 3.5;
@@ -688,14 +724,14 @@ export const getDriverPerformanceData = async (
       else if (ratio <= 1.06) kpi4KmEfficiencyScore = 2;
       else if (ratio <= 1.07) kpi4KmEfficiencyScore = 1.5;
       else if (ratio <= 1.08) kpi4KmEfficiencyScore = 1;
-      else                     kpi4KmEfficiencyScore = 0.5;
+      else kpi4KmEfficiencyScore = 0.5;
     }
 
     /* KPI-5  Time management (0-5) ------------------------------------- */
     let kpi5TimeScore = 0;
     if (plannedSeconds > 0 && actualSeconds > 0) {
       const ratio = actualSeconds / plannedSeconds;
-      if      (ratio <= 1.00) kpi5TimeScore = 5;
+      if (ratio <= 1.0) kpi5TimeScore = 5;
       else if (ratio <= 1.01) kpi5TimeScore = 4.5;
       else if (ratio <= 1.02) kpi5TimeScore = 4;
       else if (ratio <= 1.03) kpi5TimeScore = 3.5;
@@ -704,19 +740,19 @@ export const getDriverPerformanceData = async (
       else if (ratio <= 1.06) kpi5TimeScore = 2;
       else if (ratio <= 1.07) kpi5TimeScore = 1.5;
       else if (ratio <= 1.08) kpi5TimeScore = 1;
-      else                     kpi5TimeScore = 0.5;
+      else kpi5TimeScore = 0.5;
     }
 
     /* KPI-6  Fuel efficiency (0-5) ------------------------------------- */
     let kpi6FuelEfficiencyScore = 0;
     let expectedFuel = 0;
-    let actualFuel   = 0;
+    let actualFuel = 0;
     if (plannedKM > 0 && actualKM > 0) {
-      expectedFuel = plannedKM / 10;  // your business rule
-      actualFuel   = actualKM / 10;
+      expectedFuel = plannedKM / 10; // your business rule
+      actualFuel = actualKM / 10;
       const fuelRatio = actualFuel / expectedFuel;
 
-      if      (fuelRatio <= 1.00) kpi6FuelEfficiencyScore = 5;
+      if (fuelRatio <= 1.0) kpi6FuelEfficiencyScore = 5;
       else if (fuelRatio <= 1.01) kpi6FuelEfficiencyScore = 4.5;
       else if (fuelRatio <= 1.02) kpi6FuelEfficiencyScore = 4;
       else if (fuelRatio <= 1.03) kpi6FuelEfficiencyScore = 3.5;
@@ -725,36 +761,38 @@ export const getDriverPerformanceData = async (
       else if (fuelRatio <= 1.06) kpi6FuelEfficiencyScore = 2;
       else if (fuelRatio <= 1.07) kpi6FuelEfficiencyScore = 1.5;
       else if (fuelRatio <= 1.08) kpi6FuelEfficiencyScore = 1;
-      else                         kpi6FuelEfficiencyScore = 0.5;
+      else kpi6FuelEfficiencyScore = 0.5;
     }
 
     /* KPI-7  Customer rating (0-5) ------------------------------------- */
-    const kpi7CustomerRating = completedTours > 0
-      ? parseFloat((totalCustomerRating / completedTours).toFixed(2))
-      : 0;
+    const kpi7CustomerRating =
+      completedTours > 0
+        ? parseFloat((totalCustomerRating / completedTours).toFixed(2))
+        : 0;
 
     /* ---------- WEIGHTED OVERALL RATING ------------------------------- */
     const actualWeightSum =
-        KPI_WEIGHT.imageUpload      * kpi1ImageUploadScore   +
-        KPI_WEIGHT.deliveryAccuracy * kpi2DeliveryScore      +
-        KPI_WEIGHT.pod              * kpi3PODScore           +
-        KPI_WEIGHT.kmEfficiency     * kpi4KmEfficiencyScore  +
-        KPI_WEIGHT.timeManagement   * kpi5TimeScore          +
-        KPI_WEIGHT.fuelEfficiency   * kpi6FuelEfficiencyScore+
-        KPI_WEIGHT.customerRating   * kpi7CustomerRating;
+      KPI_WEIGHT.imageUpload * kpi1ImageUploadScore +
+      KPI_WEIGHT.deliveryAccuracy * kpi2DeliveryScore +
+      KPI_WEIGHT.pod * kpi3PODScore +
+      KPI_WEIGHT.kmEfficiency * kpi4KmEfficiencyScore +
+      KPI_WEIGHT.timeManagement * kpi5TimeScore +
+      KPI_WEIGHT.fuelEfficiency * kpi6FuelEfficiencyScore +
+      KPI_WEIGHT.customerRating * kpi7CustomerRating;
 
-    const overallPerformanceRating = MAX_WEIGHT_SUM > 0
-      ? parseFloat(((actualWeightSum / MAX_WEIGHT_SUM) * 5).toFixed(2))
-      : 0;
+    const overallPerformanceRating =
+      MAX_WEIGHT_SUM > 0
+        ? parseFloat(((actualWeightSum / MAX_WEIGHT_SUM) * 5).toFixed(2))
+        : 0;
 
     /* ---------- final object ------------------------------------------ */
     return {
-      id:             row.id,
-      name:           row.name,
-      email:          row.email,
-      mobile:         row.mobile,
-      warehouseId:    row.warehouse_id,
-      warehouseName:  row.warehouse_name || "Unknown",
+      id: row.id,
+      name: row.name,
+      email: row.email,
+      mobile: row.mobile,
+      warehouseId: row.warehouse_id,
+      warehouseName: row.warehouse_name || "Unknown",
 
       /* KPI raw numbers you may need in UI ----------------------------- */
       completedTours,
@@ -764,7 +802,7 @@ export const getDriverPerformanceData = async (
 
       kpi2DeliveryScore,
       totalExpectedDeliveries: expectedDeliveries,
-      totalActualDeliveries:   actualDeliveries,
+      totalActualDeliveries: actualDeliveries,
       undeliveredCount,
 
       kpi3PODScore,
@@ -776,11 +814,11 @@ export const getDriverPerformanceData = async (
 
       kpi5TimeScore,
       totalPlannedTimeMinutes: Math.round(plannedSeconds / 60),
-      totalActualTimeMinutes:  Math.round(actualSeconds / 60),
+      totalActualTimeMinutes: Math.round(actualSeconds / 60),
 
       kpi6FuelEfficiencyScore,
       expectedFuelLiters: parseFloat(expectedFuel.toFixed(2)),
-      actualFuelLiters:   parseFloat(actualFuel.toFixed(2)),
+      actualFuelLiters: parseFloat(actualFuel.toFixed(2)),
 
       kpi7CustomerRating,
 
@@ -788,7 +826,7 @@ export const getDriverPerformanceData = async (
       rating: overallPerformanceRating,
 
       /* optional: keep old DB value for auditing ----------------------- */
-      rawDbRating: Number(row.db_rating) || 0
+      rawDbRating: Number(row.db_rating) || 0,
     };
   });
 };
@@ -796,7 +834,7 @@ export const getDriverPerformanceData = async (
 // NEW: returns per-day KPIs for the given driver in one call (Sun→Sat)
 export const getDriverPerformanceWeekDaily = async (
   startDate: string, // YYYY-MM-DD (Sunday)
-  endDate: string,   // YYYY-MM-DD (Saturday)
+  endDate: string, // YYYY-MM-DD (Saturday)
   driverId: number | undefined
 ) => {
   if (!driverId) return [];
@@ -894,37 +932,44 @@ export const getDriverPerformanceWeekDaily = async (
     ORDER BY dates.d;
   `;
 
-  const [dailyRows] = await pool.query(sql, [startDate, endDate, driverId, startDate, endDate]);
+  const [dailyRows] = await pool.query(sql, [
+    startDate,
+    endDate,
+    driverId,
+    startDate,
+    endDate,
+  ]);
 
   // --- Map each day to the 4 KPIs you want (0–5)
   const results = (dailyRows as any[]).map((r) => {
     const completedTours = Number(r.completedTours) || 0;
 
     const expectedDeliveries = Number(r.totalExpectedDeliveries) || 0;
-    const actualDeliveries   = Number(r.totalActualDeliveries)   || 0;
-    const validPODs          = Number(r.totalValidPODs)          || 0;
+    const actualDeliveries = Number(r.totalActualDeliveries) || 0;
+    const validPODs = Number(r.totalValidPODs) || 0;
 
-    const plannedKM          = Number(r.totalPlannedKM)          || 0;
-    const actualKM           = Number(r.totalActualKM)           || 0;
+    const plannedKM = Number(r.totalPlannedKM) || 0;
+    const actualKM = Number(r.totalActualKM) || 0;
 
-    const plannedSeconds     = Number(r.totalPlannedSeconds)     || 0;
-    const actualSeconds      = Number(r.totalActualSeconds)      || 0;
+    const plannedSeconds = Number(r.totalPlannedSeconds) || 0;
+    const actualSeconds = Number(r.totalActualSeconds) || 0;
 
-    const totalCustomerRating= Number(r.totalCustomerRating)     || 0;
+    const totalCustomerRating = Number(r.totalCustomerRating) || 0;
 
     // KPI-3 POD (0-5)
-    const kpi3PODScore = expectedDeliveries > 0
-      ? parseFloat(((validPODs / expectedDeliveries) * 5).toFixed(2))
-      : 0;
+    const kpi3PODScore =
+      expectedDeliveries > 0
+        ? parseFloat(((validPODs / expectedDeliveries) * 5).toFixed(2))
+        : 0;
 
     // KPI-6 Fuel Efficiency (0-5) — same thresholds as your aggregate
     let kpi6FuelEfficiencyScore = 0;
     if (plannedKM > 0 && actualKM > 0) {
       const expectedFuel = plannedKM / 10; // your rule
-      const actualFuel   = actualKM / 10;
-      const fuelRatio    = actualFuel / expectedFuel;
+      const actualFuel = actualKM / 10;
+      const fuelRatio = actualFuel / expectedFuel;
 
-      if      (fuelRatio <= 1.00) kpi6FuelEfficiencyScore = 5;
+      if (fuelRatio <= 1.0) kpi6FuelEfficiencyScore = 5;
       else if (fuelRatio <= 1.01) kpi6FuelEfficiencyScore = 4.5;
       else if (fuelRatio <= 1.02) kpi6FuelEfficiencyScore = 4;
       else if (fuelRatio <= 1.03) kpi6FuelEfficiencyScore = 3.5;
@@ -933,14 +978,14 @@ export const getDriverPerformanceWeekDaily = async (
       else if (fuelRatio <= 1.06) kpi6FuelEfficiencyScore = 2;
       else if (fuelRatio <= 1.07) kpi6FuelEfficiencyScore = 1.5;
       else if (fuelRatio <= 1.08) kpi6FuelEfficiencyScore = 1;
-      else                        kpi6FuelEfficiencyScore = 0.5;
+      else kpi6FuelEfficiencyScore = 0.5;
     }
 
     // KPI-5 Time Management (0-5)
     let kpi5TimeScore = 0;
     if (plannedSeconds > 0 && actualSeconds > 0) {
       const ratio = actualSeconds / plannedSeconds;
-      if      (ratio <= 1.00) kpi5TimeScore = 5;
+      if (ratio <= 1.0) kpi5TimeScore = 5;
       else if (ratio <= 1.01) kpi5TimeScore = 4.5;
       else if (ratio <= 1.02) kpi5TimeScore = 4;
       else if (ratio <= 1.03) kpi5TimeScore = 3.5;
@@ -949,20 +994,21 @@ export const getDriverPerformanceWeekDaily = async (
       else if (ratio <= 1.06) kpi5TimeScore = 2;
       else if (ratio <= 1.07) kpi5TimeScore = 1.5;
       else if (ratio <= 1.08) kpi5TimeScore = 1;
-      else                    kpi5TimeScore = 0.5;
+      else kpi5TimeScore = 0.5;
     }
 
     // KPI-7 Customer Rating (0-5) — average of tour ratings for the day
-    const kpi7CustomerRating = completedTours > 0
-      ? parseFloat((totalCustomerRating / completedTours).toFixed(2))
-      : 0;
+    const kpi7CustomerRating =
+      completedTours > 0
+        ? parseFloat((totalCustomerRating / completedTours).toFixed(2))
+        : 0;
 
     return {
-      date: r.date,                     // "YYYY-MM-DD"
-      kpi3PODScore,                    // Proof of Delivery
-      kpi6FuelEfficiencyScore,         // Fuel Efficiency
-      kpi5TimeScore,                   // Time Management
-      kpi7CustomerRating,              // Customer Rating
+      date: r.date, // "YYYY-MM-DD"
+      kpi3PODScore, // Proof of Delivery
+      kpi6FuelEfficiencyScore, // Fuel Efficiency
+      kpi5TimeScore, // Time Management
+      kpi7CustomerRating, // Customer Rating
 
       // (optional raw values if the UI needs tooltips)
       _raw: {

@@ -1,21 +1,8 @@
 import { ResultSetHeader } from "mysql2";
-import pool from "../database";
+import pool from "../config/database";
 import { CreateTour } from "../types/dto.types";
 import { logWithTime } from "../utils/logging";
 import { PoolConnection } from "mysql2/promise";
-
-// interface Tour {
-//   id?: number;
-//   tourName: string;
-//   comments: string;
-//   startTime: string;
-//   endTime: string;
-//   driverid: number;
-//   routeColor: string;
-//   tourDate: Date;
-//   orderIds: number[];
-//   warehouseId: number;
-// }
 
 export const createTourAsync = async (
   connection: PoolConnection,
@@ -73,8 +60,7 @@ export const createTourAsync = async (
       tour.tourDate,
       JSON.stringify(tour.orderIds),
       tour.warehouseId,
-      // tour.userId
-      1
+      tour.userId,
     ];
 
     console.log("[tourModel] Creating tour with values:", insertValues);

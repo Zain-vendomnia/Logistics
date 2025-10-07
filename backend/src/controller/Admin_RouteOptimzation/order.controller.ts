@@ -24,7 +24,7 @@ export const getAllLogisticOrders = async (_req: Request, res: Response) => {
   }
 };
 
-export const getLgsticOrderById = async (_req: Request, res: Response) => {
+export const getLogisticOrderById = async (_req: Request, res: Response) => {
   const { order_number } = _req.query;
 
   try {
@@ -100,7 +100,7 @@ export const getPinboardOrders = async (_req: Request, res: Response) => {
     const sinceHeader = _req.headers["last-fetched-at"] as string | undefined;
     const since = sinceHeader;
 
-    const orders: Order[] = await LogisticOrder.getPinboardOrdersAsync(since); // Shopware orders
+    const orders: Order[] = await LogisticOrder.getPendingOrdersAsync(since); // Shopware orders
 
     // console.log("pin-b orders: ", orders);
     res.status(200).json(orders);

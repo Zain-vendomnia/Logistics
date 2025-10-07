@@ -1,24 +1,26 @@
-import initialSetup from "../../initialDBSetup/usersSetup";
-import apiResponseLogSetup from "../../initialDBSetup/apiResponseLogSetup";
-import driverDetailsSetup from "../../initialDBSetup/driverDetailsSetup";
-import driverLocationsSetup from "../../initialDBSetup/driverLocationsSetup";
-import logisticOrderItemsSetup from "../../initialDBSetup/logisticOrderItemsSetup";
-import logisticOrderSetup from "../../initialDBSetup/logisticOrderSetup";
-import logisticPaymentSetup from "../../initialDBSetup/logisticPaymentSetup";
-import routeSegmentsSetup from "../../initialDBSetup/routeSegmentsSetup";
-import routeUpdatesSetup from "../../initialDBSetup/routeUpdatesSetup";
-import solarItemsSetup from "../../initialDBSetup/solarmodulesItemsSetup";
-import tourDriverSetup from "../../initialDBSetup/tourDriverSetup";
-import tourInfoMasterSetup from "../../initialDBSetup/tourInfoMasterSetup";
-import warehouseDetailsSetup from "../../initialDBSetup/warehouseDetailsSetup";
-import vahicleDetailsSetup from "../../initialDBSetup/vehicleDetailsSetup";
-import WMSOrderSetup from "../../initialDBSetup/wms_orders";
-import WMSOrderArticlesSetup from "../../initialDBSetup/wms_order_articles";
-import WhatsappChatsSetup from "../../initialDBSetup/whatsappChat";
-import NotificationsTrackSetup from "../../initialDBSetup/notifications_track";
-import DynamicTourSetup from "../../initialDBSetup/dynamicTourSetup";
-import TourTracesSetup from "../../initialDBSetup/tourTracesSetup";
-import OrderImagesSetup from "../../initialDBSetup/orderImagesSetup";
+import initialSetup from "../../config/initialDBSetup/usersSetup";
+import apiResponseLogSetup from "../../config/initialDBSetup/apiResponseLogSetup";
+import driverDetailsSetup from "../../config/initialDBSetup/driverDetailsSetup";
+import driverLocationsSetup from "../../config/initialDBSetup/driverLocationsSetup";
+import logisticOrderItemsSetup from "../../config/initialDBSetup/logisticOrderItemsSetup";
+import logisticOrderSetup from "../../config/initialDBSetup/logisticOrderSetup";
+import logisticPaymentSetup from "../../config/initialDBSetup/logisticPaymentSetup";
+import routeSegmentsSetup from "../../config/initialDBSetup/routeSegmentsSetup";
+import routeUpdatesSetup from "../../config/initialDBSetup/routeUpdatesSetup";
+import solarItemsSetup from "../../config/initialDBSetup/solarmodulesItemsSetup";
+import tourDriverSetup from "../../config/initialDBSetup/tourDriverSetup";
+import tourInfoMasterSetup from "../../config/initialDBSetup/tourInfoMasterSetup";
+import warehouseDetailsSetup from "../../config/initialDBSetup/warehouseDetailsSetup";
+import vahicleDetailsSetup from "../../config/initialDBSetup/vehicleDetailsSetup";
+import WMSOrderSetup from "../../config/initialDBSetup/wms_orders";
+import WMSOrderArticlesSetup from "../../config/initialDBSetup/wms_order_articles";
+import WhatsappChatsSetup from "../../config/initialDBSetup/whatsappChat";
+import NotificationsTrackSetup from "../../config/initialDBSetup/notifications_track";
+import DynamicTourSetup from "../../config/initialDBSetup/dynamicTourSetup";
+import TourTracesSetup from "../../config/initialDBSetup/tourTracesSetup";
+import deliveryCostRatesSetup from "../../config/initialDBSetup/deliveryCostRatesSetup";
+import deliveryCostPerTourSetup from "../../config/initialDBSetup/deliveryCostPerTourSetup";
+import OrderImagesSetup from "../../config/initialDBSetup/orderImagesSetup";
 
 export async function runInitialDbSetup() {
   await initialSetup();
@@ -41,5 +43,7 @@ export async function runInitialDbSetup() {
   await NotificationsTrackSetup();
   await DynamicTourSetup();
   await TourTracesSetup();
+  await deliveryCostRatesSetup();
+  await deliveryCostPerTourSetup();
   await OrderImagesSetup();
 }

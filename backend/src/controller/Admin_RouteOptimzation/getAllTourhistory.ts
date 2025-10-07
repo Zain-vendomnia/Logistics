@@ -1,5 +1,5 @@
-import pool from "../../database";
-import { RowDataPacket } from 'mysql2';
+import pool from "../../config/database";
+import { RowDataPacket } from "mysql2";
 
 export const getAllTourhistory = async (_req: any, res: any) => {
   try {
@@ -21,16 +21,17 @@ export const getAllTourhistory = async (_req: any, res: any) => {
       confirmed: [],
       live: [],
       pending: [],
-      completed: []
+      completed: [],
     };
 
     for (const tour of tourRows) {
       let orderIds: number[] = [];
 
       try {
-        const rawOrderIds = typeof tour.order_ids === 'string'
-          ? JSON.parse(tour.order_ids)
-          : tour.order_ids;
+        const rawOrderIds =
+          typeof tour.order_ids === "string"
+            ? JSON.parse(tour.order_ids)
+            : tour.order_ids;
 
         if (Array.isArray(rawOrderIds)) {
           orderIds = rawOrderIds
@@ -45,27 +46,36 @@ export const getAllTourhistory = async (_req: any, res: any) => {
       let totalOrderQuantity = 0;
 
       if (orderIds.length > 0) {
-        const placeholders = orderIds.map(() => '?').join(',');
-        const [orderRows] = await pool.query<RowDataPacket[]>(`
+        const placeholders = orderIds.map(() => "?").join(",");
+        const [orderRows] = await pool.query<RowDataPacket[]>(
+          `
           SELECT * FROM logistic_order
           WHERE order_id IN (${placeholders})
-        `, orderIds);
+        `,
+          orderIds
+        );
 
         for (const order of orderRows) {
-          const [itemRows] = await pool.query<RowDataPacket[]>(`
+          const [itemRows] = await pool.query<RowDataPacket[]>(
+            `
             SELECT 
               slmdl_articleordernumber, 
               quantity 
             FROM logistic_order_items
             WHERE order_id = ?
-          `, [order.order_id]);
+          `,
+            [order.order_id]
+          );
 
-          const orderTotalQuantity = itemRows.reduce((sum: number, item: any) => sum + item.quantity, 0);
+          const orderTotalQuantity = itemRows.reduce(
+            (sum: number, item: any) => sum + item.quantity,
+            0
+          );
           totalOrderQuantity += orderTotalQuantity;
 
           orders.push({
             ...order,
-            items: itemRows
+            items: itemRows,
           });
         }
       }
@@ -88,11 +98,11 @@ export const getAllTourhistory = async (_req: any, res: any) => {
           mobile: tour.driver_mobile,
           email: tour.email,
           licenceplate: tour.licenceplate,
-          address: tour.driver_address
+          address: tour.driver_address,
         },
         order_ids: tour.order_ids,
         orders,
-        totalOrderQuantity
+        totalOrderQuantity,
       };
 
       // Push tour into appropriate group

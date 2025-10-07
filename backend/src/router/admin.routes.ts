@@ -31,9 +31,9 @@ import customerRoutes from "./customers.routes";
 import messagesRoutes from "./messages.routes";
 import vehicleRoutes from "./vehicle.routes";
 import warehouseRoutes from "./warehouse.routes";
-import * as dynamicTourCtrl from "../controller/HERE_API/dynamicTour.controller";
+import * as dTourControler from "../controller/HERE_API/dynamicTour.controller";
 
-import { upload } from "../middlewares/upload";
+import { uploadDisk, uploadMemory } from "../middlewares/upload";
 import { parseExcelToJobs } from "../utils/parseExcel";
 
 import { notFoundHandler } from "../middlewares/notFoundHandler";
@@ -50,7 +50,7 @@ adminRouter.get("/customer/updatelatlng", updatelatlngController);
 adminRouter.post("/sendEmail", sendEmail);
 // adminRouter.post("/routeoptimize/getOrder", OrderCtrl.getAllLogisticOrders);
 // adminRouter.post("/picklistEmail", picklistEmail);
-adminRouter.get("/routeoptimize/getOrder", OrderCtrl.getLgsticOrderById);
+adminRouter.get("/routeoptimize/getOrder", OrderCtrl.getLogisticOrderById);
 adminRouter.get("/routeoptimize/ordersWithItems", OrderCtrl.getOrdersWithItems);
 adminRouter.post("/insertParkingPermit", insertParkingPermit);
 adminRouter.post("/getOrderNotificationMetaData", getOrderNotificationMetaData);
@@ -59,24 +59,28 @@ adminRouter.post("/getDriverById", getDriverById);
 
 adminRouter.post("/Runtour", runTourController);
 
-adminRouter.post("/uploadexcel", upload.single("file"), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ message: "Excel file is required." });
-    }
-    //console.log("testing");
-    const jobList = parseExcelToJobs(req.file.path);
+adminRouter.post(
+  "/uploadexcel",
+  uploadDisk.single("file"),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "Excel file is required." });
+      }
+      //console.log("testing");
+      const jobList = parseExcelToJobs(req.file.path);
 
-    // Pass jobList to the controller
-    await dynamicTourCtrl.create_dynamicTour(req, res, jobList);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      message: "Failed to process uploaded Excel.",
-      error: (err as Error).message,
-    });
+      // Pass jobList to the controller
+      await dTourControler.create_dynamicTour(req, res, jobList);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({
+        message: "Failed to process uploaded Excel.",
+        error: (err as Error).message,
+      });
+    }
   }
-});
+);
 
 adminRouter.post("/order-sync", shopwareAuth, orderSyncFromShopwareController);
 
@@ -86,10 +90,15 @@ adminRouter.use(validateToken, roleCheck(["admin"]));
 adminRouter.post("/hereMapController", hereMapController);
 // adminRouter.post("/dynamicTourController", dynamicTourCtrl.create_dynamicTour);
 
-// adminRouter.get("/dynamicTours", dynamicTourCtrl.getDynamicTours);
-// adminRouter.post("/createDynamicTour", dynamicTourCtrl.createDynamicTour);
-// adminRouter.post("/acceptDynamicTour", dynamicTourCtrl.acceptDynamicTour);
-// adminRouter.post("/rejectDynamicTour", dynamicTourCtrl.rejectDynamicTour);
+adminRouter.get("/dynamicTours", dTourControler.getDynamicTours);
+adminRouter.post(
+  "/orders/upload",
+  uploadMemory.single("file"),
+  dTourControler.uploadOrdersFromFile
+);
+adminRouter.post("/createDynamicTour", dTourControler.createDynamicTour);
+adminRouter.post("/acceptDynamicTour", dTourControler.acceptDynamicTour);
+adminRouter.post("/rejectDynamicTour", dTourControler.rejectDynamicTour);
 
 adminRouter.get("/pinboardOrders", OrderCtrl.getPinboardOrders);
 adminRouter.get("/tours", getFilteredToursController);

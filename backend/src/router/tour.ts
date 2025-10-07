@@ -1,11 +1,11 @@
 import { Router } from "express";
-import { upload } from "../middlewares/upload";
 import { parseExcelToJobs } from "../utils/parseExcel";
 import { create_dynamicTour } from "../controller/HERE_API/dynamicTour.controller";
+import { uploadMemory } from "../middlewares/upload";
 
 const router = Router();
 
-router.post("/upload-jobs", upload.single("file"), async (req, res) => {
+router.post("/upload-jobs", uploadMemory.single("file"), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: "Excel file is required." });

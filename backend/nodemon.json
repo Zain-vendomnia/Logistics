@@ -1,0 +1,6 @@
+{
+  "watch": ["src"],
+  "ext": "ts,js,json",
+  "ignore": ["build/*"],
+  "exec": "node --inspect -r ts-node/register src/index.ts"
+}

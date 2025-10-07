@@ -1,4 +1,4 @@
-import pool from "../database";
+import pool from "../config/database";
 import { RowDataPacket } from "mysql2/promise";
 
 interface CountRow extends RowDataPacket {
@@ -10,7 +10,8 @@ interface CountRow extends RowDataPacket {
  * @returns An object with a single property `ordersCount`.
  */
 export const fetchOrdersCount = async (): Promise<{ ordersCount: number }> => {
-  const sql = "SELECT COUNT(*) AS ordersCount, MAX(updated_at) as last_updated FROM logistic_order";
+  const sql =
+    "SELECT COUNT(*) AS ordersCount, MAX(updated_at) as last_updated FROM logistic_order";
   const [rows] = await pool.query<CountRow[]>(sql);
 
   if (rows.length === 0) {
