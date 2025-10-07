@@ -129,10 +129,10 @@ export const updateTourController = async (req: Request, res: Response) => {
   }
 
   if (
-    !tourName ||
-    !comments ||
-    !startTime ||
-    !driverid ||
+    !tourName   ||
+    !comments   ||
+    !startTime  ||
+    !driverid   ||
     !routeColor ||
     !tourDate
   ) {
@@ -223,8 +223,8 @@ export const getRoutesSegmentImages = async (_req: Request, res: Response) => {
 
   try {
     const routeRes = await route_segments.getRoutesegmentImagesRes(
-      tour_id ? Number(tour_id) : undefined,
-      order_number ? Number(order_number) : undefined
+      tour_id ? String(tour_id) : undefined,
+      order_number ? String(order_number) : undefined
     );
 
     res.status(200).json(routeRes);

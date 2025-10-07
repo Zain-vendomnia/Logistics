@@ -73,7 +73,8 @@ export const createTourAsync = async (
       tour.tourDate,
       JSON.stringify(tour.orderIds),
       tour.warehouseId,
-      tour.userId
+      // tour.userId
+      1
     ];
 
     console.log("[tourModel] Creating tour with values:", insertValues);

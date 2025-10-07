@@ -67,7 +67,7 @@ export class route_segments {
   }
 
 
-  static async getRoutesegmentImagesRes(_tourId?: number, _orderNumber?: string): Promise<any> {
+  static async getRoutesegmentImagesRes(_tourId?: string, _orderNumber?: string): Promise<any> {
     // Ensure at least one of the parameters is provided
     if (_tourId === undefined && _orderNumber === undefined) {
       throw new Error("At least one of tour_id or order_id must be provided.");

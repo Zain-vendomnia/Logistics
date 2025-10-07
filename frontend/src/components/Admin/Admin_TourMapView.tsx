@@ -193,6 +193,8 @@ const TourMapPage = () => {
         // console.log('Dynamic Tours: ', dynamic_tours)
         setDynamicTours(dynamic_tours as DynamicTourPayload[]);
         setVehicleTours(tours_route);
+
+        console.log('tours_route : ',tours_route);
       } catch (err) {
         console.error("API call failed", err);
       } finally {
