@@ -1,4 +1,4 @@
-import pool from "../database";
+import pool from "../config/database";
 import { 
   broadcastCustomerList, 
   broadcastSingleCustomerUpdate,
@@ -6,7 +6,7 @@ import {
   sendCustomerListError,
   hasConnectedAdmins,
   getIO
-} from "../socket";
+} from "../config/socket";
 
 export interface Customer {
   order_id: string;

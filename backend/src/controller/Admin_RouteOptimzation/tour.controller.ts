@@ -212,24 +212,29 @@ export const updatetourstatus = async (_req: Request, res: Response) => {
   }
 };
 
-
 export const getRoutesSegmentImages = async (_req: Request, res: Response) => {
   const { tour_id, order_number } = _req.body;
 
   // Require at least one of tour_id or order_number
   if (!tour_id && !order_number) {
-    return res.status(400).json({ message: "At least one of tour_id or order_number is required." });
+    return res
+      .status(400)
+      .json({
+        message: "At least one of tour_id or order_number is required.",
+      });
   }
 
   try {
     const routeRes = await route_segments.getRoutesegmentImagesRes(
-      tour_id ? String(tour_id) : undefined,
-      order_number ? String(order_number) : undefined
+      tour_id ? Number(tour_id) : undefined,
+      order_number ? order_number : undefined
     );
 
     res.status(200).json(routeRes);
   } catch (error) {
     console.error("Error fetching images:", error);
-    res.status(404).json({ message: "Images not found for the provided criteria." });
+    res
+      .status(404)
+      .json({ message: "Images not found for the provided criteria." });
   }
 };
