@@ -28,7 +28,6 @@ import TestCrashRender from "./components/pages/TestCrashRender";
 import TestUnhandledPromise from "./components/pages/TestUnhandledPromise";
 import TestRuntimeError from "./components/pages/TestRuntimeError";
 import Admin_dynamicHereMap from "./components/Admin/dynamic_tour/DynamicMapBoard";
-import AdminHereMap from "./components/Admin/MapRoutesViewer";
 import CustomersChat from "./components/notification/CustomersChat";
 
 // Role-based route guard
@@ -42,7 +41,7 @@ const ProtectedRoute = ({
   const { user } = useAuth();
   console.log("ProtectedRoute user:", user);
   if (!user) return <Navigate to="/login" replace />;
-  
+
   // Role checks
   const userRole = isSuperAdmin(user)
     ? "superadmin"
@@ -154,7 +153,7 @@ const AppRoutes = () => {
           />
         }
       />
-     
+
       <Route
         path="/chat"
         element={

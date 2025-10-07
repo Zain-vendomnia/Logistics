@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import * as warehouseService from "../../services/warehouseService";
+import * as warehouseService from "../../services/warehouse.service";
 
 export const getAllWarehouses = async (_req: Request, res: Response) => {
   try {
@@ -17,7 +17,6 @@ export const getWarehouseById = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "Invalid Warehouse" });
 
     const warehouse = await warehouseService.getWarehouseById(warehouseId);
-    console.log("Fetched Warehouse:", warehouse);
 
     if (!warehouse) {
       return res.status(400).json({ message: "Warehouse not found" });
@@ -70,10 +69,15 @@ export const disableWarehouse = async (req: Request, res: Response) => {
 };
 
 // Disable multiple warehouses
-export const disableMultipleWarehouses = async (req: Request, res: Response) => {
+export const disableMultipleWarehouses = async (
+  req: Request,
+  res: Response
+) => {
   try {
     const { ids } = req.body;
-    const validIds = Array.isArray(ids) ? ids.filter((id) => Number.isInteger(Number(id)) && Number(id) > 0) : [];
+    const validIds = Array.isArray(ids)
+      ? ids.filter((id) => Number.isInteger(Number(id)) && Number(id) > 0)
+      : [];
 
     if (validIds.length === 0) {
       return res.status(200).json({

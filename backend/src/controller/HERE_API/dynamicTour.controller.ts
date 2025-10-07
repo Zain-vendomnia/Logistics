@@ -2,7 +2,21 @@ import { Request, Response } from "express";
 import axios from "axios";
 import { decode } from "../../utils/flexiblePolylineDecoder";
 import pLimit from "p-limit";
-import { getUnapprovedDynamicTours } from "../../services/dynamicTour.service";
+import {
+  acceptDynamicTourAsync,
+  createDynamicTourAsync,
+  getUnapprovedDynamicTours,
+  rejectDynamicTourAsync,
+} from "../../services/dynamicTour.service";
+import { logWithTime } from "../../utils/logging";
+import {
+  CreateTour,
+  DynamicTourPayload,
+  rejectDynamicTour_Req,
+} from "../../types/dto.types";
+import { LogisticOrder } from "../../model/LogisticOrders";
+import { parseExcelBufferToOrders } from "../../utils/parseExcel";
+import { getAllWarehouses } from "../../services/warehouse.service";
 
 const HERE_API_KEY =
   process.env.HERE_API_KEY || "2tJpOzfdl3mgNpwKiDt-KuAQlzgEbsFkbX8byW97t1k";
@@ -248,6 +262,125 @@ export const create_dynamicTour = async (
         error: err instanceof Error ? err.message : String(err),
       });
     }
+  }
+};
+
+export const uploadOrdersFromFile = async (_req: Request, res: Response) => {
+  try {
+    if (!_req.file) return res.status(400).json({ error: "File is required" });
+
+    const logisticsOrders = await LogisticOrder.getAllLogisticOrders();
+    const warehouseList = await getAllWarehouses();
+    const excelOrders = parseExcelBufferToOrders(
+      _req.file.buffer,
+      warehouseList
+    );
+
+    const createdOrderIds: number[] = [];
+
+    for (const excelOrder of excelOrders) {
+      const orderExists = logisticsOrders.some(
+        (o) => o.order_number === excelOrder.order_number
+      );
+
+      if (!orderExists) {
+        try {
+          const orderId = await LogisticOrder.createOrderAsync(excelOrder);
+          createdOrderIds.push(orderId);
+        } catch (err) {
+          console.error(`Order did not saved for reason: `, err);
+        }
+      }
+    }
+
+    console.log(`Added ${createdOrderIds.length} new Orders.`);
+    console.log(
+      `Skipped ${excelOrders.length - createdOrderIds.length} Orders.`
+    );
+
+    return res.json({
+      message: `Processed ${createdOrderIds.length} orders successfully`,
+      orderIds: createdOrderIds,
+    });
+  } catch (error) {
+    console.error("Error processing file:", error);
+    return res.status(500).json({ error: "Failed to process file" });
+  }
+};
+
+export const createDynamicTour = async (_req: Request, res: Response) => {
+  try {
+    const payload: DynamicTourPayload = _req.body;
+
+    if (!payload || !payload.orderIds || !payload.warehouse_id)
+      res.status(400).json({ message: "Invalid payload" });
+
+    const dynamicTour = await createDynamicTourAsync(payload);
+
+    res.json(dynamicTour);
+    logWithTime(
+      `[Unassigned jobs]:,
+      ${JSON.stringify(dynamicTour?.unassigned)}`
+    );
+  } catch (err) {
+    console.error("Error in dynamicTourController:", err);
+    if (!res.headersSent) {
+      res.status(500).json({
+        message: "Tour planning or routing failed.",
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+};
+
+export const acceptDynamicTour = async (_req: Request, res: Response) => {
+  try {
+    const payload: CreateTour = _req.body;
+
+    if (!payload || !payload.orderIds || !payload.warehouseId) {
+      return res.status(400).json({ message: "Invalid payload" });
+    }
+
+    const dynamicTour = await acceptDynamicTourAsync(payload);
+
+    return res.status(200).json(dynamicTour);
+  } catch (err) {
+    console.error("Error in Accept Dynamic Tour Controller:", err);
+
+    return res.status(500).json({
+      message: "Tour planning or routing failed.",
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+};
+
+export const rejectDynamicTour = async (_req: Request, res: Response) => {
+  try {
+    const payload: rejectDynamicTour_Req = _req.body;
+
+    if (!payload) {
+      return res.status(400).json({ message: "Invalid payload" });
+    }
+
+    const result = await rejectDynamicTourAsync(payload);
+
+    if (!result) {
+      return res
+        .status(500)
+        .json({ message: "Error deleting the dynamic tour" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Tour deleted successfully",
+    });
+  } catch (err) {
+    console.error("Error in Reject Dynamic Tour Controller:", err);
+
+    return res.status(500).json({
+      message: "Tour rejection failed.",
+      error: err instanceof Error ? err.message : String(err),
+    });
   }
 };
 

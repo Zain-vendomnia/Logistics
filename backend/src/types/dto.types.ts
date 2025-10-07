@@ -1,5 +1,5 @@
 import { Unassigned } from "./hereMap.types";
-import { Tour } from "./tour.types";
+import { Geometry, Tour } from "./tour.types";
 
 export type CreateTour = {
   dTour_id?: number;
@@ -26,16 +26,36 @@ type TourData = {
   unassigned: Unassigned[];
 };
 
+export interface TourMatrix {
+  tourId: number;
+  total_weight_kg: number;
+  total_distance_km: number;
+  total_duration_hrs: number;
+  delivery_cost_per_stop: number;
+  delivery_cost_per_bkw: number;
+  delivery_cost_per_slmd: number;
+  total_cost: number;
+  hotel_cost: number;
+  van_tour_cost: number;
+  diesel_tour_cost: number;
+  personnel_tour_cost: number;
+  warehouse_tour_cost: number;
+  infeed_tour_cost: number;
+  we_tour_cost: number;
+  wa_tour_cost: number;
+}
+
 export interface DynamicTourPayload {
   id?: number | null;
   tour_name?: string;
-  tour_route?: object | null; // Geometry[]/DecodedRoute[]/object
+  tour_route?: Geometry | null; // Geometry[]/DecodedRoute[]/object
   tour_data?: TourData;
   orderIds: string; // Comma-separated
   totalOrdersItemsQty: number;
 
   warehouse_id: number;
   warehouse_name?: string;
+  warehouse_town?: string;
   warehouse_colorCode?: string;
 
   created_at?: string | null;
@@ -44,6 +64,8 @@ export interface DynamicTourPayload {
 
   approved_by?: string | null;
   approved_at?: string | null;
+
+  matrix?: TourMatrix;
 }
 
 export type UnassignedRes = {
@@ -60,7 +82,7 @@ export type DynamicTourRes = {
   // orderIds: string;
 };
 
-export interface WarehouseDetails {
+export interface WarehouseDetailsDto {
   id: number;
   name?: string;
   town: string;

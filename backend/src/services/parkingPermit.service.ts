@@ -1,4 +1,4 @@
-import pool from "../database";
+import pool from "../config/database";
 import { RowDataPacket } from "mysql2";
 
 export const insertFormData = async (data: {
@@ -6,10 +6,7 @@ export const insertFormData = async (data: {
   parkingLocation: string;
   image?: Buffer | null; // Already decoded from base64 in the controller
 }) => {
-
-
   try {
-
     // Step 1: Get order_id
     const [rows] = await pool.query<RowDataPacket[] & { order_id: number }[]>(
       "SELECT order_id FROM logistic_order WHERE order_number = ?",

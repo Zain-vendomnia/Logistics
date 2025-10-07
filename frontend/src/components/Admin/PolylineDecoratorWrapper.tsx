@@ -1,4 +1,3 @@
-// PolylineDecoratorWrapper.tsx
 import { useEffect } from "react";
 import { useMap } from "react-leaflet";
 import L from "leaflet";
@@ -24,7 +23,7 @@ const PolylineDecoratorWrapper: React.FC<Props> = ({ positions, color }) => {
           symbol: L.Symbol.arrowHead({
             pixelSize: 8,
             polygon: false,
-            pathOptions: { stroke: true, color:"black" },
+            pathOptions: { stroke: true, color: "black" },
           }),
         },
       ],

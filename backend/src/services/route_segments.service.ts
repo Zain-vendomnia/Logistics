@@ -1,4 +1,4 @@
-import pool from "../database";
+import pool from "../config/database";
 
 export const insertRouteSegment = async (data: {
   tour_id: string;
@@ -17,7 +17,6 @@ export const insertRouteSegment = async (data: {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-   
     const [result] = await pool.query(query, [
       data.tour_id,
       data.order_id,
@@ -36,7 +35,9 @@ export const insertRouteSegment = async (data: {
   }
 };
 
-export const getRouteSegmentImage = async (id: string): Promise<Buffer | null> => {
+export const getRouteSegmentImage = async (
+  id: string
+): Promise<Buffer | null> => {
   try {
     const [rows]: any = await pool.query(
       "SELECT delivered_item_pic FROM route_segments WHERE id = ?",

@@ -1,13 +1,17 @@
-import pool from "../database";
+import pool from "../config/database";
 
 /**
  * Syncs and updates the Shopware order and its items properly.
  * - Updates existing orders
  * - Syncs items: insert new, update existing, delete removed
  */
-export const syncShopwareOrder = async (order: any): Promise<{ updated: boolean }> => {
+export const syncShopwareOrder = async (
+  order: any
+): Promise<{ updated: boolean }> => {
   const connection = await pool.getConnection();
-console.log("--------------------------------------------------------------------------------------------------------------------")
+  console.log(
+    "--------------------------------------------------------------------------------------------------------------------"
+  );
   console.log(order);
   try {
     await connection.beginTransaction();
@@ -60,15 +64,21 @@ console.log("-------------------------------------------------------------------
       `SELECT slmdl_article_id FROM logistic_order_items WHERE order_id = ?`,
       [localOrderId]
     );
-    const currentItemIds = currentItemsRows.map((row: any) => row.slmdl_article_id);
+    const currentItemIds = currentItemsRows.map(
+      (row: any) => row.slmdl_article_id
+    );
 
     // Step 3.2: Collect incoming item IDs
-    const incomingItemIds = order.OrderDetails.map((item: any) => item.slmdl_article_id);
+    const incomingItemIds = order.OrderDetails.map(
+      (item: any) => item.slmdl_article_id
+    );
 
     // Step 3.3: Identify and delete removed items
-    const itemsToDelete = currentItemIds.filter((id: any) => !incomingItemIds.includes(id));
+    const itemsToDelete = currentItemIds.filter(
+      (id: any) => !incomingItemIds.includes(id)
+    );
     if (itemsToDelete.length > 0) {
-      const placeholders = itemsToDelete.map(() => '?').join(',');
+      const placeholders = itemsToDelete.map(() => "?").join(",");
       await connection.execute(
         `DELETE FROM logistic_order_items WHERE order_id = ? AND slmdl_article_id IN (${placeholders})`,
         [localOrderId, ...itemsToDelete]
@@ -77,7 +87,9 @@ console.log("-------------------------------------------------------------------
 
     // Step 3.4: Upsert items (update or insert)
     for (const item of order.OrderDetails) {
-      console.log(`Processing item: ${item.slmdl_article_id} - ${item.slmdl_articleordernumber}`);
+      console.log(
+        `Processing item: ${item.slmdl_article_id} - ${item.slmdl_articleordernumber}`
+      );
       const [existingItemRows]: any = await connection.execute(
         `SELECT * FROM logistic_order_items WHERE order_id = ? AND slmdl_article_id = ?`,
         [localOrderId, item.slmdl_article_id]
@@ -123,11 +135,12 @@ console.log("-------------------------------------------------------------------
         );
       }
     }
-    console.log("--------------------------------------------------------------------------------------------------------------------")
+    console.log(
+      "--------------------------------------------------------------------------------------------------------------------"
+    );
 
     await connection.commit();
     return { updated: true };
-
   } catch (error: any) {
     await connection.rollback();
     console.error(`❌ Order sync failed for ${order.orderID}:`, error.message);

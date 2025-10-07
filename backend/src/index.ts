@@ -1,9 +1,10 @@
 import app from "./app";
-import { initSocket } from "./socket";
+import { initSocket } from "./config/socket";
 import { runInitialDbSetup } from "./services/core/dbSetupService";
 import { runInitialSyncs } from "./services/core/syncService";
 import { scheduleRecurringSyncs } from "./services/core/scheduleService";
 import { logWithTime } from "./utils/logging";
+// import { processBatch } from "./orchestration/assignmentWorker";
 
 async function main() {
   try {
@@ -17,6 +18,7 @@ async function main() {
 
       await runInitialSyncs();
       scheduleRecurringSyncs();
+      // await processBatch();
     });
   } catch (error) {
     logWithTime("Startup error:");

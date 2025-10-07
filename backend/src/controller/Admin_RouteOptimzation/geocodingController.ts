@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { GeocodingService } from "../../services/geocodingService";
 import { RowDataPacket } from "mysql2";
-import pool from "../../database";
+import pool from "../../config/database";
 
 export class GeocodingController {
   static async getLatLng(_req: Request, res: Response): Promise<void> {

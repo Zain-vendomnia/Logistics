@@ -151,13 +151,9 @@ const checkDriverRest = async (driverId: number) => {
 };
 
 const updateCustomerInfo = (customerData: Record<string, any>) =>
-  axios.put(
-    `${API_BaseUrl_Admin}routeoptimize/updateCustomer`,
-    customerData,
-    {
-      headers: authHeader(),
-    }
-  );
+  axios.put(`${API_BaseUrl_Admin}routeoptimize/updateCustomer`, customerData, {
+    headers: authHeader(),
+  });
 
 const getLatLngFromAddress = async ({
   street,
@@ -192,7 +188,10 @@ const fetchPinboardOrders = async (
 ): Promise<Order[]> => {
   const headers: Record<string, string> = { ...authHeader() };
   const res = await axios.get(`${API_BaseUrl_Admin}pinboardOrders`, {
-    headers: { ...authHeader(), "last-fetched-at": `${lastFetchedAt}` },
+    headers: {
+      ...authHeader(),
+      ...(lastFetchedAt ? { "last-fetched-at": `${lastFetchedAt}` } : {}),
+    },
   });
 
   return res.data;
@@ -208,6 +207,17 @@ const newShopOrder = (id: number) =>
 //     headers: authHeader(),
 //     params: { id },
 //   });
+
+const uploadOrdersFile = async (file: File) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await axios.post(`${API_BaseUrl_Admin}orders/upload`, formData, {
+    headers: { ...authHeader(), "Content-Type": "multipart/form-data" },
+  });
+
+  return res.data;
+};
 
 const fetchDynamicTours = async (): Promise<DynamicTourPayload[]> => {
   const res = await axios.get(`${API_BaseUrl_Admin}dynamicTours`, {
@@ -262,25 +272,26 @@ export const uploadexcel = (formData: FormData) =>
     },
   });
 
+const getOrderNotificationMetaData = (orderNumber: number) => {
+  return axios.post(API_BaseUrl_Admin + "getOrderNotificationMetaData", {
+    headers: authHeader(),
+    orderNumber: orderNumber,
+  });
+};
 
-  const getOrderNotificationMetaData = (orderNumber: number) => {
-
-    return axios.post(API_BaseUrl_Admin + "getOrderNotificationMetaData", {
+const updateOrderNotificationMetaData = (
+  orderNumber: number,
+  meta_key: string,
+  meta_value: string
+) => {
+  return axios.post(
+    API_BaseUrl_Admin + "updateOrderNotificationMetaData",
+    { orderNumber: orderNumber, meta_key: meta_key, meta_value: meta_value },
+    {
       headers: authHeader(),
-      orderNumber:orderNumber
-    });
-  };
-
-  const updateOrderNotificationMetaData = (orderNumber: number, meta_key: string, meta_value: string ) => {
-
-
-    return axios.post(API_BaseUrl_Admin + "updateOrderNotificationMetaData",{ orderNumber:orderNumber,
-      meta_key:meta_key,
-      meta_value:meta_value}, {
-      headers: authHeader(),
-     
-    });
-  };
+    }
+  );
+};
 
 
   const getDriverData = (driverId: any) => {
@@ -314,6 +325,7 @@ const adminApiService = {
   updateCustomerInfo,
   insertParkingPermit,
   plotheremap,
+  uploadOrdersFile,
   fetchDynamicTours,
   requestDynamicTour,
   acceptDynamicTour,

@@ -1,4 +1,4 @@
-import pool from "../database";
+import pool from "../config/database";
 
 interface FilterParams {
   status: string;
@@ -7,7 +7,12 @@ interface FilterParams {
   limit: number;
 }
 
-export const getFilteredToursService = async ({ status, search, page, limit }: FilterParams) => {
+export const getFilteredToursService = async ({
+  status,
+  search,
+  page,
+  limit,
+}: FilterParams) => {
   const offset = (page - 1) * limit;
 
   let whereClause = "WHERE 1=1";
@@ -29,7 +34,7 @@ export const getFilteredToursService = async ({ status, search, page, limit }: F
     await connection.beginTransaction();
 
     const [rows] = await connection.query(
-  `SELECT 
+      `SELECT 
     id, tour_name, driver_id, tour_date, warehouse_id,
     start_time, end_time, item_total_qty_truck, tour_status,
     route_color, created_at
@@ -37,8 +42,8 @@ export const getFilteredToursService = async ({ status, search, page, limit }: F
   ${whereClause}
   ORDER BY id DESC
   LIMIT ? OFFSET ?`,
-  [...params, limit, offset]
-);
+      [...params, limit, offset]
+    );
 
     const [countRows]: any = await connection.query(
       `SELECT COUNT(*) as total FROM tourInfo_master ${whereClause}`,
@@ -51,13 +56,12 @@ export const getFilteredToursService = async ({ status, search, page, limit }: F
     const totalPages = Math.ceil(total / limit);
 
     return {
-    data: rows,
-    total,
-    page,
-    limit,
-    totalPages,
+      data: rows,
+      total,
+      page,
+      limit,
+      totalPages,
     };
-    
   } catch (error) {
     await connection.rollback();
     console.error("❌ Error during getFilteredToursService:", error);

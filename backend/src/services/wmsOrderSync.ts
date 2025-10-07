@@ -1,7 +1,7 @@
 import axios from "axios";
 import dotenv from "dotenv";
 import { RowDataPacket } from "mysql2";
-import pool from "../database"; // adjust if needed
+import pool from "../config/database"; // adjust if needed
 
 dotenv.config();
 
@@ -46,17 +46,9 @@ export async function wmsOrderSync(from: string) {
 
     // 'to' is always today at 23:59:59
     const now = new Date();
-    const toDateTime =
-      formatDateTime(
-        new Date(
-          now.getFullYear(),
-          now.getMonth(),
-          now.getDate(),
-          23,
-          59,
-          59
-        )
-      );
+    const toDateTime = formatDateTime(
+      new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59)
+    );
 
     // Construct query params
     const params = { from: fromDateTime, to: toDateTime };

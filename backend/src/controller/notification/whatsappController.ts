@@ -32,7 +32,7 @@ const sendWhatsAppMessage = async (
     if (error instanceof Error) {
       throw new Error(`Failed to send WhatsApp: ${error.message}`);
     }
-    throw new Error('Failed to send WhatsApp: Unknown error occurred.');
+    throw new Error("Failed to send WhatsApp: Unknown error occurred.");
   }
 };
 

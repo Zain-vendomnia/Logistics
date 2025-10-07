@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 
-import { Badge, Box, IconButton, Paper, Typography } from "@mui/material";
+import { Box, IconButton, Typography } from "@mui/material";
 import CircularProgress from "@mui/material/CircularProgress";
 import GpsFixedIcon from "@mui/icons-material/GpsFixed";
 
@@ -23,34 +23,6 @@ import useLiveOrderUpdates from "../../../socket/useLiveOrderUpdates";
 import DynamicTourList from "./DynamicTourList";
 import DynamicTourDetails from "./DynamicTourDetails";
 import { Order } from "../../../types/order.type";
-
-// interface Stop {
-//   location: { lat: number; lng: number };
-//   time: { arrival: string; departure: string };
-//   activities: { jobId: string; type: string }[];
-// }
-
-// interface RouteSection {
-//   coordinates: [number, number][];
-//   summary: any;
-// }
-
-// interface VehicleTour {
-//   vehicleId: string;
-//   sections: RouteSection[];
-//   stops: Stop[];
-// }
-
-// interface DynamicTourPayload {
-//   id?: number;
-//   tour_number: string;
-//   tour_route: VehicleTour;
-//   orderIds: string; // Comma-separated
-//   warehouse_id: number;
-// }
-
-// functions
-// Marker Icons
 
 const defaultIcon = new L.Icon({
   iconUrl:
@@ -106,7 +78,7 @@ const getStopIcon = (stop: Stop) => {
   return defaultIcon;
 };
 
-const extract_Coords = (tours: Geometry[]): [number, number][] => {
+const extract_Coords = (tours: Geometry[] | Geometry): [number, number][] => {
   const array = Array.isArray(tours) ? tours : [tours];
 
   return array.flatMap((v) => [
@@ -119,13 +91,15 @@ const colors = ["blue", "green", "red", "purple", "orange", "brown"];
 
 const DymanicMapBoard = () => {
   const mapRef = useRef<L.Map | null>(null);
+  const focusedTourIdRef = useRef<string | null>(null);
 
   const {
     pinboard_OrderList,
     lastFetchedAt,
     pinboard_AddOrders,
     selectedTour,
-    setDynamicTours,
+    dynamicToursList,
+    setDynamicToursList,
   } = useDynamicTourStore();
 
   useLiveOrderUpdates((new_order) => {
@@ -137,6 +111,7 @@ const DymanicMapBoard = () => {
   });
 
   const [vehicleTours, setVehicleTours] = useState<Geometry[]>([]);
+  const [mapBoardTours, setMapBoardTours] = useState<Geometry[]>([]);
 
   const [isLoading, setIsLoading] = useState<boolean>(
     vehicleTours.length === 0
@@ -146,7 +121,6 @@ const DymanicMapBoard = () => {
     [52.520008, 13.404954], // Berlin Germany
     // [50.110924, 8.682127], // Frankfurt Germany
   ];
-
   let allCoords: [number, number][] = fallbackCoords;
 
   const flyToBoundsOptions = {
@@ -162,6 +136,8 @@ const DymanicMapBoard = () => {
         // const res = await adminApiService.plotheremap();
         const dynamic_tours = await adminApiService.fetchDynamicTours();
 
+        console.log(`Dynamic Tours Fetched - Map Board: `, dynamicToursList);
+
         const tours_route: Geometry[] = dynamic_tours.flatMap(
           (tour: DynamicTourPayload) => tour.tour_route || []
         );
@@ -175,8 +151,9 @@ const DymanicMapBoard = () => {
         // }));
 
         // console.log('Dynamic Tours: ', dynamic_tours)
-        setDynamicTours(dynamic_tours as DynamicTourPayload[]);
+        setDynamicToursList(dynamic_tours as DynamicTourPayload[]);
         setVehicleTours(tours_route);
+        setMapBoardTours(tours_route);
       } catch (err) {
         console.error("API call failed", err);
       } finally {
@@ -191,9 +168,12 @@ const DymanicMapBoard = () => {
   useEffect(() => {
     if (!mapRef.current) return;
 
-    if (!isLoading && vehicleTours.length > 0) {
+    if (
+      !isLoading &&
+      vehicleTours.length > 0 &&
+      focusedTourIdRef.current === null
+    ) {
       allCoords = extract_Coords(vehicleTours);
-
       const bounds = L.latLngBounds(allCoords);
       mapRef.current.flyToBounds(bounds, flyToBoundsOptions as any);
 
@@ -201,6 +181,7 @@ const DymanicMapBoard = () => {
       //   mapRef.current?.setZoom(mapRef.current.getZoom() - 1); // zoom out 1 level
       // }, 1600);
     }
+    // }, []);
   }, [isLoading, vehicleTours]);
 
   // mapRef to selected tour
@@ -209,8 +190,34 @@ const DymanicMapBoard = () => {
 
     allCoords = extract_Coords(selectedTour.tour_route);
 
-    const bounds = L.latLngBounds(allCoords);
-    mapRef.current.flyToBounds(bounds, flyToBoundsOptions as any);
+    // setVehicleTours((prev) => {
+    //   const idx = prev.findIndex(
+    //     (v) => v.vehicleId === selectedTour.tour_route?.vehicleId
+    //   );
+    //   if (idx === -1 || prev[idx] !== selectedTour.tour_route) {
+    //     const newArr = [...prev];
+    //     idx === -1
+    //       ? newArr.push(selectedTour.tour_route!)
+    //       : (newArr[idx] = selectedTour.tour_route!);
+    //     return newArr;
+    //   }
+    //   return prev;
+    // });
+    setVehicleTours((prev) =>
+      prev.map((route) =>
+        route.vehicleId === selectedTour.tour_route?.vehicleId
+          ? selectedTour.tour_route
+          : route
+      )
+    );
+
+    if (focusedTourIdRef.current !== selectedTour.tour_route.vehicleId) {
+      focusedTourIdRef.current = selectedTour.tour_route.vehicleId;
+
+      const bounds = L.latLngBounds(allCoords);
+      mapRef.current.flyToBounds(bounds, flyToBoundsOptions as any);
+      console.log(`UPdating Map ref for Selected Tour`);
+    }
   }, [selectedTour]);
 
   // Fetch pinboard orders
@@ -220,27 +227,33 @@ const DymanicMapBoard = () => {
         const now = Date.now();
         const staleAfter = 1000 * 60 * 30; // 30 minutes
         const isStale = !lastFetchedAt || now - lastFetchedAt > staleAfter;
+        console.log(`isStale: ${isStale}`);
+        console.log(`pinboard_OrderList.length: ${pinboard_OrderList.length}`);
         if (pinboard_OrderList.length === 0 || isStale) {
           const orders: Order[] =
             await adminApiService.fetchPinboardOrders(lastFetchedAt);
 
           console.error("Pin-b Orders: ", orders);
 
-          const existingIds = new Set(
-            pinboard_OrderList.map((o) => o.order_id)
-          );
-          const newOrders = orders.filter((o) => !existingIds.has(o.order_id));
-          pinboard_AddOrders(newOrders);
+          if (orders.length) {
+            const existingIds = new Set(
+              pinboard_OrderList.map((o) => o.order_id)
+            );
+            const newOrders = orders.filter(
+              (o) => !existingIds.has(o.order_id)
+            );
+            pinboard_AddOrders(newOrders);
 
-          // Update map view
-          const locations = orders.map((o) => o.location);
-          if (mapRef.current && locations.length > 0) {
-            const bounds = L.latLngBounds(locations as any);
-            mapRef.current.flyToBounds(bounds, {
-              padding: [50, 50],
-              maxZoom: 6,
-              duration: 1.5,
-            });
+            // Update map view
+            const locations = orders.map((o) => o.location);
+            if (mapRef.current && locations.length > 0) {
+              const bounds = L.latLngBounds(locations as any);
+              mapRef.current.flyToBounds(bounds, {
+                padding: [50, 50],
+                maxZoom: 6,
+                duration: 1.5,
+              });
+            }
           }
         }
       } catch (err) {
@@ -320,9 +333,7 @@ const DymanicMapBoard = () => {
             style={{ height: "100%", width: "100%" }}
           >
             <MapReady
-              onMapReady={(mapInstance) => {
-                mapRef.current = mapInstance;
-              }}
+              onMapReady={(mapInstance) => (mapRef.current = mapInstance)}
             />
 
             <TileLayer
@@ -363,6 +374,7 @@ const DymanicMapBoard = () => {
 
             {vehicleTours.map((vehicle, idx) => {
               const pathColor = colors[idx % colors.length];
+              const isFocused = focusedTourIdRef.current === vehicle.vehicleId;
               return (
                 <React.Fragment key={vehicle.vehicleId}>
                   {vehicle.sections.map((section, secIdx) => (
@@ -372,7 +384,9 @@ const DymanicMapBoard = () => {
                       <Polyline
                         positions={section.coordinates}
                         color={pathColor}
-                        weight={4}
+                        // weight={4}
+                        weight={isFocused ? 12 : 4}
+                        opacity={isFocused ? 1.2 : 0.9}
                       />
                       <PolylineDecoratorWrapper
                         positions={section.coordinates}
@@ -400,7 +414,7 @@ const DymanicMapBoard = () => {
                       );
                     }
                     if (isLastStop) return null;
-                    // ✅ All other stops → numbered icon (starting from 1)
+
                     const numberedIcon = L.divIcon({
                       className: "",
                       html: `

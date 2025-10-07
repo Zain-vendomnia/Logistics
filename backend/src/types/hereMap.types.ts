@@ -108,3 +108,42 @@ export type Unassigned = {
     description: string;
   }[];
 };
+
+export interface MatrixRequestBody {
+  origins: LatLng[];
+  destinations?: LatLng[];
+  matrixAttributes?: string[]; //["travelTimes", "distances"]
+  transportMode?: "car" | "truck" | "pedestrian";
+  regionDefinition?: {
+    type: "world" | "circle";
+    center?: LatLng;
+    radius?: number;
+  };
+}
+
+export interface MatrixResponse {
+  matrixId: string;
+  status: string;
+  statusUrl: string;
+  resultUrl?: string;
+  regionDefinition: any;
+  error?: any;
+}
+
+export interface MatrixData {
+  numOrigins: number;
+  numDestinations: number;
+  travelTimes: number[];
+  distances: number[];
+  errorCodes?: number[];
+}
+export interface MatrixResult {
+  matrixId: string;
+  matrix: MatrixData;
+  error?: any;
+}
+
+export type LocationMeta = LatLng & {
+  area: string;
+  zipcode: string;
+};
