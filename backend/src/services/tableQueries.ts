@@ -107,6 +107,9 @@ export const CREATE_TOUR_INFO_MASTER_TABLE = `
     driver_id INT NOT NULL,
     tour_date DATETIME NOT NULL,
     warehouse_id INT NOT NULL,
+    tour_route JSON DEFAULT NULL,
+    tour_data JSON DEFAULT NULL,
+
     start_time TIME NOT NULL,
     end_time TIME NOT NULL,
     order_ids JSON NOT NULL,
@@ -133,8 +136,7 @@ export const CREATE_TOUR_INFO_MASTER_TABLE = `
     completed_early_hrs DECIMAL(5,2) DEFAULT 0.00,
     delayed_hrs DECIMAL(5,2) DEFAULT 0.00,
     notice VARCHAR(255) NOT NULL,
-    graphhopper_route JSON,
-    heremap_route JSON,
+  
     tour_status ENUM('pending', 'live', 'confirmed', 'completed') DEFAULT 'pending',
     created_by VARCHAR(45) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

@@ -38,19 +38,20 @@ export class tourInfo_master {
   static async updateHereMapResponse(
     conn: PoolConnection,
     tourId: number,
-    jsonData: string
+    tour_data: string,
+    tour_route: string
   ): Promise<void> {
-    console.log(
-      "-------------------------------- STEP 5 UPDATING HERE MAP RESPONSE ----------------------------------------------------"
-    );
+    // console.log(
+    //   "-------------------------------- STEP 5 UPDATING HERE MAP RESPONSE ----------------------------------------------------"
+    // );
 
     await conn.execute(
-      `UPDATE tourinfo_master SET heremap_route = ? WHERE id = ?`,
-      [jsonData, tourId]
+      `UPDATE tourinfo_master SET tour_data = ?, tour_route = ? WHERE id = ?`,
+      [tour_data, tour_route, tourId]
     );
-    console.log(
-      "-------------------------------------------------------------------------------------------------------------------"
-    );
+    // console.log(
+    //   "-------------------------------------------------------------------------------------------------------------------"
+    // );
   }
 
   static async updateGraphhopperResponse(

@@ -24,6 +24,8 @@ export const useDynamicTourService = () => {
   const {
     selectedTour,
     setSelectedTour,
+    dynamicToursList,
+    setDynamicToursList,
     updateDynamicToursList,
     pinboard_removeOrders,
   } = useDynamicTourStore();
@@ -313,6 +315,11 @@ export const useDynamicTourService = () => {
       const res = await adminApiService.acceptDynamicTour(request);
       console.log("Accept D-Tour Response:", res);
 
+      const updated_dTourList = dynamicToursList.filter(
+        (dt) => dt.id !== request.dTour_id
+      );
+      setDynamicToursList(updated_dTourList);
+
       showNotification({
         message: `Tour ${res.tourName} created successfully`,
         severity: NotificationSeverity.Success,
@@ -343,6 +350,11 @@ export const useDynamicTourService = () => {
 
       const res = await adminApiService.rejectDynamicTour(request);
       console.log("Reject D-Tour Response:", res);
+
+      const updated_dTourList = dynamicToursList.filter(
+        (dt) => dt.id !== request.tour_id
+      );
+      setDynamicToursList(updated_dTourList);
 
       showNotification({
         message: "Tour Rejected Successfully",

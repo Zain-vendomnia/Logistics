@@ -48,6 +48,7 @@
     "leaflet-polylinedecorator": "^1.6.0",
     "leaflet-routing-machine": "^3.2.12",
     "leaflet.markercluster": "^1.5.3",
+    "localforage": "^1.10.0",
     "lodash": "^4.17.21",
     "os-browserify": "^0.3.0",
     "path-browserify": "^1.0.1",

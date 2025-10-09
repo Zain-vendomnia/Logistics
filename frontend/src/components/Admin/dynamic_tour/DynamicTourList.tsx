@@ -46,9 +46,9 @@ const DynamicTourList = () => {
   const { dynamicToursList, selectedTour, setSelectedTour } =
     useDynamicTourStore();
 
-  console.log("dynamicTours", dynamicToursList);
+  // console.log("dynamicTours", dynamicToursList);
 
-  const [selectedTourItem, setSelectedTOurItem] = useState(selectedTour);
+  const [selectedTourItem, setSelectedTourItem] = useState(selectedTour);
 
   const [searchItem, setSearchItem] = useState("");
 
@@ -56,7 +56,7 @@ const DynamicTourList = () => {
   let filteredTours: DynamicTourPayload[] = dynamicToursList;
 
   useEffect(() => {
-    setSelectedTOurItem(selectedTour);
+    setSelectedTourItem(selectedTour);
   }, [selectedTour]);
 
   const handleTourSelect = (tour: DynamicTourPayload) => {
