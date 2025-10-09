@@ -23,6 +23,7 @@ import useLiveOrderUpdates from "../../../socket/useLiveOrderUpdates";
 import DynamicTourList from "./DynamicTourList";
 import DynamicTourDetails from "./DynamicTourDetails";
 import { Order } from "../../../types/order.type";
+import useLiveDTourUpdates from "../../../socket/useLiveDTourUpdates";
 
 const defaultIcon = new L.Icon({
   iconUrl:
@@ -100,14 +101,23 @@ const DymanicMapBoard = () => {
     selectedTour,
     dynamicToursList,
     setDynamicToursList,
+    updateDynamicToursList,
   } = useDynamicTourStore();
 
   useLiveOrderUpdates((new_order) => {
     console.log(
-      `[${new Date().toLocaleTimeString()}] - New Shop Order`,
+      `[${new Date().toLocaleTimeString()}] - New Pin-Board Order: `,
       new_order
     );
     pinboard_AddOrders([new_order]);
+  });
+
+  useLiveDTourUpdates((dTour: DynamicTourPayload) => {
+    console.log(
+      `[${new Date().toLocaleTimeString()}] - New Dynamic Tour: `,
+      dTour.tour_name
+    );
+    updateDynamicToursList(dTour);
   });
 
   const [vehicleTours, setVehicleTours] = useState<Geometry[]>([]);
@@ -191,19 +201,6 @@ const DymanicMapBoard = () => {
 
     allCoords = extract_Coords(selectedTour.tour_route);
 
-    // setVehicleTours((prev) => {
-    //   const idx = prev.findIndex(
-    //     (v) => v.vehicleId === selectedTour.tour_route?.vehicleId
-    //   );
-    //   if (idx === -1 || prev[idx] !== selectedTour.tour_route) {
-    //     const newArr = [...prev];
-    //     idx === -1
-    //       ? newArr.push(selectedTour.tour_route!)
-    //       : (newArr[idx] = selectedTour.tour_route!);
-    //     return newArr;
-    //   }
-    //   return prev;
-    // });
     setVehicleTours((prev) =>
       prev.map((route) =>
         route.vehicleId === selectedTour.tour_route?.vehicleId

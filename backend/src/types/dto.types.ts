@@ -12,7 +12,7 @@ export type CreateTour = {
   driverId: number;
   warehouseId: number;
   userId?: string;
-  created_by?: stirng;
+  created_by?: string;
 };
 
 export type rejectDynamicTour_Req = {

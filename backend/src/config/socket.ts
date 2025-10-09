@@ -4,6 +4,7 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import config from "./config";
 import pool from "./database";
+import { DynamicTourPayload } from "../types/dto.types";
 
 declare module "socket.io" {
   interface Socket { user?: any; userRole?: string; userId?: string; }
@@ -175,5 +176,10 @@ export const sendCustomerListError = (socketId: string, errorMessage: string, tr
 
 export const joinOrderRoom = (socketId: string, orderId: string) => io?.sockets.sockets.get(socketId)?.join(`order-${orderId}`);
 export const leaveOrderRoom = (socketId: string, orderId: string) => io?.sockets.sockets.get(socketId)?.leave(`order-${orderId}`);
+
 export const emitEvent = (event: string, payload: any) => io ? io.emit(event, payload) : console.warn(`Socket.IO not initialized. Event '${event}' not emitted.`);
 export const emitNewOrder = (order: any) => emitEvent("new-order", order);
+export const emitNewDynamicTour = (dTour: DynamicTourPayload) => 
+  emitEvent("new-dynamic-tour", dTour);
+// export const emitNewDynamicTour = (dTour: string) => emitEvent("new-dynamic-tour", dTour);
+export const emitDynamicTourUpdate = (dTour: string) => emitEvent("update-dynamic-tour", dTour);

@@ -29,6 +29,7 @@ import {
   validatePayload,
 } from "./helpers/dynamicTour.helpers";
 import { generateTourName } from "../helpers/tour.helper";
+import { emitNewDynamicTour } from "../config/socket";
 
 // export async function createDynamicTourWithCostEvaluationAsync(
 //   payload: DynamicTourPayload
@@ -85,7 +86,7 @@ export async function createDynamicTourAsync(payload: DynamicTourPayload) {
       await handleExistingTour(connection, payload, payload_orderIds);
     }
 
-    const new_dTour = await persistDynamicTour(
+    const new_dTour: DynamicTourPayload = await persistDynamicTour(
       connection,
       payload,
       tour,
@@ -93,6 +94,8 @@ export async function createDynamicTourAsync(payload: DynamicTourPayload) {
       unassigned,
       txnOrderIds
     );
+
+    await connection.commit();
 
     const unassignedOrders = buildUnassignedOrders(unassigned, orders);
 
@@ -113,14 +116,19 @@ export async function createDynamicTourAsync(payload: DynamicTourPayload) {
       );
     }
 
+    const new_dTour_withMatrix: DynamicTourPayload = {
+      ...new_dTour,
+      matrix: matrix ?? undefined,
+    };
+
+    emitNewDynamicTour(new_dTour_withMatrix);
+    // emitNewDynamicTour(new_dTour.tour_name!);
+
     // matrix = await getTourMatrix(new_dTour.id!);
     const response: DynamicTourRes = {
       tour: tour,
       unassigned: unassignedOrders,
-      dynamicTour: {
-        ...new_dTour,
-        matrix: matrix ?? undefined,
-      },
+      dynamicTour: new_dTour_withMatrix,
     };
     logWithTime(
       `Dynamic Tour Created with ID: ${response.dynamicTour?.id ?? "UNKNOWN"} - 
@@ -324,11 +332,13 @@ export async function acceptDynamicTourAsync(
     tourPayload.dTour_name = dTour.tour_name;
     const { tourId, tourName } = await createTourAsync(connection, tourPayload); //>>
 
-    const hereMapResJson = JSON.stringify(dTour.tour_data);
+    const hereMap_data = JSON.stringify(dTour.tour_data);
+    const hereMap_route = JSON.stringify(routes);
     await tourInfo_master.updateHereMapResponse(
       connection,
       tourId,
-      hereMapResJson
+      hereMap_data,
+      hereMap_route
     );
 
     console.log(`Saving Route Segment for Tour Id: ${tourId} Tour: ${tour}`);

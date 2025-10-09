@@ -36,11 +36,13 @@ export async function getTourMapDataAsync(tourPayload: CreateTour) {
     //Db table updates for tour
     const { tourId, tourName } = await createTourAsync(connection, tourPayload);
 
-    const hereMapResJson = JSON.stringify({ tour, unassigned });
+    const hereMap_data = JSON.stringify({ tour, unassigned });
+    const hereMap_route = JSON.stringify(routes);
     await tourInfo_master.updateHereMapResponse(
       connection,
       tourId,
-      hereMapResJson
+      hereMap_data,
+      hereMap_route
     );
 
     await saveRouteSegments(connection, tourId, routes);
@@ -271,7 +273,7 @@ export async function createDeliveryCostForTour(
 
     await connection.beginTransaction();
 
-    // 1️⃣ Get tour data
+    // Get tour data
     let tourData: any;
     if (type === TourType.dynamicTour) {
       const [rows]: any = await connection.execute(
@@ -289,7 +291,7 @@ export async function createDeliveryCostForTour(
 
     if (!tourData) throw new Error(`Tour ${tourId} not found`);
 
-    // 2️⃣ Compute totals
+    // Compute totals
     const orderWithItems = await LogisticOrder.getOrdersWithItemsAsync(
       tourData.orderIds.split(",").map(Number)
     );
@@ -301,7 +303,7 @@ export async function createDeliveryCostForTour(
     const tour = tourData.tour_data.tour as Tour;
     const { totalDistanceKm, totalDurationHrs } = extractTourStats(tour);
 
-    // 3️⃣ Get delivery cost rates
+    // Get delivery cost rates
     const [ratesRows]: any = await connection.execute(`
       SELECT * FROM delivery_cost_rates
       ORDER BY id DESC
@@ -310,7 +312,7 @@ export async function createDeliveryCostForTour(
     const rates = ratesRows[0] as DeliveryCostRates;
     if (!rates) throw new Error("No delivery cost rates found");
 
-    // 4️⃣ Compute costs
+    // Compute costs
     const personnelCost = rates.personnel_costs_per_hour * totalDurationHrs;
     const dieselCost =
       (rates.diesel_costs_per_liter *
@@ -342,7 +344,7 @@ export async function createDeliveryCostForTour(
     console.log("costPerBkw: ", costPerBkw);
     console.log("costPerSlmd: ", costPerSlmd);
 
-    // 5️⃣ Check if already exists
+    // Check if already exists
     const idColumn =
       type === TourType.masterTour ? "tour_id" : "dynamic_tour_id";
     const [matrixRows]: any = await connection.execute(
@@ -351,7 +353,7 @@ export async function createDeliveryCostForTour(
     );
     const isExist = matrixRows[0];
 
-    // 6️⃣ Insert or update
+    // Insert or update
     let query_matrix = "";
     let params: any[] = [];
 

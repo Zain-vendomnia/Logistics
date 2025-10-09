@@ -8,6 +8,7 @@ import { Location } from "../types/hereMap.types";
 
 export enum OrderStatus {
   initial = "initial",
+  inProcess = "inProcess",
   unassigned = "unassigned",
   assigned = "assigned",
   inTransit = "inTransit",
@@ -392,7 +393,7 @@ export class LogisticOrder {
       params.push(sinceDate, sinceDate);
     }
 
-    query += ` ORDER BY o.order_id LIMIT 100`;
+    query += ` ORDER BY o.order_id`;
     // query += ` ORDER BY o.updated_at DESC, o.created_at DESC`;
 
     try {
@@ -440,6 +441,18 @@ export class LogisticOrder {
       return orders;
     } catch (error) {
       console.error("Error fetching pin-b orders:", error);
+      throw error;
+    }
+  }
+
+  static async getPendingOrdersCount(): Promise<number> {
+    try {
+      const [rows] = await pool.execute<RowDataPacket[]>(
+        `SELECT COUNT(*) as count FROM logistic_order WHERE status IN ('initial', 'unassigned', 'rescheduled')`
+      );
+      return Number(rows[0].count) || 0;
+    } catch (error) {
+      console.error("Error fetching pending orders count:", error);
       throw error;
     }
   }

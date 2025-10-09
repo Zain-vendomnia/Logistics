@@ -1,6 +1,8 @@
 import { StateCreator, create } from "zustand";
-import { DynamicTourPayload } from "../types/tour.type";
 import { createJSONStorage, persist } from "zustand/middleware";
+import localforage from "localforage";
+
+import { DynamicTourPayload } from "../types/tour.type";
 import { Order } from "../types/order.type";
 
 type DynamicTourStore = {
@@ -17,6 +19,23 @@ type DynamicTourStore = {
   selectedTour: DynamicTourPayload | null;
   setSelectedTour: (dTour: DynamicTourPayload | null) => void;
 };
+
+const indexStorage = localforage.createInstance({
+  name: "dynamic-mapBoard-heavy",
+});
+export async function saveDynamicToursToIndexDb(tours: DynamicTourPayload[]) {
+  await indexStorage?.setItem("dynamicToursList", tours);
+}
+export async function loadDynamicToursFromIndexDb(): Promise<
+  DynamicTourPayload[]
+> {
+  return (
+    (await indexStorage.getItem<DynamicTourPayload[]>("dynamicToursList")) || []
+  );
+}
+export async function clearDynamicToursFromIndexDb() {
+  await indexStorage.removeItem("dynamicToursList");
+}
 
 const createDynamicTourStore: StateCreator<DynamicTourStore> = (set, get) => ({
   pinboard_OrderList: [],
@@ -37,19 +56,26 @@ const createDynamicTourStore: StateCreator<DynamicTourStore> = (set, get) => ({
     })),
 
   dynamicToursList: [],
-  setDynamicToursList: (dTours) => set({ dynamicToursList: dTours }),
+  setDynamicToursList: async (dTours) => {
+    set({ dynamicToursList: dTours });
+    await saveDynamicToursToIndexDb(dTours);
+  },
 
-  updateDynamicToursList: (dTour: DynamicTourPayload) =>
+  updateDynamicToursList: async (dTour: DynamicTourPayload) =>
     set((state) => {
-      const index = state.dynamicToursList.findIndex((t) => t.id === dTour.id);
-      console.log("Dynamic Tour List - changed tour Index", index);
-      if (index === -1) {
-        return { dynamicToursList: [dTour, ...state.dynamicToursList] };
+      const existingIndex = state.dynamicToursList.findIndex(
+        (t) => t.id === dTour.id
+      );
+
+      if (existingIndex === -1) {
+        const newList = [dTour, ...state.dynamicToursList];
+        saveDynamicToursToIndexDb(newList);
+        return { dynamicToursList: newList };
       }
 
       const updatedList = [...state.dynamicToursList];
-      updatedList[index] = dTour;
-
+      updatedList[existingIndex] = dTour;
+      saveDynamicToursToIndexDb(updatedList);
       return { dynamicToursList: updatedList };
     }),
 
@@ -64,9 +90,29 @@ const useDynamicTourStore = create<DynamicTourStore>()(
     version: 1,
     partialize: (state) => ({
       pOrderList: state.pinboard_OrderList,
-      dynamicTours: state.dynamicToursList,
+      lastFetchedAt: state.lastFetchedAt,
       selectedTour: state.selectedTour,
+      dynamicTours: state.dynamicToursList.map((t) => ({
+        id: t.id,
+        name: t.tour_name,
+      })),
     }),
+    onRehydrateStorage: () => async (state) => {
+      if (!state) return;
+      try {
+        const dynamicTours = await loadDynamicToursFromIndexDb();
+        if (dynamicTours.length) {
+          state.setDynamicToursList(dynamicTours);
+          console.log(
+            `[DynamicTourStore] Rehydrated ${dynamicTours.length} tours from IndexedDB`
+          );
+        } else {
+          console.warn("[DynamicTourStore] No heavy tours found in IndexedDB");
+        }
+      } catch (error) {
+        console.error("[DynamicTourStore] Failed to load heavy tours:", error);
+      }
+    },
   })
 );
 

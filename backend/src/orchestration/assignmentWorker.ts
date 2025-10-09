@@ -17,7 +17,7 @@ import { haversineKm } from "../helpers/tour.helper";
 
 // const SECTOR_ANGLE_DEG = 30;
 // const SECTOR_ANGLE_RAD = (SECTOR_ANGLE_DEG * Math.PI) / 180;
-const MATRIX_CONCURRENCY = 3; // Concurrent calls
+const MATRIX_CONCURRENCY = 7; // Concurrent calls
 
 const MIN_ORDERS = 10;
 // const MAX_CLUSTER_SIZE = 32;
@@ -27,28 +27,28 @@ const MAX_TOUR_DISTANCE_METERS = 600 * 1000; // 600 km -> meters
 // const SERVICE_TIME_PER_STOP_MIN = 5;
 // const AVERAGE_SPEED_KMPH = 100;
 
-// Replace with Redis/DB distributed lock implementation
-// async function acquireLock(key: string, ttlMs = 30_000): Promise<boolean> {
-//   // implement: return true if lock acquired, false if not
-//   return true;
-// }
-// async function releaseLock(key: string): Promise<void> {
-//   // implement
-// }
-
-// Replace with caching (Redis recommended)
 const simpleCache = new Map<string, any>();
 async function cacheGet<T>(k: string): Promise<T | undefined> {
   return simpleCache.get(k);
 }
-async function cacheSet(k: string, v: any, ttlSeconds?: number) {
+async function cacheSet(k: string, v: any, ttl = 6 * 60000) {
   simpleCache.set(k, v);
-
-  console.log("ttl Secondes: ", ttlSeconds);
-  // ignore TTL in this simple impl
+  setTimeout(() => {
+    simpleCache.delete(k);
+    console.log(`Cache expired for key: ${k}`);
+  }, ttl);
+}
+async function cacheDel(k: string) {
+  if (simpleCache.has(k)) {
+    simpleCache.delete(k);
+    console.log(`Cache deleted for key: ${k}`);
+  }
+}
+async function flushCache() {
+  simpleCache.clear();
+  console.warn("Cache flushed");
 }
 
-// Useing caching + concurrency limiting + retries.
 async function trimClusterToFitUsingMatrix(
   warehouse: Warehouse,
   cluster: Order[]
@@ -56,7 +56,7 @@ async function trimClusterToFitUsingMatrix(
   const trimmed: Order[] = [];
   if (!cluster.length) return { fitted: [], trimmed };
 
-  // generate cache key
+  // cache key
   const clusterKey = `matrix:${warehouse.id}:${cluster
     .map((o) => o.order_id)
     .join(",")}`;
@@ -71,7 +71,7 @@ async function trimClusterToFitUsingMatrix(
       matrix = await getWarehouseToOrdersMatrix(warehouse, cluster);
 
       if (matrix && (!matrix.errorCodes || matrix.errorCodes.length === 0)) {
-        await cacheSet(clusterKey, matrix, 60 * 5); // cache for 5 minutes
+        await cacheSet(clusterKey, matrix);
       } else {
         matrix = undefined;
         console.warn("Matrix Empty, no response form Here API");
@@ -127,6 +127,7 @@ async function trimClusterToFitUsingMatrix(
         cluster.length
       }`
     );
+
     // compute distance meters
     const distanceMeters = helper.computeTourDistanceUsingMatrix(
       matrix!,
@@ -147,27 +148,9 @@ async function trimClusterToFitUsingMatrix(
         `Cluster Accepted: warehouse ${warehouse.town} legnth ${cluster.length}`
       );
 
+      cacheDel(clusterKey);
       return { fitted: cluster, trimmed: [] };
     }
-
-    // trimming loop: remove farthest-from-warehouse until fits or below MIN_ORDERS
-
-    //   const sortedByDist = [...cluster].sort(
-    //   (a, b) =>
-    //     haversineKm(
-    //       warehouse.lat!,
-    //       warehouse.lng!,
-    //       a.location.lat!,
-    //       a.location.lng!
-    //     ) -
-    //     haversineKm(
-    //       warehouse.lat!,
-    //       warehouse.lng!,
-    //       b.location.lat!,
-    //       b.location.lng!
-    //     )
-    // );
-    // let fitted = [...sortedByDist];
 
     let fitted = cluster;
     while (fitted.length >= MIN_ORDERS) {
@@ -185,7 +168,7 @@ async function trimClusterToFitUsingMatrix(
             matrix2 &&
             (!matrix2.errorCodes || matrix2.errorCodes.length === 0)
           ) {
-            await cacheSet(newKey, matrix2, 60 * 5);
+            await cacheSet(newKey, matrix2);
           } else {
             matrix2 = undefined;
           }
@@ -213,6 +196,7 @@ async function trimClusterToFitUsingMatrix(
           dur_sec_2 <= TIME_WINDOW_HOURS * 3600 &&
           dis_mtr_2 <= MAX_TOUR_DISTANCE_METERS
         ) {
+          cacheDel(newKey);
           return { fitted, trimmed };
         } else {
           continue;
@@ -267,12 +251,11 @@ export async function processWarehouseClusters(
       TRIMMED_ORDERS.set(warehouse.id, prev.concat(cluster));
     }
   }
-
   return { ACCEPTED_CLUSTERS, TRIMMED_ORDERS };
 }
 
 export async function processBatch() {
-  // 1) fetch orders, warehouses
+  // fetch orders, warehouses
   const orders: Order[] = await LogisticOrder.getPendingOrdersAsync();
   if (!orders.length) return;
 
@@ -355,28 +338,17 @@ export async function processBatch() {
     }
   }
 
-  // process warehouses (per-warehouse lock)
   console.log(`Creating Dynamic Tours for ${assignments.size} Clusters`);
   for (const [warehouseId, candidateOrders] of assignments.entries()) {
     if (candidateOrders.length < MIN_ORDERS) continue;
 
     const warehouse = warehouses.find((w) => w.id === warehouseId)!;
 
-    // const lockKey = `proc:warehouse:${warehouseId}`;
-    // const locked = await acquireLock(lockKey, 120_000);
-    // if (!locked) {
-    //   console.warn(
-    //     `Could not acquire lock for warehouse ${warehouseId}, skipping`
-    //   );
-    //   continue;
-    // }
-    // try {
     const { ACCEPTED_CLUSTERS, TRIMMED_ORDERS } =
       await processWarehouseClusters(warehouse, candidateOrders);
 
-    // upsert trimmed orders for retry (persist to DB or queue)
     for (const [wid, trimmedOrders] of TRIMMED_ORDERS.entries()) {
-      // save trimmedOrders somewhere for next pass
+      // trimmedOrders for next round
       console.warn(
         `Warehouse ${wid} has ${trimmedOrders.length} trimmed Orders.`
       );
@@ -391,32 +363,8 @@ export async function processBatch() {
         await createDynamicTourForCluster(warehouseId, cluster);
       }
     }
-
-    // } finally {
-    //   await releaseLock(lockKey);
-    // }
   }
 }
-
-export function semaphore(max: number) {
-  let current = 0;
-  const queue: (() => void)[] = [];
-  async function enter() {
-    if (current < max) {
-      current++;
-      return;
-    }
-    await new Promise<void>((res) => queue.push(res));
-    current++;
-  }
-  function leave() {
-    current--;
-    const next = queue.shift();
-    if (next) next();
-  }
-  return { enter, leave };
-}
-const matrixSemaphore = semaphore(MATRIX_CONCURRENCY);
 
 async function createDynamicTourForCluster(
   warehouseId: number,
@@ -449,3 +397,29 @@ async function createDynamicTourForCluster(
     );
   }
 }
+
+function semaphore(max: number) {
+  let current = 0;
+  const queue: (() => void)[] = [];
+  async function enter() {
+    if (current < max) {
+      current++;
+      return;
+    }
+    await new Promise<void>((res) => queue.push(res));
+    current++;
+  }
+  function leave() {
+    current--;
+    console.log(`[Batch Process] active: ${current}, queued: ${queue.length}`);
+
+    const next = queue.shift();
+    if (next) next();
+
+    if (current === 0 && queue.length === 0) {
+      flushCache();
+    }
+  }
+  return { enter, leave };
+}
+export const matrixSemaphore = semaphore(MATRIX_CONCURRENCY);
