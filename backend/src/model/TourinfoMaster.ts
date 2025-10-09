@@ -65,7 +65,7 @@ export class tourInfo_master {
   static async getRouteResponse(_tourId: number): Promise<any> {
     // Run the SQL query to get the graphhopper_route for the given tour_id
     const [rows] = await pool.execute(
-      `SELECT heremap_route FROM tourinfo_master WHERE id = ?`,
+      `SELECT * FROM tourinfo_master WHERE id = ?`,
       [_tourId]
     );
     // TypeScript type assertion to ensure we're dealing with RowDataPacket[]

@@ -1,21 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 
-import {
-  Badge,
-  Box,
-  IconButton,
-  Paper,
-  Typography,
-  List,
-  ListItem,
-  Divider,
-  Avatar,
-  Stack,
-  Button,
-  Chip,
-  ListItemIcon,
-  ListItemText,
-} from "@mui/material";
+import { Box, IconButton, Typography } from "@mui/material";
 import CircularProgress from "@mui/material/CircularProgress";
 import GpsFixedIcon from "@mui/icons-material/GpsFixed";
 
@@ -35,46 +20,11 @@ import adminApiService from "./../../services/adminApiService";
 import { DynamicTourPayload, Geometry, Stop } from "./../../types/tour.type";
 import useDynamicTourStore from "./../../store/useDynamicTourStore";
 import useLiveOrderUpdates from "./../../socket/useLiveOrderUpdates";
+import TourList from "./TourList";
+import DynamicTourDetails from "./dynamic_tour/DynamicTourDetails";
 import { Order } from "./../../types/order.type";
-import Tooltip from "@mui/material/Tooltip";
-import {
-  AccessTime,
-  Article,
-  ProductionQuantityLimits,
-} from "@mui/icons-material";
-import NoteAltIcon from "@mui/icons-material/NoteAlt";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+
 import { useParams } from "react-router-dom";
-
-import DynamicTourList from "./dynamic_tour/DynamicTourList";
-
-// interface Stop {
-//   location: { lat: number; lng: number };
-//   time: { arrival: string; departure: string };
-//   activities: { jobId: string; type: string }[];
-// }
-
-// interface RouteSection {
-//   coordinates: [number, number][];
-//   summary: any;
-// }
-
-// interface VehicleTour {
-//   vehicleId: string;
-//   sections: RouteSection[];
-//   stops: Stop[];
-// }
-
-// interface DynamicTourPayload {
-//   id?: number;
-//   tour_number: string;
-//   tour_route: VehicleTour;
-//   orderIds: string; // Comma-separated
-//   warehouse_id: number;
-// }
-
-// functions
-// Marker Icons
 
 const defaultIcon = new L.Icon({
   iconUrl:
@@ -130,7 +80,7 @@ const getStopIcon = (stop: Stop) => {
   return defaultIcon;
 };
 
-const extract_Coords = (tours: Geometry[]): [number, number][] => {
+const extract_Coords = (tours: Geometry[] | Geometry): [number, number][] => {
   const array = Array.isArray(tours) ? tours : [tours];
 
   return array.flatMap((v) => [
@@ -141,16 +91,16 @@ const extract_Coords = (tours: Geometry[]): [number, number][] => {
 
 const colors = ["blue", "green", "red", "purple", "orange", "brown"];
 
-const TourMapPage = () => {
+const DymanicMapBoard = () => {
   const mapRef = useRef<L.Map | null>(null);
-
-  const [selectedTour, setSelectedTour] = useState<any | null>(null);
+  const focusedTourIdRef = useRef<string | null>(null);
 
   const {
     pinboard_OrderList,
     lastFetchedAt,
     pinboard_AddOrders,
-
+    selectedTour,
+    dynamicToursList,
     setDynamicToursList,
   } = useDynamicTourStore();
 
@@ -163,6 +113,7 @@ const TourMapPage = () => {
   });
 
   const [vehicleTours, setVehicleTours] = useState<Geometry[]>([]);
+  const [mapBoardTours, setMapBoardTours] = useState<Geometry[]>([]);
 
   const [isLoading, setIsLoading] = useState<boolean>(
     vehicleTours.length === 0
@@ -172,7 +123,6 @@ const TourMapPage = () => {
     [52.520008, 13.404954], // Berlin Germany
     // [50.110924, 8.682127], // Frankfurt Germany
   ];
-
   let allCoords: [number, number][] = fallbackCoords;
 
   const flyToBoundsOptions = {
@@ -181,6 +131,8 @@ const TourMapPage = () => {
     duration: 1.5,
   };
 
+  const { tour_id } = useParams<{ tour_id: string }>();
+
   // Fetch Dynamic Tours
   useEffect(() => {
     const fetchTours = async () => {
@@ -188,9 +140,25 @@ const TourMapPage = () => {
         // const res = await adminApiService.plotheremap();
         const dynamic_tours = await adminApiService.fetchDynamicTours();
 
+          const stour = await adminApiService.getRouteResponse(Number(tour_id));
+
+          const tours = [stour.data.tour]; // wrap single tour object in an array
+
+          const cleaned = tours.map(({ stops, vehicleId }) => ({
+            stops,
+            vehicleId,
+            sections: []  // default empty array
+          }));
+
+          console.log(`Dynamic Tours Fetched - Map Board: `, dynamic_tours);
+          console.log(`Tours Fetched - Map Board: `, [stour.data.tour]);
+
+          console.log('Cleaned : ', cleaned);
         const tours_route: Geometry[] = dynamic_tours.flatMap(
           (tour: DynamicTourPayload) => tour.tour_route || []
         );
+
+          console.log('tours_route :',  tours_route);
         // const tours: VehicleTour[] = routes.map((vehicle: any) => ({
         //   vehicleId: vehicle.vehicleId,
         //   sections: vehicle.sections.map((section: any) => ({
@@ -201,10 +169,9 @@ const TourMapPage = () => {
         // }));
 
         // console.log('Dynamic Tours: ', dynamic_tours)
-        // setDynamicTours(dynamic_tours as DynamicTourPayload[]);
-        setVehicleTours(tours_route);
-
-        console.log('tours_route : ',tours_route);
+        // setDynamicToursList(dynamic_tours as DynamicTourPayload[]);
+        setVehicleTours(cleaned);
+        setMapBoardTours([stour.data.tour]);
       } catch (err) {
         console.error("API call failed", err);
       } finally {
@@ -219,9 +186,12 @@ const TourMapPage = () => {
   useEffect(() => {
     if (!mapRef.current) return;
 
-    if (!isLoading && vehicleTours.length > 0) {
+    if (
+      !isLoading &&
+      vehicleTours.length > 0 &&
+      focusedTourIdRef.current === null
+    ) {
       allCoords = extract_Coords(vehicleTours);
-
       const bounds = L.latLngBounds(allCoords);
       mapRef.current.flyToBounds(bounds, flyToBoundsOptions as any);
 
@@ -229,16 +199,44 @@ const TourMapPage = () => {
       //   mapRef.current?.setZoom(mapRef.current.getZoom() - 1); // zoom out 1 level
       // }, 1600);
     }
+    // }, []);
   }, [isLoading, vehicleTours]);
 
+// important
   // mapRef to selected tour
   useEffect(() => {
     if (!selectedTour || !selectedTour.tour_route || !mapRef.current) return;
 
     allCoords = extract_Coords(selectedTour.tour_route);
 
-    const bounds = L.latLngBounds(allCoords);
-    mapRef.current.flyToBounds(bounds, flyToBoundsOptions as any);
+    // setVehicleTours((prev) => {
+    //   const idx = prev.findIndex(
+    //     (v) => v.vehicleId === selectedTour.tour_route?.vehicleId
+    //   );
+    //   if (idx === -1 || prev[idx] !== selectedTour.tour_route) {
+    //     const newArr = [...prev];
+    //     idx === -1
+    //       ? newArr.push(selectedTour.tour_route!)
+    //       : (newArr[idx] = selectedTour.tour_route!);
+    //     return newArr;
+    //   }
+    //   return prev;
+    // });
+    setVehicleTours((prev) =>
+      prev.map((route) =>
+        route.vehicleId === selectedTour.tour_route?.vehicleId
+          ? selectedTour.tour_route
+          : route
+      )
+    );
+
+    if (focusedTourIdRef.current !== selectedTour.tour_route.vehicleId) {
+      focusedTourIdRef.current = selectedTour.tour_route.vehicleId;
+
+      const bounds = L.latLngBounds(allCoords);
+      mapRef.current.flyToBounds(bounds, flyToBoundsOptions as any);
+      console.log(`UPdating Map ref for Selected Tour`);
+    }
   }, [selectedTour]);
 
   // Fetch pinboard orders
@@ -248,27 +246,33 @@ const TourMapPage = () => {
         const now = Date.now();
         const staleAfter = 1000 * 60 * 30; // 30 minutes
         const isStale = !lastFetchedAt || now - lastFetchedAt > staleAfter;
+        console.log(`isStale: ${isStale}`);
+        console.log(`pinboard_OrderList.length: ${pinboard_OrderList.length}`);
         if (pinboard_OrderList.length === 0 || isStale) {
           const orders: Order[] =
             await adminApiService.fetchPinboardOrders(lastFetchedAt);
 
           console.error("Pin-b Orders: ", orders);
 
-          const existingIds = new Set(
-            pinboard_OrderList.map((o) => o.order_id)
-          );
-          const newOrders = orders.filter((o) => !existingIds.has(o.order_id));
-          pinboard_AddOrders(newOrders);
+          if (orders.length) {
+            const existingIds = new Set(
+              pinboard_OrderList.map((o) => o.order_id)
+            );
+            const newOrders = orders.filter(
+              (o) => !existingIds.has(o.order_id)
+            );
+            pinboard_AddOrders(newOrders);
 
-          // Update map view
-          const locations = orders.map((o) => o.location);
-          if (mapRef.current && locations.length > 0) {
-            const bounds = L.latLngBounds(locations as any);
-            mapRef.current.flyToBounds(bounds, {
-              padding: [50, 50],
-              maxZoom: 6,
-              duration: 1.5,
-            });
+            // Update map view
+            const locations = orders.map((o) => o.location);
+            if (mapRef.current && locations.length > 0) {
+              const bounds = L.latLngBounds(locations as any);
+              mapRef.current.flyToBounds(bounds, {
+                padding: [50, 50],
+                maxZoom: 6,
+                duration: 1.5,
+              });
+            }
           }
         }
       } catch (err) {
@@ -307,117 +311,6 @@ const TourMapPage = () => {
     );
   };
 
-  const formattedDate = new Date();
-  const cleanDate = formattedDate.toISOString().split("T")[0]; // Extract YYYY-MM-DD
-  const formatTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    return `${hours}h ${minutes}m`;
-  };
-
-  const [stops, setStops] = useState<Stop[]>([]);
-
-  // Format the tour start time (remove trailing :00)
-  // const cleanStartTime = selectedTour.tour_startTime.replace(/:00$/, '');
-
-  const [routePoints, setRoutePoints] = useState<[number, number][][]>([]);
-  const [loading, setLoading] = useState(true);
-  const [routeDistance, setRouteDistance] = useState<number>(0);
-  const [routeTime, setRouteTime] = useState<number>(0);
-  const [editModalOpen, setEditModalOpen] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
-  const [lastEdited, setLastEdited] = useState<number | null>(null);
-  const { tour_id } = useParams<{ tour_id: string }>();
-  const parsedTourId = tour_id ? parseInt(tour_id, 10) : null;
-
-  const fetchRouteData = async () => {
-    try {
-      if (parsedTourId !== null) {
-        const response = await adminApiService.getRouteResponse(parsedTourId);
-        const data = response.data;
-        console.log("----> ", data);
-        if (data && data.solution && data.solution.routes.length > 0) {
-          const route = data.solution.routes[0];
-
-          const distance = data.solution.distance; // in meters
-
-          const distanceInKilometers = (distance / 1000).toFixed(2); // 2 decimal places
-          setRouteDistance(parseFloat(distanceInKilometers)); // Set distance in kilometers
-
-          const time = data.solution.time; // in seconds
-
-          setRouteTime(time);
-          const formattedRoutes = route.points.map(
-            (routePoint: { coordinates: [number, number][] }) =>
-              routePoint.coordinates.map(([lon, lat]) => [lat, lon])
-          );
-          setRoutePoints(formattedRoutes);
-
-          const mappedStops: Stop[] = route.activities.map(
-            (activity: any, index: number) => ({
-              id: `${index + 1}`,
-              location_id: activity.location_id,
-              lat: activity.address.lat,
-              lon: activity.address.lon,
-              arrival: activity.arr_date_time,
-              type: activity.type,
-            })
-          );
-          console.log("mappedStops : ", route);
-          setStops(mappedStops);
-        }
-        setLoading(false);
-      }
-    } catch (error) {
-      console.error("Error fetching route data:", error);
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchRouteData();
-  }, [parsedTourId]);
-
-  const blink = {
-    animation: "blinker 1.5s linear infinite",
-    "@keyframes blinker": {
-      "50%": { opacity: 0.5 },
-    },
-  };
-  const livePulse = {
-    display: "inline-flex",
-    alignItems: "center",
-    "&::before": {
-      content: '""',
-      width: "8px",
-      height: "8px",
-      borderRadius: "50%",
-      backgroundColor: "#00e676",
-      marginRight: "8px",
-      animation: "pulse 1.2s infinite ease-in-out",
-    },
-    "@keyframes pulse": {
-      "0%": {
-        transform: "scale(0.8)",
-        opacity: 0.7,
-      },
-      "50%": {
-        transform: "scale(1.2)",
-        opacity: 1,
-      },
-      "100%": {
-        transform: "scale(0.8)",
-        opacity: 0.7,
-      },
-    },
-  };
-  const zoomToStop = (lat: number, lon: number) => {
-    const map = mapRef.current;
-    if (map) {
-      map.flyTo([lat, lon], 15, { duration: 0.5 });
-    }
-  };
-
   return (
     <>
       <Box
@@ -435,7 +328,7 @@ const TourMapPage = () => {
 
       <Box display="flex" height="100%" width="100%">
         {/* Left Panel */}
-        <DynamicTourList />
+        <TourList />
 
         {/* Right Map */}
         <Box flexGrow={1} position="relative">
@@ -453,365 +346,13 @@ const TourMapPage = () => {
               <CircularProgress size={60} thickness={5} disableShrink />
             </Box>
           )}
-
-          <Paper
-            sx={{
-              width: 340,
-              p: 2,
-              overflowY: "auto",
-              borderRight: "1px solid #ddd",
-              backgroundColor: "#f9f9f9",
-            }}
-            elevation={3}
-          >
-            <Typography variant="h6">
-              {/*{selectedTour.tour_name} - {cleanDate} {cleanStartTime}*/}
-            </Typography>
-
-            <Box mt={1} display="flex" flexWrap="wrap" gap={1}>
-              <Typography
-                variant="caption"
-                sx={{ bgcolor: "#86d160", px: 1, py: 0.5, borderRadius: 1 }}
-              >
-                {stops.length} Ziele
-              </Typography>
-              <Typography
-                variant="caption"
-                sx={{ bgcolor: "#41d7eb", px: 1, py: 0.5, borderRadius: 1 }}
-              >
-                {routeDistance} km
-              </Typography>
-              <Typography
-                variant="caption"
-                sx={{ bgcolor: "#f1aae9", px: 1, py: 0.5, borderRadius: 1 }}
-              >
-                {formatTime(routeTime)}
-              </Typography>
-              <Typography
-                variant="caption"
-                sx={{ bgcolor: "#dec1ff", px: 1, py: 0.5, borderRadius: 1 }}
-              >
-                {/*{selectedTour.tour_startTime}*/}
-              </Typography>
-            </Box>
-
-            <Divider sx={{ my: 2 }} />
-            <List disablePadding>
-              {stops.map((stop, index) => {
-                console.log("stops : ", stop);
-                // const isWarehouse = stop.location_id === "v1";
-                const isWarehouse = 1;
-                const matchedOrder = selectedTour?.orders?.find(
-                  // (order: any) => order.order_id === Number(stop.location_id)
-                  (order: any) => order.order_id === Number(1)
-                );
-                // console.log("matchedOrder"+ JSON.stringify(matchedOrder));
-
-                // Skip rendering if not a warehouse and there's no matching order
-                if (!isWarehouse && !matchedOrder) return null;
-
-                return (
-                  <ListItem
-                    key={index}
-                    disableGutters
-                    sx={{
-                      mb: 1,
-                      borderBottom: "1px dashed #ccc",
-                      pb: 1,
-                      alignItems: "flex-start",
-                      position: "relative", // Enable absolute positioning inside
-                    }}
-                  >
-                    {/* === Top-right Button Stack === */}
-                    {!isWarehouse && matchedOrder && (
-                      <Box
-                        sx={{
-                          position: "absolute",
-                          top: 8,
-                          right: 8,
-                          zIndex: 2,
-                        }}
-                      >
-                        <Stack
-                          direction="row"
-                          spacing={0.5}
-                          sx={{
-                            "& .MuiIconButton-root:hover": {
-                              backgroundColor: "rgba(0, 0, 0, 0.04)",
-                              transform: "scale(1.05)",
-                              transition: "all 0.2s ease",
-                            },
-                          }}
-                        >
-                          <Tooltip
-                            arrow
-                            placement="top"
-                            title={
-                              <Typography variant="caption">
-                                Total Qty:{" "}
-                                <strong>
-                                  {matchedOrder.items.reduce(
-                                    (total: number, item: any) =>
-                                      total + Number(item.quantity),
-                                    0
-                                  )}
-                                </strong>
-                              </Typography>
-                            }
-                          >
-                            <IconButton size="small" color="primary">
-                              <ProductionQuantityLimits fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-
-                          <Tooltip
-                            arrow
-                            placement="top"
-                            title={
-                              <ul
-                                style={{
-                                  margin: 0,
-                                  padding: "4px 8px",
-                                  listStyle: "none",
-                                }}
-                              >
-                                {matchedOrder.items.map(
-                                  (item: any, i: number) => (
-                                    <li key={i}>
-                                      <Typography
-                                        component="span"
-                                        variant="caption"
-                                      >
-                                        <strong>
-                                          {item.slmdl_articleordernumber}
-                                        </strong>
-                                      </Typography>
-                                    </li>
-                                  )
-                                )}
-                              </ul>
-                            }
-                          >
-                            <IconButton size="small" color="success">
-                              <Article fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-
-                          <Tooltip title="View Time Log" arrow placement="top">
-                            <IconButton size="small" color="warning">
-                              <AccessTime fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        </Stack>
-                      </Box>
-                    )}
-
-                    {/* === Main Content === */}
-                    <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "flex-start",
-                        width: "100%",
-                      }}
-                    >
-                      <Avatar
-                        sx={{
-                          bgcolor: selectedTour?.tour_route_color,
-                          width: 28,
-                          height: 28,
-                          fontSize: 14,
-                          mt: 0.5,
-                          flexShrink: 0,
-                        }}
-                      >
-                        {/*{stop.type === 'start' ? 'S' : stop.type === 'end' ? 'E' : index}*/}
-                      </Avatar>
-                      <Box sx={{ ml: 2, flexGrow: 1, minWidth: 0 }}>
-                        {/* Order Info Box with zoom */}
-                        <Box
-                          // onClick={() =>
-                          //   stop.type !== 'start' && stop.type !== 'end' && zoomToStop(stop.lat, stop.lon)
-                          // }
-                          sx={{
-                            // cursor: stop.type !== 'start' && stop.type !== 'end' ? 'pointer' : 'default',
-                            // '&:hover': {
-                            //   backgroundColor:
-                            //     stop.type !== 'start' && stop.type !== 'end' ? 'action.hover' : 'transparent',
-                            // },
-                            p: 1,
-                            borderRadius: 1,
-                          }}
-                        >
-                          {isWarehouse ? (
-                            <Typography variant="body2" fontWeight="bold">
-                              {selectedTour?.warehouseaddress ||
-                                "Warehouse Address Not Available"}
-                            </Typography>
-                          ) : (
-                            <Typography fontWeight="bold" variant="body2">
-                              {/*Order ID: {stop?.location_id || 'N/A'}*/}
-                            </Typography>
-                          )}
-
-                          {matchedOrder && (
-                            <>
-                              <Typography
-                                variant="caption"
-                                display="block"
-                                sx={{ mt: 0.5 }}
-                              >
-                                <Box component="span" color="text.secondary">
-                                  {matchedOrder.firstname}
-                                </Box>
-                              </Typography>
-                              <Typography variant="caption" display="block">
-                                <Box component="span" color="text.secondary">
-                                  {matchedOrder.lastname}
-                                </Box>
-                              </Typography>
-                              <Typography variant="caption" display="block">
-                                <Box component="span" color="text.secondary">
-                                  {matchedOrder.street}
-                                </Box>
-                              </Typography>
-                              <Typography variant="caption" display="block">
-                                <Box component="span" color="text.secondary">
-                                  {matchedOrder.city}
-                                </Box>
-                              </Typography>
-                              <Typography variant="caption" display="block">
-                                <Box component="span" color="text.secondary">
-                                  {matchedOrder.zipcode}
-                                </Box>
-                              </Typography>
-                              <Typography
-                                variant="caption"
-                                display="block"
-                                sx={{ mt: 0.5 }}
-                              >
-                                <Box component="span" fontWeight="bold">
-                                  Order Number:{" "}
-                                </Box>
-                                <Box component="span" color="text.secondary">
-                                  {matchedOrder.order_number}
-                                </Box>
-                              </Typography>
-                            </>
-                          )}
-
-                          <Typography
-                            variant="caption"
-                            display="block"
-                            mt={0.5}
-                          >
-                            <Box component="span" fontWeight="bold">
-                              Arrival Time:{" "}
-                            </Box>
-                            {/*                    <Box component="span" color="text.secondary">
-                              {stop?.arrival
-                                ? new Date(stop.arrival).toLocaleTimeString([], {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })
-                                : 'Time Not Set'}
-                            </Box>
-*/}{" "}
-                          </Typography>
-                        </Box>
-
-                        {/* Status Log Box without zoom */}
-                        {/*               {stop.type !== 'start' && stop.type !== 'end' && (
-                          <Box sx={{ mt: 2 }}>
-                            <Divider sx={{ mb: 2 }} />
-
-                            <Typography variant="subtitle2" gutterBottom>
-                              Status Logs
-                            </Typography>
-
-                            <List dense disablePadding style={{ marginTop: '-5px' }}>
-                              <ListItem
-                                key="log-1"
-                                disableGutters
-                                component="div"
-                                sx={{
-                                  alignItems: 'flex-start',
-                                  pb: 0.5,
-                                  borderBottom: '1px dashed #ddd',
-                                  mb: 0.5,
-                                  cursor: 'pointer',
-                                  '&:hover': {
-                                    backgroundColor: '#f5f5f5',
-                                  },
-                                }}
-                              >
-                                <ListItemIcon sx={{ minWidth: 32, mt: 0.2 }}>
-                                  <CheckCircleIcon color="success" fontSize="small" />
-                                </ListItemIcon>
-                                <ListItemText
-                                  primary={
-                                    <Typography variant="caption" color="text.secondary">
-                                      2025-06-04 08:00
-                                    </Typography>
-                                  }
-                                  secondary={
-                                    <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
-                                      Service successfully provided
-                                    </Typography>
-                                  }
-                                />
-                              </ListItem>
-
-                              <ListItem
-                                key="log-2"
-                                disableGutters
-                                component="div"
-                                sx={{
-                                  alignItems: 'flex-start',
-                                  pb: 0.5,
-                                  borderBottom: '1px dashed #ddd',
-                                  mb: 0.5,
-                                  cursor: 'pointer',
-                                  '&:hover': {
-                                    backgroundColor: '#f5f5f5',
-                                  },
-                                }}
-                              >
-                                <ListItemIcon sx={{ minWidth: 32, mt: 0.2 }}>
-                                  <CheckCircleIcon color="success" fontSize="small" />
-                                </ListItemIcon>
-                                <ListItemText
-                                  primary={
-                                    <Typography variant="caption" color="text.secondary">
-                                      2025-06-04 09:20
-                                    </Typography>
-                                  }
-                                  secondary={
-                                    <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
-                                      Delivered
-                                    </Typography>
-                                  }
-                                />
-                              </ListItem>
-                            </List>
-
-                          </Box>
-                        )}*/}
-                      </Box>
-                    </Box>
-                  </ListItem>
-                );
-              })}
-            </List>
-          </Paper>
           <MapContainer
             bounds={L.latLngBounds(allCoords)}
             zoom={12}
             style={{ height: "100%", width: "100%" }}
           >
             <MapReady
-              onMapReady={(mapInstance) => {
-                mapRef.current = mapInstance;
-              }}
+              onMapReady={(mapInstance) => (mapRef.current = mapInstance)}
             />
 
             <TileLayer
@@ -819,39 +360,11 @@ const TourMapPage = () => {
               attribution="&copy; OpenStreetMap contributors"
             />
 
-            {pinboard_OrderList &&
-              pinboard_OrderList.map(
-                (order) =>
-                  order && (
-                    <Marker
-                      key={order.order_id}
-                      position={order.location}
-                      icon={defaultIcon}
-                    >
-                      <Popup>
-                        {pinTitle(order.order_number)}
-                        {/* <strong>{order.order_number}</strong>
-                        <br /> */}
-                        <strong>{order.warehouse_town}</strong>
-                        <br />
-                        {/* <strong>City:</strong> {order.city}
-                        <br />
-                        <strong>Zipcode:</strong> {order.zipcode}
-                        <br /> */}
-                        <strong>Placed at:</strong>{" "}
-                        {new Date(order.order_time).toLocaleDateString()}
-                        <br />
-                        <strong>Deliver by:</strong>{" "}
-                        {new Date(
-                          order.expected_delivery_time
-                        ).toLocaleDateString()}
-                      </Popup>
-                    </Marker>
-                  )
-              )}
+
 
             {vehicleTours.map((vehicle, idx) => {
               const pathColor = colors[idx % colors.length];
+              const isFocused = focusedTourIdRef.current === vehicle.vehicleId;
               return (
                 <React.Fragment key={vehicle.vehicleId}>
                   {vehicle.sections.map((section, secIdx) => (
@@ -861,7 +374,9 @@ const TourMapPage = () => {
                       <Polyline
                         positions={section.coordinates}
                         color={pathColor}
-                        weight={4}
+                        // weight={4}
+                        weight={isFocused ? 12 : 4}
+                        opacity={isFocused ? 1.2 : 0.9}
                       />
                       <PolylineDecoratorWrapper
                         positions={section.coordinates}
@@ -889,7 +404,7 @@ const TourMapPage = () => {
                       );
                     }
                     if (isLastStop) return null;
-                    // ✅ All other stops → numbered icon (starting from 1)
+
                     const numberedIcon = L.divIcon({
                       className: "",
                       html: `
@@ -951,13 +466,14 @@ const TourMapPage = () => {
               );
             })}
           </MapContainer>
+          {/*{selectedTour && <DynamicTourDetails />}*/}
         </Box>
       </Box>
     </>
   );
 };
 
-export default TourMapPage;
+export default DymanicMapBoard;
 
 type MapReadyProps = {
   onMapReady: (map: L.Map) => void;
