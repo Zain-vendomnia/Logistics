@@ -14,6 +14,7 @@ import { DynamicTourPayload } from "../types/dto.types";
 
 import * as helper from "./assignmentWorker.helper";
 import { haversineKm } from "../helpers/tour.helper";
+import logger from "../config/logger";
 
 // const SECTOR_ANGLE_DEG = 30;
 // const SECTOR_ANGLE_RAD = (SECTOR_ANGLE_DEG * Math.PI) / 180;
@@ -74,18 +75,27 @@ async function trimClusterToFitUsingMatrix(
         await cacheSet(clusterKey, matrix);
       } else {
         matrix = undefined;
-        console.warn("Matrix Empty, no response form Here API");
+        logger.warn("Matrix Empty, no response form Here API");
       }
     }
 
     if (!matrix) {
       // fallback to approximate
-      const approxSec = helper.secondsForApproxRoute(warehouse, cluster);
-
-      console.warn(
-        `secondsForApproxRoute(${warehouse.town}, cluster ${cluster.length})`
+      logger.info(
+        `[Seconds Approx Route] fallback for (${warehouse.id}-${warehouse.town}
+          , cluster ${cluster.length}: ${cluster
+          .map((o) => o.order_id)
+          .join(",")} )`
       );
-      console.warn(`approxSec: ${approxSec}`);
+      const approxSec = helper.secondsForApproxRoute(warehouse, cluster);
+      logger.info(
+        `[Seconds Approx Route] ${approxSec} Approx Seconds for (${
+          warehouse.id
+        }-${warehouse.town}
+          , cluster ${cluster.length}: ${cluster
+          .map((o) => o.order_id)
+          .join(",")} )`
+      );
 
       if (approxSec <= TIME_WINDOW_HOURS * 3600)
         return { fitted: cluster, trimmed: [] };
@@ -122,8 +132,8 @@ async function trimClusterToFitUsingMatrix(
 
     // matrix exists, compute tour duration
     const durationSec = helper.computeTourDurationUsingMatrix(matrix!, cluster);
-    console.warn(
-      `Matrix Duration: ${durationSec / 3600}h for cluster size ${
+    logger.info(
+      `[Matrix Route] Matrix Duration ${durationSec / 3600}h for cluster size ${
         cluster.length
       }`
     );
@@ -133,19 +143,21 @@ async function trimClusterToFitUsingMatrix(
       matrix!,
       cluster
     );
-    console.warn(
-      `Matrix Distance: ${distanceMeters / 1000}Km for cluster size ${
-        cluster.length
-      }`
+    logger.info(
+      `[Matrix Route] Matrix Distance: ${
+        distanceMeters / 1000
+      }Km for cluster size ${cluster.length}`
     );
 
     if (
       durationSec <= TIME_WINDOW_HOURS * 3600 &&
       distanceMeters <= MAX_TOUR_DISTANCE_METERS
     ) {
-      console.warn("Round 1st: Cluster Accepted as is");
-      console.warn(
-        `Cluster Accepted: warehouse ${warehouse.town} legnth ${cluster.length}`
+      logger.info("Round 1st: Cluster Accepted as is");
+      logger.info(
+        `Cluster Accepted: Warehouse ${warehouse.town} length ${
+          cluster.length
+        }: ${cluster.map((o) => o.order_id).join(",")} `
       );
 
       cacheDel(clusterKey);
@@ -246,7 +258,7 @@ export async function processWarehouseClusters(
         // all were trimmed
       }
     } catch (err) {
-      console.error("Error trimming cluster", err);
+      logger.error("[Trim Cluster] Error trimming cluster", err);
       const prev = TRIMMED_ORDERS.get(warehouse.id) ?? [];
       TRIMMED_ORDERS.set(warehouse.id, prev.concat(cluster));
     }
@@ -256,6 +268,7 @@ export async function processWarehouseClusters(
 
 export async function processBatch() {
   // fetch orders, warehouses
+  logger.info("[Batch Process] Starting batch processing of orders...");
   const orders: Order[] = await LogisticOrder.getPendingOrdersAsync();
   if (!orders.length) return;
 
@@ -263,6 +276,10 @@ export async function processBatch() {
 
   const warehouses: Warehouse[] = await getActiveWarehousesWithVehicles();
   if (!warehouses.length) return;
+
+  logger.error(
+    `[Batch Process] Fetched ${orders.length} orders and ${warehouses.length} warehouses`
+  );
 
   // ensure coords
   for (const wh of warehouses) {
@@ -338,7 +355,9 @@ export async function processBatch() {
     }
   }
 
-  console.log(`Creating Dynamic Tours for ${assignments.size} Clusters`);
+  logger.info(
+    `[Cluster Assignments] Creating Request for ${assignments.size} Clusters`
+  );
   for (const [warehouseId, candidateOrders] of assignments.entries()) {
     if (candidateOrders.length < MIN_ORDERS) continue;
 
@@ -349,16 +368,20 @@ export async function processBatch() {
 
     for (const [wid, trimmedOrders] of TRIMMED_ORDERS.entries()) {
       // trimmedOrders for next round
-      console.warn(
-        `Warehouse ${wid} has ${trimmedOrders.length} trimmed Orders.`
+      logger.warn(
+        `[Trimmed Orders] Orders trimmed ${
+          trimmedOrders.length
+        } from Warehouse ${
+          warehouses.find((wh) => wh.id === wid)?.town
+        }: Id ${wid}.`
       );
     }
 
-    // Creating dynamic tours for ACCEPTED_CLUSTERS
+    // Dynamic Tours - for ACCEPTED_CLUSTERS
     for (const clusters of ACCEPTED_CLUSTERS.values()) {
       for (const cluster of clusters) {
-        console.log(
-          `Warehouse ${warehouse.town} total clusters:${clusters.length}| cluster:${cluster.length}`
+        logger.info(
+          `[Accepted Clusters] Dynamic Tours Request for Warehouse ${warehouse.town} total clusters:${clusters.length}| cluster:${cluster.length}`
         );
         await createDynamicTourForCluster(warehouseId, cluster);
       }
@@ -376,21 +399,19 @@ async function createDynamicTourForCluster(
       orderIds: orders.map((o) => o.order_id).join(","),
       totalOrdersItemsQty: 0,
     };
-
+    logger.info(
+      `[Dynamic Tours] Creating tour: WH ${warehouseId} with orders: ${tourPayload.orderIds}`
+    );
     await createDynamicTourAsync(tourPayload);
 
-    // console.info("res?.dynamicTour?.id!", res?.dynamicTour?.id!);
-    // console.info("Triggering createDeliveryCostForTour...");
-    // await createDeliveryCostForTour(res?.dynamicTour?.id!);
-
-    console.info(
-      `Successfully created tour for warehouse ${warehouseId}, Orders: ${orders.map(
+    logger.info(
+      `[Dynamic Tours] Successfully created tour: WH ${warehouseId}, Orders: ${orders.map(
         (o) => o.order_id
       )}`
     );
   } catch (err) {
-    console.error(
-      `Failed to create tour for warehouse ${warehouseId}, Orders: ${orders.map(
+    logger.error(
+      `[Dynamic Tours] Failed to create tour: WH ${warehouseId}, Orders: ${orders.map(
         (o) => o.order_id
       )}`,
       err
@@ -411,7 +432,7 @@ function semaphore(max: number) {
   }
   function leave() {
     current--;
-    console.log(`[Batch Process] active: ${current}, queued: ${queue.length}`);
+    logger.info(`[Batch Process] active: ${current}, queued: ${queue.length}`);
 
     const next = queue.shift();
     if (next) next();

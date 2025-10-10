@@ -1,28 +1,30 @@
 import app from "./app";
-import { initSocket } from "./config/socket";
+import logger from "./config/logger";
+import { emitAppConnection, initSocket } from "./config/socket";
 import { runInitialDbSetup } from "./services/core/dbSetupService";
 import { runInitialSyncs } from "./services/core/syncService";
 import { scheduleRecurringSyncs } from "./services/core/scheduleService";
-import { logWithTime } from "./utils/logging";
 import { initOrchestrationWorker } from "./services/core/orchestrationWorker.service";
 
 async function main() {
   try {
-    logWithTime("Running initial database setup...");
-    await runInitialDbSetup();
-    logWithTime("Database setup completed.");
-
     const server = initSocket(app);
+
     server.listen(app.get("port"), async () => {
-      logWithTime(`Server is running on port ${app.get("port")}`);
+      emitAppConnection("connected");
+      logger.info(`Server is running on port ${app.get("port")}`);
+
+      logger.info("Running initial database setup...");
+      await runInitialDbSetup();
+      logger.info("Database setup completed.");
 
       await runInitialSyncs();
       scheduleRecurringSyncs();
       await initOrchestrationWorker();
     });
-  } catch (error) {
-    logWithTime("Startup error:");
-    console.error(error);
+  } catch (error: any) {
+    logger.error(`Startup error: ${error.message || error}`);
+    emitAppConnection("disconnected");
     process.exit(1);
   }
 }

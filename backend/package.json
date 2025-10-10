@@ -41,6 +41,7 @@
     "swagger-ui-express": "^5.0.1",
     "vue-router": "^4.5.0",
     "vuex": "^4.0.2",
+    "winston": "^3.18.3",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
