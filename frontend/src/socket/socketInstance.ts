@@ -6,7 +6,7 @@ const SOCKET_URL = process.env.SOCKET_URL || "http://localhost:8080";
 let token = getCurrentUser()?.accessToken || "";
 
 const socket: Socket = io(SOCKET_URL, {
-  autoConnect: false, // no conn. until socket.connect()
+  autoConnect: true, // no conn. until socket.connect()
   auth: { token },
   transports: ["websocket"],
   reconnectionDelay: 1000,

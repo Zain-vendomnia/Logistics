@@ -29,6 +29,7 @@ import TestUnhandledPromise from "./components/pages/TestUnhandledPromise";
 import TestRuntimeError from "./components/pages/TestRuntimeError";
 import Admin_dynamicHereMap from "./components/Admin/dynamic_tour/DynamicMapBoard";
 import CustomersChat from "./components/notification/CustomersChat";
+import LogViewer from "./components/LogViewer";
 
 // Role-based route guard
 const ProtectedRoute = ({
@@ -39,10 +40,9 @@ const ProtectedRoute = ({
   allowedRoles?: ("admin" | "superadmin" | "driver")[];
 }) => {
   const { user } = useAuth();
-  console.log("ProtectedRoute user:", user);
+
   if (!user) return <Navigate to="/login" replace />;
 
-  // Role checks
   const userRole = isSuperAdmin(user)
     ? "superadmin"
     : isAdmin(user)
@@ -58,7 +58,17 @@ const ProtectedRoute = ({
   return element;
 };
 
-// Main routes
+// Role specific wrappers
+const AdminRoute = ({ element }: { element: JSX.Element }) => (
+  <ProtectedRoute element={element} allowedRoles={["admin"]} />
+);
+const SuperAdminRoute = ({ element }: { element: JSX.Element }) => (
+  <ProtectedRoute element={element} allowedRoles={["superadmin"]} />
+);
+const DriverRoute = ({ element }: { element: JSX.Element }) => (
+  <ProtectedRoute element={element} allowedRoles={["driver"]} />
+);
+
 const AppRoutes = () => {
   const { user } = useAuth();
 
@@ -73,36 +83,18 @@ const AppRoutes = () => {
 
   return (
     <Routes>
+      {/* Root */}
       <Route path="/" element={getUserBoard()} />
+      <Route path="/ParkingPermitForm" element={<ParkingPermitForm />} />
 
+      {/* Auth Routes */}
       <Route
         path="/login"
         element={!user ? <Login /> : <Navigate to="/" replace />}
       />
-      <Route path="/ParkingPermitForm" element={<ParkingPermitForm />} />
 
-      {/* SuperAdmin Route */}
-      <Route
-        path="/dashboard"
-        element={<ProtectedRoute element={getUserBoard()} />}
-      />
-      <Route
-        path="/superadmin"
-        element={
-          <ProtectedRoute
-            element={<SuperAdmin />}
-            allowedRoles={["superadmin"]}
-          />
-        }
-      />
-
-      {/* Driver Route */}
-      <Route
-        path="/driver"
-        element={
-          <ProtectedRoute element={<BoardDriver />} allowedRoles={["driver"]} />
-        }
-      />
+      {/* Logs */}
+      <Route path="/logs" element={<AdminRoute element={<LogViewer />} />} />
 
       {/* General Protected Routes */}
       <Route path="/home" element={<ProtectedRoute element={<Home />} />} />
@@ -110,151 +102,94 @@ const AppRoutes = () => {
         path="/profile"
         element={<ProtectedRoute element={<Profile />} />}
       />
-
-      {/* Admin can register (registering drivers) */}
       <Route
-        path="/register"
-        element={
-          <ProtectedRoute element={<Register />} allowedRoles={["admin"]} />
-        }
+        path="/dashboard"
+        element={<ProtectedRoute element={getUserBoard()} />}
       />
+
+      {/* SuperAdmin Route */}
+      <Route
+        path="/superadmin"
+        element={<SuperAdminRoute element={<SuperAdmin />} />}
+      />
+
+      {/* Driver Route */}
+      <Route
+        path="/driver"
+        element={<DriverRoute element={<BoardDriver />} />}
+      />
+      {/* Admin can register (registering drivers) */}
+      <Route path="/register" element={<AdminRoute element={<Register />} />} />
 
       {/* Admin-only Routes */}
       <Route
         path="/admin_dashboard"
-        element={
-          <ProtectedRoute
-            element={<AdminDashboard />}
-            allowedRoles={["admin"]}
-          />
-        }
+        element={<AdminRoute element={<AdminDashboard />} />}
       />
       <Route
         path="/admin_addtour"
-        element={
-          <ProtectedRoute element={<AdminAddTour />} allowedRoles={["admin"]} />
-        }
+        element={<AdminRoute element={<AdminAddTour />} />}
       />
       <Route
         path="/manage_drivers"
-        element={
-          <ProtectedRoute
-            element={<ManageDrivers />}
-            allowedRoles={["admin"]}
-          />
-        }
+        element={<AdminRoute element={<ManageDrivers />} />}
       />
       <Route
         path="/manage_vehicles"
-        element={
-          <ProtectedRoute
-            element={<ManageVehicles />}
-            allowedRoles={["admin"]}
-          />
-        }
+        element={<AdminRoute element={<ManageVehicles />} />}
       />
-
       <Route
         path="/chat"
-        element={
-          <ProtectedRoute
-            element={<CustomersChat />}
-            allowedRoles={["admin"]}
-          />
-        }
+        element={<AdminRoute element={<CustomersChat />} />}
       />
       <Route
         path="/manage_warehouse"
-        element={
-          <ProtectedRoute
-            element={<ManageWarehouse />}
-            allowedRoles={["admin"]}
-          />
-        }
+        element={<AdminRoute element={<ManageWarehouse />} />}
       />
       <Route
         path="/admin_tourtemplates"
-        element={
-          <ProtectedRoute
-            element={<Admin_TourTemplates />}
-            allowedRoles={["admin"]}
-          />
-        }
+        element={<AdminRoute element={<Admin_TourTemplates />} />}
       />
       <Route
         path="/admin_mapComponent/:id"
-        element={
-          <ProtectedRoute
-            element={<Admin_MapComponent />}
-            allowedRoles={["admin"]}
-          />
-        }
+        element={<AdminRoute element={<Admin_MapComponent />} />}
       />
       <Route
-        path="/dynamicHereMap"
-        element={
-          <ProtectedRoute
-            element={<Admin_dynamicHereMap />}
-            allowedRoles={["admin"]}
-          />
-        }
+        path="/mapboard/dynamic"
+        element={<AdminRoute element={<Admin_dynamicHereMap />} />}
       />
       <Route
         path="/Admin_TourMapView/:tour_id"
-        element={
-          <ProtectedRoute
-            element={<Admin_TourMapView />}
-            allowedRoles={["admin"]}
-          />
-        }
+        element={<AdminRoute element={<Admin_TourMapView />} />}
       />
       <Route
         path="/completed_tour"
-        element={
-          <ProtectedRoute
-            element={<CompletedTour />}
-            allowedRoles={["admin"]}
-          />
-        }
+        element={<AdminRoute element={<CompletedTour />} />}
       />
       <Route
         path="/live_tours"
-        element={
-          <ProtectedRoute element={<LiveTours />} allowedRoles={["admin"]} />
-        }
+        element={<AdminRoute element={<LiveTours />} />}
       />
       <Route
         path="/driver_performance"
-        element={
-          <ProtectedRoute
-            element={<DriverPerformance />}
-            allowedRoles={["admin"]}
-          />
-        }
+        element={<AdminRoute element={<DriverPerformance />} />}
       />
       <Route
         path="/ProofdeliveryLiveloc"
-        element={
-          <ProtectedRoute
-            element={<ProofdeliveryLiveloc />}
-            allowedRoles={["admin"]}
-          />
-        }
+        element={<AdminRoute element={<ProofdeliveryLiveloc />} />}
       />
       <Route
         path="/ProofdeliveryImage"
-        element={
-          <ProtectedRoute
-            element={<ProofdeliveryImage />}
-            allowedRoles={["admin"]}
-          />
-        }
+        element={<AdminRoute element={<ProofdeliveryImage />} />}
       />
 
       {/* Test Routes - Consider protecting these or removing in production */}
       <Route path="/test-crash" element={<TestCrashRender />} />
       <Route path="/test-rej" element={<TestUnhandledPromise />} />
       <Route path="/test-runtime" element={<TestRuntimeError />} />
+
+      {/* Fallback to root */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 };

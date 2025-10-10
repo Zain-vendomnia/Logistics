@@ -67,7 +67,7 @@ export const handlePermit = async (permitTourIds: string[]) => {
         triggerMail = true;
       }
 
-      if (triggerMail == true) {
+      if (triggerMail === true) {
   
         // Generate the email HTML content
         html = getOrderInitialEmailHTML(order, finalUrl, condition);

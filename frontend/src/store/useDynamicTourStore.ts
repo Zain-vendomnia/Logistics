@@ -103,14 +103,19 @@ const useDynamicTourStore = create<DynamicTourStore>()(
         const dynamicTours = await loadDynamicToursFromIndexDb();
         if (dynamicTours.length) {
           state.setDynamicToursList(dynamicTours);
-          console.log(
-            `[DynamicTourStore] Rehydrated ${dynamicTours.length} tours from IndexedDB`
-          );
+          // console.log(
+          //   `[DynamicTourStore] Rehydrated ${dynamicTours.length} tours from IndexedDB`
+          // );
         } else {
-          console.warn("[DynamicTourStore] No heavy tours found in IndexedDB");
+          console.warn(
+            "[DynamicTourStore] No Dynamic Tours found in IndexedDB"
+          );
         }
       } catch (error) {
-        console.error("[DynamicTourStore] Failed to load heavy tours:", error);
+        console.error(
+          "[DynamicTourStore] Failed to load Dynamic Tours:",
+          error
+        );
       }
     },
   })

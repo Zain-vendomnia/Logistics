@@ -4,6 +4,23 @@
       forcedJSONParsing: true,
       clarifyTimeoutError: false
     },
+    vscode-icons
+      VSCode Icons Team
+    Thunder Client
+    Smarty Template Support
+      Aswin Kumar
+    Reactjs code snippets
+      charalampos karypidis
+    Prettier - Code formatter
+      Prettier
+    npm Intellisense
+      Christan Kohler
+    JavaScript (ES6) code snippets
+      charalampos karypidis
+    ESLint
+      Microsoft
+    GitLens - Git supercharged
+      Gitkraken
     adapter: [ 'xhr', 'http', 'fetch' ],
     transformRequest: [ [Function: transformRequest] ],
     transformResponse: [ [Function: transformResponse] ],
