@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "framer-motion";
 import socket from "../socket/socketInstance";
+import { motion } from "framer-motion";
 import Paper from "@mui/material/Paper/Paper";
 import List from "@mui/material/List/List";
 import Divider from "@mui/material/Divider/Divider";
@@ -18,6 +18,7 @@ import {
   Typography,
 } from "@mui/material";
 import theme from "../theme";
+import { fetchLogs } from "../services/adminApiService";
 
 interface LogEntry {
   timestamp: string;
@@ -54,27 +55,39 @@ const LogViewer = () => {
 
   const logEndRef = useRef<HTMLDivElement>(null);
 
+  const handleAppConnection = (log: any) => {
+    console.log("[App connection]:", log);
+    setLogs((prev) => [...prev, log]);
+  };
+  const handleLogMessage = (log: LogEntry) => {
+    console.log("[Log message]:", log);
+    setLogs((prev) => [...prev, log]);
+  };
+  const handleTaskProgress = (progress: ProgressEntry) => {
+    setProgressTasks((prev) => {
+      const idx = prev.findIndex((p) => p.task === progress.task);
+      if (idx >= 0) {
+        const updated = [...prev];
+        updated[idx] = progress;
+        return updated;
+      }
+      return [...prev, progress];
+    });
+  };
+
   useEffect(() => {
-    console.log(`[LogViewer] listning for log events...`);
-    const handleAppConnection = (log: any) => {
-      console.log("[App connection]:", log);
-      setLogs((prev) => [...prev, log]);
+    const loadLogs = async () => {
+      try {
+        const logs = await fetchLogs();
+        setLogs(logs);
+        console.log("logs: ", logs);
+      } catch (error) {
+        console.log(`Failed to fetch logs: ${error}`);
+      }
     };
-    const handleLogMessage = (log: LogEntry) => {
-      console.log("[Log message]:", log);
-      setLogs((prev) => [...prev, log]);
-    };
-    const handleTaskProgress = (progress: ProgressEntry) => {
-      setProgressTasks((prev) => {
-        const idx = prev.findIndex((p) => p.task === progress.task);
-        if (idx >= 0) {
-          const updated = [...prev];
-          updated[idx] = progress;
-          return updated;
-        }
-        return [...prev, progress];
-      });
-    };
+
+    loadLogs();
+    console.log(`[LogViewer] listening for log events...`);
 
     socket.on("app-connection", handleAppConnection);
     socket.on("log-message", handleLogMessage);
@@ -185,7 +198,7 @@ const LogViewer = () => {
 
       <Divider />
       <List sx={{ flex: 1, overflowY: "auto" }}>
-        {logs.map((log, i) => (
+        {filteredLogs.map((log, i) => (
           <motion.div
             key={i}
             initial={{ opacity: 0, y: 10 }}

@@ -41,6 +41,7 @@ import * as shopware from "../controller/AdminDriverApi/shopwareOrderController"
 
 import { orderSyncFromShopwareController } from "../controller/Admin_Api/orderSync.controller";
 import { shopwareAuth } from "../middlewares/shopwareAuth";
+import { fetchAppLogs } from "../controller/Admin_Api/logs.controller";
 
 const adminRouter = Router();
 adminRouter.use("/messages", messagesRoutes);
@@ -165,7 +166,8 @@ adminRouter.use(
   roleCheck(["admin"]),
   vehicleRoutes
 );
-adminRouter.use("/warehouses", warehouseRoutes);
+adminRouter.use("/logs", fetchAppLogs);
+adminRouter.use("/warehouses", validateToken, roleCheck(["admin"]), warehouseRoutes);
 adminRouter.use("/customers", validateToken, roleCheck(["admin"]), customerRoutes);
 
 adminRouter.use(notFoundHandler);

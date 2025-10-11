@@ -1,5 +1,7 @@
 import winston from "winston";
+import "winston-mongodb";
 import { emitLogging } from "./socket";
+import config from "./config";
 
 const logFormat = winston.format.printf(({ level, message, timestamp }) => {
   return `${timestamp} [${level.toUpperCase()}]: ${message}`;
@@ -24,6 +26,15 @@ const logger = winston.createLogger({
     new winston.transports.File({
       filename: "logs/combined.log",
       handleExceptions: true,
+    }),
+    new winston.transports.MongoDB({
+      level: "silly",
+      db: config.LOGGING_URL,
+      options: { useUnifiedTopology: true },
+      collection: "application_logs",
+      storeHost: true, // store hostname of server
+      capped: true, // optional: cap collection to limit size
+      cappedSize: 10485760, // ~10MB
     }),
   ],
   exitOnError: false,

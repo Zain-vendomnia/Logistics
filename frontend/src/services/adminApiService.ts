@@ -93,18 +93,13 @@ const fetchRouteSegmentData = (tour_id: number) =>
     { headers: authHeader() }
   );
 
-  const fetchRouteSegmentImages = (
-    tour_id?: number,
-    order_number?: string
-  ) => {
-
-    return axios.post(
-      `${API_BaseUrl}getRoutesSegmentImages`,
-      { tour_id, order_number },
-      { headers: authHeader() }
-    );
-  };
-
+const fetchRouteSegmentImages = (tour_id?: number, order_number?: string) => {
+  return axios.post(
+    `${API_BaseUrl}getRoutesSegmentImages`,
+    { tour_id, order_number },
+    { headers: authHeader() }
+  );
+};
 
 const updateTour = (tourData: Record<string, any>) =>
   axios.put(`${API_BaseUrl}updateTour`, tourData, { headers: authHeader() });
@@ -264,6 +259,13 @@ const rejectDynamicTour = async (
   return res.data as boolean;
 };
 
+export const fetchLogs = async () => {
+  const res = await axios.get(`${API_BaseUrl_Admin}logs`, {
+    headers: authHeader(),
+  });
+  return res.data;
+};
+
 export const uploadexcel = (formData: FormData) =>
   axios.post(`${API_BaseUrl_Admin}uploadexcel`, formData, {
     headers: {
@@ -293,12 +295,11 @@ const updateOrderNotificationMetaData = (
   );
 };
 
-
-  const getDriverData = (driverId: any) => {
-    return axios.post(API_BaseUrl_Admin + "getDriverData", {
-      headers: authHeader(),
-    });
-  };
+const getDriverData = (driverId: any) => {
+  return axios.post(API_BaseUrl_Admin + "getDriverData", {
+    headers: authHeader(),
+  });
+};
 
 const adminApiService = {
   fetchRouteData,
@@ -339,6 +340,7 @@ const adminApiService = {
   updateOrderNotificationMetaData,
   fetchRouteSegmentImages,
   getDriverData,
+  fetchLogs,
 };
 
 export default adminApiService;
