@@ -21,6 +21,8 @@ import {
 } from "../model/LogisticOrders";
 import { getWarehouseWithVehicles } from "./warehouse.service";
 import { Warehouse } from "../types/warehouse.types";
+import { Order } from "../types/order.types";
+import { haversineKm } from "../helpers/tour.helper";
 
 const HERE_API_KEY =
   process.env.HERE_API_KEY || "2tJpOzfdl3mgNpwKiDt-KuAQlzgEbsFkbX8byW97t1k";
@@ -434,4 +436,119 @@ function logApiError(error: Error | string | unknown, source: string): void {
     message,
     stack,
   });
+}
+
+export function clusterdens(orders: Order[], warehouse: Warehouse) {
+  const NEARBY_RADIUS_KM = 15;
+  const SECTOR_ANGLE_DEG = 30;
+  const SECTOR_ANGLE_RAD = (SECTOR_ANGLE_DEG * Math.PI) / 180;
+  const MAX_CLUSTER_SIZE = 20;
+  const MIN_ORDERS = 10;
+
+  if (!warehouse || !orders.length) return [];
+
+  const clusters: Order[][] = [];
+
+  const nearbyOrders = orders.filter(
+    (o) =>
+      haversineKm(
+        warehouse.lat,
+        warehouse.lng,
+        o.location.lat,
+        o.location.lng
+      ) <= NEARBY_RADIUS_KM
+  );
+
+  if (nearbyOrders.length) {
+    clusters.push([...nearbyOrders]);
+  }
+
+  const remainingOrders = orders.filter((o) => !nearbyOrders.includes(o));
+
+  if (!remainingOrders.length) return clusters;
+
+  //Sectors
+  const sectors = new Map<
+    number,
+    (Order & { distance: number; angle: number })[]
+  >();
+
+  for (const o of remainingOrders) {
+    const dx = o.location.lng - warehouse.lng;
+    const dy = o.location.lat - warehouse.lat;
+    const angle = Math.atan2(dy, dx);
+    const normalized = angle + Math.PI;
+    const sectorId = Math.floor(normalized / SECTOR_ANGLE_RAD);
+    const distance = haversineKm(
+      warehouse.lat,
+      warehouse.lng,
+      o.location.lat,
+      o.location.lng
+    );
+
+    if (!sectors.has(sectorId)) sectors.set(sectorId, []);
+    sectors.get(sectorId)?.push({ ...o, distance, angle });
+  }
+
+  //Sort sectors by density
+  const sortedSectors = Array.from(sectors.entries())
+    .sort((a, b) => b[1].length - a[1].length)
+    .map(([id, orders]) => {
+      console.log(`[Sector] ID: ${id}, Orders: ${orders.length}`);
+      return orders;
+    });
+
+  for (const sectorOrders of sortedSectors) {
+    sectorOrders.sort((a, b) => a.distance - b.distance);
+
+    const remaining = new Set(sectorOrders.map((o) => o.order_id));
+
+    while (remaining.size > 0) {
+      const cluster: Order[] = [];
+
+      // fisrt in the remaining
+      let current = sectorOrders.find((o) => remaining.has(o.order_id))!;
+      cluster.push(current);
+      remaining.delete(current.order_id);
+
+      while (cluster.length < MAX_CLUSTER_SIZE && remaining.size > 0) {
+        const last = cluster.at(-1)!;
+        let nearest: Order | null = null;
+        let nearestDist = Infinity;
+
+        for (const id of remaining) {
+          const next = sectorOrders.find((o) => o.order_id === id)!;
+          const d = haversineKm(
+            last.location.lat,
+            last.location.lng,
+            next.location.lat,
+            next.location.lng
+          );
+          if (d < nearestDist) {
+            nearestDist = d;
+            nearest = next;
+          }
+        }
+
+        if (!nearest) break;
+        cluster.push(nearest);
+        remaining.delete(nearest.order_id);
+      }
+
+      if (cluster.length >= MIN_ORDERS) {
+        clusters.push(cluster);
+      } else if (cluster.length > 0 && clusters.length) {
+        let pickedCluster = clusters.filter((cls) => cls.length < MIN_ORDERS);
+        if (pickedCluster) {
+          pickedCluster.push([...cluster]);
+        } else {
+          clusters.at(-1)?.push(...cluster);
+        }
+      } else if (cluster.length > 0) {
+        clusters.push(cluster);
+      }
+    }
+  }
+
+  return clusters;
 }

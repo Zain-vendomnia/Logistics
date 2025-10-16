@@ -10,7 +10,7 @@ const logFormat = winston.format.printf(({ level, message, timestamp }) => {
 const logger = winston.createLogger({
   level: "silly",
   format: winston.format.combine(
-    winston.format.colorize({ all: true }),
+    winston.format.colorize(),
     winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
     logFormat
   ),
@@ -18,15 +18,15 @@ const logger = winston.createLogger({
     new winston.transports.Console({
       handleExceptions: true,
     }),
-    new winston.transports.File({
-      filename: "logs/error.log",
-      level: "error",
-      handleExceptions: true,
-    }),
-    new winston.transports.File({
-      filename: "logs/combined.log",
-      handleExceptions: true,
-    }),
+    // new winston.transports.File({
+    //   filename: "logs/error.log",
+    //   level: "error",
+    //   handleExceptions: true,
+    // }),
+    // new winston.transports.File({
+    //   filename: "logs/combined.log",
+    //   handleExceptions: true,
+    // }),
     new winston.transports.MongoDB({
       level: "silly",
       db: config.LOGGING_URL,

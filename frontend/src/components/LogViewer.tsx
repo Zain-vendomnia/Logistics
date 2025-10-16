@@ -56,11 +56,11 @@ const LogViewer = () => {
   const logEndRef = useRef<HTMLDivElement>(null);
 
   const handleAppConnection = (log: any) => {
-    console.log("[App connection]:", log);
+    // console.log("[App connection]:", log);
     setLogs((prev) => [...prev, log]);
   };
   const handleLogMessage = (log: LogEntry) => {
-    console.log("[Log message]:", log);
+    // console.log("[Log message]:", log);
     setLogs((prev) => [...prev, log]);
   };
   const handleTaskProgress = (progress: ProgressEntry) => {
@@ -80,7 +80,7 @@ const LogViewer = () => {
       try {
         const logs = await fetchLogs();
         setLogs(logs);
-        console.log("logs: ", logs);
+        // console.log("logs: ", logs);
       } catch (error) {
         console.log(`Failed to fetch logs: ${error}`);
       }

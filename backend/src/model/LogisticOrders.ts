@@ -1,7 +1,7 @@
 import { ResultSetHeader, RowDataPacket } from "mysql2";
 import pool from "../config/database";
 import { CheckOrderCount } from "../types/dto.types";
-import { Order, OrderDetails } from "../types/order.types";
+import { Order, OrderDetails, OrderItem } from "../types/order.types";
 import { PoolConnection } from "mysql2/promise";
 import { geocode } from "../services/hereMap.service";
 import { Location } from "../types/hereMap.types";
@@ -384,7 +384,9 @@ export class LogisticOrder {
       JOIN warehouse_details wh
         ON o.warehouse_id = wh.warehouse_id
       WHERE o.status IN ('initial', 'unassigned', 'rescheduled')
+      AND o.warehouse_id IN (1, 2, 10)
   `;
+
     const params: any[] = [];
 
     if (since) {
@@ -393,7 +395,7 @@ export class LogisticOrder {
       params.push(sinceDate, sinceDate);
     }
 
-    query += ` ORDER BY o.order_id`;
+    query += ` ORDER BY o.order_id LIMIT 100`;
     // query += ` ORDER BY o.updated_at DESC, o.created_at DESC`;
 
     try {
@@ -426,17 +428,17 @@ export class LogisticOrder {
       console.log(`***************** ${orders.length} fetched orders`);
 
       // filter further with WMS orders
-      const [wms_orders] = await pool.execute(
-        `SELECT order_number FROM wms_orders`
-      );
-      const wmsOrderNumbers = new Set(
-        (wms_orders as any[]).map((wo) => wo.order_number)
-      );
+      // const [wms_orders] = await pool.execute(
+      //   `SELECT order_number FROM wms_orders`
+      // );
+      // const wmsOrderNumbers = new Set(
+      //   (wms_orders as any[]).map((wo) => wo.order_number)
+      // );
 
-      const logisticOrders = orders.filter((o) =>
-        wmsOrderNumbers.has(o.order_number)
-      );
-      console.log("Filtered Logistic Orders:", logisticOrders);
+      // const logisticOrders = orders.filter((o) =>
+      //   wmsOrderNumbers.has(o.order_number)
+      // );
+      // console.log("Filtered Logistic Orders:", logisticOrders);
 
       return orders;
     } catch (error) {
@@ -455,6 +457,64 @@ export class LogisticOrder {
       console.error("Error fetching pending orders count:", error);
       throw error;
     }
+  }
+
+  static async pendingOrdersWithWeightAndItems(): Promise<Order[]> {
+    const orders: Order[] = await this.getPendingOrdersAsync();
+
+    const [solarModules] = await pool.execute(
+      `SELECT * from solarmodules_items`
+    );
+
+    const placeholders = orders.map(() => "?").join(",");
+    const [items] = await pool.execute(
+      `SELECT * FROM logistic_order_items WHERE order_id IN (${placeholders})`,
+      orders.map((o) => o.order_id)
+    );
+
+    const orderWithItems: Order[] = orders.map((order) => {
+      const orderItems = (items as OrderItem[]).filter(
+        (x) => x.order_id === order.order_id
+      );
+
+      const quantity = orderItems.length;
+      const article_order_number = orderItems
+        .map((x) => x.slmdl_articleordernumber)
+        .join(", ");
+
+      const totalWeight = orderItems.reduce((acc, item) => {
+        const matchedModule = (solarModules as any[]).find(
+          (sm) =>
+            item.slmdl_articleordernumber &&
+            sm.module_name.includes(item.slmdl_articleordernumber)
+        );
+        const itemWeight = matchedModule
+          ? item.quantity * (matchedModule.weight || 0)
+          : 0;
+
+        return acc + itemWeight;
+      }, 0);
+
+      return {
+        ...order,
+        quantity: quantity,
+        article_order_number: article_order_number,
+        weight_kg: totalWeight,
+        items: (items as any[])
+          .filter((item) => item.order_id === order.order_id)
+          .map((item) => ({
+            id: item.id,
+            order_id: item.order_id,
+            order_number: item.order_number,
+            quantity: item.quantity,
+            article: item.slmdl_articleordernumber,
+            article_id: item.slmdl_article_id,
+            warehouse_id: item.warehouse_id,
+          })),
+      };
+    });
+
+    return orderWithItems;
   }
 
   static async updateOrderLocation(order: Order, location: Location) {

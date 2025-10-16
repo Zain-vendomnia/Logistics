@@ -1,3 +1,4 @@
+import logger from "../config/logger";
 import { haversineKm } from "../helpers/tour.helper";
 import { MatrixData } from "../types/hereMap.types";
 import { Order } from "../types/order.types";
@@ -5,19 +6,22 @@ import { Tour } from "../types/tour.types";
 import { Warehouse } from "../types/warehouse.types";
 // import { logWithTime } from "../utils/logging";
 
-const SECTOR_ANGLE_DEG = 30;
+const SECTOR_ANGLE_DEG = 180;
 const SECTOR_ANGLE_RAD = (SECTOR_ANGLE_DEG * Math.PI) / 180;
 // const MATRIX_CONCURRENCY = 3; // Concurrent calls
 // const MATRIX_RETRY = 2;
 // const MATRIX_RETRY_DELAY_MS = 1000;
 
 const MIN_ORDERS = 10;
-const MAX_CLUSTER_SIZE = 20;
+const MAX_CLUSTER_SIZE = 15;
 const CLOSE_TO_DISTANCE_KM = 25; // between consecutive orders (your local value)
 const TIME_WINDOW_HOURS = 10;
 // const MAX_TOUR_DISTANCE_METERS = 600 * 1000; // 600 km -> meters
 const SERVICE_TIME_PER_STOP_MIN = 5;
 const AVERAGE_SPEED_KMPH = 100;
+
+const MIN_WEIGHT = 1250; // warehouse.gross_weight_kg!;
+const MAX_WEIGHT = MIN_WEIGHT + 250;
 
 export function secondsForApproxRoute(
   warehouse: Warehouse,
@@ -118,6 +122,228 @@ export function trimClusterToFit(
   return { fitted, trimmed };
 }
 
+export function clusterOrdersByDensDirection(
+  orders: Order[],
+  warehouse: Warehouse
+): Order[][] {
+  const MIN_WEIGHT = warehouse.gross_weight_kg!;
+  const MAX_WEIGHT = MIN_WEIGHT + 250;
+  console.log(MAX_WEIGHT);
+
+  const NEARBY_RADIUS_KM = 120;
+  const SECTOR_ANGLE_DEG = 90;
+  const SECTOR_ANGLE_RAD = (SECTOR_ANGLE_DEG * Math.PI) / 180;
+  // const MAX_CLUSTER_SIZE = 20;
+  // const MIN_ORDERS = 10;
+
+  if (!orders.length) return [];
+
+  const clusters: Order[][] = [];
+
+  // --- Phase 1: Nearby zone ---
+  const nearbyOrders = orders.filter(
+    (o) =>
+      haversineKm(
+        warehouse.lat!,
+        warehouse.lng!,
+        o.location.lat!,
+        o.location.lng!
+      ) <= NEARBY_RADIUS_KM
+  );
+  if (nearbyOrders.length) {
+    clusters.push([...nearbyOrders]);
+    logger.info(`[Nearby Zone] Orders captured: ${nearbyOrders.length}`);
+  }
+
+  const remainingOrders = orders.filter((o) => !nearbyOrders.includes(o));
+  if (!remainingOrders.length) return clusters;
+
+  // --- Phase 2: Sectors ---
+  const sectors = new Map<
+    number,
+    (Order & { distance: number; angle: number })[]
+  >();
+  for (const o of remainingOrders) {
+    const dx = o.location.lng! - warehouse.lng!;
+    const dy = o.location.lat! - warehouse.lat!;
+    const angle = Math.atan2(dy, dx);
+    const normalized = angle + Math.PI;
+    const sectorId = Math.floor(normalized / SECTOR_ANGLE_RAD);
+    const distance = haversineKm(
+      warehouse.lat!,
+      warehouse.lng!,
+      o.location.lat!,
+      o.location.lng!
+    );
+
+    if (!sectors.has(sectorId)) sectors.set(sectorId, []);
+    sectors.get(sectorId)!.push({ ...o, distance, angle });
+  }
+
+  // --- Phase 3: Sort sectors by density ---
+  const sortedSectors = Array.from(sectors.entries())
+    .sort((a, b) => b[1].length - a[1].length)
+    .map(([id, orders]) => {
+      logger.info(`[Sector] ID: ${id}, Orders: ${orders.length}`);
+      return orders;
+    });
+
+  sortedSectors.forEach((sector) =>
+    sector.sort((a, b) => a.distance - b.distance)
+  );
+
+  const shortSectors: (Order & { distance: number; angle: number })[][] = [];
+  const satisfiedSectors: (Order & { distance: number; angle: number })[][] =
+    [];
+
+  for (const sector of sortedSectors) {
+    if (sector.length < MIN_ORDERS) shortSectors.push(sector);
+    else satisfiedSectors.push(sector);
+  }
+
+  const mergedSectors = mergeShortSectors(shortSectors);
+
+  satisfiedSectors.push(...mergedSectors);
+
+  // --- Phase 4: Radial clustering within sector ---
+  const geoClusters = buildClustersbyDensityDirection(satisfiedSectors);
+
+  clusters.push(...geoClusters);
+  logger.info(`[Total Clusters]: ${clusters.length}`);
+  return clusters;
+}
+
+function mergeShortSectors(
+  shortSectors: (Order & { distance: number; angle: number })[][]
+) {
+  const mergedSectors: (Order & { distance: number; angle: number })[][] = [];
+
+  while (shortSectors.length > 0) {
+    // Take one short sector
+    const base = shortSectors.shift()!;
+    let merged = [...base];
+
+    while (merged.length <= MIN_ORDERS) {
+      // Find the nearest other short sector
+      let nearestIdx = -1;
+      let nearestDist = Infinity;
+      const lastOrder = merged.at(-1)!; // outermost order
+
+      shortSectors.forEach((sec, idx) => {
+        const firstOrder = sec[0];
+        const d = haversineKm(
+          lastOrder.location.lat!,
+          lastOrder.location.lng!,
+          firstOrder.location.lat!,
+          firstOrder.location.lng!
+        );
+        if (d < nearestDist) {
+          nearestDist = d;
+          nearestIdx = idx;
+        }
+      });
+
+      if (nearestIdx === -1) break;
+
+      // Merge with nearest short sector if one exists
+      if (nearestIdx >= 0) {
+        const nearestSector = shortSectors.splice(nearestIdx, 1)[0];
+        merged.push(...nearestSector);
+      }
+    }
+
+    mergedSectors.push(merged);
+  }
+  return mergedSectors;
+}
+
+function buildClustersbyDensityDirection(
+  satisfiedSectors: (Order & { distance: number; angle: number })[][]
+): Order[][] {
+  const geoClusters: Order[][] = [];
+  const pendingSectors = [...satisfiedSectors];
+
+  while (pendingSectors.length > 0) {
+    // Take one sector to start
+    const currentSector = pendingSectors.shift()!;
+    currentSector.sort((a, b) => a.distance - b.distance);
+
+    const remaining = new Set(currentSector.map((o) => o.order_id));
+
+    while (remaining.size > 0) {
+      const cluster: Order[] = [];
+      let current = currentSector.find((o) => remaining.has(o.order_id))!;
+      cluster.push(current);
+      remaining.delete(current.order_id);
+
+      // Build cluster inside current sector
+      while (cluster.length < MAX_CLUSTER_SIZE && remaining.size > 0) {
+        const last = cluster.at(-1)!;
+        let nearest: Order | null = null;
+        let nearestDist = Infinity;
+
+        for (const id of remaining) {
+          const next = currentSector.find((o) => o.order_id === id)!;
+          const d = haversineKm(
+            last.location.lat!,
+            last.location.lng!,
+            next.location.lat!,
+            next.location.lng!
+          );
+          if (d < nearestDist) {
+            nearestDist = d;
+            nearest = next;
+          }
+        }
+
+        if (!nearest) break;
+        cluster.push(nearest);
+        remaining.delete(nearest.order_id);
+      }
+
+      // ---- Iterative merge with pending sectors if under MIN_ORDERS ----
+      while (cluster.length < MIN_ORDERS && pendingSectors.length > 0) {
+        const last = cluster.at(-1)!;
+        let nearestSectorIdx = -1;
+        let nearestDist = Infinity;
+
+        // Find nearest sector to last order in cluster
+        pendingSectors.forEach((sec, idx) => {
+          if (sec.length === 0) return;
+          const firstOrder = sec[0];
+          const d = haversineKm(
+            last.location.lat!,
+            last.location.lng!,
+            firstOrder.location.lat!,
+            firstOrder.location.lng!
+          );
+          if (d < nearestDist) {
+            nearestDist = d;
+            nearestSectorIdx = idx;
+          }
+        });
+
+        if (nearestSectorIdx === -1) break; // No more sectors
+
+        const nearestSector = pendingSectors.splice(nearestSectorIdx, 1)[0];
+        nearestSector.sort((a, b) => a.distance - b.distance);
+
+        // Add orders from nearest sector until cluster is full or sector exhausted
+        for (const o of nearestSector) {
+          if (cluster.length >= MAX_CLUSTER_SIZE) break;
+          cluster.push(o);
+        }
+      }
+
+      // ---- Add finalized cluster ----
+      geoClusters.push(cluster);
+      logger.info(`[Cluster Added] Size: ${cluster.length}`);
+    }
+  }
+
+  return geoClusters;
+}
+
 export function clusterOrdersBySector(
   orders: Order[],
   warehouse: Warehouse
@@ -175,6 +401,84 @@ export function clusterOrdersBySector(
   }
 
   return mergeSmallClusters(clusters, warehouse);
+}
+
+export function clusterOrdersRadialByLastOrder(
+  orders: Order[],
+  warehouse: Warehouse
+): Order[][] {
+  if (!orders.length) return [];
+
+  // Precompute distances from each order to every other order
+  const ordersMap = new Map<number, Order & { distanceFromWH: number }>();
+  orders.forEach((order) => {
+    ordersMap.set(order.order_id, {
+      ...order,
+      distanceFromWH: haversineKm(
+        warehouse.lat!,
+        warehouse.lng!,
+        order.location.lat!,
+        order.location.lng!
+      ),
+    });
+  });
+
+  const remaining = new Set(orders.map((o) => o.order_id));
+  const clusters: Order[][] = [];
+
+  while (remaining.size > 0) {
+    const cluster: Order[] = [];
+
+    // Step 1: pick the nearest remaining order to the warehouse as starting point
+    let currentOrder = Array.from(remaining)
+      .map((id) => ordersMap.get(id)!)
+      .sort((a, b) => a.distanceFromWH - b.distanceFromWH)[0];
+
+    cluster.push(currentOrder);
+    remaining.delete(currentOrder.order_id);
+
+    // Step 2: expand cluster radially based on last added order
+    while (cluster.length < MAX_CLUSTER_SIZE && remaining.size > 0) {
+      // Find nearest remaining order to the last order in cluster
+      const lastOrder = cluster[cluster.length - 1];
+
+      let nearestOrder: (Order & { distanceFromWH: number }) | null = null;
+      let nearestDistance = Infinity;
+
+      for (const id of remaining) {
+        const order = ordersMap.get(id)!;
+        const distance = haversineKm(
+          lastOrder.location.lat!,
+          lastOrder.location.lng!,
+          order.location.lat!,
+          order.location.lng!
+        );
+
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          nearestOrder = order;
+        }
+      }
+
+      if (!nearestOrder) break;
+
+      cluster.push(nearestOrder);
+      remaining.delete(nearestOrder.order_id);
+    }
+
+    // Step 3: push cluster if it meets MIN_ORDERS, else merge with last cluster
+    if (cluster.length >= MIN_ORDERS) {
+      clusters.push(cluster);
+    } else if (cluster.length > 0) {
+      if (clusters.length) {
+        clusters[clusters.length - 1].push(...cluster);
+      } else {
+        clusters.push(cluster);
+      }
+    }
+  }
+
+  return clusters;
 }
 
 // merge small clusters into nearest large cluster centroid
@@ -269,42 +573,90 @@ function makeMatrixAccessor(matrix: MatrixData) {
 
 export function computeTourDurationUsingMatrix(
   matrix: MatrixData,
-  ordersSequence: Order[]
+  ordersSequence: Order[],
+  indexMap: Map<number, number>
 ): number {
   const { getTravelSec } = makeMatrixAccessor(matrix);
+  let totalSec = 0;
+
   const orderCount = ordersSequence.length;
 
-  let totalSec = 0;
   // warehouse -> first order
-  totalSec = getTravelSec(0, 0);
-
-  for (let i = 1; i < orderCount; i++) {
-    totalSec += getTravelSec(i, i);
+  const firstOrderIdx = indexMap.get(ordersSequence[0].order_id);
+  if (firstOrderIdx !== undefined) {
+    totalSec += getTravelSec(0, firstOrderIdx);
   }
+
+  for (let i = 1; i < orderCount - 1; i++) {
+    const fromIdx = indexMap.get(ordersSequence[i].order_id);
+    const toIdx = indexMap.get(ordersSequence[i + 1].order_id);
+
+    if (fromIdx !== undefined && toIdx !== undefined) {
+      totalSec += getTravelSec(fromIdx, toIdx);
+    }
+  }
+
   // last order -> warehouse
-  totalSec += getTravelSec(orderCount, orderCount);
+  const lastOrderIdx = indexMap.get(
+    ordersSequence[ordersSequence.length - 1].order_id
+  );
+
+  if (lastOrderIdx !== undefined) {
+    totalSec += getTravelSec(lastOrderIdx, 0);
+  }
 
   return totalSec;
 }
 
 export function computeTourDistanceUsingMatrix(
   matrix: MatrixData,
-  ordersSequence: Order[]
+  ordersSequence: Order[],
+  indexMap: Map<number, number>
 ): number {
+  // const { getDistanceMeters } = makeMatrixAccessor(matrix);
+  // const orderCount = ordersSequence.length;
+
+  // let totalDis = 0;
+  // // warehouse -> first
+  // totalDis = getDistanceMeters(0, 0);
+
+  // // consecutive
+  // for (let i = 1; i < orderCount; i++) {
+  //   totalDis += getDistanceMeters(i, i);
+  // }
+  // // last order -> warehouse
+  // // origin index = last order idx; dest index = warehouse idx (=orderCount)
+  // totalDis += getDistanceMeters(orderCount, orderCount);
+
+  // return totalDis;
+
   const { getDistanceMeters } = makeMatrixAccessor(matrix);
+  let totalDis = 0;
+
   const orderCount = ordersSequence.length;
 
-  let totalDis = 0;
-  // warehouse -> first
-  totalDis = getDistanceMeters(0, 0);
-
-  // consecutive
-  for (let i = 1; i < orderCount; i++) {
-    totalDis += getDistanceMeters(i, i);
+  // warehouse -> first order
+  const firstOrderIdx = indexMap.get(ordersSequence[0].order_id);
+  if (firstOrderIdx !== undefined) {
+    totalDis += getDistanceMeters(0, firstOrderIdx);
   }
-  // last order -> warehouse
-  // origin index = last order idx; dest index = warehouse idx (=orderCount)
-  totalDis += getDistanceMeters(orderCount, orderCount);
 
+  for (let i = 1; i < orderCount - 1; i++) {
+    const fromIdx = indexMap.get(ordersSequence[i].order_id);
+    const toIdx = indexMap.get(ordersSequence[i + 1].order_id);
+
+    if (fromIdx !== undefined && toIdx !== undefined) {
+      totalDis += getDistanceMeters(fromIdx, toIdx);
+    }
+  }
+
+  // last order -> warehouse
+  const lastOrderIdx = indexMap.get(
+    ordersSequence[ordersSequence.length - 1].order_id
+  );
+
+  if (lastOrderIdx !== undefined) {
+    totalDis += getDistanceMeters(lastOrderIdx, 0);
+  }
   return totalDis;
 }

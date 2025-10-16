@@ -204,6 +204,7 @@ export const LOGIC_ORDER_TABLE = `
     order_id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     shopware_order_id INT NOT NULL UNIQUE,
     order_number VARCHAR(45) NOT NULL,
+    status ENUM('initial', 'unassigned', 'assigned', 'inTransit', 'delivered', 'rescheduled', 'canceled') NOT NULL DEFAULT 'initial',
     customer_id VARCHAR(45) NOT NULL,
     invoice_amount VARCHAR(45) NOT NULL,
     payment_id INT NOT NULL,
@@ -222,7 +223,6 @@ export const LOGIC_ORDER_TABLE = `
     longitude DECIMAL(10,7),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
-    status ENUM('initial', 'unassigned', 'assigned', 'inTransit', 'delivered', 'rescheduled', 'canceled') NOT NULL DEFAULT 'initial',
     tracking_code VARCHAR(100),
     order_status_id INT
   );

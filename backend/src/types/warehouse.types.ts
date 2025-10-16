@@ -32,4 +32,5 @@ export interface Warehouse {
   updatedAt?: string;
   updatedBy?: string;
   vehicles?: WarehouseVehicle[];
+  gross_weight_kg?: number;
 }

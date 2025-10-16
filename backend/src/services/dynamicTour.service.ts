@@ -161,7 +161,7 @@ export const saveDynamicTour = async (
   conn: PoolConnection,
   payload: DynamicTourPayload
 ) => {
-  logger.verbose(`[Save Dynamic Tour]: initiated ${JSON.stringify(payload)}`);
+  // logger.verbose(`[Save Dynamic Tour]: initiated ${JSON.stringify(payload)}`);
   const {
     id,
     tour_name,

@@ -16,6 +16,7 @@ export type OrderItem = {
   quantity: number;
   article_id: string;
   article: string;
+  slmdl_articleordernumber?: string;
   warehouse_id: string;
 };
 
@@ -36,6 +37,7 @@ export type Order = {
 
   quantity?: number;
   article_order_number?: string;
+  weight_kg?: number;
 
   customer_id?: string;
   customer_number?: string;
