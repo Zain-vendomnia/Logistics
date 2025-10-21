@@ -1,6 +1,4 @@
 import {
-  getWarehouseLocationCords,
-  getWarehouseZipcodesRecord,
   getWarehouseToOrdersMatrix,
   getActiveWarehousesWithVehicles,
 } from "../services/warehouse.service";
@@ -13,20 +11,18 @@ import { LogisticOrder } from "../model/LogisticOrders";
 import { DynamicTourPayload } from "../types/dto.types";
 
 import * as helper from "./assignmentWorker.helper";
-import { haversineKm } from "../helpers/tour.helper";
 import logger from "../config/logger";
+import * as metrixHelper from "./utils/matrixAccessor";
+import { grossWeight } from "./utils/ordersNetWeight";
 
-// const SECTOR_ANGLE_DEG = 30;
-// const SECTOR_ANGLE_RAD = (SECTOR_ANGLE_DEG * Math.PI) / 180;
 const MATRIX_CONCURRENCY = 7; // Concurrent calls
-
-const MIN_ORDERS = 10;
-// const MAX_CLUSTER_SIZE = 32;
-const CLOSE_TO_DISTANCE_KM = 10; // between consecutive orders (your local value)
 const TIME_WINDOW_HOURS = 10;
-const MAX_TOUR_DISTANCE_METERS = 600 * 1000; // 600 km -> meters
+const MAX_TOUR_DISTANCE_METERS = 600 * 1000;
 // const SERVICE_TIME_PER_STOP_MIN = 5;
 // const AVERAGE_SPEED_KMPH = 100;
+
+const MIN_WEIGHT = 1250; // warehouse.gross_weight_kg!;
+const MAX_WEIGHT = MIN_WEIGHT + 150;
 
 const simpleCache = new Map<string, any>();
 async function cacheGet<T>(k: string): Promise<T | undefined> {
@@ -50,12 +46,22 @@ async function flushCache() {
   console.warn("Cache flushed");
 }
 
+const TIME_TOLERANCE_PERCENT = 0.05;
+const DISTANCE_TOLERANCE_PERCENT = 0.1;
+
 async function trimClusterToFitUsingMatrix(
   warehouse: Warehouse,
   cluster: Order[]
 ): Promise<{ fitted: Order[]; trimmed: Order[] }> {
+  const allowedTime = TIME_WINDOW_HOURS * 3600 * (1 + TIME_TOLERANCE_PERCENT);
+  const allowedDistance =
+    MAX_TOUR_DISTANCE_METERS * (1 + DISTANCE_TOLERANCE_PERCENT);
+
   const trimmed: Order[] = [];
-  if (!cluster.length) return { fitted: [], trimmed };
+
+  const clusterWeight = grossWeight(cluster);
+  if (!cluster.length || clusterWeight < MIN_WEIGHT)
+    return { fitted: [], trimmed: [] };
 
   // cache key
   const clusterKey = `matrix:${warehouse.id}:${cluster
@@ -108,7 +114,8 @@ async function trimClusterToFitUsingMatrix(
         return { fitted: cluster, trimmed: [] };
 
       let fitted = cluster;
-      while (fitted.length >= MIN_ORDERS) {
+      // while (fitted.length >= MIN_ORDERS) {
+      while (grossWeight(fitted) >= MIN_WEIGHT) {
         trimmed.push(fitted.pop()!);
         const approxNow = helper.secondsForApproxRoute(warehouse, fitted);
         if (approxNow <= TIME_WINDOW_HOURS * 3600)
@@ -122,14 +129,14 @@ async function trimClusterToFitUsingMatrix(
     }
 
     // matrix exists, compute duration sec
-    const durationSec = helper.computeTourDurationUsingMatrix(
+    const durationSec = metrixHelper.computeTourDurationUsingMatrix(
       matrix!,
       cluster,
       clusterIndexMap
     );
 
     // compute distance meters
-    const distanceMeters = helper.computeTourDistanceUsingMatrix(
+    const distanceMeters = metrixHelper.computeTourDistanceUsingMatrix(
       matrix!,
       cluster,
       clusterIndexMap
@@ -137,11 +144,10 @@ async function trimClusterToFitUsingMatrix(
 
     logger.info(`durationSec: ${durationSec}`);
     logger.info(`distanceMeters: ${distanceMeters}`);
+    logger.info(`allowedDistance Tolerance: ${allowedDistance}`);
 
-    if (
-      durationSec <= TIME_WINDOW_HOURS * 3600 &&
-      distanceMeters <= MAX_TOUR_DISTANCE_METERS
-    ) {
+    // && distanceMeters <= MAX_TOUR_DISTANCE_METERS
+    if (durationSec <= allowedTime) {
       logger.info("Round 1st: Cluster Accepted as is");
       logger.info(
         `Cluster Accepted: WH ${warehouse.id}-${warehouse.town}, ${
@@ -152,18 +158,32 @@ async function trimClusterToFitUsingMatrix(
 
       cacheDel(clusterKey);
       return { fitted: cluster, trimmed: [] };
+    } else if (cluster.length <= 6 && durationSec <= allowedTime) {
+      while (cluster.length) {
+        // const atlastWeight = grossWeight([cluster.at(-1)!]);
+        const lastOrderWeight = cluster.at(-1)?.weight_kg!;
+        if (clusterWeight - lastOrderWeight < MIN_WEIGHT)
+          return { fitted: cluster, trimmed: [] };
+
+        cluster.pop();
+      }
     }
 
     let fitted = cluster;
-    while (fitted.length >= MIN_ORDERS) {
+    // while (fitted.length >= MIN_ORDERS) {
+    while (grossWeight(fitted) >= MIN_WEIGHT) {
+      // const lastOrderWeight = fitted.at(-1)?.weight_kg!;
+      // if (grossWeight(fitted) - lastOrderWeight < MIN_WEIGHT)
+      //   return { fitted: cluster, trimmed: [] };
+
       trimmed.push(fitted.pop()!);
 
-      const dur_sec_2 = helper.computeTourDurationUsingMatrix(
+      const dur_sec_2 = metrixHelper.computeTourDurationUsingMatrix(
         matrix,
         fitted,
         clusterIndexMap
       );
-      const dis_mtr_2 = helper.computeTourDistanceUsingMatrix(
+      const dis_mtr_2 = metrixHelper.computeTourDistanceUsingMatrix(
         matrix,
         fitted,
         clusterIndexMap
@@ -171,10 +191,8 @@ async function trimClusterToFitUsingMatrix(
       logger.info(`dur_sec_2: ${dur_sec_2}`);
       logger.info(`dis_mtr_2: ${dis_mtr_2}`);
 
-      if (
-        dur_sec_2 <= TIME_WINDOW_HOURS * 3600 &&
-        dis_mtr_2 <= MAX_TOUR_DISTANCE_METERS
-      ) {
+      // && dis_mtr_2 <= MAX_TOUR_DISTANCE_METERS
+      if (dur_sec_2 <= allowedTime) {
         cacheDel(clusterKey);
         return { fitted, trimmed };
       } else {
@@ -192,9 +210,6 @@ export async function processWarehouseClusters(
   warehouse: Warehouse,
   candidateOrders: Order[]
 ) {
-  const MIN_WEIGHT = 1250; // warehouse.gross_weight_kg!;
-  const MAX_WEIGHT = MIN_WEIGHT + 250;
-
   const TRIMMED_ORDERS = new Map<number, Order[]>();
   const ACCEPTED_CLUSTERS = new Map<number, Order[][]>();
 
@@ -203,16 +218,19 @@ export async function processWarehouseClusters(
     warehouse
   );
 
-  for (const cluster of candidateClusters) {
-    const accWeight = cluster.reduce(
-      (acc, order) => (acc += order.weight_kg!),
-      0
-    );
+  logger.info(
+    `Warehouse ${warehouse.town} has Clusters: ${candidateClusters.length} \n
+     Cluster weight follows as:`
+  );
+  candidateClusters.forEach((cluster, idx) => {
+    logger.info(`${idx + 1} Cluster weight: ${grossWeight(cluster)}`);
+  });
 
-    if (
-      cluster.length < MIN_ORDERS ||
-      (accWeight >= MIN_WEIGHT && accWeight < MAX_WEIGHT)
-    ) {
+  for (const cluster of candidateClusters) {
+    const clusterWeight = grossWeight(cluster);
+
+    // if (cluster.length < MIN_ORDERS)
+    if (clusterWeight < MIN_WEIGHT || clusterWeight > MAX_WEIGHT) {
       const prev = TRIMMED_ORDERS.get(warehouse.id) ?? [];
       TRIMMED_ORDERS.set(warehouse.id, prev.concat(cluster));
       continue;
@@ -223,12 +241,14 @@ export async function processWarehouseClusters(
         warehouse,
         cluster
       );
+      debugger;
+
       if (trimmed.length) {
         const prev = TRIMMED_ORDERS.get(warehouse.id) ?? [];
         TRIMMED_ORDERS.set(warehouse.id, prev.concat(trimmed));
       }
 
-      if (fitted.length >= MIN_ORDERS) {
+      if (fitted.length > 0) {
         const prevAcc = ACCEPTED_CLUSTERS.get(warehouse.id) ?? [];
         ACCEPTED_CLUSTERS.set(warehouse.id, prevAcc.concat([fitted]));
       } else {
@@ -243,151 +263,92 @@ export async function processWarehouseClusters(
   return { ACCEPTED_CLUSTERS, TRIMMED_ORDERS };
 }
 
-function whAllowedWeight_Kg(warehouseId: number) {
-  switch (warehouseId) {
-    case 1:
-      return 1250;
-    case 2:
-      return 1350;
-    case 10:
-      return 1450;
-    default:
-      1550;
-  }
-}
+// function whAllowedWeight_Kg(warehouseId: number) {
+//   switch (warehouseId) {
+//     case 1:
+//       return 1250;
+//     case 2:
+//       return 1350;
+//     case 10:
+//       return 1450;
+//     default:
+//       1550;
+//   }
+// }
 
 export async function processBatch() {
-  // fetch orders, warehouses
   logger.info("[Batch Process] Starting batch processing of orders...");
-  const orders: Order[] = await LogisticOrder.pendingOrdersWithWeightAndItems();
-  if (!orders.length) return;
 
-  debugger;
-  const warehouses: Warehouse[] = await getActiveWarehousesWithVehicles();
-  if (!warehouses.length) return;
+  const orders = await LogisticOrder.pendingOrdersWithWeightAndItems();
+  if (!orders.length) {
+    logger.warn("[Batch Process] No pending orders found. Exiting.");
+    return;
+  }
 
-  warehouses.forEach((wh) => {
-    wh.gross_weight_kg = whAllowedWeight_Kg(wh.id)!;
-  });
+  const warehouses = await getActiveWarehousesWithVehicles();
+  if (!warehouses.length) {
+    logger.warn("[Batch Process] No active warehouses found. Exiting.");
+    return;
+  }
+
+  const assignments: Map<number, { order: Order; distance?: number }[]> =
+    await helper.warehouseOrdersAssignment(warehouses, orders);
 
   logger.error(
-    `[Batch Process] Fetched ${orders.length} orders and ${warehouses.length} warehouses`
+    `[Batch Process] Started \n 
+    Fetched ${orders.length} orders and ${warehouses.length} warehouses`
   );
-
-  // ensure coords
-  for (const wh of warehouses) {
-    if (!wh.lat || !wh.lng) {
-      const location = await getWarehouseLocationCords(wh);
-      if (location) {
-        wh.lat = location.lat;
-        wh.lng = location.lng;
-      } else continue;
-    }
-  }
-  for (const order of orders) {
-    if (!order.location.lat || !order.location.lng) {
-      const location = await LogisticOrder.getOrderLocationCords(order);
-      if (location) {
-        order.location.lat = location.lat;
-        order.location.lng = location.lng;
-      } else continue;
-    }
-  }
-
-  // assign to warehouses
-  const assignments = new Map<number, { order: Order; distance: number }[]>();
-  // const assignments = new Map<number, Order[]>();
-  const warehouse_zipMap = await getWarehouseZipcodesRecord(
-    warehouses.map((w) => w.id)
-  );
-  for (const order of orders) {
-    let best = null;
-    let bestDist = Infinity;
-    for (const wh of warehouses) {
-      const d = haversineKm(
-        wh.lat!,
-        wh.lng!,
-        order.location.lat!,
-        order.location.lng!
-      );
-      if (d < bestDist) {
-        bestDist = d;
-        best = wh;
-      }
-    }
-
-    const zipcodeOwner = warehouses.find((w) =>
-      warehouse_zipMap?.[w.id].zip_codes_delivering.includes(
-        Number(order.zipcode)
-      )
-    );
-
-    const chosenWarehouses: Warehouse[] = [];
-    if (zipcodeOwner) {
-      const distFromWH =
-        haversineKm(
-          zipcodeOwner.lat!,
-          zipcodeOwner.lng!,
-          order.location.lat!,
-          order.location.lng!
-        ) - CLOSE_TO_DISTANCE_KM;
-
-      if (best!.id !== zipcodeOwner.id && bestDist + 0.1 <= distFromWH) {
-        chosenWarehouses.push(best!);
-      } else {
-        chosenWarehouses.push(zipcodeOwner);
-        bestDist = distFromWH;
-      }
-    } else {
-      chosenWarehouses.push(best!);
-    }
-
-    for (const wh of chosenWarehouses) {
-      if (!assignments.has(wh.id)) assignments.set(wh.id, []);
-      assignments.get(wh.id)!.push({ order: order, distance: bestDist });
-    }
-  }
 
   logger.info(
     `[Cluster Assignments] Creating Request for ${assignments.size} Clusters`
   );
 
-  debugger;
-
   for (const [warehouseId, orderEntries] of assignments.entries()) {
-    if (orderEntries.length < MIN_ORDERS) continue;
+    if (!orderEntries.length) continue;
 
-    orderEntries.sort((a, b) => a.distance - b.distance);
+    const candidOrders: Order[] = orderEntries.map((e) => e.order);
+    if (grossWeight(candidOrders) < MIN_WEIGHT) {
+      logger.warn(
+        `[Warehouse ${warehouseId}] Skipped due to insufficient total weight (${grossWeight(
+          candidOrders
+        )} kg)`
+      );
+      continue;
+    }
+
+    orderEntries.sort(
+      (a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity)
+    );
     assignments.set(warehouseId, orderEntries);
 
-    const candidateOrders = orderEntries.map((e) => e.order);
-
     const warehouse = warehouses.find((w) => w.id === warehouseId)!;
+    if (!warehouse) {
+      logger.error(`[Batch Process] Warehouse ID ${warehouseId} not found`);
+      continue;
+    }
 
     const { ACCEPTED_CLUSTERS, TRIMMED_ORDERS } =
-      await processWarehouseClusters(warehouse, candidateOrders);
+      await processWarehouseClusters(warehouse, candidOrders);
 
     for (const [wid, trimmedOrders] of TRIMMED_ORDERS.entries()) {
-      // trimmedOrders for next round
+      const wh = warehouses.find((wh) => wh.id === wid);
       logger.warn(
-        `[Trimmed Orders] Orders trimmed ${
+        `[Trimmed Orders] ${
           trimmedOrders.length
-        } from Warehouse ${
-          warehouses.find((wh) => wh.id === wid)?.town
-        }: Id ${wid}.`
+        } orders trimmed for warehouse ${wh?.town ?? "Unknown"} (ID: ${wid})`
       );
     }
 
-    // Dynamic Tours - for ACCEPTED_CLUSTERS
     for (const clusters of ACCEPTED_CLUSTERS.values()) {
       for (const cluster of clusters) {
         logger.info(
-          `[Accepted Clusters] Dynamic Tours Request for Warehouse ${warehouse.town} total clusters:${clusters.length}| cluster:${cluster.length}`
+          `[Accepted Clusters] Creating dynamic tour for ${warehouse.town} — Total clusters: ${clusters.length}, Current cluster size: ${cluster.length}`
         );
         await createDynamicTourForCluster(warehouseId, cluster);
       }
     }
   }
+  logger.info("[Batch Process] Completed successfully.");
 }
 
 async function createDynamicTourForCluster(

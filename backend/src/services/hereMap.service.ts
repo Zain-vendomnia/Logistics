@@ -22,7 +22,7 @@ import {
 import { getWarehouseWithVehicles } from "./warehouse.service";
 import { Warehouse } from "../types/warehouse.types";
 import { Order } from "../types/order.types";
-import { haversineKm } from "../helpers/tour.helper";
+import { haversineKm } from "../orchestration/utils/haversineKm";
 
 const HERE_API_KEY =
   process.env.HERE_API_KEY || "2tJpOzfdl3mgNpwKiDt-KuAQlzgEbsFkbX8byW97t1k";

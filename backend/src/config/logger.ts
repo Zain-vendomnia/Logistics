@@ -30,7 +30,8 @@ const logger = winston.createLogger({
     new winston.transports.MongoDB({
       level: "silly",
       db: config.LOGGING_URL,
-      options: { useUnifiedTopology: true },
+      // options: { useNewUrlParser: true },
+      
       collection: "application_logs",
       storeHost: true, // store hostname of server
       capped: true, // optional: cap collection to limit size

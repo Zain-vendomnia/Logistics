@@ -395,7 +395,7 @@ export class LogisticOrder {
       params.push(sinceDate, sinceDate);
     }
 
-    query += ` ORDER BY o.order_id LIMIT 100`;
+    query += ` ORDER BY o.order_id LIMIT 200`;
     // query += ` ORDER BY o.updated_at DESC, o.created_at DESC`;
 
     try {
@@ -420,7 +420,7 @@ export class LogisticOrder {
         city: raw.city,
         zipcode: raw.zipcode,
 
-        location: { lat: raw.latitude, lng: raw.longitude },
+        location: { lat: +raw.latitude, lng: +raw.longitude },
 
         items: [],
       }));
