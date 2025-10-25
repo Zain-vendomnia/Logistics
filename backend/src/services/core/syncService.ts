@@ -8,7 +8,7 @@ export async function runInitialSyncs() {
     await shopwareOrderSync();
     
     logWithTime("⏳ Running initial WMS order sync...");
-    await wmsOrderSync("2025-08-10");
+    await wmsOrderSync("2025-10-01");
   } catch (error) {
     logWithTime("❌ Initial sync failed:");
     console.error(error);

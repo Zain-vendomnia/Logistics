@@ -28,7 +28,7 @@ import {
   validatePayload,
 } from "./helpers/dynamicTour.helpers";
 import { generateTourName } from "../helpers/tour.helper";
-import { emitNewDynamicTour } from "../config/socket";
+import { emitNewDynamicTour } from "../socket/Tourplanning.socket";
 import logger from "../config/logger";
 
 // export async function createDynamicTourWithCostEvaluationAsync(

@@ -5,9 +5,9 @@ import {
   sendInitialCustomerList,
   sendCustomerListError,
   hasConnectedAdmins,
-  getIO
-} from "../config/socket";
+} from "../socket/Whatsapp.socket";
 
+import { getIO } from "../config/socket";
 export interface Customer {
   order_id: string;
   order_number: string;

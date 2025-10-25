@@ -1,0 +1,294 @@
+2025-10-25 14:02:49 [[31MERROR[39M]: [31muncaughtException: ⨯ Unable to compile TypeScript:[39m
+[31m[96msrc/services/customerService.ts[0m:[93m3[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'broadcastCustomerList'.[39m
+
+[31m[7m3[0m   broadcastCustomerList,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~~~~~[0m[39m
+[31m[96msrc/services/customerService.ts[0m:[93m4[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'broadcastSingleCustomerUpdate'.[39m
+
+[31m[7m4[0m   broadcastSingleCustomerUpdate,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m[39m
+[31m[96msrc/services/customerService.ts[0m:[93m5[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'sendInitialCustomerList'.[39m
+
+[31m[7m5[0m   sendInitialCustomerList,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~~~~~~~[0m[39m
+[31m[96msrc/services/customerService.ts[0m:[93m6[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'sendCustomerListError'.[39m
+
+[31m[7m6[0m   sendCustomerListError,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~~~~~[0m[39m
+[31m[96msrc/services/customerService.ts[0m:[93m7[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'hasConnectedAdmins'.[39m
+
+[31m[7m7[0m   hasConnectedAdmins,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~~[0m[39m
+
+[31mTSError: ⨯ Unable to compile TypeScript:[39m
+[31m[96msrc/services/customerService.ts[0m:[93m3[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'broadcastCustomerList'.[39m
+
+[31m[7m3[0m   broadcastCustomerList,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~~~~~[0m[39m
+[31m[96msrc/services/customerService.ts[0m:[93m4[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'broadcastSingleCustomerUpdate'.[39m
+
+[31m[7m4[0m   broadcastSingleCustomerUpdate,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m[39m
+[31m[96msrc/services/customerService.ts[0m:[93m5[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'sendInitialCustomerList'.[39m
+
+[31m[7m5[0m   sendInitialCustomerList,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~~~~~~~[0m[39m
+[31m[96msrc/services/customerService.ts[0m:[93m6[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'sendCustomerListError'.[39m
+
+[31m[7m6[0m   sendCustomerListError,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~~~~~[0m[39m
+[31m[96msrc/services/customerService.ts[0m:[93m7[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'hasConnectedAdmins'.[39m
+
+[31m[7m7[0m   hasConnectedAdmins,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~~[0m[39m
+
+[31m    at createTSError (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:859:12)[39m
+[31m    at reportTSError (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:863:19)[39m
+[31m    at getOutput (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:1077:36)[39m
+[31m    at Object.compile (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:1433:41)[39m
+[31m    at Module.m._compile (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:1617:30)[39m
+[31m    at node:internal/modules/cjs/loader:1706:10[39m
+[31m    at Object.require.extensions.<computed> [as .ts] (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:1621:12)[39m
+[31m    at Module.load (node:internal/modules/cjs/loader:1289:32)[39m
+[31m    at Function._load (node:internal/modules/cjs/loader:1108:12)[39m
+[31m    at TracingChannel.traceSync (node:diagnostics_channel:322:14)[39m
+2025-10-25 14:03:30 [[31MERROR[39M]: [31muncaughtException: ⨯ Unable to compile TypeScript:[39m
+[31m[96msrc/services/customerService.ts[0m:[93m8[0m:[93m3[0m - [91merror[0m[90m TS2459: [0mModule '"../socket/Whatsapp.socket"' declares 'getIO' locally, but it is not exported.[39m
+
+[31m[7m8[0m   getIO[39m
+[31m[7m [0m [91m  ~~~~~[0m[39m
+
+[31m  [96msrc/socket/Whatsapp.socket.ts[0m:[93m4[0m:[93m3[0m[39m
+[31m    [7m4[0m   getIO,[39m
+[31m    [7m [0m [96m  ~~~~~[0m[39m
+[31m    'getIO' is declared here.[39m
+[31m[96msrc/services/customerService.ts[0m:[93m82[0m:[93m26[0m - [91merror[0m[90m TS7006: [0mParameter 'socket' implicitly has an 'any' type.[39m
+
+[31m[7m82[0m     io.on('connection', (socket) => {[39m
+[31m[7m  [0m [91m                         ~~~~~~[0m[39m
+[31m[96msrc/services/customerService.ts[0m:[93m83[0m:[93m57[0m - [91merror[0m[90m TS7006: [0mParameter 'data' implicitly has an 'any' type.[39m
+
+[31m[7m83[0m       socket.on('request-initial-customer-list', async (data) => {[39m
+[31m[7m  [0m [91m                                                        ~~~~[0m[39m
+[31m[96msrc/services/customerService.ts[0m:[93m92[0m:[93m57[0m - [91merror[0m[90m TS7006: [0mParameter 'data' implicitly has an 'any' type.[39m
+
+[31m[7m92[0m       socket.on('request-customer-list-refresh', async (data) => {[39m
+[31m[7m  [0m [91m                                                        ~~~~[0m[39m
+
+[31mTSError: ⨯ Unable to compile TypeScript:[39m
+[31m[96msrc/services/customerService.ts[0m:[93m8[0m:[93m3[0m - [91merror[0m[90m TS2459: [0mModule '"../socket/Whatsapp.socket"' declares 'getIO' locally, but it is not exported.[39m
+
+[31m[7m8[0m   getIO[39m
+[31m[7m [0m [91m  ~~~~~[0m[39m
+
+[31m  [96msrc/socket/Whatsapp.socket.ts[0m:[93m4[0m:[93m3[0m[39m
+[31m    [7m4[0m   getIO,[39m
+[31m    [7m [0m [96m  ~~~~~[0m[39m
+[31m    'getIO' is declared here.[39m
+[31m[96msrc/services/customerService.ts[0m:[93m82[0m:[93m26[0m - [91merror[0m[90m TS7006: [0mParameter 'socket' implicitly has an 'any' type.[39m
+
+[31m[7m82[0m     io.on('connection', (socket) => {[39m
+[31m[7m  [0m [91m                         ~~~~~~[0m[39m
+[31m[96msrc/services/customerService.ts[0m:[93m83[0m:[93m57[0m - [91merror[0m[90m TS7006: [0mParameter 'data' implicitly has an 'any' type.[39m
+
+[31m[7m83[0m       socket.on('request-initial-customer-list', async (data) => {[39m
+[31m[7m  [0m [91m                                                        ~~~~[0m[39m
+[31m[96msrc/services/customerService.ts[0m:[93m92[0m:[93m57[0m - [91merror[0m[90m TS7006: [0mParameter 'data' implicitly has an 'any' type.[39m
+
+[31m[7m92[0m       socket.on('request-customer-list-refresh', async (data) => {[39m
+[31m[7m  [0m [91m                                                        ~~~~[0m[39m
+
+[31m    at createTSError (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:859:12)[39m
+[31m    at reportTSError (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:863:19)[39m
+[31m    at getOutput (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:1077:36)[39m
+[31m    at Object.compile (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:1433:41)[39m
+[31m    at Module.m._compile (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:1617:30)[39m
+[31m    at node:internal/modules/cjs/loader:1706:10[39m
+[31m    at Object.require.extensions.<computed> [as .ts] (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:1621:12)[39m
+[31m    at Module.load (node:internal/modules/cjs/loader:1289:32)[39m
+[31m    at Function._load (node:internal/modules/cjs/loader:1108:12)[39m
+[31m    at TracingChannel.traceSync (node:diagnostics_channel:322:14)[39m
+2025-10-25 14:04:39 [[31MERROR[39M]: [31muncaughtException: ⨯ Unable to compile TypeScript:[39m
+[31m[96msrc/services/messageService.ts[0m:[93m3[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'emitMessageToOrder'.[39m
+
+[31m[7m3[0m   emitMessageToOrder,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~~[0m[39m
+[31m[96msrc/services/messageService.ts[0m:[93m4[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'emitMessageUpdate'.[39m
+
+[31m[7m4[0m   emitMessageUpdate,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~[0m[39m
+[31m[96msrc/services/messageService.ts[0m:[93m5[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'emitMessageStatusUpdate'.[39m
+
+[31m[7m5[0m   emitMessageStatusUpdate,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~~~~~~~[0m[39m
+[31m[96msrc/services/messageService.ts[0m:[93m6[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'broadcastGlobalMessageStatus'.[39m
+
+[31m[7m6[0m   broadcastGlobalMessageStatus,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m[39m
+[31m[96msrc/services/messageService.ts[0m:[93m7[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'updateGlobalUnreadCount'.[39m
+
+[31m[7m7[0m   updateGlobalUnreadCount,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~~~~~~~[0m[39m
+
+[31mTSError: ⨯ Unable to compile TypeScript:[39m
+[31m[96msrc/services/messageService.ts[0m:[93m3[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'emitMessageToOrder'.[39m
+
+[31m[7m3[0m   emitMessageToOrder,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~~[0m[39m
+[31m[96msrc/services/messageService.ts[0m:[93m4[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'emitMessageUpdate'.[39m
+
+[31m[7m4[0m   emitMessageUpdate,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~[0m[39m
+[31m[96msrc/services/messageService.ts[0m:[93m5[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'emitMessageStatusUpdate'.[39m
+
+[31m[7m5[0m   emitMessageStatusUpdate,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~~~~~~~[0m[39m
+[31m[96msrc/services/messageService.ts[0m:[93m6[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'broadcastGlobalMessageStatus'.[39m
+
+[31m[7m6[0m   broadcastGlobalMessageStatus,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m[39m
+[31m[96msrc/services/messageService.ts[0m:[93m7[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'updateGlobalUnreadCount'.[39m
+
+[31m[7m7[0m   updateGlobalUnreadCount,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~~~~~~~[0m[39m
+
+[31m    at createTSError (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:859:12)[39m
+[31m    at reportTSError (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:863:19)[39m
+[31m    at getOutput (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:1077:36)[39m
+[31m    at Object.compile (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:1433:41)[39m
+[31m    at Module.m._compile (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:1617:30)[39m
+[31m    at node:internal/modules/cjs/loader:1706:10[39m
+[31m    at Object.require.extensions.<computed> [as .ts] (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:1621:12)[39m
+[31m    at Module.load (node:internal/modules/cjs/loader:1289:32)[39m
+[31m    at Function._load (node:internal/modules/cjs/loader:1108:12)[39m
+[31m    at TracingChannel.traceSync (node:diagnostics_channel:322:14)[39m
+2025-10-25 14:04:55 [[31MERROR[39M]: [31muncaughtException: ⨯ Unable to compile TypeScript:[39m
+[31m[96msrc/services/messageService.ts[0m:[93m3[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'emitMessageToOrder'.[39m
+
+[31m[7m3[0m   emitMessageToOrder,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~~[0m[39m
+[31m[96msrc/services/messageService.ts[0m:[93m4[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'emitMessageUpdate'.[39m
+
+[31m[7m4[0m   emitMessageUpdate,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~[0m[39m
+[31m[96msrc/services/messageService.ts[0m:[93m5[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'emitMessageStatusUpdate'.[39m
+
+[31m[7m5[0m   emitMessageStatusUpdate,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~~~~~~~[0m[39m
+[31m[96msrc/services/messageService.ts[0m:[93m6[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'broadcastGlobalMessageStatus'.[39m
+
+[31m[7m6[0m   broadcastGlobalMessageStatus,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m[39m
+[31m[96msrc/services/messageService.ts[0m:[93m7[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'updateGlobalUnreadCount'.[39m
+
+[31m[7m7[0m   updateGlobalUnreadCount,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~~~~~~~[0m[39m
+
+[31mTSError: ⨯ Unable to compile TypeScript:[39m
+[31m[96msrc/services/messageService.ts[0m:[93m3[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'emitMessageToOrder'.[39m
+
+[31m[7m3[0m   emitMessageToOrder,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~~[0m[39m
+[31m[96msrc/services/messageService.ts[0m:[93m4[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'emitMessageUpdate'.[39m
+
+[31m[7m4[0m   emitMessageUpdate,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~[0m[39m
+[31m[96msrc/services/messageService.ts[0m:[93m5[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'emitMessageStatusUpdate'.[39m
+
+[31m[7m5[0m   emitMessageStatusUpdate,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~~~~~~~[0m[39m
+[31m[96msrc/services/messageService.ts[0m:[93m6[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'broadcastGlobalMessageStatus'.[39m
+
+[31m[7m6[0m   broadcastGlobalMessageStatus,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m[39m
+[31m[96msrc/services/messageService.ts[0m:[93m7[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'updateGlobalUnreadCount'.[39m
+
+[31m[7m7[0m   updateGlobalUnreadCount,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~~~~~~~[0m[39m
+
+[31m    at createTSError (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:859:12)[39m
+[31m    at reportTSError (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:863:19)[39m
+[31m    at getOutput (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:1077:36)[39m
+[31m    at Object.compile (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:1433:41)[39m
+[31m    at Module.m._compile (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:1617:30)[39m
+[31m    at node:internal/modules/cjs/loader:1706:10[39m
+[31m    at Object.require.extensions.<computed> [as .ts] (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:1621:12)[39m
+[31m    at Module.load (node:internal/modules/cjs/loader:1289:32)[39m
+[31m    at Function._load (node:internal/modules/cjs/loader:1108:12)[39m
+[31m    at TracingChannel.traceSync (node:diagnostics_channel:322:14)[39m
+2025-10-25 14:05:39 [[31MERROR[39M]: [31muncaughtException: ⨯ Unable to compile TypeScript:[39m
+[31m[96msrc/services/messageService.ts[0m:[93m3[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'emitMessageToOrder'.[39m
+
+[31m[7m3[0m   emitMessageToOrder,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~~[0m[39m
+[31m[96msrc/services/messageService.ts[0m:[93m4[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'emitMessageUpdate'.[39m
+
+[31m[7m4[0m   emitMessageUpdate,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~[0m[39m
+[31m[96msrc/services/messageService.ts[0m:[93m5[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'emitMessageStatusUpdate'.[39m
+
+[31m[7m5[0m   emitMessageStatusUpdate,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~~~~~~~[0m[39m
+[31m[96msrc/services/messageService.ts[0m:[93m6[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'broadcastGlobalMessageStatus'.[39m
+
+[31m[7m6[0m   broadcastGlobalMessageStatus,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m[39m
+[31m[96msrc/services/messageService.ts[0m:[93m7[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'updateGlobalUnreadCount'.[39m
+
+[31m[7m7[0m   updateGlobalUnreadCount,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~~~~~~~[0m[39m
+
+[31mTSError: ⨯ Unable to compile TypeScript:[39m
+[31m[96msrc/services/messageService.ts[0m:[93m3[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'emitMessageToOrder'.[39m
+
+[31m[7m3[0m   emitMessageToOrder,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~~[0m[39m
+[31m[96msrc/services/messageService.ts[0m:[93m4[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'emitMessageUpdate'.[39m
+
+[31m[7m4[0m   emitMessageUpdate,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~[0m[39m
+[31m[96msrc/services/messageService.ts[0m:[93m5[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'emitMessageStatusUpdate'.[39m
+
+[31m[7m5[0m   emitMessageStatusUpdate,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~~~~~~~[0m[39m
+[31m[96msrc/services/messageService.ts[0m:[93m6[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'broadcastGlobalMessageStatus'.[39m
+
+[31m[7m6[0m   broadcastGlobalMessageStatus,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m[39m
+[31m[96msrc/services/messageService.ts[0m:[93m7[0m:[93m3[0m - [91merror[0m[90m TS2305: [0mModule '"../config/socket"' has no exported member 'updateGlobalUnreadCount'.[39m
+
+[31m[7m7[0m   updateGlobalUnreadCount,[39m
+[31m[7m [0m [91m  ~~~~~~~~~~~~~~~~~~~~~~~[0m[39m
+
+[31m    at createTSError (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:859:12)[39m
+[31m    at reportTSError (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:863:19)[39m
+[31m    at getOutput (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:1077:36)[39m
+[31m    at Object.compile (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:1433:41)[39m
+[31m    at Module.m._compile (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:1617:30)[39m
+[31m    at node:internal/modules/cjs/loader:1706:10[39m
+[31m    at Object.require.extensions.<computed> [as .ts] (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:1621:12)[39m
+[31m    at Module.load (node:internal/modules/cjs/loader:1289:32)[39m
+[31m    at Function._load (node:internal/modules/cjs/loader:1108:12)[39m
+[31m    at TracingChannel.traceSync (node:diagnostics_channel:322:14)[39m
+2025-10-25 14:06:36 [[31MERROR[39M]: [31muncaughtException: ⨯ Unable to compile TypeScript:[39m
+[31m[96msrc/controller/AdminDriverApi/shopwareOrderController.ts[0m:[93m3[0m:[93m10[0m - [91merror[0m[90m TS2305: [0mModule '"../../config/socket"' has no exported member 'emitNewOrder'.[39m
+
+[31m[7m3[0m import { emitNewOrder } from "../../config/socket";[39m
+[31m[7m [0m [91m         ~~~~~~~~~~~~[0m[39m
+
+[31mTSError: ⨯ Unable to compile TypeScript:[39m
+[31m[96msrc/controller/AdminDriverApi/shopwareOrderController.ts[0m:[93m3[0m:[93m10[0m - [91merror[0m[90m TS2305: [0mModule '"../../config/socket"' has no exported member 'emitNewOrder'.[39m
+
+[31m[7m3[0m import { emitNewOrder } from "../../config/socket";[39m
+[31m[7m [0m [91m         ~~~~~~~~~~~~[0m[39m
+
+[31m    at createTSError (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:859:12)[39m
+[31m    at reportTSError (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:863:19)[39m
+[31m    at getOutput (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:1077:36)[39m
+[31m    at Object.compile (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:1433:41)[39m
+[31m    at Module.m._compile (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:1617:30)[39m
+[31m    at node:internal/modules/cjs/loader:1706:10[39m
+[31m    at Object.require.extensions.<computed> [as .ts] (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:1621:12)[39m
+[31m    at Module.load (node:internal/modules/cjs/loader:1289:32)[39m
+[31m    at Function._load (node:internal/modules/cjs/loader:1108:12)[39m
+[31m    at TracingChannel.traceSync (node:diagnostics_channel:322:14)[39m
