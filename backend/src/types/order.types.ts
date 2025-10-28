@@ -14,10 +14,10 @@ export type OrderItem = {
   order_id: number;
   order_number: string;
   quantity: number;
-  article_id: string;
   article: string;
+  article_id?: string;
   slmdl_articleordernumber?: string;
-  warehouse_id: string;
+  warehouse_id?: string;
 };
 
 export type Order = {

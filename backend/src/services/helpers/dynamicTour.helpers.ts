@@ -4,7 +4,6 @@ import { getDynamicTour, saveDynamicTour } from "../dynamicTour.service";
 import { LogisticOrder, OrderStatus } from "../../model/LogisticOrders";
 import { DecodedRoute } from "../../types/hereMap.types";
 import { Tour } from "../../types/tour.types";
-import { Order } from "../../types/order.types";
 
 function validatePayload(payload: DynamicTourPayload) {
   if (!payload || !payload.orderIds || !payload.warehouse_id) {
@@ -82,7 +81,7 @@ async function persistDynamicTour(
       orderIds: txnOrderIds,
     };
 
-    const { id, tour_name } = await saveDynamicTour(connection, dynamicTour);
+    const createdDTour = await saveDynamicTour(connection, dynamicTour);
 
     const txnOrder_ids: number[] = txnOrderIds.split(",").map(Number);
     await LogisticOrder.updateOrdersStatus(
@@ -104,31 +103,19 @@ async function persistDynamicTour(
       );
     }
 
-    console.log("Updated Dynamic Tour Name", tour_name);
-
-    return {
-      ...payload,
-      id,
-      tour_name,
-      orderIds: txnOrderIds,
-      tour_route: routes,
-    } as DynamicTourPayload;
+    return createdDTour;
+    // return {
+    //   ...createdDTour,
+    //   tour_route: routes,
+    // } as DynamicTourPayload;
   } catch (error) {
     const err = new Error(
-      `persistDynamicTour failed for tour_id=${payload.id} | txnOrderIds = ${txnOrderIds}`,
+      `[Persist Dynamic Tour] failed for tour_id=${payload.id} | txnOrderIds = ${txnOrderIds}`,
       { cause: error as Error }
     );
     console.error(err);
     throw err;
   }
-}
-
-function calculateOrderWeight(order: Order): number {
-  return order.items
-    ? order.items.reduce((total, item) => {
-        return total + item.quantity * 2.5; //item.modalWeight
-      }, 0)
-    : 0;
 }
 
 type TourStats = {
@@ -196,5 +183,4 @@ export {
   handleExistingTour,
   persistDynamicTour,
   extractTourStats,
-  calculateOrderWeight,
 };

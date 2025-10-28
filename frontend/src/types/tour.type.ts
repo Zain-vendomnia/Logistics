@@ -55,7 +55,7 @@ export interface TimeWindow {
 
 export interface Activity {
   time: TimeWindow;
-  type: string; // e.g., "departure", "delivery"
+  type: string; // e.g., "departure", "delivery", "arrival"
   jobId: string;
   location: LocationPoint;
 }
@@ -152,6 +152,7 @@ export interface DynamicTourPayload {
 
   warehouse_id: number;
   warehouse_name?: string;
+  warehouse_town?: string;
   warehouse_colorCode?: string;
 
   created_at?: string | null;

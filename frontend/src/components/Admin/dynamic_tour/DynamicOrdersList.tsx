@@ -23,6 +23,7 @@ export const DynamicOrdersList = ({ items, handleDelete }: Props) => {
   const [orderList, setOrderList] = useState<Order[]>(items);
   useEffect(() => {
     setOrderList(items);
+    // console.log("Order items**********: ", items);
   }, [items]);
 
   const handleOrderSelect = (orderId: number) => {

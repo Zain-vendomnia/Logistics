@@ -16,10 +16,8 @@ import {
 } from "../types/tour.types";
 import hereMapService from "./hereMap.service";
 import pool from "../config/database";
-import {
-  calculateOrderWeight,
-  extractTourStats,
-} from "./helpers/dynamicTour.helpers";
+import { extractTourStats } from "./helpers/dynamicTour.helpers";
+import { Order } from "../types/order.types";
 
 export async function getTourMapDataAsync(tourPayload: CreateTour) {
   const connection = await pool.getConnection();
@@ -263,6 +261,14 @@ export async function getTourDetailsById(tourId: number) {
   return { tour: tourObj.tour_name, routes, unassigned: "400098044,400098044" };
 }
 
+// function calculateOrderWeight(order: Order): number {
+//   return order.items
+//     ? order.items.reduce((total, item) => {
+//         return total + item.quantity * 2.5; //item.modalWeight
+//       }, 0)
+//     : 0;
+// }
+
 export async function createDeliveryCostForTour(
   tourId: number,
   type: TourType = TourType.dynamicTour
@@ -292,11 +298,18 @@ export async function createDeliveryCostForTour(
     if (!tourData) throw new Error(`Tour ${tourId} not found`);
 
     // Compute totals
-    const orderWithItems = await LogisticOrder.getOrdersWithItemsAsync(
-      tourData.orderIds.split(",").map(Number)
+    const ordersWithItems: Order[] =
+      await LogisticOrder.getOrdersWithItemsAsync(
+        tourData.orderIds.split(",").map(Number)
+      );
+    const totalWeightKg = ordersWithItems.reduce(
+      // (acc, order) => acc + calculateOrderWeight(order),
+      (acc, order) => acc + order.weight_kg! || 0,
+      0
     );
-    const totalWeightKg = orderWithItems.reduce(
-      (acc, order) => acc + calculateOrderWeight(order),
+
+    const totalSLMDQty = ordersWithItems.reduce(
+      (acc, order) => acc + order.quantity! || 0,
       0
     );
 
@@ -323,12 +336,12 @@ export async function createDeliveryCostForTour(
     const totalCost: number =
       +rates.hotel_costs + +vanCost + +dieselCost + +personnelCost;
 
-    const costPerStop = totalCost / orderWithItems.length; // Order stops
+    const costPerStop = totalCost / ordersWithItems.length; // Order stops
     const costPerBkw = totalCost / 5; // TODO: real bkw count
-    const costPerSlmd = totalCost / 5; // TODO: real slmd count
+    const costPerSlmd = totalCost / totalSLMDQty; // 5;
 
-    console.log("orderWithItems: ", orderWithItems);
-    console.log("orderWithItems[0] items: ", orderWithItems[0].items);
+    console.log("orderWithItems: ", ordersWithItems);
+    console.log("orderWithItems[0] items: ", ordersWithItems[0].items);
 
     console.log("totalWeightKg: ", totalWeightKg);
     console.log("totalDistanceKm: ", totalDistanceKm);

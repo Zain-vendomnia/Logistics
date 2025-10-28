@@ -135,9 +135,9 @@ const DynamicTourDetails = () => {
           component="form"
           onSubmit={handleTourSubmit}
           position="absolute"
-          top={10}
-          left={10}
-          width={{ xs: "95%", sm: 480 }}
+          top={5}
+          left={5}
+          width={{ xs: "65%", sm: 480}}
           bgcolor="white"
           p={3}
           borderRadius={2}
@@ -145,27 +145,46 @@ const DynamicTourDetails = () => {
             pointerEvents: "auto",
             display: "flex",
             flexWrap: "wrap",
-            gap: 2,
+            gap: 1,
           }}
         >
           <Box display={"flex"} justifyContent={"space-between"} width="100%">
-            <Stack spacing={-0.5}>
-              <Badge
-                badgeContent={`zip:${warehouse?.zipcode}`}
-                color="primary"
-              />
-              <Typography variant="h4">{warehouse?.town}</Typography>
+            <Stack spacing={-0.5} width={"55%"}>
+              <Box display={"flex"} width={"100%"}>
+                <Typography variant="h4">{warehouse?.town}</Typography>
+                <Badge
+                  sx={{ display: "absolute", top: -5, right: -30 }}
+                  badgeContent={`zip:${warehouse?.zipcode}`}
+                  color="primary"
+                />
+              </Box>
 
-              <Typography variant="subtitle2">
-                [{warehouse?.zip_codes_delivering}]
+              <Typography
+                variant="subtitle2"
+                sx={{
+                  maxWidth: "85%",
+                  whiteSpace: "normal",
+                  wordBreak: "break-word",
+                  // display: "block",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  lineClamp: 2,
+                  display: "-webkit-box",
+                  WebkitBoxOrient: "vertical",
+                  WebkitLineClamp: 2,
+                }}
+              >
+                {warehouse?.zip_codes_delivering}
               </Typography>
             </Stack>
-            <Stack spacing={-0.5}>
-              <Typography variant="subtitle2">
-                Name: {warehouse?.name}
+            <Stack spacing={-0.5} width={"45%"}>
+              <Typography variant="subtitle2" fontSize={"small"}>
+                <strong> Name: </strong>
+                {warehouse?.name}
               </Typography>
-              <Typography variant="subtitle2">
-                Address: {warehouse?.address}
+              <Typography variant="subtitle2" fontSize={"small"}>
+                <strong>Address: </strong>
+                {warehouse?.address}
               </Typography>
             </Stack>
           </Box>
@@ -298,7 +317,7 @@ const DynamicTourDetails = () => {
             display="flex"
             justifyContent="flex-end"
             gap={3}
-            mt={2}
+            mt={0}
           >
             {shouldUpdateTourRoute ? (
               <Button
@@ -328,8 +347,8 @@ const DynamicTourDetails = () => {
         {/* Order List */}
         <Box
           position="absolute"
-          right={30}
-          bottom={10}
+          right={0}
+          bottom={-15}
           mb={2}
           p={2}
           bgcolor="white"

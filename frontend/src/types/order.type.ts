@@ -13,9 +13,9 @@ export type OrderItem = {
   order_id: number;
   order_number: string;
   quantity: number;
-  article_id: string;
   article: string;
-  warehouse_id: string;
+  article_id?: string;
+  warehouse_id?: string;
 };
 
 export type Order = {
@@ -33,8 +33,9 @@ export type Order = {
   warehouse_name?: string;
   warehouse_town?: string;
 
-  quantity: number;
-  article_order_number: string;
+  quantity?: number;
+  article_order_number?: string;
+  weight_kg?: number;
 
   customer_id: string;
   customer_number: string;

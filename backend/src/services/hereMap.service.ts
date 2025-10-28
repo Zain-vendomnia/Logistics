@@ -44,22 +44,23 @@ export const geocode = async (address: string): Promise<Location> => {
 };
 
 export const prepareWarehouseDto = (warehouse: Warehouse) => {
-  console.log("Warehouse object reveived: ", warehouse);
+  // console.log("Warehouse object reveived: ", warehouse);
 
   const warehouseGroupObj: WarehouseGroup = {
-    warehouseAddress: warehouse.address!,
+    // warehouseAddress: warehouse.address!,
+    warehouseAddress: warehouse.town!,
     vehicleCount: warehouse.vehicles?.length!,
     capacityPerVehicle:
       warehouse.vehicles && warehouse.vehicles.length > 0
         ? warehouse.vehicles[0].capacity!
         : 0,
   };
-  console.log("warehouseDTO: ", warehouseGroupObj);
+  // console.log("warehouseDTO: ", warehouseGroupObj);
 
   return warehouseGroupObj;
 };
 
-const createJobList = (orders: LogisticOrder[]): Job[] => {
+export const createJobList = (orders: LogisticOrder[] | Order[]): Job[] => {
   const jobList: Job[] = orders.map((order) => {
     const address = `${order.street}, ${order.city}, ${order.zipcode}`;
     return {
@@ -71,7 +72,7 @@ const createJobList = (orders: LogisticOrder[]): Job[] => {
   return jobList;
 };
 
-async function buildJobs(jobList: Job[]) {
+export async function buildJobs(jobList: Job[]): Promise<DeliveryJob[]> {
   const deliveryJobs = jobList.map(async (job) => {
     const location = await geocode(job.address);
     return {
@@ -89,7 +90,9 @@ async function buildJobs(jobList: Job[]) {
   return await Promise.all(deliveryJobs);
 }
 
-async function buildFleet(warehouseGroups: Warehouse[]): Promise<FleetType[]> {
+export async function buildFleet(
+  warehouseGroups: Warehouse[]
+): Promise<FleetType[]> {
   const fleet: FleetType[] = [];
 
   for (const group of warehouseGroups) {
@@ -119,7 +122,6 @@ async function buildFleet(warehouseGroups: Warehouse[]): Promise<FleetType[]> {
   return fleet;
 }
 
-// WarehouseGroup as DB object array
 async function PlanTourAsync(
   orders: LogisticOrder[],
   warehouseGroup: Warehouse[]
@@ -247,7 +249,9 @@ async function PlanTourAsync_Mock(jobList: Job[], warehouseGroup: any[]) {
   }
 }
 
-async function getRoutesForTour(tour: Tour): Promise<DecodedRoute | null> {
+export async function getRoutesForTour(
+  tour: Tour
+): Promise<DecodedRoute | null> {
   if ((tour.stops?.length ?? 0) < 2)
     throw new Error("Tour stops are insufficient for rounte segmentation");
 

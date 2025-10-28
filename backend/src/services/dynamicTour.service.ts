@@ -56,7 +56,9 @@ import logger from "../config/logger";
 //   }
 // }
 
-export async function createDynamicTourAsync(payload: DynamicTourPayload) {
+export async function createDynamicTourAsync(
+  payload: DynamicTourPayload
+): Promise<DynamicTourRes> {
   const connection = await pool.getConnection();
 
   logger.verbose(`[Create Dynamic Tour]: ${payload}`);
@@ -160,7 +162,7 @@ export async function createDynamicTourAsync(payload: DynamicTourPayload) {
 export const saveDynamicTour = async (
   conn: PoolConnection,
   payload: DynamicTourPayload
-) => {
+): Promise<DynamicTourPayload> => {
   // logger.verbose(`[Save Dynamic Tour]: initiated ${JSON.stringify(payload)}`);
   const {
     id,
@@ -231,18 +233,21 @@ export const saveDynamicTour = async (
     const [result]: any = await conn.execute(query, values);
     logger.info(
       `[Save Dynamic Tour] tour ${
-        isNew ? "Inserted" : "Updated"
+        isNew ? "INSERTED" : "UPDATED"
       } Successfully: ${new_tourName}`
     );
-    return {
-      ...result,
-      id: isNew ? result.insertId : payload.id,
-      tour_name: new_tourName,
-    };
+
+    const dtour_Id = isNew ? (result as any).InsertId : payload.id;
+    const [createdDTour]: any = await conn.execute(
+      `SELECT * FROM dynamic_tours WHERE id = ?`,
+      [dtour_Id]
+    );
+
+    return createdDTour[0];
   } catch (error) {
     logger.error(
       `[Save Dynamic Tour] Error ${
-        isNew ? "Inserting" : "Updating"
+        isNew ? "INSERTING" : "UPDATING"
       } Dynamic Tour: ${error}`
     );
     throw error;
@@ -254,7 +259,10 @@ export async function getUnapprovedDynamicTours(): Promise<
   DynamicTourPayload[]
 > {
   const query = `
-  SELECT dt.*, wh.warehouse_name, wh.color_code AS warehouse_colorCode
+  SELECT dt.*, 
+    wh.warehouse_name, 
+    wh.color_code AS warehouse_colorCode, 
+    wh.town AS warehouse_town
   FROM dynamic_tours AS dt
   JOIN warehouse_details AS wh 
     ON dt.warehouse_id = wh.warehouse_id
@@ -275,6 +283,7 @@ export async function getUnapprovedDynamicTours(): Promise<
         totalOrdersItemsQty: 0,
         warehouse_id: row.warehouse_id,
         warehouse_name: row.warehouse_name,
+        warehouse_town: row.warehouse_town,
         warehouse_colorCode: row.warehouse_colorCode,
         created_at: row.created_at,
         updated_at: row.updated_at,
@@ -288,7 +297,7 @@ export async function getUnapprovedDynamicTours(): Promise<
         order_ids
       );
       const tourMatrix = await getTourMatrix(tour.id!);
-      console.log(`tourMatrix for dTour Id: ${tour.id}: ${tourMatrix}`);
+      // console.log(`tourMatrix for dTour Id: ${tour.id}: ${tourMatrix}`);
       tour.matrix = tourMatrix;
     }
     // console.warn(`Tours with Matrix`, dTours);

@@ -298,32 +298,72 @@ export class LogisticOrder {
 
     const placeholders = orderIds.map(() => "?").join(", ");
 
-    const [orders] = await pool.execute(
-      `SELECT * FROM logistic_order WHERE order_id IN (${placeholders})`,
+    const [rows] = await pool.execute(
+      ` SELECT 
+      o.*,
+      wh.warehouse_name, 
+      wh.town
+    FROM logistic_order o
+    JOIN warehouse_details wh
+        ON o.warehouse_id = wh.warehouse_id
+    WHERE order_id IN (${placeholders})`,
       orderIds
     );
+
+    const orders: Order[] = (rows as any[]).map((raw: any) => ({
+      order_id: raw.order_id,
+      order_number: raw.order_number,
+      status: raw.status,
+
+      // payment_id: raw.payment_id,
+
+      order_time: raw.order_time,
+      expected_delivery_time: raw.expected_delivery_time,
+
+      warehouse_id: raw.warehouse_id,
+      warehouse_name: raw.warehouse_name,
+      warehouse_town: raw.town,
+
+      phone: raw.phone,
+      street: raw.street,
+      city: raw.city,
+      zipcode: raw.zipcode,
+
+      location: { lat: +raw.latitude, lng: +raw.longitude },
+      items: [],
+    }));
 
     const [items] = await pool.execute(
       `SELECT * FROM logistic_order_items WHERE order_id IN (${placeholders})`,
       orderIds
     );
 
-    const orderWithItems = (orders as any[]).map((order) => ({
-      ...order,
-      items: (items as any[])
-        .filter((item) => item.order_id === order.order_id)
-        .map((item) => ({
-          id: item.id,
-          order_id: item.order_id,
-          order_number: item.order_number,
-          quantity: item.quantity,
-          article: item.slmdl_articleordernumber,
-          article_id: item.slmdl_article_id,
-          warehouse_id: item.warehouse_id,
-        })),
-    }));
+    ////
 
-    return orderWithItems as Order[];
+    const ordersWithItems = await LogisticOrder.mapOrdersItems(
+      orders,
+      items as OrderItem[]
+    );
+
+    return ordersWithItems;
+
+    // const orderWithItems = (orders as any[]).map((order) => ({
+    //   ...order,
+
+    //   items: (items as any[])
+    //     .filter((item) => item.order_id === order.order_id)
+    //     .map((item) => ({
+    //       id: item.id,
+    //       order_id: item.order_id,
+    //       order_number: item.order_number,
+    //       quantity: item.quantity,
+    //       article: item.slmdl_articleordernumber.split("-")[0],
+    //       // article_id: item.slmdl_article_id,
+    //       // warehouse_id: item.warehouse_id,
+    //     })),
+    // }));
+
+    // return orderWithItems as Order[];
   }
 
   static async getOrderItemsCount(orderIds: string[]): Promise<number> {
@@ -384,8 +424,8 @@ export class LogisticOrder {
       JOIN warehouse_details wh
         ON o.warehouse_id = wh.warehouse_id
       WHERE o.status IN ('initial', 'unassigned', 'rescheduled')
-      AND o.warehouse_id IN (1, 2, 10)
   `;
+    // AND o.warehouse_id IN (1, 2, 10)
 
     const params: any[] = [];
 
@@ -395,7 +435,7 @@ export class LogisticOrder {
       params.push(sinceDate, sinceDate);
     }
 
-    query += ` ORDER BY o.order_id LIMIT 200`;
+    query += ` ORDER BY o.order_id`; // LIMIT 300
     // query += ` ORDER BY o.updated_at DESC, o.created_at DESC`;
 
     try {
@@ -421,7 +461,6 @@ export class LogisticOrder {
         zipcode: raw.zipcode,
 
         location: { lat: +raw.latitude, lng: +raw.longitude },
-
         items: [],
       }));
 
@@ -459,12 +498,10 @@ export class LogisticOrder {
     }
   }
 
-  static async pendingOrdersWithWeightAndItems(): Promise<Order[]> {
-    const orders: Order[] = await this.getPendingOrdersAsync();
-
-    const [solarModules] = await pool.execute(
-      `SELECT * from solarmodules_items`
-    );
+  static async pendingOrdersWithWeightAndItems(
+    since?: string
+  ): Promise<Order[]> {
+    const orders: Order[] = await this.getPendingOrdersAsync(since);
 
     const placeholders = orders.map(() => "?").join(",");
     const [items] = await pool.execute(
@@ -472,15 +509,35 @@ export class LogisticOrder {
       orders.map((o) => o.order_id)
     );
 
+    const ordersWithItems = await LogisticOrder.mapOrdersItems(
+      orders as Order[],
+      items as OrderItem[]
+    );
+
+    return ordersWithItems;
+  }
+
+  static async mapOrdersItems(orders: Order[], items: OrderItem[]) {
+    const [solarModules] = await pool.execute(
+      `SELECT * from solarmodules_items`
+    );
+
     const orderWithItems: Order[] = orders.map((order) => {
       const orderItems = (items as OrderItem[]).filter(
         (x) => x.order_id === order.order_id
       );
 
-      const quantity = orderItems.length;
-      const article_order_number = orderItems
+      // const quantity = orderItems.length;
+      const quantity = orderItems.reduce((acc, item) => acc + item.quantity, 0);
+
+      let article_order_number = orderItems
         .map((x) => x.slmdl_articleordernumber)
-        .join(", ");
+        .join(",");
+
+      article_order_number = article_order_number
+        .split(",")
+        .map((x) => x?.split("-")[0])
+        .join(",");
 
       const totalWeight = orderItems.reduce((acc, item) => {
         const matchedModule = (solarModules as any[]).find(
@@ -507,9 +564,9 @@ export class LogisticOrder {
             order_id: item.order_id,
             order_number: item.order_number,
             quantity: item.quantity,
-            article: item.slmdl_articleordernumber,
-            article_id: item.slmdl_article_id,
-            warehouse_id: item.warehouse_id,
+            article: item.slmdl_articleordernumber.split("-")[0],
+            // article_id: item.slmdl_article_id,
+            // warehouse_id: item.warehouse_id,
           })),
       };
     });

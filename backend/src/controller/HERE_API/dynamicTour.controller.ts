@@ -12,6 +12,7 @@ import { logWithTime } from "../../utils/logging";
 import {
   CreateTour,
   DynamicTourPayload,
+  DynamicTourRes,
   rejectDynamicTour_Req,
 } from "../../types/dto.types";
 import { LogisticOrder } from "../../model/LogisticOrders";
@@ -315,7 +316,7 @@ export const createDynamicTour = async (_req: Request, res: Response) => {
     if (!payload || !payload.orderIds || !payload.warehouse_id)
       res.status(400).json({ message: "Invalid payload" });
 
-    const dynamicTour = await createDynamicTourAsync(payload);
+    const dynamicTour: DynamicTourRes = await createDynamicTourAsync(payload);
 
     res.json(dynamicTour);
     logWithTime(

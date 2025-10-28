@@ -146,8 +146,7 @@ async function trimClusterToFitUsingMatrix(
     logger.info(`distanceMeters: ${distanceMeters}`);
     logger.info(`allowedDistance Tolerance: ${allowedDistance}`);
 
-    // && distanceMeters <= MAX_TOUR_DISTANCE_METERS
-    if (durationSec <= allowedTime) {
+    if (durationSec <= allowedTime && distanceMeters <= allowedDistance) {
       logger.info("Round 1st: Cluster Accepted as is");
       logger.info(
         `Cluster Accepted: WH ${warehouse.id}-${warehouse.town}, ${
@@ -191,8 +190,7 @@ async function trimClusterToFitUsingMatrix(
       logger.info(`dur_sec_2: ${dur_sec_2}`);
       logger.info(`dis_mtr_2: ${dis_mtr_2}`);
 
-      // && dis_mtr_2 <= MAX_TOUR_DISTANCE_METERS
-      if (dur_sec_2 <= allowedTime) {
+      if (dur_sec_2 <= allowedTime && dis_mtr_2 <= allowedDistance) {
         cacheDel(clusterKey);
         return { fitted, trimmed };
       } else {
@@ -309,7 +307,7 @@ export async function processBatch() {
     const candidOrders: Order[] = orderEntries.map((e) => e.order);
     if (grossWeight(candidOrders) < MIN_WEIGHT) {
       logger.warn(
-        `[Warehouse ${warehouseId}] Skipped due to insufficient total weight (${grossWeight(
+        `[Batch Process] [Warehouse ${warehouseId}] Skipped due to insufficient total weight (${grossWeight(
           candidOrders
         )} kg)`
       );

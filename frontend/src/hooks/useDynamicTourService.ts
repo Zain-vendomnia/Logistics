@@ -28,6 +28,8 @@ export const useDynamicTourService = () => {
     setDynamicToursList,
     updateDynamicToursList,
     pinboard_removeOrders,
+    dtoursOrders,
+    updateDToursOrders,
   } = useDynamicTourStore();
 
   const theme = useTheme<Theme>();
@@ -88,6 +90,9 @@ export const useDynamicTourService = () => {
   useEffect(() => {
     if (!selectedTour) return;
 
+    console.log("Selected Tour", selectedTour);
+
+    debugger;
     const selectedTourOrders = selectedTour.orderIds
       .split(",")
       .map((id) => Number(id));
@@ -120,8 +125,43 @@ export const useDynamicTourService = () => {
 
         // get Tour Orders
         const orderIds = selectedTour.orderIds;
-        const orders: Order[] =
-          await adminApiService.fetchOrdersWithItems(orderIds);
+        const order_ids = orderIds.split(",").map(Number);
+
+        const persistedOrders = dtoursOrders;
+
+        const persistedMap = new Map(
+          persistedOrders.map((o) => [o.order_id, o])
+        );
+
+        const foundOrders: Order[] = [];
+        const missingIds: number[] = [];
+
+        order_ids.forEach((id) => {
+          if (persistedMap.has(id)) {
+            foundOrders.push(persistedMap.get(id)!);
+          } else {
+            missingIds.push(id);
+          }
+        });
+
+        let fetchedOrders: Order[] = [];
+
+        if (missingIds.length) {
+          console.log(
+            `[DTours] Fetching missing orders for 
+            selected tour ${selectedTour.tour_name},
+            orderIds: ${missingIds}`
+          );
+          fetchedOrders = await adminApiService.fetchOrdersWithItems(
+            missingIds.join(",")
+          );
+          // Update store for persistence
+          updateDToursOrders(fetchedOrders);
+        }
+
+        // Merge found + fetched
+        const orders = [...foundOrders, ...fetchedOrders];
+
         setTourOrders(orders);
 
         setShouldUpdateTourRoute(false);
@@ -233,12 +273,12 @@ export const useDynamicTourService = () => {
       if (!dTour_res || !dTour_res.dynamicTour) {
         throw new Error("Invalid response: missing dynamicTour");
       }
-
+      // debugger;
       const updated_dTour = dTour_res.dynamicTour;
       console.log("updated_dTour", updated_dTour);
       updateDynamicToursList(updated_dTour);
       setSelectedTour({ ...updated_dTour });
-      // setSelectedTour({ ...updated_dTour });
+
       pinboard_removeOrders(updated_dTour.orderIds.split(",").map(Number));
 
       const updatedOrders = updated_dTour.orderIds.split(",").map(Number);

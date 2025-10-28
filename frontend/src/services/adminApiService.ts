@@ -38,7 +38,6 @@ const fetchOrdersWithItems = async (orderIds: string): Promise<Order[]> => {
   const res = await axios.get(`${API_BaseUrl}ordersWithItems`, {
     params: { orderIds },
   });
-  console.log(`[debug] fetchOrdersWithItems: ${res}`);
   return res.data as Order[];
 };
 

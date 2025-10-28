@@ -26,7 +26,6 @@ import {
   SwipeDownAlt,
   ImportExport,
   SwipeUpAlt,
-  Palette,
 } from "@mui/icons-material";
 import ArrowRightIcon from "@mui/icons-material/ArrowRight";
 import ArrowLeftIcon from "@mui/icons-material/ArrowLeft";
@@ -46,14 +45,17 @@ const DynamicTourList = () => {
   const { dynamicToursList, selectedTour, setSelectedTour } =
     useDynamicTourStore();
 
-  // console.log("dynamicTours", dynamicToursList);
-
   const [selectedTourItem, setSelectedTourItem] = useState(selectedTour);
-
   const [searchItem, setSearchItem] = useState("");
+  const [filteredTours, setFilteredTours] = useState<DynamicTourPayload[]>([]);
 
-  // const [dynamicTourList, setDynamicTourList] = useState(dynamicTours);
-  let filteredTours: DynamicTourPayload[] = dynamicToursList;
+  const [expandDetailsPanel, setExpandDetailsPanel] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+
+  useEffect(() => {
+    setFilteredTours(dynamicToursList);
+    setSearchItem("");
+  }, [dynamicToursList]);
 
   useEffect(() => {
     setSelectedTourItem(selectedTour);
@@ -68,44 +70,35 @@ const DynamicTourList = () => {
     }
   };
 
-  const getOrderCount = (orderIds: string) => {
-    return orderIds.split(",").length;
-  };
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      const searchString = searchItem.trim().toLowerCase();
+
+      if (!searchString) {
+        setFilteredTours(dynamicToursList);
+        return;
+      }
+
+      const resultArray = dynamicToursList.filter(
+        (t) =>
+          t.tour_name?.toLowerCase().includes(searchString) ||
+          t.warehouse_name?.toLowerCase().includes(searchString) ||
+          t.warehouse_town?.toLowerCase().includes(searchString)
+      );
+
+      setFilteredTours(resultArray.length > 0 ? resultArray : dynamicToursList);
+    }, 300); // 300ms
+
+    return () => clearTimeout(handler);
+  }, [searchItem, dynamicToursList]);
 
   const handleTourSearch = (e: ChangeEvent<HTMLInputElement>) => {
-    const searchString = e.target.value;
-    setSearchItem(searchString);
-
-    if (!searchString) {
-      // setDynamicTourList(dynamicTours);
-      filteredTours = dynamicToursList;
-
-      return;
-    }
-
-    filteredTours = dynamicToursList.filter((t) =>
-      t.tour_name
-        ?.toString()
-        .toLocaleLowerCase()
-        .includes(searchString.toLocaleLowerCase())
-    );
-    // let resultArray: DynamicTourPayload[] = dynamicTours.filter((t) =>
-    //   t.tour_name
-    //     ?.toString()
-    //     .toLocaleLowerCase()
-    //     .includes(searchString.toLocaleLowerCase())
-    // );
-
-    // if (resultArray.length === 0 ){
-    // dynamicTours.filter(t => t.warehouse_name || t.locationName)
-    // }
-
-    // if (resultArray.length > 0) setDynamicTourList(resultArray);
+    setSearchItem(e.target.value);
   };
 
-  // ########
-  const [expandDetailsPanel, setExpandDetailsPanel] = useState(false);
-  const [showUploadModal, setShowUploadModal] = useState(false);
+  const extractOrdersLength = (orderIds: string) => {
+    return orderIds.split(",").length;
+  };
 
   return (
     <>
@@ -157,7 +150,7 @@ const DynamicTourList = () => {
             <FormControl>
               <TextField
                 size="small"
-                placeholder="Search Tour"
+                placeholder="Search Tour..."
                 value={searchItem}
                 // onFocus={() => setSearchItem("")}
                 onChange={handleTourSearch}
@@ -231,7 +224,7 @@ const DynamicTourList = () => {
                           overflow={"hidden"}
                         >
                           <XChip
-                            label={`Ziele ${getOrderCount(tour.orderIds)}`}
+                            label={`Ziele ${extractOrdersLength(tour.orderIds)}`}
                             color="info"
                             variant="outlined"
                           />
@@ -367,7 +360,7 @@ const DynamicTourList = () => {
                               display={"flex"}
                               justifyContent={"space-between"}
                             >
-                              <Typography>Cost / BKW:</Typography>
+                              <Typography>Cost / Article:</Typography>
                               <Typography>
                                 {tour?.matrix?.delivery_cost_per_bkw ?? "---"}
                               </Typography>
@@ -389,7 +382,7 @@ const DynamicTourList = () => {
                             />
                             <SwipeDownAlt fontSize={"medium"} color="error" />
                             <SwipeUpAlt fontSize={"medium"} color="warning" />
-                            <ImportExport fontSize={"medium"} color="info" />
+                            {/* <ImportExport fontSize={"medium"} color="info" /> */}
                           </Stack>
                         </Box>
                         <Divider />

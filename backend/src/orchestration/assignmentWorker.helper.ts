@@ -478,6 +478,7 @@ export function clusterOrdersByDensDirection(
       const result = splitOrdersIntoClustersDynamic(
         nearby,
         CLOSE_TO_DISTANCE_KM + 20
+        // ((CLOSE_TO_DISTANCE_KM / 100) * 45) // 45% of CLOSE_TO_DISTANCE_KM
       );
       if (result.clusters.length) geoClusters.push(...result.clusters);
       if (result.remainingOrders.length) {
