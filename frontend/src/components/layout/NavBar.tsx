@@ -101,7 +101,7 @@ const NavBar = () => {
                   {totalUnreadCount > 0 && (
                     <Badge badgeContent={totalUnreadCount} color="error" sx={{
                       position: 'absolute', top: 5, right: 8,
-                      '& .MuiBadge-badge': { backgroundColor: '#ff1744', color: 'white', fontSize: '0.7rem', fontWeight: 'bold', minWidth: 16, height: 16, borderRadius: 8, border: '1px solid white', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }
+                      '& .MuiBadge-badge': { backgroundColor: 'blue', color: 'white', fontSize: '0.8rem', fontWeight: 'bold', minWidth: 16, height: 16, borderRadius: 8, border: '1px solid white', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }
                     }} />
                   )}
                 </Box>

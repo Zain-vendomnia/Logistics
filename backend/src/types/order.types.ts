@@ -71,6 +71,7 @@ export type ShopwareOrder = {
   trackingCode?: string | null;
   orderStatusID: number;
   ordertime: Date | string;
+  article_sku: string;
   OrderDetails: ShopwareOrderDetails[];
   user_id: string;
   customernumber: string;
@@ -115,6 +116,7 @@ export function mapShopwareOrderToLogisticOrder(
     order_status_id: order.orderStatusID,
     warehouse_id: Number(order.OrderDetails[0].warehouse_id) ?? 0,
     order_time: new Date(order.ordertime),
+    article_sku: order.article_sku,
     customer_number: order.customernumber,
     firstname: order.shipping_firstname || order.user_firstname,
     lastname: order.shipping_lastname || order.user_lastname,

@@ -5,7 +5,7 @@ import {
   emitMessageStatusUpdate,
   broadcastGlobalMessageStatus,
   updateGlobalUnreadCount,
-} from "../config/socket";
+} from "../socket/Whatsapp.socket";
 import { handleNewMessage as handleCustomerListUpdate } from "./customerService";
 import twilio from "twilio";
 import dotenv from "dotenv";

@@ -1,6 +1,6 @@
 import winston from "winston";
 import "winston-mongodb";
-import { emitLogging } from "./socket";
+import { emitLogging } from "../socket/logging.socket";
 import config from "./config";
 
 const logFormat = winston.format.printf(({ level, message, timestamp }) => {

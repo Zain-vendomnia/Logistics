@@ -33,7 +33,7 @@ export async function shopwareOrderSync() {
     let params: any = {};
 
     if (!rows.length || rows[0].maxOrderId === null) {
-      params = { from_date: "2024-01-10" }; // adjust as needed
+      params = { from_date: "2025-10-01" }; // adjust as needed
       console.log("Date condition is running...")
     } else {
       params = { last_order_id: rows[0].maxOrderId };
@@ -74,6 +74,7 @@ export async function shopwareOrderSync() {
           trackingCode: item.trackingCode,
           orderStatusID: item.orderStatusID,
           ordertime: item.ordertime,
+          article_sku: item.article_sku,
           user_id: item.user_id,
           customernumber: item.customernumber,
           user_email: item.user_email,

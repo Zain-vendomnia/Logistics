@@ -2,23 +2,20 @@ export const CREATE_WAREHOUSE_DETAILS_TABLE = `
 CREATE TABLE IF NOT EXISTS warehouse_details (
     warehouse_id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     warehouse_name VARCHAR(100) NOT NULL,
-    latitude DECIMAL(10,7) DEFAULT NULL,
-    longitude DECIMAL(10,7) DEFAULT NULL,
-    zip_code VARCHAR(12) NOT NULL,
-    zip_codes_delivering TEXT DEFAULT NULL,
-    color_code VARCHAR(7) DEFAULT NULL,
-    town VARCHAR(60) NOT NULL,
-    address VARCHAR(110) NOT NULL,
-    email VARCHAR(45) NOT NULL,
     clerk_name VARCHAR(45) NOT NULL,
     clerk_mob VARCHAR(20) NOT NULL,
+    address VARCHAR(110) NOT NULL,
+    email VARCHAR(45) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
     updated_by VARCHAR(45) DEFAULT NULL,
+    latitude VARCHAR(20) DEFAULT NULL,
+    longitude VARCHAR(20) DEFAULT NULL,
     zip_code VARCHAR(12) NOT NULL,
     town VARCHAR(60) NOT NULL,
     zip_codes_delivering TEXT DEFAULT NULL,
-    color_code VARCHAR(7) DEFAULT NULL
+    color_code VARCHAR(7) DEFAULT NULL,
+    is_active TINYINT(1) NOT NULL DEFAULT 1
 );
 `;
 
@@ -188,15 +185,19 @@ export const CREATE_ROUTE_SEGMENTS_TABLE = `
     tour_id INT NOT NULL,
     route_response JSON,
     status ENUM('pending', 'in-progress', 'delivered', 'tour-completed', 'return') DEFAULT 'pending',
+    doorstep_pic BLOB,
+    delivered_item_pic BLOB,
+    customer_signature BLOB,
     parking_place VARCHAR(255),
+    neighbour_signature BLOB,
+    delivered_pic_neighbour BLOB,
     order_id VARCHAR(45),
     comments VARCHAR(45) DEFAULT NULL,
-    delivery_time TIMESTAMP,
-    FOREIGN KEY (tour_id) REFERENCES tourInfo_master(id) ON DELETE CASCADE,
-    
+    delivery_time TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
-    recipient_type ENUM('customer', 'neighbour') DEFAULT 'customer'
+    recipient_type ENUM('customer', 'neighbour') DEFAULT 'customer',
+    FOREIGN KEY (tour_id) REFERENCES tourInfo_master(id) ON DELETE CASCADE
   );
 `;
 export const LOGIC_ORDER_TABLE = `
@@ -206,25 +207,27 @@ export const LOGIC_ORDER_TABLE = `
     order_number VARCHAR(45) NOT NULL,
     status ENUM('initial', 'unassigned', 'assigned', 'inTransit', 'delivered', 'rescheduled', 'canceled') NOT NULL DEFAULT 'initial',
     customer_id VARCHAR(45) NOT NULL,
-    invoice_amount VARCHAR(45) NOT NULL,
-    payment_id INT NOT NULL,
-    warehouse_id INT NOT NULL,
-    order_time DATETIME NOT NULL,
-    expected_delivery_time DATETIME NOT NULL,
-    customer_number VARCHAR(45) NOT NULL,
-    firstname VARCHAR(45) NOT NULL,
-    lastname VARCHAR(45) NOT NULL,
-    email VARCHAR(45) NOT NULL,
-    street VARCHAR(45) NOT NULL,
-    zipcode VARCHAR(10) NOT NULL,
-    city VARCHAR(45) NOT NULL,
-    phone VARCHAR(45) NOT NULL,
-    latitude DECIMAL(10,7),
-    longitude DECIMAL(10,7),
+    invoice_amount VARCHAR(45) NULL,           
+    payment_id INT NULL,                         
+    warehouse_id INT NULL,                        
+    order_time DATETIME  NULL,
+    expected_delivery_time DATETIME  NULL,
+    customer_number VARCHAR(45)  NULL,
+    firstname VARCHAR(45)  NULL,
+    lastname VARCHAR(45) NULL,                    
+    email VARCHAR(45) NULL,                     
+    street VARCHAR(45) NULL,                    
+    zipcode VARCHAR(10) NULL,                    
+    city VARCHAR(45) NULL,                       
+    phone VARCHAR(45) NULL,                     
+    latitude DECIMAL(10,7) NULL,            
+    longitude DECIMAL(10,7) NULL,               
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
-    tracking_code VARCHAR(100),
-    order_status_id INT
+    status ENUM('initial', 'unassigned', 'assigned', 'inTransit', 'delivered', 'rescheduled', 'canceled') NOT NULL DEFAULT 'initial',
+    article_sku	 VARCHAR(255) NULL,
+    tracking_code VARCHAR(100) NULL,             
+    order_status_id INT NULL                    
   );
 `;
 
@@ -343,21 +346,20 @@ export const CREATE_WHATSAPPCHATS_TABLE = `
   );
 `;
 
-export const CREATE_DYNAMIC_TOURS_TABLE = `
-  CREATE TABLE IF NOT EXISTS dynamic_tours (
-    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, 
-    tour_name VARCHAR(45) UNIQUE,
-    tour_route JSON NOT NULL,
-    tour_data JSON NOT NULL,
-    orderIds TEXT NOT NULL, 
-    warehouse_id INT NOT NULL,
-    approved_by VARCHAR(45) DEFAULT NULL, 
+export const CREATE_DYNAMIC_TOURS_TABLE = ` 
+  CREATE TABLE IF NOT EXISTS dynamic_tours ( 
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,  
+    tour_name VARCHAR(45) UNIQUE, 
+    tour_route JSON NOT NULL, 
+    tour_data JSON NOT NULL, 
+    orderIds TEXT NOT NULL,  
+    warehouse_id INT NOT NULL, 
+    approved_by VARCHAR(45) DEFAULT NULL,  
     approved_at DATETIME DEFAULT NULL,
-    approved_at DATETIME DEFAULT NULL,
-    updated_by VARCHAR(45) DEFAULT NULL, 
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, 
+    updated_by VARCHAR(45) DEFAULT NULL,  
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,  
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
+  ); 
 `;
 
 export const CREATE_TOUR_TRACES_TABLE = `
@@ -478,7 +480,7 @@ export const CREATE_ORDER_IMAGES_TABLE = `
     tour_id VARCHAR(25) NOT NULL,
     order_id VARCHAR(25) NOT NULL,
     order_number VARCHAR(25) NOT NULL,
-    route_segment_id VARCHAR(25) NOT NULL,
+    route_segment_id INT NOT NULL,
     type ENUM('customer_door_step', 'customer_delivered_item', 'customer_delivered_item_modal', 'customer_signature','neighbour_door_step', 'neighbour_delivered_item', 'neighbour_delivered_item_modal', 'neighbour_signature', 'damaged') NOT NULL DEFAULT 'customer_door_step',
     image VARCHAR(999) NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP, 
