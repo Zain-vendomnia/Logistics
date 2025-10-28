@@ -224,6 +224,7 @@ export const LOGIC_ORDER_TABLE = `
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
     status ENUM('initial', 'unassigned', 'assigned', 'inTransit', 'delivered', 'rescheduled', 'canceled') NOT NULL DEFAULT 'initial',
+    article_sku	 VARCHAR(255) NULL,
     tracking_code VARCHAR(100) NULL,             
     order_status_id INT NULL                    
   );

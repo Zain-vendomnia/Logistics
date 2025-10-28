@@ -151,6 +151,7 @@ export function parseExcelBufferToOrders(
       order_id: 0,
       quantity: 0,
       article_order_number: "",
+      article_sku: "",
       lattitude: null,
       longitude: null,
       shopware_order_id: row["REFERENZ"],

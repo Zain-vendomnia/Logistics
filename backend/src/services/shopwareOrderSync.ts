@@ -74,6 +74,7 @@ export async function shopwareOrderSync() {
           trackingCode: item.trackingCode,
           orderStatusID: item.orderStatusID,
           ordertime: item.ordertime,
+          article_sku: item.article_sku,
           user_id: item.user_id,
           customernumber: item.customernumber,
           user_email: item.user_email,

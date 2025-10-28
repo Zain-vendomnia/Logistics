@@ -28,6 +28,7 @@ export class LogisticOrder {
   public invoice_amount!: string;
   public payment_id!: number;
   public order_time!: Date;
+  public article_sku!: string;
   public expected_delivery_time?: Date;
   public warehouse_id!: number;
   public quantity!: number;
@@ -117,10 +118,10 @@ export class LogisticOrder {
       const [result] = await conn.execute(
         `INSERT INTO logistic_order (
             shopware_order_id, order_number, customer_id, invoice_amount, payment_id,
-            tracking_code,order_status_id,
-            warehouse_id, order_time, expected_delivery_time, customer_number,
+            tracking_code, order_status_id,
+            warehouse_id, order_time, article_sku, expected_delivery_time, customer_number,
             firstname, lastname, email, street, zipcode, city, phone
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           order.shopware_order_id,
           order.order_number,
@@ -131,6 +132,7 @@ export class LogisticOrder {
           order.order_status_id,
           order.warehouse_id,
           order.order_time,
+          order.article_sku,
           expectedDelivery.toISOString().slice(0, 19).replace("T", " "),
           order.customer_number,
           order.firstname,
