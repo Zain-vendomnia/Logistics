@@ -18,6 +18,7 @@ import hereMapService from "./hereMap.service";
 import pool from "../config/database";
 import { extractTourStats } from "./helpers/dynamicTour.helpers";
 import { Order } from "../types/order.types";
+import logger from "../config/logger";
 
 export async function getTourMapDataAsync(tourPayload: CreateTour) {
   const connection = await pool.getConnection();
@@ -273,29 +274,31 @@ export async function createDeliveryCostForTour(
   tourId: number,
   type: TourType = TourType.dynamicTour
 ): Promise<TourMatrix> {
+  logger.info("[Tour Cost] Beginning...");
+
   const connection = await pool.getConnection();
   try {
-    console.info("function createDeliveryCostForTour Starting...");
-
     await connection.beginTransaction();
 
-    // Get tour data
+    // Getting tour data
     let tourData: any;
     if (type === TourType.dynamicTour) {
       const [rows]: any = await connection.execute(
-        `SELECT orderIds, tour_data FROM dynamic_tours WHERE id = ?`,
+        `SELECT orderIds, tour_name, tour_data FROM dynamic_tours WHERE id = ?`,
         [tourId]
       );
       tourData = rows[0];
     } else {
       const [rows]: any = await connection.execute(
-        `SELECT order_ids AS orderIds, tour_data FROM tourinfo_master WHERE id = ?`,
+        `SELECT order_ids AS orderIds, tour_name, tour_data FROM tourinfo_master WHERE id = ?`,
         [tourId]
       );
       tourData = rows[0];
     }
 
     if (!tourData) throw new Error(`Tour ${tourId} not found`);
+
+    logger.info(`[Tour Cost] Calculating cost for tour: ${tourData.tour_name}`);
 
     // Compute totals
     const ordersWithItems: Order[] =
@@ -304,24 +307,32 @@ export async function createDeliveryCostForTour(
       );
     const totalWeightKg = ordersWithItems.reduce(
       // (acc, order) => acc + calculateOrderWeight(order),
-      (acc, order) => acc + order.weight_kg! || 0,
+      (acc, order) => acc + (order.weight_kg ?? 0),
       0
     );
 
     const totalSLMDQty = ordersWithItems.reduce(
-      (acc, order) => acc + order.quantity! || 0,
+      (acc, order) => acc + (order.quantity ?? 0),
       0
     );
 
-    const tour = tourData.tour_data.tour as Tour;
+    const totalArticles = ordersWithItems.reduce((acc, order) => {
+      const articles = order.article_sku
+        ? order.article_sku.split(",").length
+        : 0;
+      return acc + articles;
+    }, 0);
+
+    const tourObj = tourData.tour_data;
+    // const tourObj = JSON.parse(tourData.tour_data);
+    const tour = tourObj.tour as Tour;
     const { totalDistanceKm, totalDurationHrs } = extractTourStats(tour);
 
-    // Get delivery cost rates
     const [ratesRows]: any = await connection.execute(`
       SELECT * FROM delivery_cost_rates
       ORDER BY id DESC
       LIMIT 1
-    `);
+      `);
     const rates = ratesRows[0] as DeliveryCostRates;
     if (!rates) throw new Error("No delivery cost rates found");
 
@@ -336,28 +347,13 @@ export async function createDeliveryCostForTour(
     const totalCost: number =
       +rates.hotel_costs + +vanCost + +dieselCost + +personnelCost;
 
-    const costPerStop = totalCost / ordersWithItems.length; // Order stops
-    const costPerBkw = totalCost / 5; // TODO: real bkw count
-    const costPerSlmd = totalCost / totalSLMDQty; // 5;
+    // Order stops
+    const costPerStop = ordersWithItems.length
+      ? totalCost / ordersWithItems.length
+      : 0;
+    const costPerBkw = totalArticles ? totalCost / totalArticles : 0;
+    const costPerSlmd = totalSLMDQty ? totalCost / totalSLMDQty : 0;
 
-    console.log("orderWithItems: ", ordersWithItems);
-    console.log("orderWithItems[0] items: ", ordersWithItems[0].items);
-
-    console.log("totalWeightKg: ", totalWeightKg);
-    console.log("totalDistanceKm: ", totalDistanceKm);
-    console.log("totalDurationHrs: ", totalDurationHrs);
-
-    console.log("personnelCost: ", personnelCost);
-    console.log("dieselCost: ", dieselCost);
-    console.log("vanCost: ", vanCost);
-    console.log("rates.hotel_costs: ", rates.hotel_costs);
-    console.log("totalCost: ", totalCost);
-
-    console.log("costPerStop: ", costPerStop);
-    console.log("costPerBkw: ", costPerBkw);
-    console.log("costPerSlmd: ", costPerSlmd);
-
-    // Check if already exists
     const idColumn =
       type === TourType.masterTour ? "tour_id" : "dynamic_tour_id";
     const [matrixRows]: any = await connection.execute(
@@ -426,7 +422,7 @@ export async function createDeliveryCostForTour(
       ];
     }
 
-    const [result]: any = await connection.execute<ResultSetHeader>(
+    const [result] = await connection.execute<ResultSetHeader>(
       query_matrix,
       params
     );
@@ -436,22 +432,39 @@ export async function createDeliveryCostForTour(
       targetId,
     });
 
-    // 7️⃣ Return row
     const [rows]: any = await connection.execute(
       `SELECT * FROM delivery_cost_per_tour WHERE id = ?`,
       [targetId]
     );
 
+    const tourMatrix = rows[0] as TourMatrix;
+
+    logger.info(
+      `[Tour Cost] Calculated cost for tour ${tourData.tour_name} is ${tourMatrix.total_cost}`
+    );
     await connection.commit();
-    return rows[0] as TourMatrix;
+    return tourMatrix;
   } catch (error) {
     await connection.rollback();
-    console.error("Error creating delivery cost for tour:", error);
+    logger.error("[Tour Cost] Error creating delivery cost for tour:", error);
     throw error;
   } finally {
-    console.info("function createDeliveryCostForTour Ending...");
+    logger.info("[Tour Cost] Terminating...");
     connection.release();
   }
+}
+
+export async function tourCostRecompute() {
+  const [rows]: any = await pool.execute(
+    `SELECT id FROM dynamic_tours WHERE approved_by IS NULL`
+  );
+  const tourIds = rows.map((r: any) => r.id);
+
+  for (const id of tourIds) {
+    await createDeliveryCostForTour(id);
+  }
+
+  // await Promise.all(tourIds.map((id: number) => createDeliveryCostForTour(id)));
 }
 
 export async function getTourMatrix(

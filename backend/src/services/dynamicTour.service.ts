@@ -24,37 +24,11 @@ import { TourStatus, TourTracePayload, TourType } from "../types/tour.types";
 import {
   buildUnassignedOrders,
   handleExistingTour,
-  persistDynamicTour,
   validatePayload,
 } from "./helpers/dynamicTour.helpers";
-import { generateTourName } from "../helpers/tour.helper";
-import { emitNewDynamicTour } from "../socket/Tourplanning.socket";
 import logger from "../config/logger";
-
-// export async function createDynamicTourWithCostEvaluationAsync(
-//   payload: DynamicTourPayload
-// ) {
-//   try {
-//     const res = await createDynamicTourAsync(payload);
-
-//     console.info("res?.dynamicTour?.id!", res?.dynamicTour?.id!);
-//     console.info("Triggering createDeliveryCostForTour...");
-//     await createDeliveryCostForTour(res?.dynamicTour?.id!);
-
-//     console.info(
-//       `Successfully created tour for
-//       warehouse ${payload.warehouse_id}, Orders: ${payload.orderIds}`
-//     );
-
-//   } catch (err) {
-//     console.error(
-//       `Failed to create tour for warehouse ${warehouseId}, Orders: ${orders.map(
-//         (o) => o.order_id
-//       )}`,
-//       err
-//     );
-//   }
-// }
+import { emitNewDynamicTour } from "../socket/tourPlanning.socket";
+import { generateTourName } from "../helpers/tour.helper";
 
 export async function createDynamicTourAsync(
   payload: DynamicTourPayload
@@ -65,8 +39,12 @@ export async function createDynamicTourAsync(
 
   validatePayload(payload);
 
+  const tourName =
+    payload.tour_name ??
+    (await generateTourName(payload.orderIds.split(",").map((o) => Number(o))));
+
   try {
-    const payload_orderIds = payload.orderIds.split(",").map((o) => Number(o));
+    const payload_orderIds = payload.orderIds.split(",").map(Number);
 
     const { tour, unassigned, orders } =
       await hereMapService.CreateTourRouteAsync(
@@ -83,7 +61,8 @@ export async function createDynamicTourAsync(
     if (!routes)
       throw new Error("Null Response from Here Map - Routes creation");
 
-    const txnOrderIds = hereMapService.extractTourOrderIds(tour);
+    const txnOrderIdsStr = hereMapService.extractTourOrderIds(tour);
+    const txnOrder_ids: number[] = txnOrderIdsStr.split(",").map(Number);
 
     await connection.beginTransaction();
 
@@ -92,14 +71,30 @@ export async function createDynamicTourAsync(
       await handleExistingTour(connection, payload, payload_orderIds);
     }
 
-    const new_dTour: DynamicTourPayload = await persistDynamicTour(
+    payload.tour_data = { tour, unassigned };
+    payload.tour_route = routes;
+    payload.tour_name = tourName;
+
+    const new_dTour = await saveDynamicTour(connection, payload);
+
+    // Orders status update
+    const orderIds: number[] = new_dTour.orderIds.split(",").map(Number);
+    await LogisticOrder.updateOrdersStatus(
       connection,
-      payload,
-      tour,
-      routes,
-      unassigned,
-      txnOrderIds
+      orderIds,
+      OrderStatus.assigned
     );
+
+    const xOrder_ids = payload_orderIds.filter(
+      (o) => !txnOrder_ids.includes(o)
+    );
+    if (xOrder_ids.length > 0) {
+      await LogisticOrder.updateOrdersStatus(
+        connection,
+        xOrder_ids,
+        OrderStatus.unassigned
+      );
+    }
 
     await connection.commit();
 
@@ -115,6 +110,7 @@ export async function createDynamicTourAsync(
       logger.info(
         `[Create Dynamic Tour] New Dynamic Tour ID: ${new_dTour?.id}`
       );
+
       logger.info("[Create Dynamic Tour] Triggering Delivery Cost...");
       matrix = await createDeliveryCostForTour(new_dTour?.id);
     } catch (err) {
@@ -147,12 +143,17 @@ export async function createDynamicTourAsync(
 
     return response;
   } catch (error) {
+    const err = new Error(
+      `[Create Dynamic Tour] failed for tour_name=${payload.tour_name} | OrderIds = ${payload.orderIds}`,
+      { cause: error as Error }
+    );
+    console.error(err);
     try {
       await connection.rollback();
+      logger.info(`[Create Dynamic Tour] Rollback succeed.`);
     } catch (rbErr) {
-      logger.error(`Rollback failed: ${rbErr}`);
+      logger.error(`[Create Dynamic Tour] Rollback failed: ${rbErr}`);
     }
-    logger.error(`Error in createDynamicTourAsync: ${error}`);
     throw error;
   } finally {
     connection.release();
@@ -163,7 +164,6 @@ export const saveDynamicTour = async (
   conn: PoolConnection,
   payload: DynamicTourPayload
 ): Promise<DynamicTourPayload> => {
-  // logger.verbose(`[Save Dynamic Tour]: initiated ${JSON.stringify(payload)}`);
   const {
     id,
     tour_name,
@@ -176,14 +176,11 @@ export const saveDynamicTour = async (
     updated_by = null,
   } = payload;
 
-  // Create new tour name
-  const order_ids = orderIds.split(",").map((o) => Number(o));
-  const new_tourName = await generateTourName(order_ids);
-
   let query = "";
   let values = [];
 
-  const isNew = !id && !tour_name;
+  const isNew = !id;
+  // const isNew = !id && !tour_name;
   if (isNew) {
     query = `
       INSERT INTO dynamic_tours (
@@ -193,7 +190,7 @@ export const saveDynamicTour = async (
     `;
 
     values = [
-      new_tourName,
+      tour_name,
       JSON.stringify(tour_route),
       JSON.stringify(tour_data),
       orderIds,
@@ -218,7 +215,7 @@ export const saveDynamicTour = async (
     `;
 
     values = [
-      new_tourName,
+      tour_name,
       JSON.stringify(tour_route),
       JSON.stringify(tour_data ?? {}),
       orderIds,
@@ -234,10 +231,12 @@ export const saveDynamicTour = async (
     logger.info(
       `[Save Dynamic Tour] tour ${
         isNew ? "INSERTED" : "UPDATED"
-      } Successfully: ${new_tourName}`
+      } Successfully. \n Dynamic Tour: tour_name = ${
+        payload.tour_name
+      } | txnOrderIds = ${payload.orderIds}`
     );
 
-    const dtour_Id = isNew ? (result as any).InsertId : payload.id;
+    const dtour_Id = isNew ? (result as any).insertId : payload.id;
     const [createdDTour]: any = await conn.execute(
       `SELECT * FROM dynamic_tours WHERE id = ?`,
       [dtour_Id]
@@ -248,7 +247,9 @@ export const saveDynamicTour = async (
     logger.error(
       `[Save Dynamic Tour] Error ${
         isNew ? "INSERTING" : "UPDATING"
-      } Dynamic Tour: ${error}`
+      } Dynamic Tour: tour_name = ${payload.tour_name} | txnOrderIds = ${
+        payload.orderIds
+      }, Error: ${error}`
     );
     throw error;
   }

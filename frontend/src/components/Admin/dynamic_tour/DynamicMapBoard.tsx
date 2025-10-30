@@ -165,6 +165,11 @@ const DymanicMapBoard = () => {
 
         setDynamicToursList(dynamic_tours as DynamicTourPayload[]);
         setVehicleTours(tours_route);
+
+        const dToursOrdersIds = dynamic_tours
+          .flatMap((dtour) => dtour.orderIds)
+          .join(",");
+        pinboard_removeOrders(dToursOrdersIds.split(",").map(Number));
       } catch (err) {
         console.error("API call failed", err);
       } finally {

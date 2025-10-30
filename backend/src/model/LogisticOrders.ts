@@ -318,7 +318,7 @@ export class LogisticOrder {
       status: raw.status,
 
       // payment_id: raw.payment_id,
-
+      article_sku: raw.article_sku,
       order_time: raw.order_time,
       expected_delivery_time: raw.expected_delivery_time,
 

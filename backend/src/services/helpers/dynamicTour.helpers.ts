@@ -1,9 +1,7 @@
 import { PoolConnection } from "mysql2/promise";
 import { DynamicTourPayload, UnassignedRes } from "../../types/dto.types";
-import { getDynamicTour, saveDynamicTour } from "../dynamicTour.service";
+import { getDynamicTour } from "../dynamicTour.service";
 import { LogisticOrder, OrderStatus } from "../../model/LogisticOrders";
-import { DecodedRoute } from "../../types/hereMap.types";
-import { Tour } from "../../types/tour.types";
 
 function validatePayload(payload: DynamicTourPayload) {
   if (!payload || !payload.orderIds || !payload.warehouse_id) {
@@ -65,58 +63,54 @@ async function handleExistingTour(
   }
 }
 
-async function persistDynamicTour(
-  connection: PoolConnection,
-  payload: DynamicTourPayload,
-  tour: Tour,
-  routes: DecodedRoute,
-  unassigned: any[],
-  txnOrderIds: string
-): Promise<DynamicTourPayload> {
-  try {
-    const dynamicTour: DynamicTourPayload = {
-      ...payload,
-      tour_data: { tour, unassigned },
-      tour_route: routes,
-      orderIds: txnOrderIds,
-    };
+// async function persistDynamicTour(
+//   connection: PoolConnection,
+//   payload: DynamicTourPayload,
+//   txnOrderIds: string
+// ): Promise<DynamicTourPayload> {
+//   const tourName = await generateTourName(
+//     payload.orderIds.split(",").map((o) => Number(o))
+//   );
 
-    const createdDTour = await saveDynamicTour(connection, dynamicTour);
+//   try {
+//     const dynamicTour: DynamicTourPayload = {
+//       ...payload,
+//       tour_name: tourName,
+//       orderIds: txnOrderIds,
+//     };
 
-    const txnOrder_ids: number[] = txnOrderIds.split(",").map(Number);
-    await LogisticOrder.updateOrdersStatus(
-      connection,
-      txnOrder_ids,
-      OrderStatus.assigned
-    );
+//     const createdDTour = await saveDynamicTour(connection, dynamicTour);
 
-    const payload_orderIds = payload.orderIds.split(",").map(Number);
-    const xOrder_ids = payload_orderIds.filter(
-      (o) => !txnOrder_ids.includes(o)
-    );
+//     const txnOrder_ids: number[] = txnOrderIds.split(",").map(Number);
+//     await LogisticOrder.updateOrdersStatus(
+//       connection,
+//       txnOrder_ids,
+//       OrderStatus.assigned
+//     );
 
-    if (xOrder_ids.length > 0) {
-      await LogisticOrder.updateOrdersStatus(
-        connection,
-        xOrder_ids,
-        OrderStatus.unassigned
-      );
-    }
+//     const payload_orderIds = payload.orderIds.split(",").map(Number);
+//     const xOrder_ids = payload_orderIds.filter(
+//       (o) => !txnOrder_ids.includes(o)
+//     );
 
-    return createdDTour;
-    // return {
-    //   ...createdDTour,
-    //   tour_route: routes,
-    // } as DynamicTourPayload;
-  } catch (error) {
-    const err = new Error(
-      `[Persist Dynamic Tour] failed for tour_id=${payload.id} | txnOrderIds = ${txnOrderIds}`,
-      { cause: error as Error }
-    );
-    console.error(err);
-    throw err;
-  }
-}
+//     if (xOrder_ids.length > 0) {
+//       await LogisticOrder.updateOrdersStatus(
+//         connection,
+//         xOrder_ids,
+//         OrderStatus.unassigned
+//       );
+//     }
+
+//     return createdDTour;
+//   } catch (error) {
+//     const err = new Error(
+//       `[Persist Dynamic Tour] failed for tour_id=${payload.tour_name} | txnOrderIds = ${txnOrderIds}`,
+//       { cause: error as Error }
+//     );
+//     console.error(err);
+//     throw err;
+//   }
+// }
 
 type TourStats = {
   totalDistanceKm: number;
@@ -181,6 +175,6 @@ export {
   validatePayload,
   buildUnassignedOrders,
   handleExistingTour,
-  persistDynamicTour,
+  // persistDynamicTour,
   extractTourStats,
 };

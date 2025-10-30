@@ -137,7 +137,7 @@ const DynamicTourDetails = () => {
           position="absolute"
           top={5}
           left={5}
-          width={{ xs: "65%", sm: 480}}
+          width={{ xs: "65%", sm: 480 }}
           bgcolor="white"
           p={3}
           borderRadius={2}
@@ -525,7 +525,7 @@ const DynamicTourDetails = () => {
         </Box>
       </Modal>
 
-      {/* Tour Reject Confermation Modal */}
+      {/* Tour Reject Confirmation Modal */}
       <RejectTourModal
         open={showRejectModal}
         onClose={() => setShowRejectModal(false)}

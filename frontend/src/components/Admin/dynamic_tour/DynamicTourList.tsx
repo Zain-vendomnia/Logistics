@@ -21,12 +21,9 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import {
-  FileDownloadDone,
-  SwipeDownAlt,
-  ImportExport,
-  SwipeUpAlt,
-} from "@mui/icons-material";
+import FileDownloadDoneIcon from "@mui/icons-material/FileDownloadDone";
+import SwipeUpAltIcon from "@mui/icons-material/SwipeUpAlt";
+
 import ArrowRightIcon from "@mui/icons-material/ArrowRight";
 import ArrowLeftIcon from "@mui/icons-material/ArrowLeft";
 import FileUploadIcon from "@mui/icons-material/FileUpload";
@@ -98,6 +95,54 @@ const DynamicTourList = () => {
 
   const extractOrdersLength = (orderIds: string) => {
     return orderIds.split(",").length;
+  };
+
+  enum CostType {
+    Stop = "stop",
+    Article = "article",
+    Slmd = "slmd",
+  }
+  const costEvaluator = (value: number, costType: CostType) => {
+    const tourStops = selectedTour?.orderIds.split(",").length ?? 0;
+    const costRules = {
+      [CostType.Stop]: {
+        valid: (v: number, s: number) =>
+          (v > 0 && v <= 20 && s > 10) || (v > 0 && v <= 140 && s <= 6),
+        warning: (v: number, s: number) =>
+          (v < 25 && s > 10) || (v < 140 && s <= 6),
+      },
+      [CostType.Article]: {
+        valid: (v: number, s: number) =>
+          (v > 0 && v <= 10 && s > 10) || (v > 0 && v <= 15 && s <= 6),
+        warning: (v: number, s: number) =>
+          (v < 25 && s > 10) || (v < 50 && s <= 6),
+      },
+      [CostType.Slmd]: {
+        valid: (v: number) => v > 0 && v <= 3.5,
+        warning: (v: number) => v <= 6,
+      },
+    } as const;
+
+    const getIcon = (color: "success" | "warning" | "error") => {
+      switch (color) {
+        case "success":
+          return <FileDownloadDoneIcon fontSize="medium" color="success" />;
+        case "warning":
+          return <SwipeUpAltIcon fontSize="medium" color="warning" />;
+        case "error":
+          return <SwipeUpAltIcon fontSize="medium" color="error" />;
+      }
+    };
+
+    const rule = costRules[costType];
+    if (!rule) return null;
+
+    const valid = rule.valid(value, tourStops);
+    const warning = rule.warning(value, tourStops);
+
+    if (valid) return getIcon("success");
+    if (warning) return getIcon("warning");
+    return getIcon("error");
   };
 
   return (
@@ -340,6 +385,7 @@ const DynamicTourList = () => {
                             </Typography>
                           </span>
                           <Stack
+                            minWidth={"50%"}
                             spacing={0.2}
                             sx={{
                               "& .MuiTypography-root": {
@@ -375,14 +421,23 @@ const DynamicTourList = () => {
                               </Typography>
                             </Box>
                           </Stack>
+
                           <Stack spacing={0.2}>
-                            <FileDownloadDone
-                              fontSize={"medium"}
-                              color="success"
-                            />
-                            <SwipeDownAlt fontSize={"medium"} color="error" />
-                            <SwipeUpAlt fontSize={"medium"} color="warning" />
-                            {/* <ImportExport fontSize={"medium"} color="info" /> */}
+                            {tour?.matrix?.delivery_cost_per_stop &&
+                              costEvaluator(
+                                tour?.matrix?.delivery_cost_per_stop,
+                                CostType.Stop
+                              )}
+                            {tour?.matrix?.delivery_cost_per_bkw &&
+                              costEvaluator(
+                                tour?.matrix?.delivery_cost_per_bkw,
+                                CostType.Article
+                              )}
+                            {tour?.matrix?.delivery_cost_per_slmd &&
+                              costEvaluator(
+                                tour?.matrix?.delivery_cost_per_slmd,
+                                CostType.Slmd
+                              )}
                           </Stack>
                         </Box>
                         <Divider />

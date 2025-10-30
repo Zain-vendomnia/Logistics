@@ -206,12 +206,15 @@ export const LOGIC_ORDER_TABLE = `
     shopware_order_id INT NOT NULL UNIQUE,
     order_number VARCHAR(45) NOT NULL,
     status ENUM('initial', 'unassigned', 'assigned', 'inTransit', 'delivered', 'rescheduled', 'canceled') NOT NULL DEFAULT 'initial',
-    customer_id VARCHAR(45) NOT NULL,
-    invoice_amount VARCHAR(45) NULL,           
-    payment_id INT NULL,                         
+    article_sku	 VARCHAR(255) NULL,
+    tracking_code VARCHAR(100) NULL,             
+    order_status_id INT NULL                    
     warehouse_id INT NULL,                        
     order_time DATETIME  NULL,
     expected_delivery_time DATETIME  NULL,
+    payment_id INT NULL,                         
+    invoice_amount VARCHAR(45) NULL,           
+    customer_id VARCHAR(45) NOT NULL,
     customer_number VARCHAR(45)  NULL,
     firstname VARCHAR(45)  NULL,
     lastname VARCHAR(45) NULL,                    
@@ -224,10 +227,6 @@ export const LOGIC_ORDER_TABLE = `
     longitude DECIMAL(10,7) NULL,               
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
-    status ENUM('initial', 'unassigned', 'assigned', 'inTransit', 'delivered', 'rescheduled', 'canceled') NOT NULL DEFAULT 'initial',
-    article_sku	 VARCHAR(255) NULL,
-    tracking_code VARCHAR(100) NULL,             
-    order_status_id INT NULL                    
   );
 `;
 

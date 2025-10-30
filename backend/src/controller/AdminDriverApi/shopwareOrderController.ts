@@ -1,6 +1,6 @@
 // import pool from "../../database";
 import { Request, Response } from "express";
-import { emitNewOrder } from "../../socket/Tourplanning.socket";
+import { emitNewOrder } from "../../socket/tourPlanning.socket";
 import { LogisticOrder, OrderStatus } from "../../model/LogisticOrders";
 import { Order } from "../../types/order.types";
 

@@ -25,6 +25,7 @@ export type Order = {
   order_number: string;
   status: OrderStatus;
 
+  article_sku?: string;
   invoice_amount?: string;
   payment_id?: number;
 
