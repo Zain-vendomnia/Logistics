@@ -487,3 +487,18 @@ export const CREATE_ORDER_IMAGES_TABLE = `
     FOREIGN KEY (route_segment_id) REFERENCES route_segments(id) ON DELETE CASCADE
   );
 `;
+export const CREATE_RETURNS_TABLE = `
+  CREATE TABLE IF NOT EXISTS returns (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT DEFAULT NULL,
+    order_number VARCHAR(50) NOT NULL,
+    slmdl_articleordernumber VARCHAR(100) NOT NULL,
+    quantity INT NOT NULL COMMENT 'Original quantity',
+    return_quantity INT DEFAULT 0,
+    damage_quantity INT DEFAULT 0,
+    warehouse_id VARCHAR(50) DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_order_number (order_number),
+    INDEX idx_article_number (slmdl_articleordernumber)
+  );
+`;

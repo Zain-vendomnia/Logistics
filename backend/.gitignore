@@ -2,9 +2,4 @@ node_modules
 build
 # Ignore .env files containing sensitive information
 .env
-<<<<<<< HEAD
 .uploads/
-=======
-
-.vscode/
->>>>>>> Bend-feature/dynamic-tours
