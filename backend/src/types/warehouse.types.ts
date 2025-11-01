@@ -16,12 +16,12 @@ export interface Warehouse {
   id: number;
   name?: string;
   town: string;
-  zipcode?: string;
+  zip_code?: string;
   address?: string;
   lat: number;
   lng: number;
   zip_codes_delivering: string;
-  colorCode: string;
+  color_code: string;
   email?: string;
   clerk_name?: string;
   clerkName?: string;

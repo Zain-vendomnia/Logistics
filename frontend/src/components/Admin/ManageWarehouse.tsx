@@ -62,6 +62,9 @@ const ManageWarehouses = () => {
     setLoading(true);
     try {
       const data = await getAllWarehouses();
+      console.log("==================================");
+      console.log("Fetched Warehouses:", data);
+      console.log("==================================");
       setWarehouses(data);
       setFilteredWarehouses(data);
     } catch {
@@ -523,7 +526,7 @@ const handleExport = async () => {
         >
           <Button
             size="small"
-            variant="outlined"
+            variant="contained"
             color="primary"
             onClick={() => handleOpenDialog(params.row)}
             disabled={actionLoading}
@@ -544,7 +547,7 @@ const handleExport = async () => {
           </Button>
           <Button
             size="small"
-            variant="outlined"
+            variant="contained"
             color="error"
             onClick={() => requestDeleteWarehouse(params.row.warehouse_id)}
             disabled={actionLoading}
@@ -664,7 +667,7 @@ const handleExport = async () => {
           </Button>
 
           <Button
-            variant="outlined"
+            variant="contained"
             color="error"
             disabled={!selectedIds.length || actionLoading}
             onClick={handleGroupDelete}
@@ -683,7 +686,7 @@ const handleExport = async () => {
                 },
                 '&.Mui-disabled': {
                   background: 'linear-gradient(45deg, #fca5a5, #f87171)',
-                  color: 'rgba(255, 255, 255, 0.6)',
+                  color: 'rgba(255, 255, 255, 0.6)' ,
                   boxShadow: 'none',
                   transform: 'none',
                 },
@@ -694,7 +697,7 @@ const handleExport = async () => {
           </Button>
 
           <Button 
-            variant="outlined" 
+            variant="contained" 
             sx={{
               background: 'linear-gradient(45deg, #fb923c, #f97316)',
               color: 'white',

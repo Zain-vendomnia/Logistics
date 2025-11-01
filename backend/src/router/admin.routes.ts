@@ -33,6 +33,7 @@ import customerRoutes from "./customers.routes";
 import messagesRoutes from "./messages.routes";
 import vehicleRoutes from "./vehicle.routes";
 import warehouseRoutes from "./warehouse.routes";
+import returnsRoutes from "./returns.routes";
 import * as dTourControler from "../controller/HERE_API/dynamicTour.controller";
 
 import { uploadDisk, uploadMemory } from "../middlewares/upload";
@@ -150,6 +151,7 @@ adminRouter.post("/routeoptimize/getSegmentRoute", TourCtrl.getSegmentRoutes);
 adminRouter.post("/routeoptimize/getRoutesSegmentImages", TourCtrl.getRoutesSegmentImages);
 adminRouter.put("/routeoptimize/updateCustomer", updateCustomerInfoController);
 adminRouter.get("/orderDetails", getOrderDetails);
+adminRouter.post("/returns", );
 adminRouter.post("/addReturnDetails", addReturnDetails);
 adminRouter.get("/orderCount", getOrderCount);
 adminRouter.get("/routeoptimize/gettourStatushistory", getAllTourhistory);
@@ -164,6 +166,7 @@ adminRouter.post("/driver/tour/:tourId/order", HandleOrderDelivery);
 adminRouter.get("/newShopwareOrder", shopware.newShopOrder);
 
 adminRouter.use("/drivers", validateToken, roleCheck(["admin"]), driverRoutes);
+adminRouter.use("/returns", validateToken, roleCheck(["admin", "drivers"]), returnsRoutes);
 adminRouter.use(
   "/vehicles",
   validateToken,

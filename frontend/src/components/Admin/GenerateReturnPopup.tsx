@@ -39,7 +39,6 @@ interface SelectedItem {
   slmdl_articleordernumber: string;
   originalQuantity: number;
   returnQuantity: number;
-  damageQuantity: number;
 }
 
 interface GenerateReturnPopupProps {
@@ -136,7 +135,6 @@ const GenerateReturnPopup: React.FC<GenerateReturnPopupProps> = ({ open, onClose
           slmdl_articleordernumber: item.slmdl_articleordernumber,
           originalQuantity: item.quantity,
           returnQuantity: 0,
-          damageQuantity: 0,
         },
       }));
     } else {
@@ -148,22 +146,14 @@ const GenerateReturnPopup: React.FC<GenerateReturnPopupProps> = ({ open, onClose
     }
   };
 
-  const handleQuantityChange = (
-    itemId: number,
-    field: 'returnQuantity' | 'damageQuantity',
-    value: string
-  ) => {
+  const handleQuantityChange = (itemId: number, value: string) => {
     const numValue = parseInt(value) || 0;
     
     setSelectedItems((prev) => {
       const item = prev[itemId];
       if (!item) return prev;
 
-      const otherField = field === 'returnQuantity' ? 'damageQuantity' : 'returnQuantity';
-      const otherValue = item[otherField];
-      const total = numValue + otherValue;
-
-      if (total > item.originalQuantity) {
+      if (numValue > item.originalQuantity) {
         return prev;
       }
 
@@ -171,7 +161,7 @@ const GenerateReturnPopup: React.FC<GenerateReturnPopupProps> = ({ open, onClose
         ...prev,
         [itemId]: {
           ...item,
-          [field]: numValue,
+          returnQuantity: numValue,
         },
       };
     });
@@ -186,11 +176,11 @@ const GenerateReturnPopup: React.FC<GenerateReturnPopupProps> = ({ open, onClose
     }
 
     const hasValidQuantity = selectedItemsList.some(
-      (item) => item.returnQuantity > 0 || item.damageQuantity > 0
+      (item) => item.returnQuantity > 0
     );
 
     if (!hasValidQuantity) {
-      setErrorMessage('Please enter return or damage quantity for selected items');
+      setErrorMessage('Please enter return quantity for selected items');
       return;
     }
 
@@ -208,7 +198,6 @@ const GenerateReturnPopup: React.FC<GenerateReturnPopupProps> = ({ open, onClose
           slmdl_articleordernumber: item.slmdl_articleordernumber,
           quantity: item.originalQuantity,
           returnQuantity: item.returnQuantity,
-          damageQuantity: item.damageQuantity,
           warehouse_id: fullItem?.warehouse_id || null,
         };
       }),
@@ -269,6 +258,7 @@ const GenerateReturnPopup: React.FC<GenerateReturnPopupProps> = ({ open, onClose
           sx: {
             borderRadius: 2,
             boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+            minHeight: '375px',
           },
         }}
       >
@@ -286,7 +276,7 @@ const GenerateReturnPopup: React.FC<GenerateReturnPopupProps> = ({ open, onClose
         </IconButton>
 
         {/* Title */}
-        <DialogTitle sx={{ pb: 1, pt: 3 }}>
+        <DialogTitle sx={{ pb: 1, pt: 3, textAlign: 'center' }}>
           <Typography variant="h5" fontWeight={600}>
             Create Return
           </Typography>
@@ -333,7 +323,7 @@ const GenerateReturnPopup: React.FC<GenerateReturnPopupProps> = ({ open, onClose
           )}
 
           {/* Table */}
-          {orderItems.length > 0 && (
+          {orderItems.length > 0 ? (
             <Box sx={{ mt: 2 }}>
               <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 400 }}>
                 <Table stickyHeader size="small">
@@ -343,7 +333,6 @@ const GenerateReturnPopup: React.FC<GenerateReturnPopupProps> = ({ open, onClose
                       <TableCell>Article Order Number</TableCell>
                       <TableCell align="center">Qty</TableCell>
                       <TableCell align="center">Return</TableCell>
-                      <TableCell align="center">Damage</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -371,41 +360,7 @@ const GenerateReturnPopup: React.FC<GenerateReturnPopupProps> = ({ open, onClose
                               disabled={!isSelected}
                               value={selectedItem?.returnQuantity || ''}
                               onChange={(e) =>
-                                handleQuantityChange(item.id, 'returnQuantity', e.target.value)
-                              }
-                              inputProps={{
-                                min: 0,
-                                max: item.quantity,
-                                style: { textAlign: 'center', width: '60px' },
-                              }}
-                              sx={{
-                                '& .MuiOutlinedInput-root': {
-                                  '& fieldset': {
-                                    borderColor: isSelected ? '#000000' : '#e0e0e0',
-                                    borderWidth: isSelected ? '2px' : '1px',
-                                  },
-                                  '&:hover fieldset': {
-                                    borderColor: isSelected ? '#333333' : '#e0e0e0',
-                                  },
-                                  '&.Mui-focused fieldset': {
-                                    borderColor: '#f7941d',
-                                    borderWidth: '2px',
-                                  },
-                                  '&.Mui-disabled': {
-                                    backgroundColor: '#f5f5f5',
-                                  },
-                                },
-                              }}
-                            />
-                          </TableCell>
-                          <TableCell align="center">
-                            <TextField
-                              type="number"
-                              size="small"
-                              disabled={!isSelected}
-                              value={selectedItem?.damageQuantity || ''}
-                              onChange={(e) =>
-                                handleQuantityChange(item.id, 'damageQuantity', e.target.value)
+                                handleQuantityChange(item.id, e.target.value)
                               }
                               inputProps={{
                                 min: 0,
@@ -453,6 +408,28 @@ const GenerateReturnPopup: React.FC<GenerateReturnPopupProps> = ({ open, onClose
                   Create
                 </Button>
               </Box>
+            </Box>
+          ) : (
+            <Box sx={{ mt: 2 }}>
+              <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 400 }}>
+                <Table stickyHeader size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell padding="checkbox"></TableCell>
+                      <TableCell>Article Order Number</TableCell>
+                      <TableCell align="center">Qty</TableCell>
+                      <TableCell align="center">Return</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell colSpan={4} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                        No data available
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </TableContainer>
             </Box>
           )}
         </DialogContent>

@@ -505,7 +505,7 @@ const handleBulkDelete = async () => {
         <Stack height="100%" direction="row" spacing={1} alignItems="center" justifyContent="center">
           <Button
             size="small"
-            variant="outlined"
+            variant="contained"
             color="primary"
             onClick={() => handleDialogOpen(row)}
             disabled={loading}
@@ -525,7 +525,7 @@ const handleBulkDelete = async () => {
             <Edit fontSize="small" />
           </Button>
           <Button
-            variant="outlined"
+            variant="contained"
             color="error"
             onClick={() => confirmDeleteDriver(row.id)}
             disabled={loading}

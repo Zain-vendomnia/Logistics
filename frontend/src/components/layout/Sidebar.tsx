@@ -25,7 +25,8 @@ import {
   AltRoute,
   Leaderboard,
   TrendingUp,
-  Moving, // Icon for Driver Performance
+  Moving,
+  AssignmentReturn, // Icon for Returns
 } from "@mui/icons-material";
 
 import { useAuth } from "../../providers/AuthProvider";
@@ -102,13 +103,12 @@ const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
           icon: <DirectionsBusFilled />,
           path: "/manage_vehicles",
         },
-
         {
           text: "Driver Performance",
           icon: <Leaderboard />,
           path: "/driver_performance",
         },
-
+        { text: "Returns", icon: <AssignmentReturn />, path: "/returns" },
         { text: "Dynamic Tours", icon: <Moving />, path: "/mapboard/dynamic" },
         { text: "Logs", icon: <Moving />, path: "/logs" },
       ];
@@ -192,7 +192,7 @@ const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
         </Paper>
 
         {/* Menu List */}
-        <List sx={{ flex: 1, py: 2 }}>
+        <List sx={{ flex: 1, py: 2 , overflowY: "auto"}}>
           {menuItems.map((item, index) => {
             const selected = location.pathname === item.path;
             return (

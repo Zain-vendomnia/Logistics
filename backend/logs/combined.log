@@ -577,3 +577,221 @@
 2025-10-30 08:37:43 [[32MINFO[39M]: [32mServer is running on port 8080[39m
 2025-10-30 08:37:43 [[32MINFO[39M]: [32mRunning initial database setup...[39m
 2025-10-30 08:37:43 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-10-31 10:06:25 [[31MERROR[39M]: [31muncaughtException: ⨯ Unable to compile TypeScript:[39m
+[31m[96msrc/config/initialDBSetup/returnsSetup.ts[0m:[93m3[0m:[93m10[0m - [91merror[0m[90m TS2724: [0m'"../../services/tableQueries"' has no exported member named 'CREATE_RETURNS_TABLE'. Did you mean 'CREATE_RETURNS_ORDER_TABLE'?[39m
+
+[31m[7m3[0m import { CREATE_RETURNS_TABLE } from "../../services/tableQueries";[39m
+[31m[7m [0m [91m         ~~~~~~~~~~~~~~~~~~~~[0m[39m
+
+[31m  [96msrc/services/tableQueries.ts[0m:[93m491[0m:[93m14[0m[39m
+[31m    [7m491[0m export const CREATE_RETURNS_ORDER_TABLE = `[39m
+[31m    [7m   [0m [96m             ~~~~~~~~~~~~~~~~~~~~~~~~~~[0m[39m
+[31m    'CREATE_RETURNS_ORDER_TABLE' is declared here.[39m
+
+[31mTSError: ⨯ Unable to compile TypeScript:[39m
+[31m[96msrc/config/initialDBSetup/returnsSetup.ts[0m:[93m3[0m:[93m10[0m - [91merror[0m[90m TS2724: [0m'"../../services/tableQueries"' has no exported member named 'CREATE_RETURNS_TABLE'. Did you mean 'CREATE_RETURNS_ORDER_TABLE'?[39m
+
+[31m[7m3[0m import { CREATE_RETURNS_TABLE } from "../../services/tableQueries";[39m
+[31m[7m [0m [91m         ~~~~~~~~~~~~~~~~~~~~[0m[39m
+
+[31m  [96msrc/services/tableQueries.ts[0m:[93m491[0m:[93m14[0m[39m
+[31m    [7m491[0m export const CREATE_RETURNS_ORDER_TABLE = `[39m
+[31m    [7m   [0m [96m             ~~~~~~~~~~~~~~~~~~~~~~~~~~[0m[39m
+[31m    'CREATE_RETURNS_ORDER_TABLE' is declared here.[39m
+
+[31m    at createTSError (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:859:12)[39m
+[31m    at reportTSError (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:863:19)[39m
+[31m    at getOutput (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:1077:36)[39m
+[31m    at Object.compile (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:1433:41)[39m
+[31m    at Module.m._compile (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:1617:30)[39m
+[31m    at node:internal/modules/cjs/loader:1706:10[39m
+[31m    at Object.require.extensions.<computed> [as .ts] (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:1621:12)[39m
+[31m    at Module.load (node:internal/modules/cjs/loader:1289:32)[39m
+[31m    at Function._load (node:internal/modules/cjs/loader:1108:12)[39m
+[31m    at TracingChannel.traceSync (node:diagnostics_channel:322:14)[39m
+2025-10-31 10:14:37 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-10-31 10:14:37 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-10-31 10:14:38 [[31MERROR[39M]: [31muncaughtException: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ')' at line 9[39m
+[31mError: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ')' at line 9[39m
+[31m    at PromisePool.query (D:\Logistics\Logistics\backend\node_modules\mysql2\lib\promise\pool.js:36:22)[39m
+[31m    at returnsOrderItemsSetup (D:\Logistics\Logistics\backend\src\config\initialDBSetup\returnsOrderItemsSetup.ts:19:16)[39m
+[31m    at processTicksAndRejections (node:internal/process/task_queues:105:5)[39m
+[31m    at async runInitialDbSetup (D:\Logistics\Logistics\backend\src\services\core\dbSetupService.ts:52:3)[39m
+[31m    at async Server.<anonymous> (D:\Logistics\Logistics\backend\src\index.ts:20:7)[39m
+2025-10-31 10:18:14 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-10-31 10:18:14 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-10-31 10:18:14 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-10-31 10:56:16 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-10-31 10:56:16 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-10-31 10:56:16 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-10-31 11:05:41 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-10-31 11:05:41 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-10-31 11:05:41 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-10-31 11:30:09 [[31MERROR[39M]: [31muncaughtException: ⨯ Unable to compile TypeScript:[39m
+[31m[96msrc/controller/Admin_Api/ReturnDetails.controller.ts[0m:[93m67[0m:[93m29[0m - [91merror[0m[90m TS2339: [0mProperty 'insertedIds' does not exist on type 'InsertReturnResult'.[39m
+
+[31m[7m67[0m         insertedIds: result.insertedIds,[39m
+[31m[7m  [0m [91m                            ~~~~~~~~~~~[0m[39m
+
+[31mTSError: ⨯ Unable to compile TypeScript:[39m
+[31m[96msrc/controller/Admin_Api/ReturnDetails.controller.ts[0m:[93m67[0m:[93m29[0m - [91merror[0m[90m TS2339: [0mProperty 'insertedIds' does not exist on type 'InsertReturnResult'.[39m
+
+[31m[7m67[0m         insertedIds: result.insertedIds,[39m
+[31m[7m  [0m [91m                            ~~~~~~~~~~~[0m[39m
+
+[31m    at createTSError (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:859:12)[39m
+[31m    at reportTSError (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:863:19)[39m
+[31m    at getOutput (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:1077:36)[39m
+[31m    at Object.compile (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:1433:41)[39m
+[31m    at Module.m._compile (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:1617:30)[39m
+[31m    at node:internal/modules/cjs/loader:1706:10[39m
+[31m    at Object.require.extensions.<computed> [as .ts] (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:1621:12)[39m
+[31m    at Module.load (node:internal/modules/cjs/loader:1289:32)[39m
+[31m    at Function._load (node:internal/modules/cjs/loader:1108:12)[39m
+[31m    at TracingChannel.traceSync (node:diagnostics_channel:322:14)[39m
+2025-10-31 11:34:10 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-10-31 11:34:10 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-10-31 11:34:10 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-10-31 11:35:46 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-10-31 11:35:46 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-10-31 11:35:46 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-10-31 11:36:29 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-10-31 11:36:29 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-10-31 11:36:29 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-10-31 11:37:31 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-10-31 11:37:31 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-10-31 11:37:31 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-10-31 11:50:48 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-10-31 11:50:48 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-10-31 11:50:48 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-10-31 12:23:05 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-10-31 12:23:05 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-10-31 12:23:05 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-10-31 14:03:48 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-10-31 14:03:48 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-10-31 14:03:48 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-10-31 15:32:32 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-10-31 15:32:32 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-10-31 15:32:33 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-10-31 15:35:38 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-10-31 15:35:38 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-10-31 15:35:39 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-10-31 15:36:05 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-10-31 15:36:05 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-10-31 15:36:05 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-10-31 15:36:37 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-10-31 15:36:37 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-10-31 15:36:38 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-10-31 15:39:42 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-10-31 15:39:42 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-10-31 15:39:42 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-10-31 15:40:24 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-10-31 15:40:24 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-10-31 15:40:24 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-10-31 15:44:48 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-10-31 15:44:48 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-10-31 15:44:48 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-10-31 15:45:05 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-10-31 15:45:05 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-10-31 15:45:06 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-10-31 15:56:51 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-10-31 15:56:51 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-10-31 15:56:51 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-10-31 15:57:44 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-10-31 15:57:44 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-10-31 15:57:45 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-10-31 15:58:08 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-10-31 15:58:08 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-10-31 15:58:08 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-10-31 16:00:25 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-10-31 16:00:25 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-10-31 16:00:26 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-10-31 16:00:57 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-10-31 16:00:57 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-10-31 16:00:58 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-10-31 16:02:01 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-10-31 16:02:01 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-10-31 16:02:01 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-10-31 16:02:27 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-10-31 16:02:27 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-10-31 16:02:28 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-10-31 16:03:45 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-10-31 16:03:45 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-10-31 16:03:46 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-10-31 16:04:20 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-10-31 16:04:20 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-10-31 16:04:20 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-11-01 09:10:52 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-11-01 09:10:52 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-11-01 09:10:52 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-11-01 11:27:17 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-11-01 11:27:17 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-11-01 11:27:17 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-11-01 11:36:37 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-11-01 11:36:37 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-11-01 11:36:37 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-11-01 12:21:04 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-11-01 12:21:04 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-11-01 12:21:04 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-11-01 12:32:43 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-11-01 12:32:43 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-11-01 12:32:44 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-11-01 12:37:18 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-11-01 12:37:18 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-11-01 12:37:18 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-11-01 12:41:17 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-11-01 12:41:17 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-11-01 12:41:18 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-11-01 12:41:58 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-11-01 12:41:58 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-11-01 12:41:58 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-11-01 12:42:22 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-11-01 12:42:22 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-11-01 12:42:22 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-11-01 15:00:09 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-11-01 15:00:09 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-11-01 15:00:10 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-11-01 15:00:17 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-11-01 15:00:17 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-11-01 15:00:17 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-11-01 15:00:31 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-11-01 15:00:31 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-11-01 15:00:31 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-11-01 15:08:48 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-11-01 15:08:48 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-11-01 15:08:48 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-11-01 15:16:45 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-11-01 15:16:45 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-11-01 15:16:45 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-11-01 15:16:52 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-11-01 15:16:52 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-11-01 15:16:52 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-11-01 15:17:10 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-11-01 15:17:10 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-11-01 15:17:11 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-11-01 15:26:28 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-11-01 15:26:28 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-11-01 15:26:29 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-11-01 15:26:42 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-11-01 15:26:42 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-11-01 15:26:42 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-11-01 15:26:55 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-11-01 15:26:55 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-11-01 15:26:55 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-11-01 15:27:05 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-11-01 15:27:05 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-11-01 15:27:05 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-11-01 15:33:06 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-11-01 15:33:06 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-11-01 15:33:06 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-11-01 15:39:13 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-11-01 15:39:13 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-11-01 15:39:13 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-11-01 15:41:15 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-11-01 15:41:15 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-11-01 15:41:15 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-11-01 15:53:11 [[33MWARN[39M]: [33mProduction Environment:[39m
+2025-11-01 15:53:11 [[31MERROR[39M]: [31m[GET] /api/admin/returns/update/1 - Internal Server Error [400][39m
+2025-11-01 16:56:00 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-11-01 16:56:00 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-11-01 16:56:01 [[32MINFO[39M]: [32mDatabase setup completed.[39m

@@ -30,6 +30,7 @@ import TestRuntimeError from "./components/pages/TestRuntimeError";
 import Admin_dynamicHereMap from "./components/Admin/dynamic_tour/DynamicMapBoard";
 import CustomersChat from "./components/notification/CustomersChat";
 import LogViewer from "./components/LogViewer";
+import ManageReturns from "./components/Admin/ManageReturns";
 
 // Role-based route guard
 const ProtectedRoute = ({
@@ -173,6 +174,10 @@ const AppRoutes = () => {
       <Route
         path="/driver_performance"
         element={<AdminRoute element={<DriverPerformance />} />}
+      />
+      <Route
+        path="/returns"
+        element={<AdminRoute element={<ManageReturns />} />}
       />
       <Route
         path="/ProofdeliveryLiveloc"

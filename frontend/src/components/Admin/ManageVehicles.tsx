@@ -653,7 +653,7 @@ const ManageVehicles: React.FC = () => {
         <Stack height="100%" direction="row" spacing={1} alignItems="center" justifyContent="center">
           <Button
             size="small"
-            variant="outlined"
+            variant="contained"
             color="primary"
             onClick={() => handleDialogOpen(row)}
             disabled={loading}
@@ -673,7 +673,7 @@ const ManageVehicles: React.FC = () => {
             <Edit fontSize="small" />
           </Button>
           <Button
-            variant="outlined"
+            variant="contained"
             color="error"
             onClick={() => confirmDeleteVehicle(row.vehicle_id)}
             disabled={loading}

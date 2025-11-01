@@ -16,7 +16,6 @@ interface ReturnItem {
   slmdl_articleordernumber: string;
   quantity: number;
   returnQuantity: number;
-  damageQuantity: number;
   warehouse_id?: string | null;
 }
 
@@ -54,39 +53,12 @@ export const addReturnDetails = async (req: Request, res: Response) => {
       return res.status(200).json(response);
     }
 
-    // ✅ Validate each item
+    // ✅ Validate each item has required fields
     for (const item of items) {
-      if (!item.slmdl_articleordernumber) {
+      if (!item.slmdl_articleordernumber || item.returnQuantity <= 0) {
         const response: ApiResponse = {
           status: "error",
-          message: "Article order number is required for all items.",
-          data: {},
-        };
-        return res.status(200).json(response);
-      }
-
-      if (item.returnQuantity < 0 || item.damageQuantity < 0) {
-        const response: ApiResponse = {
-          status: "error",
-          message: "Return and damage quantities cannot be negative.",
-          data: {},
-        };
-        return res.status(200).json(response);
-      }
-
-      if (item.returnQuantity + item.damageQuantity > item.quantity) {
-        const response: ApiResponse = {
-          status: "error",
-          message: `Return + Damage quantity cannot exceed original quantity for article ${item.slmdl_articleordernumber}.`,
-          data: {},
-        };
-        return res.status(200).json(response);
-      }
-
-      if (item.returnQuantity === 0 && item.damageQuantity === 0) {
-        const response: ApiResponse = {
-          status: "error",
-          message: "At least one item must have return or damage quantity greater than 0.",
+          message: "Invalid item data. Each item must have article number and valid return quantity.",
           data: {},
         };
         return res.status(200).json(response);
@@ -109,11 +81,12 @@ export const addReturnDetails = async (req: Request, res: Response) => {
     // ✅ Success response
     const response: ApiResponse = {
       status: "success",
-      message: `Successfully added ${items.length} return item(s) for order ${orderNumber}.`,
+      message: `Successfully created return for order ${orderNumber} with ${items.length} item(s).`,
       data: {
         orderNumber,
+        returnId: result.returnId,
         itemsAdded: items.length,
-        insertedIds: result.insertedIds,
+        insertedItemIds: result.insertedItemIds,
       },
     };
 

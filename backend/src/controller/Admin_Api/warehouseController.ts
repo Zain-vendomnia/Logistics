@@ -39,6 +39,9 @@ export const createWarehouse = async (req: Request, res: Response) => {
 
 export const updateWarehouse = async (req: Request, res: Response) => {
   try {
+      console.log("===== Update Warehouse Request =====");
+      console.log("Body:", req.body);
+      console.log("===================================");
     const updated = await warehouseService.updateWarehouse(
       Number(req.params.id),
       req.body
