@@ -178,7 +178,7 @@ const Admin_AddTour = () => {
               </Stack>
 
               <Button
-                variant="outlined"
+                variant="contained"
                 startIcon={<AddRoad />}
                 onClick={handleCreateTourClick}
                 sx={(theme) => ({

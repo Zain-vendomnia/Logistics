@@ -72,11 +72,11 @@ export const getWarehouseWithVehicles = async (
     clerkName: rows[0].clerk_name,
     clerkMob: rows[0].clerk_mob,
     address: rows[0].address,
-    zipcode: rows[0].zip_code,
+    zip_code: rows[0].zip_code,
     town: rows[0].town,
     lat: rows[0].latitude,
     lng: rows[0].longitude,
-    colorCode: rows[0].color_code,
+    color_code: rows[0].color_code,
     zip_codes_delivering: rows[0].zip_codes_delivering,
     email: rows[0].email,
     createdAt: rows[0].created_at,
@@ -106,7 +106,7 @@ export const getActiveWarehousesWithVehicles = async (): Promise<
      FROM warehouse_details wd
      LEFT JOIN vehicle_details vd 
      ON wd.warehouse_id = vd.warehouse_id
-     WHERE is_active = 1`
+     WHERE wd.is_active = 1`
   );
 
   if (!rows.length) return [];
@@ -174,11 +174,15 @@ export const createWarehouse = async (warehouse: {
     throw err;
   }
 };
-
 export const updateWarehouse = async (
   id: number,
   warehouse: Warehouse
 ): Promise<boolean> => {
+
+  console.log("===== Update Warehouse Service =====");
+  console.log("Warehouse Data:", warehouse);
+  console.log("===================================");
+
   let connection;
   try {
     connection = await pool.getConnection();
@@ -186,20 +190,27 @@ export const updateWarehouse = async (
 
     const [result] = await connection.query(
       `UPDATE warehouse_details 
-       SET warehouse_name = ?, address = ?, town = ?,
-       latitude = ?, longitude = ?,
-       zip_code = ?, zip_codes_delivering = ?, color_code = ?,
-       clerk_name = ?, clerk_mob = ?, email = ?, is_active = ? 
+       SET 
+         address = ?, 
+         town = ?,
+         latitude = ?, 
+         longitude = ?,
+         zip_code = ?, 
+         zip_codes_delivering = ?, 
+         color_code = ?,
+         clerk_name = ?, 
+         clerk_mob = ?, 
+         email = ?, 
+         is_active = ? 
        WHERE warehouse_id = ?`,
       [
-        warehouse.name,
         warehouse.address,
         warehouse.town,
         warehouse.lat,
         warehouse.lng,
-        warehouse.zipcode,
+        warehouse.zip_code,
         warehouse.zip_codes_delivering,
-        warehouse.colorCode,
+        warehouse.color_code,
         warehouse.clerk_name,
         warehouse.clerk_mob,
         warehouse.email,
@@ -209,7 +220,7 @@ export const updateWarehouse = async (
     );
 
     await connection.commit();
-    return (result as any).affectedRows > 0; // cast because query result type can vary
+    return (result as any).affectedRows > 0;
   } catch (err) {
     if (connection) await connection.rollback();
     throw err;
@@ -217,6 +228,7 @@ export const updateWarehouse = async (
     if (connection) connection.release();
   }
 };
+
 
 // Disable single warehouse
 export const disableWarehouse = async (

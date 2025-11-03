@@ -18,7 +18,7 @@ export function scheduleRecurringSyncs() {
   cron.schedule("*/30 * * * *", async () => {
     logWithTime("⏳ Cron: WMS sync started...");
     try {
-      await wmsOrderSync("2025-10-01");
+      await wmsOrderSync("2025-10-18");
       logWithTime("✅ WMS sync completed.");
     } catch (err) {
       logWithTime("❌ WMS sync failed:");

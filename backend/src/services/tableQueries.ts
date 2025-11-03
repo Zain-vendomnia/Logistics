@@ -55,11 +55,14 @@ export const CREATE_DRIVER_DETAILS_TABLE = `
 export const CREATE_VEHICLE_DETAILS_TABLE = `
     CREATE TABLE IF NOT EXISTS vehicle_details (
     vehicle_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    capacity INT NOT NULL DEFAULT 0,
-    license_plate  VARCHAR(45) NOT NULL,
-    miles_driven INT NOT NULL DEFAULT 0,
+    capacity INT  NULL DEFAULT 0,
+    license_plate  VARCHAR(45)  NULL,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    insurance_number VARCHAR(100)  NULL,
+    insurance_expiry_date DATE  NULL,
+    miles_driven INT  NULL DEFAULT 0,
     next_service TIMESTAMP NULL,
-    warehouse_id INT NOT NULL,
+    warehouse_id INT  NULL,
     driver_id INT NULL UNIQUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
@@ -137,7 +140,7 @@ export const CREATE_TOUR_INFO_MASTER_TABLE = `
     tour_status ENUM('pending', 'live', 'confirmed', 'completed') DEFAULT 'pending',
     created_by VARCHAR(45) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_by VARCHAR(45) NOT NULL,
+    updated_by VARCHAR(45) NULL,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
     tour_total_estimate_time TIME,
     overall_performance_rating DECIMAL(2,1) DEFAULT 0.00,
@@ -206,29 +209,30 @@ export const LOGIC_ORDER_TABLE = `
     shopware_order_id INT NOT NULL UNIQUE,
     order_number VARCHAR(45) NOT NULL,
     status ENUM('initial', 'unassigned', 'assigned', 'inTransit', 'delivered', 'rescheduled', 'canceled') NOT NULL DEFAULT 'initial',
-    article_sku	 VARCHAR(255) NULL,
-    tracking_code VARCHAR(100) NULL,             
-    order_status_id INT NULL                    
-    warehouse_id INT NULL,                        
-    order_time DATETIME  NULL,
-    expected_delivery_time DATETIME  NULL,
-    payment_id INT NULL,                         
-    invoice_amount VARCHAR(45) NULL,           
+    article_sku VARCHAR(255) NULL,
+    tracking_code VARCHAR(100) NULL,
+    order_status_id INT NULL,
+    warehouse_id INT NULL,
+    order_time DATETIME NULL,
+    expected_delivery_time DATETIME NULL,
+    payment_id INT NULL,
+    invoice_amount VARCHAR(45) NULL,
     customer_id VARCHAR(45) NOT NULL,
-    customer_number VARCHAR(45)  NULL,
-    firstname VARCHAR(45)  NULL,
-    lastname VARCHAR(45) NULL,                    
-    email VARCHAR(45) NULL,                     
-    street VARCHAR(45) NULL,                    
-    zipcode VARCHAR(10) NULL,                    
-    city VARCHAR(45) NULL,                       
-    phone VARCHAR(45) NULL,                     
-    latitude DECIMAL(10,7) NULL,            
-    longitude DECIMAL(10,7) NULL,               
+    customer_number VARCHAR(45) NULL,
+    firstname VARCHAR(45) NULL,
+    lastname VARCHAR(45) NULL,
+    email VARCHAR(45) NULL,
+    street VARCHAR(45) NULL,
+    zipcode VARCHAR(10) NULL,
+    city VARCHAR(45) NULL,
+    phone VARCHAR(45) NULL,
+    latitude DECIMAL(10,7) NULL,
+    longitude DECIMAL(10,7) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
   );
 `;
+
 
 export const LOGIC_ORDER_ITEMS_TABLE = `
   CREATE TABLE IF NOT EXISTS logistic_order_items (
@@ -485,5 +489,48 @@ export const CREATE_ORDER_IMAGES_TABLE = `
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP, 
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (route_segment_id) REFERENCES route_segments(id) ON DELETE CASCADE
+  );
+`;
+
+export const CREATE_RETURNS_ORDER_TABLE = `
+  CREATE TABLE IF NOT EXISTS returns_order (
+    return_id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT DEFAULT NULL,
+    shopware_order_id INT DEFAULT NULL,
+    order_number VARCHAR(50) NOT NULL,
+    customer_id VARCHAR(50) NOT NULL,
+    invoice_amount VARCHAR(50) DEFAULT NULL,
+    payment_id INT DEFAULT NULL,
+    warehouse_id INT DEFAULT NULL,
+    order_time DATETIME DEFAULT NULL,
+    expected_delivery_time DATETIME DEFAULT NULL,
+    customer_number VARCHAR(50) DEFAULT NULL,
+    firstname VARCHAR(50) DEFAULT NULL,
+    lastname VARCHAR(50) DEFAULT NULL,
+    email VARCHAR(100) DEFAULT NULL,
+    street VARCHAR(100) DEFAULT NULL,
+    zipcode VARCHAR(20) DEFAULT NULL,
+    city VARCHAR(50) DEFAULT NULL,
+    phone VARCHAR(50) DEFAULT NULL,
+    latitude DECIMAL(10,7) DEFAULT NULL,
+    longitude DECIMAL(10,7) DEFAULT NULL,
+    status ENUM('initial', 'unassigned', 'assigned', 'inTransit', 'delivered', 'rescheduled', 'canceled') DEFAULT 'initial',
+    article_sku	 VARCHAR(255) DEFAULT NULL,
+    tracking_code VARCHAR(100) DEFAULT NULL,
+    order_status_id INT DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
+  );
+`;
+
+export const CREATE_RETURNS_ORDER_ITEMS_TABLE = `
+  CREATE TABLE IF NOT EXISTS returns_order_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    return_id INT NOT NULL,
+    article_sku VARCHAR(255) NOT NULL,
+    quantity INT NOT NULL,
+    return_quantity INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
   );
 `;

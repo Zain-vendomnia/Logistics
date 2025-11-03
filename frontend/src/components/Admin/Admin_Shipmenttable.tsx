@@ -16,12 +16,14 @@ import {
   TextField,
   InputAdornment,
   Divider,
+  Button,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs, { Dayjs } from 'dayjs';
+import GenerateReturnPopup from './GenerateReturnPopup';
 
 type Shipment = {
   id: string;
@@ -35,6 +37,7 @@ const AdminShipmenttable: React.FC = () => {
   const [tab, setTab] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState<Dayjs | null>(null);
+  const [openPopup, setOpenPopup] = useState(false);
 
   const tabs = ['All Shipments', 'Delivered', 'In transit', 'Processing', 'Pending'];
 
@@ -79,6 +82,14 @@ const AdminShipmenttable: React.FC = () => {
     setSelectedDate(null);
   };
 
+  const handleOpenPopup = () => {
+    setOpenPopup(true);
+  };
+
+  const handleClosePopup = () => {
+    setOpenPopup(false);
+  };
+
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Paper
@@ -86,22 +97,48 @@ const AdminShipmenttable: React.FC = () => {
         sx={{
           p: 3,
           borderRadius: 4,
-          backgroundColor: '#fafafa', // light clean background
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)', // soft shadow
+          backgroundColor: '#fafafa',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
         }}
       >
-        {/* Header */}
-        <Typography
-          variant="h5"
-          fontWeight="bold"
-          sx={{ color: 'primary.main' }} // updated orange tone
-          gutterBottom
-        >
-          Shipments Overview
-        </Typography>
-        <Typography variant="body2" color="text.secondary" mb={2}>
-          Monitor your logistics and recent shipment activity
-        </Typography>
+        {/* Header with Generate Return Button */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+          <Box>
+            <Typography
+              variant="h5"
+              fontWeight="bold"
+              sx={{ color: 'primary.main' }}
+              gutterBottom
+            >
+              Shipments Overview
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Monitor your logistics and recent shipment activity
+            </Typography>
+          </Box>
+          
+          {/* Generate Return Button */}
+          <Button
+            variant="contained"
+            onClick={handleOpenPopup}
+            sx={{
+              backgroundColor: '#ff5722',
+              color: 'white',
+              textTransform: 'none',
+              fontWeight: 600,
+              px: 3,
+              py: 1,
+              borderRadius: 2,
+              boxShadow: '0 2px 4px rgba(255, 87, 34, 0.3)',
+              '&:hover': {
+                backgroundColor: '#f4511e',
+                boxShadow: '0 4px 8px rgba(255, 87, 34, 0.4)',
+              },
+            }}
+          >
+            Create Return
+          </Button>
+        </Box>
 
         {/* Tabs */}
         <Tabs
@@ -198,7 +235,7 @@ const AdminShipmenttable: React.FC = () => {
             <TableHead>
               <TableRow
                 sx={{
-                  backgroundColor: '#fbe9e7', // soft orange light background
+                  backgroundColor: '#fbe9e7',
                 }}
               >
                 <TableCell sx={{ fontWeight: 'bold' }}>Order ID</TableCell>
@@ -236,6 +273,9 @@ const AdminShipmenttable: React.FC = () => {
             </TableBody>
           </Table>
         </TableContainer>
+
+        {/* Generate Return Popup Component */}
+        <GenerateReturnPopup open={openPopup} onClose={handleClosePopup} />
       </Paper>
     </LocalizationProvider>
   );

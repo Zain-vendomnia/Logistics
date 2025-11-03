@@ -174,7 +174,7 @@ useEffect(() => {
 
         <Button
           fullWidth
-          variant="outlined"
+          variant="contained"
           onClick={handleReset}
           sx={(theme) => ({
             mt: 2,

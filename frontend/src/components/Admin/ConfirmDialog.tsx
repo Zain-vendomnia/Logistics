@@ -27,7 +27,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
       <Button
-        variant="outlined"
+        variant="contained"
         onClick={onCancel}
         sx={{
           background: 'linear-gradient(45deg, #f7941d 30%, #f37021 90%)',

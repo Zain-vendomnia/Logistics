@@ -12,6 +12,8 @@ import { getAllTourController } from "../controller/Admin_RouteOptimzation/getAl
 import { updateCustomerInfoController } from "../controller/Admin_RouteOptimzation/updateCustomerInfo.controller";
 import { getAllTourhistory } from "../controller/Admin_RouteOptimzation/getAllTourhistory";
 
+import { getOrderDetails } from "../controller/Admin_Api/orderDetails.controller";
+import { addReturnDetails } from "../controller/Admin_Api/ReturnDetails.controller";
 import { getOrderCount } from "../controller/Admin_Api/orderCount.controller";
 import { uploadImageController } from "../controller/Admin_Api/uploadImage.controller";
 import { sendEmail } from "../controller/Admin_Api/sendEmail.controller";
@@ -31,6 +33,7 @@ import customerRoutes from "./customers.routes";
 import messagesRoutes from "./messages.routes";
 import vehicleRoutes from "./vehicle.routes";
 import warehouseRoutes from "./warehouse.routes";
+import returnsRoutes from "./returns.routes";
 import * as dTourControler from "../controller/HERE_API/dynamicTour.controller";
 
 import { uploadDisk, uploadMemory } from "../middlewares/upload";
@@ -147,6 +150,9 @@ adminRouter.post(
 adminRouter.post("/routeoptimize/getSegmentRoute", TourCtrl.getSegmentRoutes);
 adminRouter.post("/routeoptimize/getRoutesSegmentImages", TourCtrl.getRoutesSegmentImages);
 adminRouter.put("/routeoptimize/updateCustomer", updateCustomerInfoController);
+adminRouter.get("/orderDetails", getOrderDetails);
+adminRouter.post("/returns", );
+adminRouter.post("/addReturnDetails", addReturnDetails);
 adminRouter.get("/orderCount", getOrderCount);
 adminRouter.get("/routeoptimize/gettourStatushistory", getAllTourhistory);
 adminRouter.get("/routeoptimize/gettourStatus", TourCtrl.getTourstatus);
@@ -160,6 +166,7 @@ adminRouter.post("/driver/tour/:tourId/order", HandleOrderDelivery);
 adminRouter.get("/newShopwareOrder", shopware.newShopOrder);
 
 adminRouter.use("/drivers", validateToken, roleCheck(["admin"]), driverRoutes);
+adminRouter.use("/returns", validateToken, roleCheck(["admin", "drivers"]), returnsRoutes);
 adminRouter.use(
   "/vehicles",
   validateToken,

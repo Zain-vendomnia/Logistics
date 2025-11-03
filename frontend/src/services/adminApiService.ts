@@ -180,12 +180,12 @@ const plotheremap = () =>
 const fetchPinboardOrders = async (
   lastFetchedAt?: number | null
 ): Promise<Order[]> => {
-  const headers: Record<string, string> = { ...authHeader() };
+  const headers: Record<string, string> = {
+    ...authHeader(),
+    ...(lastFetchedAt ? { "last-fetched-at": `${lastFetchedAt}` } : {}),
+  };
   const res = await axios.get(`${API_BaseUrl_Admin}pinboardOrders`, {
-    headers: {
-      ...authHeader(),
-      ...(lastFetchedAt ? { "last-fetched-at": `${lastFetchedAt}` } : {}),
-    },
+    headers,
   });
 
   return res.data;
@@ -300,6 +300,19 @@ const getDriverData = (driverId: any) => {
   });
 };
 
+const orderDetails = (orderNumber: number) => {
+  return axios.get(API_BaseUrl_Admin + "orderDetails", {
+    headers: authHeader(),
+    params: { orderNumber },
+  });
+};
+
+const sendReturnDetails = (returnData: any) => {
+  return axios.post(API_BaseUrl_Admin + "addReturnDetails", returnData, {
+    headers: authHeader(),
+  });
+};
+
 const adminApiService = {
   fetchRouteData,
   fetchOrderTourCount,
@@ -340,6 +353,8 @@ const adminApiService = {
   fetchRouteSegmentImages,
   getDriverData,
   fetchLogs,
+  orderDetails,
+  sendReturnDetails
 };
 
 export default adminApiService;
