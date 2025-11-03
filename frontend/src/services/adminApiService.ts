@@ -309,7 +309,7 @@ const orderDetails = (orderNumber: number) => {
 };
 
 const sendReturnDetails = (returnData: any) => {
-  return axios.post(API_BaseUrl_Admin + "addReturnDetails", returnData, {
+  return axios.post(API_BaseUrl_Admin + "returns/create", returnData, {
     headers: authHeader(),
   });
 };

@@ -795,3 +795,53 @@
 2025-11-01 16:56:00 [[32MINFO[39M]: [32mServer is running on port 8080[39m
 2025-11-01 16:56:00 [[32MINFO[39M]: [32mRunning initial database setup...[39m
 2025-11-01 16:56:01 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-11-03 10:45:27 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-11-03 10:45:27 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-11-03 10:45:27 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-11-03 10:53:20 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-11-03 10:53:20 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-11-03 10:53:20 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-11-03 10:54:26 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-11-03 10:54:26 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-11-03 10:54:26 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-11-03 12:24:54 [[31MERROR[39M]: [31muncaughtException: ⨯ Unable to compile TypeScript:[39m
+[31m[96msrc/controller/Admin_Api/returnController.ts[0m:[93m23[0m:[93m40[0m - [91merror[0m[90m TS2554: [0mExpected 2 arguments, but got 1.[39m
+
+[31m[7m23[0m     const result = await returnService.createReturn(req.body);[39m
+[31m[7m  [0m [91m                                       ~~~~~~~~~~~~[0m[39m
+
+[31m  [96msrc/services/returnService.service.ts[0m:[93m55[0m:[93m3[0m[39m
+[31m    [7m55[0m   items: ReturnItem[][39m
+[31m    [7m  [0m [96m  ~~~~~~~~~~~~~~~~~~~[0m[39m
+[31m    An argument for 'items' was not provided.[39m
+
+[31mTSError: ⨯ Unable to compile TypeScript:[39m
+[31m[96msrc/controller/Admin_Api/returnController.ts[0m:[93m23[0m:[93m40[0m - [91merror[0m[90m TS2554: [0mExpected 2 arguments, but got 1.[39m
+
+[31m[7m23[0m     const result = await returnService.createReturn(req.body);[39m
+[31m[7m  [0m [91m                                       ~~~~~~~~~~~~[0m[39m
+
+[31m  [96msrc/services/returnService.service.ts[0m:[93m55[0m:[93m3[0m[39m
+[31m    [7m55[0m   items: ReturnItem[][39m
+[31m    [7m  [0m [96m  ~~~~~~~~~~~~~~~~~~~[0m[39m
+[31m    An argument for 'items' was not provided.[39m
+
+[31m    at createTSError (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:859:12)[39m
+[31m    at reportTSError (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:863:19)[39m
+[31m    at getOutput (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:1077:36)[39m
+[31m    at Object.compile (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:1433:41)[39m
+[31m    at Module.m._compile (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:1617:30)[39m
+[31m    at node:internal/modules/cjs/loader:1706:10[39m
+[31m    at Object.require.extensions.<computed> [as .ts] (D:\Logistics\Logistics\backend\node_modules\ts-node\src\index.ts:1621:12)[39m
+[31m    at Module.load (node:internal/modules/cjs/loader:1289:32)[39m
+[31m    at Function._load (node:internal/modules/cjs/loader:1108:12)[39m
+[31m    at TracingChannel.traceSync (node:diagnostics_channel:322:14)[39m
+2025-11-03 12:25:08 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-11-03 12:25:08 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-11-03 12:25:08 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-11-03 12:48:16 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-11-03 12:48:16 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-11-03 12:48:17 [[32MINFO[39M]: [32mDatabase setup completed.[39m
+2025-11-03 16:57:12 [[32MINFO[39M]: [32mServer is running on port 8080[39m
+2025-11-03 16:57:12 [[32MINFO[39M]: [32mRunning initial database setup...[39m
+2025-11-03 16:57:12 [[32MINFO[39M]: [32mDatabase setup completed.[39m
