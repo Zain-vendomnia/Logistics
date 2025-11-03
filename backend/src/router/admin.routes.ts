@@ -13,7 +13,6 @@ import { updateCustomerInfoController } from "../controller/Admin_RouteOptimzati
 import { getAllTourhistory } from "../controller/Admin_RouteOptimzation/getAllTourhistory";
 
 import { getOrderDetails } from "../controller/Admin_Api/orderDetails.controller";
-import { addReturnDetails } from "../controller/Admin_Api/ReturnDetails.controller";
 import { getOrderCount } from "../controller/Admin_Api/orderCount.controller";
 import { uploadImageController } from "../controller/Admin_Api/uploadImage.controller";
 import { sendEmail } from "../controller/Admin_Api/sendEmail.controller";
@@ -152,7 +151,6 @@ adminRouter.post("/routeoptimize/getRoutesSegmentImages", TourCtrl.getRoutesSegm
 adminRouter.put("/routeoptimize/updateCustomer", updateCustomerInfoController);
 adminRouter.get("/orderDetails", getOrderDetails);
 adminRouter.post("/returns", );
-adminRouter.post("/addReturnDetails", addReturnDetails);
 adminRouter.get("/orderCount", getOrderCount);
 adminRouter.get("/routeoptimize/gettourStatushistory", getAllTourhistory);
 adminRouter.get("/routeoptimize/gettourStatus", TourCtrl.getTourstatus);
