@@ -16,9 +16,14 @@ import {
 } from "../types/tour.types";
 import hereMapService from "./hereMap.service";
 import pool from "../config/database";
-import { extractTourStats } from "./helpers/dynamicTour.helpers";
+import {
+  buildUnassignedOrders,
+  extractTourStats,
+} from "./helpers/dynamicTour.helpers";
 import { Order } from "../types/order.types";
 import logger from "../config/logger";
+import { getWarehouseWithVehicles } from "./warehouse.service";
+import { warehouseOrdersAssignment } from "../orchestration/assignmentWorker.helper";
 
 export async function getTourMapDataAsync(tourPayload: CreateTour) {
   const connection = await pool.getConnection();
@@ -262,15 +267,82 @@ export async function getTourDetailsById(tourId: number) {
   return { tour: tourObj.tour_name, routes, unassigned: "400098044,400098044" };
 }
 
-// function calculateOrderWeight(order: Order): number {
-//   return order.items
-//     ? order.items.reduce((total, item) => {
-//         return total + item.quantity * 2.5; //item.modalWeight
-//       }, 0)
-//     : 0;
-// }
+function summarizeOrders(orders: Order[]) {
+  let totalWeightKg = 0;
+  let totalSLMDQty = 0;
+  let totalArticles = 0;
 
-export async function createDeliveryCostForTour(
+  for (const order of orders) {
+    totalWeightKg += order.weight_kg ?? 0;
+    totalSLMDQty += order.quantity ?? 0;
+    totalArticles += order.article_sku
+      ? order.article_sku.split(",").length
+      : 0;
+  }
+
+  return { totalWeightKg, totalSLMDQty, totalArticles };
+}
+
+async function computeTourCost(
+  orders: Order[],
+  totalDistanceKm: number,
+  totalDurationHrs: number,
+  conn?: PoolConnection
+): Promise<TourMatrix> {
+  const connection = conn ?? pool;
+  const [ratesRows]: any = await connection.execute(`
+  SELECT * FROM delivery_cost_rates
+  ORDER BY id DESC
+  LIMIT 1
+  `);
+  const rates = ratesRows[0] as DeliveryCostRates;
+  // if (!rates) throw new Error("No delivery cost rates found");
+  if (!rates) {
+    logger.warn("[Tour Cost] No cost rates found — returning default zeros");
+    return {
+      hotelCost: 0,
+      vanTourCost: 0,
+      dieselTourCost: 0,
+      personnelTourCost: 0,
+      totalCost: 0,
+      costPerStop: 0,
+      costPerArticle: 0,
+      costPerSLMD: 0,
+      totalWeightKg: 0,
+    } as TourMatrix;
+  }
+
+  const { totalWeightKg, totalSLMDQty, totalArticles } =
+    summarizeOrders(orders);
+
+  const personnelCost = rates.personnel_costs_per_hour * totalDurationHrs;
+  const dieselCost =
+    (rates.diesel_costs_per_liter *
+      rates.consumption_l_per_100km *
+      totalDistanceKm) /
+    100;
+  const vanCost = rates.van_costs_per_day;
+  const totalCost: number =
+    +rates.hotel_costs + +vanCost + +dieselCost + +personnelCost;
+
+  const costPerStop = orders.length ? totalCost / orders.length : 0;
+  const costPerArticle = totalArticles ? totalCost / totalArticles : 0;
+  const costPerSlmd = totalSLMDQty ? totalCost / totalSLMDQty : 0;
+
+  return {
+    hotelCost: rates.hotel_costs,
+    vanTourCost: vanCost,
+    dieselTourCost: dieselCost,
+    personnelTourCost: personnelCost,
+    totalCost,
+    costPerStop,
+    costPerArticle,
+    costPerSLMD: costPerSlmd,
+    totalWeightKg,
+  } as TourMatrix;
+}
+
+export async function persistTourCostMatrixAsync(
   tourId: number,
   type: TourType = TourType.dynamicTour
 ): Promise<TourMatrix> {
@@ -300,59 +372,32 @@ export async function createDeliveryCostForTour(
 
     logger.info(`[Tour Cost] Calculating cost for tour: ${tourData.tour_name}`);
 
+    const tourObj = tourData.tour_data;
+    const tour = tourObj.tour as Tour;
+    const { totalDistanceKm, totalDurationHrs } = extractTourStats(tour);
+
     // Compute totals
     const ordersWithItems: Order[] =
       await LogisticOrder.getOrdersWithItemsAsync(
         tourData.orderIds.split(",").map(Number)
       );
-    const totalWeightKg = ordersWithItems.reduce(
-      // (acc, order) => acc + calculateOrderWeight(order),
-      (acc, order) => acc + (order.weight_kg ?? 0),
-      0
+
+    const {
+      hotelCost,
+      vanTourCost,
+      dieselTourCost,
+      personnelTourCost,
+      totalCost,
+      costPerStop,
+      costPerArticle,
+      costPerSLMD,
+      totalWeightKg,
+    }: TourMatrix = await computeTourCost(
+      ordersWithItems,
+      totalDistanceKm,
+      totalDurationHrs,
+      connection
     );
-
-    const totalSLMDQty = ordersWithItems.reduce(
-      (acc, order) => acc + (order.quantity ?? 0),
-      0
-    );
-
-    const totalArticles = ordersWithItems.reduce((acc, order) => {
-      const articles = order.article_sku
-        ? order.article_sku.split(",").length
-        : 0;
-      return acc + articles;
-    }, 0);
-
-    const tourObj = tourData.tour_data;
-    // const tourObj = JSON.parse(tourData.tour_data);
-    const tour = tourObj.tour as Tour;
-    const { totalDistanceKm, totalDurationHrs } = extractTourStats(tour);
-
-    const [ratesRows]: any = await connection.execute(`
-      SELECT * FROM delivery_cost_rates
-      ORDER BY id DESC
-      LIMIT 1
-      `);
-    const rates = ratesRows[0] as DeliveryCostRates;
-    if (!rates) throw new Error("No delivery cost rates found");
-
-    // Compute costs
-    const personnelCost = rates.personnel_costs_per_hour * totalDurationHrs;
-    const dieselCost =
-      (rates.diesel_costs_per_liter *
-        rates.consumption_l_per_100km *
-        totalDistanceKm) /
-      100;
-    const vanCost = rates.van_costs_per_day;
-    const totalCost: number =
-      +rates.hotel_costs + +vanCost + +dieselCost + +personnelCost;
-
-    // Order stops
-    const costPerStop = ordersWithItems.length
-      ? totalCost / ordersWithItems.length
-      : 0;
-    const costPerBkw = totalArticles ? totalCost / totalArticles : 0;
-    const costPerSlmd = totalSLMDQty ? totalCost / totalSLMDQty : 0;
 
     const idColumn =
       type === TourType.masterTour ? "tour_id" : "dynamic_tour_id";
@@ -378,14 +423,14 @@ export async function createDeliveryCostForTour(
       `;
       params = [
         tourId,
-        rates.hotel_costs,
-        vanCost,
-        dieselCost,
-        personnelCost,
+        hotelCost,
+        vanTourCost,
+        dieselTourCost,
+        personnelTourCost,
         totalCost,
         costPerStop,
-        costPerBkw,
-        costPerSlmd,
+        costPerArticle,
+        costPerSLMD,
         totalDistanceKm,
         totalDurationHrs,
         totalWeightKg,
@@ -407,14 +452,14 @@ export async function createDeliveryCostForTour(
         WHERE ${idColumn} = ?
       `;
       params = [
-        rates.hotel_costs,
-        vanCost,
-        dieselCost,
-        personnelCost,
+        hotelCost,
+        vanTourCost,
+        dieselTourCost,
+        personnelTourCost,
         totalCost,
         costPerStop,
-        costPerBkw,
-        costPerSlmd,
+        costPerArticle,
+        costPerSLMD,
         totalDistanceKm,
         totalDurationHrs,
         totalWeightKg,
@@ -440,7 +485,7 @@ export async function createDeliveryCostForTour(
     const tourMatrix = rows[0] as TourMatrix;
 
     logger.info(
-      `[Tour Cost] Calculated cost for tour ${tourData.tour_name} is ${tourMatrix.total_cost}`
+      `[Tour Cost] Calculated cost for tour ${tourData.tour_name} is ${tourMatrix.totalCost}`
     );
     await connection.commit();
     return tourMatrix;
@@ -461,10 +506,10 @@ export async function tourCostRecompute() {
   const tourIds = rows.map((r: any) => r.id);
 
   for (const id of tourIds) {
-    await createDeliveryCostForTour(id);
+    await persistTourCostMatrixAsync(id);
   }
 
-  // await Promise.all(tourIds.map((id: number) => createDeliveryCostForTour(id)));
+  // await Promise.all(tourIds.map((id: number) => persistTourCostMatrixAsync(id)));
 }
 
 export async function getTourMatrix(
@@ -479,10 +524,117 @@ export async function getTourMatrix(
       `SELECT * FROM delivery_cost_per_tour  WHERE ${idColumn} = ?`,
       [tourId]
     );
+    if (!rows || rows.length === 0) {
+      throw new Error(`Tour matrix not found for tourId ${tourId}`);
+    }
 
-    return rows[0] as TourMatrix;
+    const row = rows[0];
+
+    const matrix: TourMatrix = {
+      tourId,
+      totalWeightKg: row.total_weight_kg,
+      totalDistanceKm: row.total_distance_km,
+      totalDurationHrs: row.total_duration_hrs,
+      costPerStop: row.delivery_cost_per_stop,
+      costPerArticle: row.delivery_cost_per_bkw,
+      costPerSLMD: row.delivery_cost_per_slmd,
+      totalCost: row.total_cost,
+      hotelCost: row.hotel_cost,
+      vanTourCost: row.van_tour_cost,
+      dieselTourCost: row.diesel_tour_cost,
+      personnelTourCost: row.personnel_tour_cost,
+      warehouseTourCost: row.warehouse_tour_cost,
+      infeedTourCost: row.infeed_tour_cost,
+      costWE: row.we_tour_cost,
+      costWA: row.wa_tour_cost,
+    };
+    return matrix;
   } catch (error) {
-    console.error(`Error fetching Tour Matrix for tour Id: ${tourId}:`, error);
+    logger.error(`Error fetching Tour Matrix for tour Id: ${tourId}:`, error);
     throw error;
   }
+}
+
+export async function estimateTourCostMatrixAsync(
+  warehouseId: number,
+  orderIds: number[]
+): Promise<TourMatrix | undefined> {
+  const orders = await LogisticOrder.getOrdersWithItemsAsync(orderIds);
+  const warehouse = await getWarehouseWithVehicles(warehouseId);
+
+  const assignments: Map<number, { order: Order; distance?: number }[]> =
+    await warehouseOrdersAssignment([warehouse], orders);
+
+  const inLine_Orders = Array.from(assignments.values())
+    .flat()
+    .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity))
+    .map((item) => item.order);
+
+  const {
+    tour,
+    unassigned,
+    orders: txnOrders,
+  } = await hereMapService.CreateTourRouteAsync(
+    inLine_Orders.map((o) => o.order_id),
+    warehouse.id
+  );
+
+  if (unassigned.length > 0) {
+    const unassignedOrders = buildUnassignedOrders(unassigned, txnOrders);
+
+    const nonTxnOrders = unassignedOrders.map((u) => u.order_number).join(", ");
+    const msg = `${unassignedOrders[0].reasons}.
+    Order number(s): ${nonTxnOrders}`;
+    throw new Error(msg);
+    // return {
+    //   success: false,
+    //   message: msg,
+    //   totalCost: null,
+    //   costPerStop: null,
+    //   costPerArticle: null,
+    //   costPerSLMD: null,
+    //   totalWeightKg: null,
+    //   totalDistanceKm: null,
+    //   totalDurationHrs: null,
+    // } as unknown as TourMatrix;
+  }
+
+  const { totalDistanceKm, totalDurationHrs } = extractTourStats(tour);
+
+  const {
+    totalCost,
+    costPerStop,
+    costPerArticle,
+    costPerSLMD,
+    totalWeightKg,
+  }: TourMatrix = await computeTourCost(
+    orders,
+    totalDistanceKm,
+    totalDurationHrs
+  );
+
+  console.log(`
+    estimateTourCostMatrixAsync: \n
+    {
+    totalCost: ${totalCost},\n
+    costPerStop: ${costPerStop},\n
+    costPerArticle: ${costPerArticle},\n
+    costPerSLMD: ${costPerSLMD},\n
+    totalWeightKg: ${totalWeightKg},\n
+    totalDistanceKm: ${totalDistanceKm},\n
+    totalDurationHrs: ${totalDurationHrs}\n
+  }
+  `);
+
+  return {
+    totalCost,
+    costPerStop,
+    costPerArticle,
+    costPerSLMD,
+    totalDurationHrs,
+    totalDistanceKm,
+    totalWeightKg,
+  } as TourMatrix;
+
+  // return undefined;
 }

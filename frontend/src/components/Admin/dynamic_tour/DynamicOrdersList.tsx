@@ -12,7 +12,7 @@ import DynamicTourOrderDetails from "./DynamicTourOrderDetails";
 
 type Props = {
   items: Order[];
-  handleDelete: (prder: Order) => void;
+  handleDelete: (order: Order) => void;
   //   handleSelect: (id: number) => void;
 };
 

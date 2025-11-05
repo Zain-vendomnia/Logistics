@@ -221,6 +221,21 @@ const fetchDynamicTours = async (): Promise<DynamicTourPayload[]> => {
   return (res.data as DynamicTourPayload[]) || [];
 };
 
+const estimateTourMatrix = async (warehouseId: number, orderIds: number[]) => {
+  const payload = {
+    warehouseId,
+    orderIds,
+  };
+  const res = await axios.post(
+    `${API_BaseUrl_Admin}estimateTourMatrix`,
+    payload,
+    {
+      headers: authHeader(),
+    }
+  );
+  return res;
+};
+
 const requestDynamicTour = async (
   payload: DynamicTourPayload
 ): Promise<DynamicTourRes> => {
@@ -340,6 +355,7 @@ const adminApiService = {
   fetchRouteSegmentImages,
   getDriverData,
   fetchLogs,
+  estimateTourMatrix,
 };
 
 export default adminApiService;

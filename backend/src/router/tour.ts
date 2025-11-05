@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { parseExcelToJobs } from "../utils/parseExcel";
-import { create_dynamicTour } from "../controller/HERE_API/dynamicTour.controller";
+import { create_dynamicTour } from "../controller/dynamic/dynamicTour.controller";
 import { uploadMemory } from "../middlewares/upload";
 
 const router = Router();
@@ -17,12 +17,10 @@ router.post("/upload-jobs", uploadMemory.single("file"), async (req, res) => {
     await create_dynamicTour(req, res, jobList);
   } catch (err) {
     console.error(err);
-    res
-      .status(500)
-      .json({
-        message: "Failed to process uploaded Excel.",
-        error: (err as Error).message,
-      });
+    res.status(500).json({
+      message: "Failed to process uploaded Excel.",
+      error: (err as Error).message,
+    });
   }
 });
 

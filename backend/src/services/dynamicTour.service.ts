@@ -3,7 +3,7 @@ import { PoolConnection } from "mysql2/promise";
 
 import hereMapService from "./hereMap.service";
 import {
-  createDeliveryCostForTour,
+  persistTourCostMatrixAsync,
   getRouteSegments_mapApi,
   getTourMatrix,
   saveRouteSegments,
@@ -75,7 +75,10 @@ export async function createDynamicTourAsync(
     payload.tour_route = routes;
     payload.tour_name = tourName;
 
-    const new_dTour = await saveDynamicTour(connection, payload);
+    const new_dTour = await saveDynamicTour(connection, {
+      ...payload,
+      orderIds: txnOrderIdsStr,
+    });
 
     // Orders status update
     const orderIds: number[] = new_dTour.orderIds.split(",").map(Number);
@@ -112,7 +115,7 @@ export async function createDynamicTourAsync(
       );
 
       logger.info("[Create Dynamic Tour] Triggering Delivery Cost...");
-      matrix = await createDeliveryCostForTour(new_dTour?.id);
+      matrix = await persistTourCostMatrixAsync(new_dTour?.id);
     } catch (err) {
       logger.error(
         `[Create Dynamic Tour] Failed to create delivery cost for tour ${new_dTour.id}: ${err}`

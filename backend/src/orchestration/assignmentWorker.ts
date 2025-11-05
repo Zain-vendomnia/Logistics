@@ -1,5 +1,5 @@
 import {
-  getWarehouseToOrdersMatrix,
+  getEndpointsRouteMatrix,
   getActiveWarehousesWithVehicles,
 } from "../services/warehouse.service";
 import { createDynamicTourAsync } from "../services/dynamicTour.service";
@@ -78,7 +78,7 @@ async function trimClusterToFitUsingMatrix(
     const clusterIndexMap = new Map<number, number>();
 
     if (!matrix) {
-      matrix = await getWarehouseToOrdersMatrix(warehouse, cluster);
+      matrix = await getEndpointsRouteMatrix(warehouse, cluster);
 
       if (matrix && (!matrix.errorCodes || matrix.errorCodes.length === 0)) {
         cluster.forEach((order, idx) => {
@@ -88,7 +88,7 @@ async function trimClusterToFitUsingMatrix(
         await cacheSet(clusterKey, matrix);
       } else {
         matrix = undefined;
-        logger.warn("Matrix Empty, no response form Here API");
+        logger.warn("Matrix Empty, no response from Here API");
       }
     }
 
@@ -304,6 +304,11 @@ export async function processBatch() {
   for (const [warehouseId, orderEntries] of assignments.entries()) {
     if (!orderEntries.length) continue;
 
+    orderEntries.sort(
+      (a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity)
+    );
+    assignments.set(warehouseId, orderEntries);
+
     const candidOrders: Order[] = orderEntries.map((e) => e.order);
     if (grossWeight(candidOrders) < MIN_WEIGHT) {
       logger.warn(
@@ -313,11 +318,6 @@ export async function processBatch() {
       );
       continue;
     }
-
-    orderEntries.sort(
-      (a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity)
-    );
-    assignments.set(warehouseId, orderEntries);
 
     const warehouse = warehouses.find((w) => w.id === warehouseId)!;
     if (!warehouse) {

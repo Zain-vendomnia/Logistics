@@ -23,18 +23,17 @@ const modalStyle = {
   pb: 3,
 };
 
-
 interface RejectTourModalProps {
   open: boolean;
   onClose: () => void;
   onReject: (reason: string) => void;
 }
 
-export const RejectTourModal: React.FC<RejectTourModalProps> = ({
+export const RejectTourModal = ({
   open,
   onClose,
   onReject,
-}) => {
+}: RejectTourModalProps) => {
   const [reason, setReason] = useState("");
   const [remarks, setRemarks] = useState("");
 

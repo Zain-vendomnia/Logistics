@@ -6,18 +6,16 @@ import { route_segments } from "../../model/routeSegments";
 import pool from "../../config/database";
 import { CreateTour } from "../../types/dto.types";
 import { ResultSetHeader } from "mysql2";
-import {
-  getTourDetailsById,
-  getTourMapDataAsync,
-} from "../../services/tour.service";
+import * as tourService from "../../services/tour.service";
 import { logWithTime } from "../../utils/logging";
+import logger from "../../config/logger";
 
 export const createTourController = async (req: Request, res: Response) => {
   const tour_payload: CreateTour = req.body;
 
   logWithTime(`[Create Tour Request]: ${tour_payload}`);
   try {
-    const result = await getTourMapDataAsync(tour_payload);
+    const result = await tourService.getTourMapDataAsync(tour_payload);
     if (!result) {
       res.status(500).json({ message: "Failed to create the tour" });
     }
@@ -187,7 +185,7 @@ export const getTourDetails = async (_req: Request, res: Response) => {
     if (!tourId)
       return res.status(400).json({ message: "Tour ID is required" });
 
-    const result = await getTourDetailsById(Number(tourId));
+    const result = await tourService.getTourDetailsById(Number(tourId));
 
     res.status(200).json(result);
   } catch (error) {
@@ -216,12 +214,10 @@ export const getRoutesSegmentImages = async (_req: Request, res: Response) => {
   const { tour_id, order_number } = _req.body;
 
   // Require at least one of tour_id or order_number
-  if (!tour_id && !order_number) {
-    return res
-      .status(400)
-      .json({
-        message: "At least one of tour_id or order_number is required.",
-      });
+  if (!tour_id || !order_number) {
+    return res.status(400).json({
+      message: "At least one of tour_id or order_number is required.",
+    });
   }
 
   try {
@@ -232,9 +228,47 @@ export const getRoutesSegmentImages = async (_req: Request, res: Response) => {
 
     res.status(200).json(routeRes);
   } catch (error) {
-    console.error("Error fetching images:", error);
+    logger.error("Error fetching images:", error);
     res
       .status(404)
       .json({ message: "Images not found for the provided criteria." });
+  }
+};
+
+export const estimateTourCostMatrix = async (_req: Request, res: Response) => {
+  const { warehouseId, orderIds } = _req.body;
+
+  if (!warehouseId || !orderIds) {
+    return res.status(400).json({
+      message: "Invalid data provided",
+    });
+  }
+
+  try {
+    const result = await tourService.estimateTourCostMatrixAsync(
+      warehouseId,
+      orderIds
+    );
+
+    if (!result) {
+      return res
+        .status(204)
+        .json({ success: false, message: "No matrix result returned." });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    logger.error("Error estimating tour cost matrix:", error);
+    return res.status(500).json({
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Error estimating tour cost matrix.",
+      error: error instanceof Error ? error.message : error,
+    });
   }
 };

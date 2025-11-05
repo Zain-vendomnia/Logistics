@@ -102,6 +102,7 @@ const DymanicMapBoard = () => {
     pinboard_AddOrders,
     pinboard_removeOrders,
     selectedTour,
+    setSelectedTour,
     dynamicToursList,
     setDynamicToursList,
     updateDynamicToursList,
@@ -150,6 +151,12 @@ const DymanicMapBoard = () => {
     maxZoom: 15,
     duration: 0.9,
   };
+
+  // useEffect(() => {
+  //   return () => {
+  //     setSelectedTour(null);
+  //   };
+  // }, []);
 
   // Fetch Dynamic Tours
   useEffect(() => {
@@ -243,7 +250,6 @@ const DymanicMapBoard = () => {
   // mapRef to selected tour
   useEffect(() => {
     if (!selectedTour || !selectedTour.tour_route || !mapRef.current) return;
-    // console.log("[Test]:", selectedTour);
 
     setVehicleTours((prev) =>
       prev.map((route) =>
@@ -259,7 +265,7 @@ const DymanicMapBoard = () => {
     allCoords = extract_Coords(selectedTour.tour_route);
     const bounds = L.latLngBounds(allCoords);
     mapRef.current.flyToBounds(bounds, flyToBoundsOptions as any);
-    console.log(`Updating Map ref for Selected Tour`);
+    // console.log(`Updating Map ref for Selected Tour`);
     // }
   }, [selectedTour]);
 
@@ -330,7 +336,7 @@ const DymanicMapBoard = () => {
         gap={1}
       >
         <IconButton onClick={handleReposition}>
-          <GpsFixedIcon sx={{ color: "#333", fontSize: 55 }} />
+          <GpsFixedIcon sx={{ color: "#333", fontSize: 36 }} />
         </IconButton>
       </Box>
 
@@ -373,7 +379,7 @@ const DymanicMapBoard = () => {
 
             {vehicleTours.map((vehicle, idx) => {
               const dtour_orderIds: number[] = [];
-              const orderStop_Map = new Map<number, Stop>();
+              const ordersStops = new Map<number, Stop>();
               const pathColor = colors[idx % colors.length];
               const isFocused = focusedTourIdRef.current === vehicle.vehicleId;
 
@@ -395,7 +401,7 @@ const DymanicMapBoard = () => {
                   })
                   .map(Number);
 
-                orderIds.forEach((id) => orderStop_Map.set(id, stop));
+                orderIds.forEach((id) => ordersStops.set(id, stop));
                 dtour_orderIds.push(...orderIds);
               });
 
@@ -404,7 +410,7 @@ const DymanicMapBoard = () => {
                 { order: Order; stop: Stop; idx: number }[]
               >();
               dtour_orderIds.forEach((id, idx) => {
-                const order_stop = orderStop_Map.get(id);
+                const order_stop = ordersStops.get(id);
                 if (!order_stop) return;
                 const order = tourOrdersMap.get(id);
                 if (!order) return;
@@ -473,7 +479,7 @@ const DymanicMapBoard = () => {
               );
             })}
           </MapContainer>
-          {selectedTour && <DynamicTourDetails />}
+          {/* {selectedTour && <DynamicTourDetails />} */}
         </Box>
       </Box>
     </>
