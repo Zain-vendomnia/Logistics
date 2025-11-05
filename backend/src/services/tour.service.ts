@@ -584,7 +584,7 @@ export async function estimateTourCostMatrixAsync(
 
     const nonTxnOrders = unassignedOrders.map((u) => u.order_number).join(", ");
     const msg = `${unassignedOrders[0].reasons}.
-    Order number(s): ${nonTxnOrders}`;
+    Order(s): ${nonTxnOrders}`;
     throw new Error(msg);
     // return {
     //   success: false,

@@ -51,7 +51,6 @@ const TourImpactPreview = ({ warehouseId, orders, onError }: Props) => {
   const estimate = async (warehouseId: number, orderIds: number[]) => {
     setLoading(true);
     setError(null);
-    // debugger;
 
     try {
       const res = await adminApiService.estimateTourMatrix(
@@ -83,7 +82,7 @@ const TourImpactPreview = ({ warehouseId, orders, onError }: Props) => {
       showNotification({
         title: "Tour Estimation Error",
         message: errorMessage[0],
-        severity: NotificationSeverity.Error,
+        severity: NotificationSeverity.Warning,
       });
       setError(errorMessage[1] || "Failed to estimate tour cost.");
       lastQueryRef.current = { key: queryKey, data: null, failed: true };
@@ -99,11 +98,7 @@ const TourImpactPreview = ({ warehouseId, orders, onError }: Props) => {
     const last = lastQueryRef.current;
     if (last.key === queryKey && (last.data || last.failed)) {
       setExpected(last.data);
-      setError(
-        last.failed
-          ? "Previous estimation failed. Adjust order selection."
-          : null
-      );
+
       return;
     }
     const orderIds = orders.map((o) => o.order_id);
@@ -150,7 +145,7 @@ const TourImpactPreview = ({ warehouseId, orders, onError }: Props) => {
           {error}
         </Typography>
         <Typography variant="body2" color="error" mt={0.5}>
-          Please review your selected orders and try again.
+          Please review your orders selection and try again.
         </Typography>
       </Box>
     </Box>

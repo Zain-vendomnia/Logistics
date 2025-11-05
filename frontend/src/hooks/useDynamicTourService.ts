@@ -91,7 +91,6 @@ export const useDynamicTourService = () => {
   useEffect(() => {
     if (!selectedTour) return;
 
-    // debugger;
     const selectedTourOrdersIds = selectedTour.orderIds
       .split(",")
       .map((id) => Number(id));
@@ -185,7 +184,6 @@ export const useDynamicTourService = () => {
   }, [selectedOrderId]);
 
   const handleOrderSelect = (orderId: number) => {
-    // console.log("handle Order Select:", orderId);
     setSelectedOrderId((prev) => (prev === orderId ? null : orderId));
   };
 
@@ -195,26 +193,15 @@ export const useDynamicTourService = () => {
   ) => {
     if (orderId == null) return;
 
-    let orderRemove: Order | undefined;
     if (type === "torders") {
-      orderRemove = tourOrders.find((o) => o.order_id === orderId);
       setTourOrders((prev) =>
         prev.filter((order) => order.order_id !== orderId)
       );
     } else if (type === "porders") {
-      orderRemove = selectedPinbOrders.find((o) => o.order_id === orderId);
       setSelectedPinbOrders((prev) =>
         prev.filter((order) => order.order_id !== orderId)
       );
     }
-
-    setOrdersToRemove((prev) => {
-      if (!orderRemove) return prev;
-      if (prev.includes(orderRemove)) return prev;
-      return [...prev, orderRemove];
-    });
-
-    if (selectedOrderId === orderId) setSelectedOrderId(null);
     setRemoveOrderId(null);
   };
 
@@ -224,10 +211,17 @@ export const useDynamicTourService = () => {
       setOrdersToRemove((prev) =>
         prev.filter((o) => o.order_id !== reqOrder.order_id)
       );
-      setTourOrders((prev) => [reqOrder, ...prev]);
+
+      const exist_selectedOrderIds = selectedTour?.orderIds
+        .split(",")
+        .map(Number)
+        .includes(reqOrder.order_id);
+      if (exist_selectedOrderIds) {
+        setTourOrders((prev) => [...prev, reqOrder]);
+        return;
+      }
     }
   };
-  // const orderToDelete = tourOrders.find((o) => o.order_id === removeOrderId);
 
   const handleSelectPinbOrder = async (newValue: Order[]) => {
     if (newValue.length === 0) {
@@ -293,7 +287,6 @@ export const useDynamicTourService = () => {
       if (!dTour_res || !dTour_res.dynamicTour) {
         throw new Error("Invalid response: missing dynamicTour");
       }
-      // debugger;
       const updated_dTour = dTour_res.dynamicTour;
       console.log("updated_dTour", updated_dTour);
       updateDynamicToursList(updated_dTour);
