@@ -28,6 +28,10 @@ type TourData = {
 
 export interface TourMatrix {
   tourId: number;
+  totalOrdersItemsQty?: number;
+  totalOrdersArticlesQty?: number;
+  pickUpsQty?: number;
+  
   totalWeightKg: number;
   totalDistanceKm: number;
   totalDurationHrs: number;
@@ -51,7 +55,6 @@ export interface DynamicTourPayload {
   tour_route?: Geometry | null; // Geometry[]/DecodedRoute[]/object
   tour_data?: TourData;
   orderIds: string; // Comma-separated
-  totalOrdersItemsQty: number;
 
   warehouse_id: number;
   warehouse_name?: string;

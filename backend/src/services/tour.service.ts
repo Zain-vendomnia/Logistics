@@ -542,6 +542,25 @@ export async function getTourMatrix(
       costWE: row.we_tour_cost,
       costWA: row.wa_tour_cost,
     };
+
+    const tourQuery =
+      type === TourType.dynamicTour
+        ? `SELECT orderIds FROM dynamic_tours WHERE id = ?`
+        : `SELECT order_ids AS orderIds FROM tourinfo_master WHERE id = ?`;
+    const [tourRows]: any = await pool.execute(tourQuery, [tourId]);
+    if (!tourRows || tourRows.length === 0) {
+      throw new Error(`No tour found for id ${tourId}`);
+    }
+
+    const order_ids = tourRows[0].orderIds.split(",");
+
+    matrix.totalOrdersItemsQty = await LogisticOrder.getOrderItemsCount(
+      order_ids
+    );
+    matrix.totalOrdersArticlesQty = await LogisticOrder.getOrderArticlesCount(
+      order_ids
+    );
+
     return matrix;
   } catch (error) {
     logger.error(`Error fetching Tour Matrix for tour Id: ${tourId}:`, error);

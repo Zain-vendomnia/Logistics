@@ -130,7 +130,6 @@ export async function createDynamicTourAsync(
     emitNewDynamicTour(new_dTour_withMatrix);
     // emitNewDynamicTour(new_dTour.tour_name!);
 
-    // matrix = await getTourMatrix(new_dTour.id!);
     const response: DynamicTourRes = {
       tour: tour,
       unassigned: unassignedOrders,
@@ -296,15 +295,9 @@ export async function getUnapprovedDynamicTours(): Promise<
     );
 
     for (const tour of dTours) {
-      const order_ids = tour.orderIds.split(",");
-      tour.totalOrdersItemsQty = await LogisticOrder.getOrderItemsCount(
-        order_ids
-      );
       const tourMatrix = await getTourMatrix(tour.id!);
-      // console.log(`tourMatrix for dTour Id: ${tour.id}: ${tourMatrix}`);
       tour.matrix = tourMatrix;
     }
-    // console.warn(`Tours with Matrix`, dTours);
 
     return dTours;
   } catch (error) {
@@ -322,6 +315,7 @@ export async function getDynamicTour(
     const [rows] = await pool.execute(query, [dTourId]);
     const tour = (rows as DynamicTourPayload[])[0];
     tour.matrix = await getTourMatrix(tour.id!);
+
     return tour || null;
   } catch (error) {
     console.error("Dynamic tour not found:", error);

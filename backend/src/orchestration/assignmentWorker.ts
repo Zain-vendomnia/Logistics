@@ -357,7 +357,6 @@ async function createDynamicTourForCluster(
     const tourPayload: DynamicTourPayload = {
       warehouse_id: warehouseId,
       orderIds: orders.map((o) => o.order_id).join(","),
-      totalOrdersItemsQty: 0,
     };
     logger.info(
       `[Dynamic Tours] Creating tour: WH ${warehouseId} with orders: ${tourPayload.orderIds}`

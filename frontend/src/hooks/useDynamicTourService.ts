@@ -287,7 +287,6 @@ export const useDynamicTourService = () => {
       if (!dTour_res || !dTour_res.dynamicTour) {
         throw new Error("Invalid response: missing dynamicTour");
       }
-      // debugger;
       const updated_dTour = dTour_res.dynamicTour;
       console.log("updated_dTour", updated_dTour);
       updateDynamicToursList(updated_dTour);

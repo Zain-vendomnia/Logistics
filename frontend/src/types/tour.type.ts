@@ -122,6 +122,10 @@ export type Tour = {
 
 export interface TourMatrix {
   tourId: number;
+  totalOrdersItemsQty?: number;
+  totalOrdersArticlesQty?: number;
+  pickUpsQty?: number;
+
   totalWeightKg: number;
   totalDistanceKm: number;
   totalDurationHrs: number;
@@ -144,7 +148,6 @@ export interface DynamicTourPayload {
   tour_name?: string;
   tour_route?: Geometry | null; // object;
   orderIds: string; // Comma-separated
-  totalOrdersItemsQty: number;
 
   total_weight_kg?: number;
   toal_distance_km?: number;

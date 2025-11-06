@@ -389,6 +389,28 @@ export class LogisticOrder {
       throw error;
     }
   }
+  static async getOrderArticlesCount(orderIds: string[]): Promise<number> {
+    if (!orderIds || orderIds.length === 0) return 0;
+
+    const placeholders = orderIds.map(() => "?").join(",");
+    const query = `SELECT article_sku FROM logistic_order WHERE order_id IN (${placeholders})`;
+
+    try {
+      const [rows] = await pool.execute(query, orderIds);
+      const items = rows as { article_sku: string }[];
+
+      const totalCount = items.reduce((acc, row) => {
+        if (!row.article_sku) return acc;
+        const count = row.article_sku.split(",").filter(Boolean).length;
+        return acc + count;
+      }, 0);
+
+      return totalCount;
+    } catch (error) {
+      console.error("Error fetching order items count:", error);
+      throw error;
+    }
+  }
 
   static async getOrdersByStatus(
     status: OrderStatus

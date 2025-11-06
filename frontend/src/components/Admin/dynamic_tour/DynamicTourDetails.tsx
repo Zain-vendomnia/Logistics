@@ -206,7 +206,6 @@ const DynamicTourDetails = () => {
   };
 
   const handleRouteOptimize = () => {
-    debugger;
     if (!shouldUpdateTourRoute) return;
     console.log("Processing Route Optimization...");
 
@@ -313,12 +312,12 @@ const DynamicTourDetails = () => {
                       variant="outlined"
                     />
                     <XChip
-                      label={`Menge ${tour.totalOrdersItemsQty}`}
+                      label={`Menge ${tour.matrix?.totalOrdersItemsQty}`}
                       color="success"
                       variant="outlined"
                     />
                     <XChip
-                      label={`BKW 35`}
+                      label={`BKW ${tour.matrix?.totalOrdersArticlesQty}`}
                       color="warning"
                       variant="outlined"
                     />
