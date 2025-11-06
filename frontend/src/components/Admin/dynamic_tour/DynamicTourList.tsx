@@ -98,7 +98,6 @@ const DynamicTourList = () => {
               flexDirection: "column",
               maxWidth: "20vw",
               width: "20vw",
-              // maxWidth: 360,
               height: "100%",
               overflow: "hidden",
               p: 1,
@@ -111,7 +110,7 @@ const DynamicTourList = () => {
               gap={1}
               width="100%"
               height="100%"
-              overflow="auto"
+              overflow="hidden"
             >
               <Box
                 display={"flex"}

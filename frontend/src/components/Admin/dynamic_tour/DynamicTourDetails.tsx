@@ -231,7 +231,6 @@ const DynamicTourDetails = () => {
             flexDirection: "column",
             maxWidth: "20vw",
             width: "20vw",
-            // maxWidth: 360,
             height: "100%",
             overflow: "hidden",
             p: 1,
@@ -469,7 +468,7 @@ const DynamicTourDetails = () => {
                 display: "flex",
                 flexDirection: "column",
                 gap: 1,
-                height: "calc(100vh - 400px)",
+                height: "calc(100vh - 470px)",
                 overflow: "hidden",
               }}
             >
@@ -572,7 +571,6 @@ const DynamicTourDetails = () => {
                   </AnimatePresence>
                 </Box>
               </Box>
-
               <Divider flexItem />
               <Box
                 sx={{
