@@ -12,12 +12,11 @@ import DynamicTourOrderDetails from "./DynamicTourOrderDetails";
 
 type Props = {
   items: Order[];
-  handleDelete: (prder: Order) => void;
+  handleDelete: (order: Order) => void;
   //   handleSelect: (id: number) => void;
 };
 
 export const DynamicOrdersList = ({ items, handleDelete }: Props) => {
-  console.log(`Selected Tour Orders count: ${items.length}`);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
 
   const [orderList, setOrderList] = useState<Order[]>(items);

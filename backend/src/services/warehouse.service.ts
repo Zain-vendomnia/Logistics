@@ -440,31 +440,7 @@ export async function getWarehouseLocationCords(
   }
 }
 
-// export const estimateWarehouseDeliveryTimes = async (warehouseId: number) => {
-//   // 1. Fetch warehouse + zipcodes
-//   const warehouses = await getWarehouseZipcodes(warehouseId);
-//   if (!warehouses || !warehouses[warehouseId]) throw new Error("Warehouse not found");
-
-//   const { zip_codes_delivering } = warehouses[warehouseId];
-
-//   // 2. Geocode zipcodes into coordinates
-//   const destinations: LocationMeta[] = [];
-//   for (const zip of zip_codes_delivering) {
-//     const coord = await geocode(zip.toString());
-//     if (coord) destinations.push(coord);
-//   }
-
-//   // 3. Assume warehouse location is already geocoded (or stored in DB)
-//   // Example: get it from `warehouse_details`
-//   const origin: Coordinate = { lat: 25.276987, lng: 55.296249 }; // Dubai warehouse
-
-//   // 4. Call HERE Matrix
-//   const result = await matrixEstimate([origin], destinations, "car");
-
-//   return result;
-// };
-
-export async function getWarehouseToOrdersMatrix(
+export async function getEndpointsRouteMatrix(
   warehouse: Warehouse,
   orders: Order[]
 ): Promise<MatrixData | undefined> {
@@ -479,12 +455,12 @@ export async function getWarehouseToOrdersMatrix(
       );
     }
 
-    console.log(`Begin Matrix Call --------------------- 1`);
-    console.log(
-      `Matrix Call: WH ${warehouse.id} - ${warehouse.town} for ${
-        orders.length
-      } Orders: ${orders.map((o) => o.order_id).join(",")}`
-    );
+    // console.log(`Begin Matrix Call --------------------- 1`);
+    // console.log(
+    //   `Matrix Call: WH ${warehouse.id} - ${warehouse.town} for ${
+    //     orders.length
+    //   } Orders: ${orders.map((o) => o.order_id).join(",")}`
+    // );
 
     const destinations = validOrders.map((o) => ({
       lat: +o.location.lat,

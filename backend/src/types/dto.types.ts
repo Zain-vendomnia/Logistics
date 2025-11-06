@@ -28,21 +28,25 @@ type TourData = {
 
 export interface TourMatrix {
   tourId: number;
-  total_weight_kg: number;
-  total_distance_km: number;
-  total_duration_hrs: number;
-  delivery_cost_per_stop: number;
-  delivery_cost_per_bkw: number;
-  delivery_cost_per_slmd: number;
-  total_cost: number;
-  hotel_cost: number;
-  van_tour_cost: number;
-  diesel_tour_cost: number;
-  personnel_tour_cost: number;
-  warehouse_tour_cost: number;
-  infeed_tour_cost: number;
-  we_tour_cost: number;
-  wa_tour_cost: number;
+  totalOrdersItemsQty?: number;
+  totalOrdersArticlesQty?: number;
+  pickUpsQty?: number;
+  
+  totalWeightKg: number;
+  totalDistanceKm: number;
+  totalDurationHrs: number;
+  costPerStop: number;
+  costPerArticle: number;
+  costPerSLMD: number;
+  totalCost: number;
+  hotelCost: number;
+  vanTourCost: number;
+  dieselTourCost: number;
+  personnelTourCost: number;
+  warehouseTourCost: number;
+  infeedTourCost: number;
+  costWE: number;
+  costWA: number;
 }
 
 export interface DynamicTourPayload {
@@ -51,7 +55,6 @@ export interface DynamicTourPayload {
   tour_route?: Geometry | null; // Geometry[]/DecodedRoute[]/object
   tour_data?: TourData;
   orderIds: string; // Comma-separated
-  totalOrdersItemsQty: number;
 
   warehouse_id: number;
   warehouse_name?: string;

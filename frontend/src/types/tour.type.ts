@@ -53,24 +53,6 @@ export interface TimeWindow {
   end: string;
 }
 
-export interface Activity {
-  time: TimeWindow;
-  type: string; // e.g., "departure", "delivery", "arrival"
-  jobId: string;
-  location: LocationPoint;
-}
-
-export interface Stop {
-  load: number[];
-  time: {
-    arrival: string;
-    departure: string;
-  };
-  distance: number;
-  location: LocationPoint;
-  activities: Activity[];
-}
-
 export interface SectionSummary {
   length: number; // in meters
   duration: number; // in seconds
@@ -93,6 +75,24 @@ export interface Geometry {
   vehicleId: string;
   sections: Section[]; // would have 1 object normally
   stops: Stop[];
+}
+
+export interface Activity {
+  time: TimeWindow;
+  type: string; // e.g., "departure", "delivery", "arrival"
+  jobId: string;
+  location: LocationPoint;
+}
+
+export interface Stop {
+  load: number[];
+  time: {
+    arrival: string;
+    departure: string;
+  };
+  distance: number;
+  location: LocationPoint;
+  activities: Activity[];
 }
 
 export interface RouteLeg {
@@ -122,21 +122,25 @@ export type Tour = {
 
 export interface TourMatrix {
   tourId: number;
-  total_weight_kg: number;
-  total_distance_km: number;
-  total_duration_hrs: number;
-  delivery_cost_per_stop: number;
-  delivery_cost_per_bkw: number;
-  delivery_cost_per_slmd: number;
-  total_cost: number;
-  hotel_cost: number;
-  van_tour_cost: number;
-  diesel_tour_cost: number;
-  personnel_tour_cost: number;
-  warehouse_tour_cost: number;
-  infeed_tour_cost: number;
-  we_tour_cost: number;
-  wa_tour_cost: number;
+  totalOrdersItemsQty?: number;
+  totalOrdersArticlesQty?: number;
+  pickUpsQty?: number;
+
+  totalWeightKg: number;
+  totalDistanceKm: number;
+  totalDurationHrs: number;
+  costPerStop: number;
+  costPerArticle: number;
+  costPerSLMD: number;
+  totalCost: number;
+  hotelCost: number;
+  vanTourCost: number;
+  dieselTourCost: number;
+  personnelTourCost: number;
+  warehouseTourCost: number;
+  infeedTourCost: number;
+  costWE: number;
+  costWA: number;
 }
 
 export interface DynamicTourPayload {
@@ -144,7 +148,6 @@ export interface DynamicTourPayload {
   tour_name?: string;
   tour_route?: Geometry | null; // object;
   orderIds: string; // Comma-separated
-  totalOrdersItemsQty: number;
 
   total_weight_kg?: number;
   toal_distance_km?: number;

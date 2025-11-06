@@ -43,6 +43,7 @@ export const useDynamicTourService = () => {
   const [shouldUpdateTourRoute, setShouldUpdateTourRoute] = useState(false);
 
   const [selectedPinbOrders, setSelectedPinbOrders] = useState<Order[]>([]);
+  const [ordersToRemove, setOrdersToRemove] = useState<Order[]>([]);
 
   // for Order details - expanded
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
@@ -90,16 +91,13 @@ export const useDynamicTourService = () => {
   useEffect(() => {
     if (!selectedTour) return;
 
-    console.log("Selected Tour", selectedTour);
-
-    debugger;
-    const selectedTourOrders = selectedTour.orderIds
+    const selectedTourOrdersIds = selectedTour.orderIds
       .split(",")
       .map((id) => Number(id));
 
     // Check if tourOrders have been changed
-    const tourChanged = selectedTourOrders.some(
-      (to) => !tourOrders.find((o) => o.order_id === to)
+    const tourChanged = selectedTourOrdersIds.some(
+      (to_id) => !tourOrders.find((o) => o.order_id === to_id)
     );
     // Or if any new pinboard orders are selected
     const newPinboardOrdersAdded = selectedPinbOrders.length > 0;
@@ -161,19 +159,21 @@ export const useDynamicTourService = () => {
 
         // Merge found + fetched
         const orders = [...foundOrders, ...fetchedOrders];
-
-        setTourOrders(orders);
+        // setTourOrders(orders);
+        const filtered = orders.filter((o) => !selectedPinbOrders.includes(o));
+        setTourOrders(filtered);
 
         setShouldUpdateTourRoute(false);
         setLoading(false);
       } catch (error) {
-        throw Error("error fetching tour detaiuls");
+        throw Error("error fetching tour details");
       } finally {
         setLoading(false);
       }
     };
     fetchData();
     setSelectedPinbOrders([]);
+    setOrdersToRemove([]);
     setFormData(initialFormState);
   }, [selectedTour]);
 
@@ -184,7 +184,6 @@ export const useDynamicTourService = () => {
   }, [selectedOrderId]);
 
   const handleOrderSelect = (orderId: number) => {
-    // console.log("handle Order Select:", orderId);
     setSelectedOrderId((prev) => (prev === orderId ? null : orderId));
   };
 
@@ -203,11 +202,26 @@ export const useDynamicTourService = () => {
         prev.filter((order) => order.order_id !== orderId)
       );
     }
-
-    if (selectedOrderId === orderId) setSelectedOrderId(null);
     setRemoveOrderId(null);
   };
-  const orderToDelete = tourOrders.find((o) => o.order_id === removeOrderId);
+
+  const restoreRemovedOrder = (reqOrder: Order) => {
+    const exist = ordersToRemove.some((o) => o.order_id === reqOrder.order_id);
+    if (exist) {
+      setOrdersToRemove((prev) =>
+        prev.filter((o) => o.order_id !== reqOrder.order_id)
+      );
+
+      const exist_selectedOrderIds = selectedTour?.orderIds
+        .split(",")
+        .map(Number)
+        .includes(reqOrder.order_id);
+      if (exist_selectedOrderIds) {
+        setTourOrders((prev) => [...prev, reqOrder]);
+        return;
+      }
+    }
+  };
 
   const handleSelectPinbOrder = async (newValue: Order[]) => {
     if (newValue.length === 0) {
@@ -273,7 +287,6 @@ export const useDynamicTourService = () => {
       if (!dTour_res || !dTour_res.dynamicTour) {
         throw new Error("Invalid response: missing dynamicTour");
       }
-      // debugger;
       const updated_dTour = dTour_res.dynamicTour;
       console.log("updated_dTour", updated_dTour);
       updateDynamicToursList(updated_dTour);
@@ -440,18 +453,22 @@ export const useDynamicTourService = () => {
     showRejectModal,
     setShowRejectModal,
     loading,
+
     warehouse,
     drivers,
     tourOrders,
+    ordersToRemove,
     shouldUpdateTourRoute,
+    setShouldUpdateTourRoute,
 
     selectedPinbOrders,
     handleSelectPinbOrder,
 
     removeOrderId,
     setRemoveOrderId,
-    orderToDelete,
+    // orderToDelete,
     handleOrderRemove,
+    restoreRemovedOrder,
 
     handleOrderSelect,
     generateTimeOptions,

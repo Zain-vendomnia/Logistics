@@ -5,6 +5,7 @@ import { Order, OrderDetails, OrderItem } from "../types/order.types";
 import { PoolConnection } from "mysql2/promise";
 import { geocode } from "../services/hereMap.service";
 import { Location } from "../types/hereMap.types";
+import logger from "../config/logger";
 
 export enum OrderStatus {
   initial = "initial",
@@ -283,7 +284,7 @@ export class LogisticOrder {
     return rows as LogisticOrder[];
   }
 
-  static async getOrdersByIds(orderIds: number[]): Promise<LogisticOrder[]> {
+  static async getOrdersByIds(orderIds: number[]): Promise<Order[]> {
     if (orderIds.length === 0) return [];
 
     const placeholders = orderIds.map(() => "?").join(", ");
@@ -292,11 +293,15 @@ export class LogisticOrder {
       orderIds
     );
 
-    return rows as LogisticOrder[];
+    return rows as Order[];
   }
 
   static async getOrdersWithItemsAsync(orderIds: number[]): Promise<Order[]> {
-    if (orderIds.length === 0) return [];
+    if (!orderIds || orderIds.length === 0) {
+      logger.warn(`Skipping SQL query - no orderIds provided`);
+      return [];
+    }
+    logger.info(`Executing getOrdersWithItemsAsync with IDs:", ${orderIds}`);
 
     const placeholders = orderIds.map(() => "?").join(", ");
 
@@ -379,6 +384,28 @@ export class LogisticOrder {
       const items = rows as { quantity: number }[];
 
       return items.reduce((acc, item) => acc + item.quantity, 0);
+    } catch (error) {
+      console.error("Error fetching order items count:", error);
+      throw error;
+    }
+  }
+  static async getOrderArticlesCount(orderIds: string[]): Promise<number> {
+    if (!orderIds || orderIds.length === 0) return 0;
+
+    const placeholders = orderIds.map(() => "?").join(",");
+    const query = `SELECT article_sku FROM logistic_order WHERE order_id IN (${placeholders})`;
+
+    try {
+      const [rows] = await pool.execute(query, orderIds);
+      const items = rows as { article_sku: string }[];
+
+      const totalCount = items.reduce((acc, row) => {
+        if (!row.article_sku) return acc;
+        const count = row.article_sku.split(",").filter(Boolean).length;
+        return acc + count;
+      }, 0);
+
+      return totalCount;
     } catch (error) {
       console.error("Error fetching order items count:", error);
       throw error;
