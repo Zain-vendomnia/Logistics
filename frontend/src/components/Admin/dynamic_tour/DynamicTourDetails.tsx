@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Autocomplete,
   Backdrop,
@@ -74,8 +74,11 @@ const formStyle = {
 const DynamicTourDetails = () => {
   const fontsize = "0.95rem";
 
-  const { selectedTour: tour, setSelectedTour } = useDynamicTourStore();
-  const { pinboard_OrderList } = useDynamicTourStore();
+  const {
+    pinboard_OrderList,
+    selectedTour: tour,
+    setSelectedTour,
+  } = useDynamicTourStore();
 
   const {
     showRejectModal,
@@ -107,7 +110,10 @@ const DynamicTourDetails = () => {
     updateDynamicTour,
   } = useDynamicTourService();
 
-  const [error, setError] = useState(false);
+  useEffect(() => {
+    console.log("Selected Tour: ", tour);
+  }, []);
+
   const [showWarehouse, setShowWarehouse] = useState(false);
   const [orderExpanded, setOrderExpanded] = useState(false);
   const [expandDetailsPanel, setExpandDetailsPanel] = useState(false);
@@ -200,7 +206,8 @@ const DynamicTourDetails = () => {
   };
 
   const handleRouteOptimize = () => {
-    if (!shouldUpdateTourRoute || error) return;
+    debugger;
+    if (!shouldUpdateTourRoute) return;
     console.log("Processing Route Optimization...");
 
     updateDynamicTour();
@@ -1043,7 +1050,6 @@ const DynamicTourDetails = () => {
         <TourImpactPreview
           warehouseId={tour?.warehouse_id!}
           orders={[...tourOrders, ...selectedPinbOrders]}
-          onError={() => setError(true)}
         />
       )}
     </>

@@ -44,7 +44,6 @@ const TourImpactPreview = ({ warehouseId, orders, onError }: Props) => {
 
   const queryKey = useMemo(() => {
     const sortedOrderIds = orders.map((o) => o.order_id).sort((a, b) => a - b);
-    console.log("sortedOrderIds: ", sortedOrderIds);
     return `${warehouseId || "none"}:${sortedOrderIds.join(",")}`;
   }, [warehouseId, orders]);
 
@@ -65,7 +64,6 @@ const TourImpactPreview = ({ warehouseId, orders, onError }: Props) => {
         return;
       }
       const matrix: TourMatrix = res.data.data;
-      console.log("API Response: ", res.data.data);
       setExpected(matrix);
       lastQueryRef.current = {
         key: queryKey,

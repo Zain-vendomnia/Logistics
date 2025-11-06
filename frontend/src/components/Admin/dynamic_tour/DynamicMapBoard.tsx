@@ -459,7 +459,7 @@ const DymanicMapBoard = () => {
               // Warehouse Stop
               const startMarker = vehicle.stops[0] ? (
                 <Marker
-                  key={`start-${vehicle.vehicleId}`}
+                  key={`start-${vehicle.vehicleId + vehicle.stops.length}`}
                   position={[
                     vehicle.stops[0].location.lat,
                     vehicle.stops[0].location.lng,
@@ -471,7 +471,9 @@ const DymanicMapBoard = () => {
               ) : null;
 
               return (
-                <React.Fragment key={vehicle.vehicleId}>
+                <React.Fragment
+                  key={"id" + vehicle.vehicleId + vehicle.stops.length}
+                >
                   {polylines}
                   {startMarker}
                   {markers}

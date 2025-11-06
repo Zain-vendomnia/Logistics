@@ -477,17 +477,12 @@ export async function persistTourCostMatrixAsync(
       targetId,
     });
 
-    const [rows]: any = await connection.execute(
-      `SELECT * FROM delivery_cost_per_tour WHERE id = ?`,
-      [targetId]
-    );
-
-    const tourMatrix = rows[0] as TourMatrix;
-
+    await connection.commit();
+    const tourMatrix = await getTourMatrix(tourId, type);
     logger.info(
       `[Tour Cost] Calculated cost for tour ${tourData.tour_name} is ${tourMatrix.totalCost}`
     );
-    await connection.commit();
+
     return tourMatrix;
   } catch (error) {
     await connection.rollback();
@@ -529,7 +524,6 @@ export async function getTourMatrix(
     }
 
     const row = rows[0];
-
     const matrix: TourMatrix = {
       tourId,
       totalWeightKg: row.total_weight_kg,

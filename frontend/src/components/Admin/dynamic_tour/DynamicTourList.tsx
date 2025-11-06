@@ -157,11 +157,11 @@ const DynamicTourList = () => {
               </FormControl>
 
               <List disablePadding sx={{ ...scrollStyles(theme) }}>
-                {filteredTours.map((tour) => (
+                {filteredTours.map((tour, idx) => (
                   <>
                     <ListItem
                       disablePadding
-                      key={tour.id}
+                      key={"id: " + idx + tour.id!}
                       sx={
                         selectedTourItem?.id === tour.id
                           ? {
