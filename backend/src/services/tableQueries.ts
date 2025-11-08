@@ -138,7 +138,7 @@ export const CREATE_TOUR_INFO_MASTER_TABLE = `
     notice VARCHAR(255) NOT NULL,
   
     tour_status ENUM('pending', 'live', 'confirmed', 'completed') DEFAULT 'pending',
-    created_by VARCHAR(45) NOT NULL,
+    created_by VARCHAR(45) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_by VARCHAR(45) NULL,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
@@ -492,9 +492,9 @@ export const CREATE_ORDER_IMAGES_TABLE = `
   );
 `;
 
-export const CREATE_RETURNS_ORDER_TABLE = `
-  CREATE TABLE IF NOT EXISTS returns_order (
-    return_id INT AUTO_INCREMENT PRIMARY KEY,
+export const CREATE_CANCELS_ORDER_TABLE = `
+  CREATE TABLE IF NOT EXISTS cancels_order (
+    id INT AUTO_INCREMENT PRIMARY KEY,
     order_id INT DEFAULT NULL,
     shopware_order_id INT DEFAULT NULL,
     order_number VARCHAR(50) NOT NULL,
@@ -523,13 +523,13 @@ export const CREATE_RETURNS_ORDER_TABLE = `
   );
 `;
 
-export const CREATE_RETURNS_ORDER_ITEMS_TABLE = `
-  CREATE TABLE IF NOT EXISTS returns_order_items (
+export const CREATE_CANCELS_ORDER_ITEMS_TABLE = `
+  CREATE TABLE IF NOT EXISTS cancels_order_items (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    return_id INT NOT NULL,
+    cancel_id INT NOT NULL,
     article_sku VARCHAR(255) NOT NULL,
     quantity INT NOT NULL,
-    return_quantity INT DEFAULT 0,
+    cancel_quantity INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
   );

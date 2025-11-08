@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import * as returnService from "../../services/returnService.service";
+import * as cancelService from "../../services/cancelService.service";
 
 // ✅ API Response interface
 interface ApiResponse<T = any> {
@@ -8,37 +8,39 @@ interface ApiResponse<T = any> {
   data: T;
 }
 
-// ✅ Interface for return item
-interface ReturnItem {
+// ✅ Interface for cancel item
+interface CancelItem {
   id: number;
   order_id?: number | null;
   order_number: string;
   slmdl_articleordernumber: string;
   quantity: number;
-  returnQuantity: number;
+  cancelQuantity: number;
   warehouse_id?: string | null;
 }
 
 // ✅ Interface for request body
-interface AddReturnDetailsRequest {
+interface AddCancelDetailsRequest {
   orderNumber: string;
-  items: ReturnItem[];
+  items: CancelItem[];
 }
 
 // ✅ Read all
-export const getAllReturns = async (_req: Request, res: Response) => {
+export const getAllCancels = async (_req: Request, res: Response) => {
   try {
-    const data = await returnService.getAllReturns();
+    console.log("Fetching all cancels...");
+    const data = await cancelService.getAllCancels();
+    console.log("Fetched cancels:", data);
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching returns" });
+    res.status(500).json({ message: "Error fetching cancels" });
   }
 };
 
-// ✅ Create new return (Updated with validation logic)
-export const createReturn = async (req: Request, res: Response) => {
+// ✅ Create new cancel (Updated with validation logic)
+export const createCancel = async (req: Request, res: Response) => {
   try {
-    const { orderNumber, items }: AddReturnDetailsRequest = req.body;
+    const { orderNumber, items }: AddCancelDetailsRequest = req.body;
 
     // ✅ Validate input - orderNumber
     if (!orderNumber || orderNumber.trim() === "") {
@@ -54,13 +56,13 @@ export const createReturn = async (req: Request, res: Response) => {
     if (!items || !Array.isArray(items) || items.length === 0) {
       const response: ApiResponse = {
         status: "error",
-        message: "At least one return item is required.",
+        message: "At least one cancel item is required.",
         data: {},
       };
       return res.status(200).json(response);
     }
 
-    // ✅ Validate each item has required fields and return quantity
+    // ✅ Validate each item has required fields and cancel quantity
     for (const item of items) {
       if (!item.slmdl_articleordernumber) {
         const response: ApiResponse = {
@@ -71,35 +73,35 @@ export const createReturn = async (req: Request, res: Response) => {
         return res.status(200).json(response);
       }
 
-      // ✅ Validate return quantity > 0
-      if (item.returnQuantity <= 0) {
+      // ✅ Validate cancel quantity > 0
+      if (item.cancelQuantity <= 0) {
         const response: ApiResponse = {
           status: "error",
-          message: "Return quantity must be greater than 0.",
+          message: "Cancel quantity must be greater than 0.",
           data: {},
         };
         return res.status(200).json(response);
       }
 
-      // ✅ Validate return quantity <= original quantity
-      if (item.returnQuantity > item.quantity) {
+      // ✅ Validate cancel quantity <= original quantity
+      if (item.cancelQuantity > item.quantity) {
         const response: ApiResponse = {
           status: "error",
-          message: `Return quantity cannot exceed original quantity (${item.quantity}) for item ${item.slmdl_articleordernumber}.`,
+          message: `Cancel quantity cannot exceed original quantity (${item.quantity}) for item ${item.slmdl_articleordernumber}.`,
           data: {},
         };
         return res.status(200).json(response);
       }
     }
 
-    // ✅ Call service to insert return details
-    const result = await returnService.createReturn(orderNumber, items);
+    // ✅ Call service to insert cancel details
+    const result = await cancelService.createCancel(orderNumber, items);
 
     // ✅ Check if insertion was successful
     if (!result.success) {
       const response: ApiResponse = {
         status: "error",
-        message: result.message || "Failed to add return details.",
+        message: result.message || "Failed to add cancel details.",
         data: {},
       };
       return res.status(200).json(response);
@@ -108,10 +110,10 @@ export const createReturn = async (req: Request, res: Response) => {
     // ✅ Success response
     const response: ApiResponse = {
       status: "success",
-      message: `Successfully created return for order ${orderNumber} with ${items.length} item(s).`,
+      message: `Successfully created cancel for order ${orderNumber} with ${items.length} item(s).`,
       data: {
         orderNumber,
-        returnId: result.returnId,
+        cancelId: result.cancelId,
         itemsAdded: items.length,
         insertedItemIds: result.insertedItemIds,
       },
@@ -119,7 +121,7 @@ export const createReturn = async (req: Request, res: Response) => {
 
     return res.status(200).json(response);
   } catch (error: any) {
-    console.error("Error in createReturn controller:", error);
+    console.error("Error in createCancel controller:", error);
 
     const response: ApiResponse = {
       status: "error",
@@ -131,37 +133,37 @@ export const createReturn = async (req: Request, res: Response) => {
   }
 };
 
-// ✅ Update return
-export const updateReturn = async (req: Request, res: Response) => {
+// ✅ Update cancel
+export const updateCancel = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { return_quantity } = req.body;
+    const { cancel_quantity } = req.body;
 
-    // ✅ Validate return quantity > 0
-    if (return_quantity !== undefined && return_quantity <= 0) {
+    // ✅ Validate cancel quantity > 0
+    if (cancel_quantity !== undefined && cancel_quantity <= 0) {
       const response: ApiResponse = {
         status: "error",
-        message: "Return quantity must be greater than 0.",
+        message: "Cancel quantity must be greater than 0.",
         data: {},
       };
       return res.status(200).json(response);
     }
 
-    const data = await returnService.updateReturn(Number(id), { return_quantity });
+    const data = await cancelService.updateCancel(Number(id), { cancel_quantity });
     
     const response: ApiResponse = {
       status: "success",
-      message: "Return updated successfully.",
+      message: "Cancel updated successfully.",
       data: data,
     };
     
     res.json(response);
   } catch (error: any) {
-    console.error("Error in updateReturn controller:", error);
+    console.error("Error in updateCancel controller:", error);
     
     const response: ApiResponse = {
       status: "error",
-      message: error.message || "Error updating return",
+      message: error.message || "Error updating cancel",
       data: {},
     };
     
@@ -170,24 +172,24 @@ export const updateReturn = async (req: Request, res: Response) => {
 };
 
 // ✅ Delete one
-export const deleteReturn = async (req: Request, res: Response) => {
+export const deleteCancel = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    await returnService.deleteReturn(Number(id));
+    await cancelService.deleteCancel(Number(id));
     
     const response: ApiResponse = {
       status: "success",
-      message: "Return deleted successfully",
+      message: "Cancel deleted successfully",
       data: {},
     };
     
     res.json(response);
   } catch (error: any) {
-    console.error("Error in deleteReturn controller:", error);
+    console.error("Error in deleteCancel controller:", error);
     
     const response: ApiResponse = {
       status: "error",
-      message: error.message || "Error deleting return",
+      message: error.message || "Error deleting cancel",
       data: {},
     };
     
@@ -196,23 +198,23 @@ export const deleteReturn = async (req: Request, res: Response) => {
 };
 
 // ✅ Delete all
-export const deleteAllReturns = async (_req: Request, res: Response) => {
+export const deleteAllCancels = async (_req: Request, res: Response) => {
   try {
-    await returnService.deleteAllReturns();
+    await cancelService.deleteAllCancels();
     
     const response: ApiResponse = {
       status: "success",
-      message: "All returns deleted successfully",
+      message: "All cancels deleted successfully",
       data: {},
     };
     
     res.json(response);
   } catch (error: any) {
-    console.error("Error in deleteAllReturns controller:", error);
+    console.error("Error in deleteAllCancels controller:", error);
     
     const response: ApiResponse = {
       status: "error",
-      message: error.message || "Error deleting all returns",
+      message: error.message || "Error deleting all cancels",
       data: {},
     };
     

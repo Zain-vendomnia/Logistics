@@ -169,7 +169,7 @@ const CompletedTour = () => {
                     <TableCell>{tour.timeRange}</TableCell>
                     <TableCell>
                       <Box display="flex" gap={1}>
-                        <Button variant="outlined"  onClick={() => navigate(`/Admin_TourMapView/${tour.id}`)}
+                        <Button variant="contained"  onClick={() => navigate(`/Admin_TourMapView/${tour.id}`)}
                         size='small'
                           sx={(theme) => ({
                             padding: '8px 24px',

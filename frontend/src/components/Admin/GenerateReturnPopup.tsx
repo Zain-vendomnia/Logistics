@@ -38,15 +38,15 @@ interface SelectedItem {
   id: number;
   slmdl_articleordernumber: string;
   originalQuantity: number;
-  returnQuantity: number;
+  cancelQuantity: number;
 }
 
-interface GenerateReturnPopupProps {
+interface GenerateCancelPopupProps {
   open: boolean;
   onClose: () => void;
 }
 
-const GenerateReturnPopup: React.FC<GenerateReturnPopupProps> = ({ open, onClose }) => {
+const GenerateCancelPopup: React.FC<GenerateCancelPopupProps> = ({ open, onClose }) => {
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
@@ -134,7 +134,7 @@ const GenerateReturnPopup: React.FC<GenerateReturnPopupProps> = ({ open, onClose
           id: item.id,
           slmdl_articleordernumber: item.slmdl_articleordernumber,
           originalQuantity: item.quantity,
-          returnQuantity: 0,
+          cancelQuantity: 0,
         },
       }));
     } else {
@@ -161,7 +161,7 @@ const GenerateReturnPopup: React.FC<GenerateReturnPopupProps> = ({ open, onClose
         ...prev,
         [itemId]: {
           ...item,
-          returnQuantity: numValue,
+          cancelQuantity: numValue,
         },
       };
     });
@@ -176,16 +176,16 @@ const GenerateReturnPopup: React.FC<GenerateReturnPopupProps> = ({ open, onClose
     }
 
     const hasValidQuantity = selectedItemsList.some(
-      (item) => item.returnQuantity > 0
+      (item) => item.cancelQuantity > 0
     );
 
     if (!hasValidQuantity) {
-      setErrorMessage('Please enter return quantity for selected items');
+      setErrorMessage('Please enter cancel quantity for selected items');
       return;
     }
 
     // Prepare complete data with all required fields
-    const returnData = {
+    const cancelData = {
       orderNumber: invoiceNumber,
       items: selectedItemsList.map((item) => {
         // Find the full item details from orderItems
@@ -197,24 +197,24 @@ const GenerateReturnPopup: React.FC<GenerateReturnPopupProps> = ({ open, onClose
           order_number: fullItem?.order_number || invoiceNumber,
           slmdl_articleordernumber: item.slmdl_articleordernumber,
           quantity: item.originalQuantity,
-          returnQuantity: item.returnQuantity,
+          cancelQuantity: item.cancelQuantity,
           warehouse_id: fullItem?.warehouse_id || null,
         };
       }),
     };
 
-    console.log('Creating return with data:', returnData);
+    console.log('Creating cancel with data:', cancelData);
     
     try {
       setLoading(true);
       
-      // Call API to create return
-      const response = await adminApiService.sendReturnDetails(returnData);
+      // Call API to create cancel
+      const response = await adminApiService.sendCancelDetails(cancelData);
       
-      console.log('Return created successfully:', response);
+      console.log('Cancel created successfully:', response);
       
       if (response.data.status === 'success') {
-        showSnackbar('Return created successfully!', 'success');
+        showSnackbar('Cancel created successfully!', 'success');
         
         // Clear all data but keep popup open
         setInvoiceNumber('');
@@ -223,12 +223,12 @@ const GenerateReturnPopup: React.FC<GenerateReturnPopupProps> = ({ open, onClose
         setErrorMessage('');
         setSuccessMessage('');
       } else {
-        setErrorMessage(response.data.message || 'Failed to create return');
-        showSnackbar(response.data.message || 'Failed to create return', 'error');
+        setErrorMessage(response.data.message || 'Failed to create cancel');
+        showSnackbar(response.data.message || 'Failed to create cancel', 'error');
       }
     } catch (error: any) {
-      console.error('Error creating return:', error);
-      const errorMsg = error.response?.data?.message || 'Failed to create return. Please try again.';
+      console.error('Error creating cancel:', error);
+      const errorMsg = error.response?.data?.message || 'Failed to create cancel. Please try again.';
       setErrorMessage(errorMsg);
       showSnackbar(errorMsg, 'error');
     } finally {
@@ -278,7 +278,7 @@ const GenerateReturnPopup: React.FC<GenerateReturnPopupProps> = ({ open, onClose
         {/* Title */}
         <DialogTitle sx={{ pb: 1, pt: 3, textAlign: 'center' }}>
           <Typography variant="h5" fontWeight={600}>
-            Create Return
+            Create Cancel
           </Typography>
         </DialogTitle>
 
@@ -332,7 +332,7 @@ const GenerateReturnPopup: React.FC<GenerateReturnPopupProps> = ({ open, onClose
                       <TableCell padding="checkbox"></TableCell>
                       <TableCell>Article Order Number</TableCell>
                       <TableCell align="center">Qty</TableCell>
-                      <TableCell align="center">Return</TableCell>
+                      <TableCell align="center">Cancel</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -358,7 +358,7 @@ const GenerateReturnPopup: React.FC<GenerateReturnPopupProps> = ({ open, onClose
                               type="number"
                               size="small"
                               disabled={!isSelected}
-                              value={selectedItem?.returnQuantity || ''}
+                              value={selectedItem?.cancelQuantity || ''}
                               onChange={(e) =>
                                 handleQuantityChange(item.id, e.target.value)
                               }
@@ -418,7 +418,7 @@ const GenerateReturnPopup: React.FC<GenerateReturnPopupProps> = ({ open, onClose
                       <TableCell padding="checkbox"></TableCell>
                       <TableCell>Article Order Number</TableCell>
                       <TableCell align="center">Qty</TableCell>
-                      <TableCell align="center">Return</TableCell>
+                      <TableCell align="center">Cancel</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -455,4 +455,4 @@ const GenerateReturnPopup: React.FC<GenerateReturnPopupProps> = ({ open, onClose
   );
 };
 
-export default GenerateReturnPopup;
+export default GenerateCancelPopup;

@@ -266,7 +266,7 @@ const EditTourModal: React.FC<EditTourModalProps> = ({
 
         <Box mt={3} display="flex" justifyContent="flex-end" gap={2}>
           <Button 
-            variant="outlined" 
+            variant="contained" 
             size='small' 
             sx={(theme) => ({
               padding: '8px 24px',
@@ -286,7 +286,7 @@ const EditTourModal: React.FC<EditTourModalProps> = ({
             Cancel
           </Button>
           <Button 
-            variant="outlined" 
+            variant="contained" 
             size='small' 
             color="primary" 
             sx={(theme) => ({

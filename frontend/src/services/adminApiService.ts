@@ -307,8 +307,8 @@ const orderDetails = (orderNumber: number) => {
   });
 };
 
-const sendReturnDetails = (returnData: any) => {
-  return axios.post(API_BaseUrl_Admin + "returns/create", returnData, {
+const sendCancelDetails = (cancelData: any) => {
+  return axios.post(API_BaseUrl_Admin + "cancels/create", cancelData, {
     headers: authHeader(),
   });
 };
@@ -354,7 +354,7 @@ const adminApiService = {
   getDriverData,
   fetchLogs,
   orderDetails,
-  sendReturnDetails
+  sendCancelDetails
 };
 
 export default adminApiService;

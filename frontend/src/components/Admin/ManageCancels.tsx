@@ -26,24 +26,24 @@ import {
 } from "@mui/icons-material";
 import ExcelJS from "exceljs";
 import {
-  getAllReturns,
-  updateReturn,
-  deleteReturn,
-  deleteAllReturns,
-} from "../../services/returnService";
+  getAllCancels,
+  updateCancel,
+  deleteCancel,
+  deleteAllCancels,
+} from "../../services/cancelService";
 import ConfirmDialog from "./ConfirmDialog"; 
 
-interface ReturnItem {
-  return_id: number;
+interface CancelItem {
+  id: number;  // ✅ Changed from cancel_id to id
   order_number: string;
   article_sku: string;
   original_quantity: number;
-  return_quantity: number;
+  cancel_quantity: number;
   created_at: string;
 }
 
-const ManageReturns = () => {
-  const [returns, setReturns] = useState<ReturnItem[]>([]);
+const ManageCancels = () => {
+  const [cancels, setCancels] = useState<CancelItem[]>([]);
   const [loading, setLoading] = useState(false);
   // const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [snackbar, setSnackbar] = useState({
@@ -53,7 +53,7 @@ const ManageReturns = () => {
   });
   const [searchTerm, setSearchTerm] = useState("");
   const [editDialog, setEditDialog] = useState(false);
-  const [editRow, setEditRow] = useState<ReturnItem | null>(null);
+  const [editRow, setEditRow] = useState<CancelItem | null>(null);
   const [editQty, setEditQty] = useState<number>(0);
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -79,26 +79,26 @@ const ManageReturns = () => {
     });
   };
 
-  // ✅ Fetch all returns
-  const loadReturns = useCallback(async () => {
+  // ✅ Fetch all cancels
+  const loadCancels = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getAllReturns();
-      setReturns(data);
+      const data = await getAllCancels();
+      setCancels(data);
     } catch (err) {
-      console.error("Error loading returns:", err);
-      showSnackbar("Failed to load return data", "error");
+      console.error("Error loading cancels:", err);
+      showSnackbar("Failed to load cancel data", "error");
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadReturns();
-  }, [loadReturns]);
+    loadCancels();
+  }, [loadCancels]);
 
   // ✅ Filtered data
-  const filteredReturns = returns.filter((item) =>
+  const filteredCancels = cancels.filter((item) =>
     Object.values(item)
       .join(" ")
       .toLowerCase()
@@ -106,25 +106,25 @@ const ManageReturns = () => {
   );
 
   // ✅ Handle edit
-  const handleEditClick = (row: ReturnItem) => {
+  const handleEditClick = (row: CancelItem) => {
     setEditRow(row);
-    setEditQty(row.return_quantity);
+    setEditQty(row.cancel_quantity);
     setEditDialog(true);
   };
 
   const handleEditSave = async () => {
     if (!editRow) return;
 
-    // ✅ Validation: Check if return quantity is less than or equal to 0
+    // ✅ Validation: Check if cancel quantity is less than or equal to 0
     if (editQty <= 0) {
-      showSnackbar("Return quantity must be greater than 0", "error");
+      showSnackbar("Cancel quantity must be greater than 0", "error");
       return;
     }
 
-    // ✅ Validation: Check if return quantity exceeds original quantity
+    // ✅ Validation: Check if cancel quantity exceeds original quantity
     if (editQty > editRow.original_quantity) {
       showSnackbar(
-        `Return quantity cannot exceed original quantity (${editRow.original_quantity})`,
+        `Cancel quantity cannot exceed original quantity (${editRow.original_quantity})`,
         "error"
       );
       return;
@@ -132,13 +132,13 @@ const ManageReturns = () => {
 
     setActionLoading(true);
     try {
-      await updateReturn(editRow.return_id, { return_quantity: editQty });
-      showSnackbar("Return quantity updated successfully", "success");
+      await updateCancel(editRow.id, { cancel_quantity: editQty });  // ✅ Changed from cancel_id to id
+      showSnackbar("Cancel quantity updated successfully", "success");
       setEditDialog(false);
-      loadReturns();
+      loadCancels();
     } catch (err) {
       console.error("Update error:", err);
-      showSnackbar("Failed to update return", "error");
+      showSnackbar("Failed to update cancel", "error");
     } finally {
       setActionLoading(false);
     }
@@ -148,17 +148,17 @@ const ManageReturns = () => {
   const handleDelete = (id: number) => {
     setConfirmDialog({
       open: true,
-      title: "Delete Return?",
-      content: "Are you sure you want to delete this return? This action cannot be undone.",
+      title: "Delete Cancel?",
+      content: "Are you sure you want to delete this cancel? This action cannot be undone.",
       onConfirm: async () => {
         try {
-          await deleteReturn(id);
-          showSnackbar("Return deleted successfully", "success");
-          loadReturns();
+          await deleteCancel(id);
+          showSnackbar("Cancel deleted successfully", "success");
+          loadCancels();
           closeConfirmDialog();
         } catch (err) {
           console.error("Delete error:", err);
-          showSnackbar("Failed to delete return", "error");
+          showSnackbar("Failed to delete cancel", "error");
           closeConfirmDialog();
         }
       },
@@ -169,17 +169,17 @@ const ManageReturns = () => {
   const handleDeleteAll = () => {
     setConfirmDialog({
       open: true,
-      title: "Delete All Returns?",
-      content: "Are you sure you want to delete ALL returns? This action cannot be undone and will remove all return records from the system.",
+      title: "Delete All Cancels?",
+      content: "Are you sure you want to delete ALL cancels? This action cannot be undone and will remove all cancel records from the system.",
       onConfirm: async () => {
         try {
-          await deleteAllReturns();
-          showSnackbar("All returns deleted successfully", "success");
-          loadReturns();
+          await deleteAllCancels();
+          showSnackbar("All cancels deleted successfully", "success");
+          loadCancels();
           closeConfirmDialog();
         } catch (err) {
           console.error("Delete all error:", err);
-          showSnackbar("Failed to delete all returns", "error");
+          showSnackbar("Failed to delete all cancels", "error");
           closeConfirmDialog();
         }
       },
@@ -190,16 +190,16 @@ const ManageReturns = () => {
   const handleExport = async () => {
     try {
       const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet("Returns");
+      const worksheet = workbook.addWorksheet("Cancels");
       worksheet.columns = [
-        { header: "Return ID", key: "return_id", width: 12 },
+        { header: "Cancel ID", key: "id", width: 12 },  // ✅ Changed from cancel_id to id
         { header: "Order Number", key: "order_number", width: 20 },
         { header: "Article SKU", key: "article_sku", width: 25 },
         { header: "Original Qty", key: "original_quantity", width: 15 },
-        { header: "Return Qty", key: "return_quantity", width: 15 },
+        { header: "Cancel Qty", key: "cancel_quantity", width: 15 },
         { header: "Created At", key: "created_at", width: 20 },
       ];
-      filteredReturns.forEach((row) => worksheet.addRow(row));
+      filteredCancels.forEach((row) => worksheet.addRow(row));
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -207,7 +207,7 @@ const ManageReturns = () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `returns_${new Date().toISOString().split("T")[0]}.xlsx`;
+      a.download = `cancels_${new Date().toISOString().split("T")[0]}.xlsx`;
       a.click();
       window.URL.revokeObjectURL(url);
       showSnackbar("Exported successfully!", "success");
@@ -220,8 +220,8 @@ const ManageReturns = () => {
   // ✅ Columns with full width and proper styling
   const columns: GridColDef[] = [
     { 
-      field: "return_id", 
-      headerName: "Return ID", 
+      field: "id",  // ✅ Changed from cancel_id to id
+      headerName: "Cancel ID", 
       flex: 0.8,
       minWidth: 100,
     },
@@ -246,8 +246,8 @@ const ManageReturns = () => {
       headerAlign: "center",
     },
     {
-      field: "return_quantity",
-      headerName: "Return Qty",
+      field: "cancel_quantity",
+      headerName: "Cancel Qty",
       flex: 1,
       minWidth: 120,
       align: "center",
@@ -286,7 +286,7 @@ const ManageReturns = () => {
             size="small"
             color="error"
             variant="contained"
-            onClick={() => handleDelete(params.row.return_id)}
+            onClick={() => handleDelete(params.row.id)}  // ✅ Changed from cancel_id to id
             sx={{ minWidth: "auto", px: 1.5 }}
           >
             <Delete fontSize="small" />
@@ -426,9 +426,9 @@ const ManageReturns = () => {
         }}
       >
         <DataGrid
-          rows={filteredReturns}
+          rows={filteredCancels}
           columns={columns}
-          getRowId={(row) => row.return_id}
+          getRowId={(row) => row.id}  // ✅ Changed from cancel_id to id
           loading={loading}
           checkboxSelection
           disableRowSelectionOnClick
@@ -453,7 +453,7 @@ const ManageReturns = () => {
 
       {/* Edit Quantity Dialog */}
       <Dialog open={editDialog} onClose={() => setEditDialog(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Edit Return Quantity</DialogTitle>
+        <DialogTitle>Edit Cancel Quantity</DialogTitle>
         <DialogContent>
           <Typography variant="body2" mb={1}>
             Order: <strong>{editRow?.order_number}</strong>
@@ -467,7 +467,7 @@ const ManageReturns = () => {
           <TextField
             fullWidth
             type="number"
-            label="Return Quantity"
+            label="Cancel Quantity"
             value={editQty}
             onChange={(e) => setEditQty(Number(e.target.value))}
             inputProps={{ 
@@ -531,4 +531,4 @@ const ManageReturns = () => {
   );
 };
 
-export default ManageReturns;
+export default ManageCancels;

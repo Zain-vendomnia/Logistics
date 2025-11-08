@@ -430,7 +430,7 @@ const AdminTourTemplates = () => {
       renderCell: ({ row }) => (
         <Stack direction="row" spacing={1} alignItems="center" height="100%">
           <Button
-            variant="outlined"
+            variant="contained"
             onClick={() => navigate(`/Admin_TourMapView/${row.id}`)}
             size='small'
             sx={(theme) => ({
