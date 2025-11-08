@@ -124,10 +124,14 @@ export type DeliveryCostRates = {
   avg_number_tour_days: number;
 
   hotel_costs: number;
+  WA: number;
+  WE: number;
+  infeed: number;
+  panels_per_pallet: number;
 
-  handling_inbound_cost_tour: number;
-  handling_inbound_cost_panel: number;
-  handling_outbound_cost_pal: number;
-  handling_outbound_costs_tour: number;
+  handling_inbound_cost_tour?: number;
+  handling_inbound_cost_panel?: number;
+  handling_outbound_cost_pal?: number;
+  handling_outbound_costs_tour?: number;
   currency_code?: "EUR" | "USD";
 };

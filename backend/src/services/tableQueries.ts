@@ -463,11 +463,15 @@ export const CREATE_Delivery_Cost_Rates_TABLE = `
     van_costs_per_day DECIMAL(10,2) NOT NULL,
     storage_cost_per_BKW DECIMAL(10,2),
     currency_code enum('EUR', 'USD') DEFAULT 'EUR',
+    infeed DECIMAL(10,2),
+    WE DECIMAL(10,2) NOT NULL DEFAULT 0.70,
+    WA DECIMAL(10,2) NOT NULL DEFAULT 30 ,
+    panels_per_pallet INT UNSIGNED NOT NULL DEFAULT 60,
+    hotel_costs DECIMAL(10,2),
     handling_inbound_cost_tour DECIMAL(10,2),
     handling_inbound_cost_panel DECIMAL(10,2),
     handling_outbound_cost_pal DECIMAL(10,2),
     handling_outbound_costs_tour DECIMAL(10,2),
-    hotel_costs DECIMAL(10,2),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
