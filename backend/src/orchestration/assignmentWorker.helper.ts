@@ -439,7 +439,7 @@ export function clusterOrdersByDensDirection(
   orders: Order[],
   warehouse: Warehouse
 ): Order[][] {
-  const NEARBY_RADIUS_KM = 80;
+  const NEARBY_RADIUS_KM = 40;
   const SECTOR_ANGLE_DEG = 90;
   const SECTOR_ANGLE_RAD = (SECTOR_ANGLE_DEG * Math.PI) / 180;
 
@@ -946,7 +946,6 @@ function splitOrdersIntoClustersDynamic(
   return { clusters, remainingOrders };
 }
 
-// Orders proximity assignment
 export async function warehouseOrdersAssignment(
   warehouses: Warehouse[],
   orders: Order[]

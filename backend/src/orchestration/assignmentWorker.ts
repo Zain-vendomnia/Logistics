@@ -261,19 +261,6 @@ export async function processWarehouseClusters(
   return { ACCEPTED_CLUSTERS, TRIMMED_ORDERS };
 }
 
-// function whAllowedWeight_Kg(warehouseId: number) {
-//   switch (warehouseId) {
-//     case 1:
-//       return 1250;
-//     case 2:
-//       return 1350;
-//     case 10:
-//       return 1450;
-//     default:
-//       1550;
-//   }
-// }
-
 export async function processBatch() {
   logger.info("[Batch Process] Starting batch processing of orders...");
 
@@ -292,13 +279,13 @@ export async function processBatch() {
   const assignments: Map<number, { order: Order; distance?: number }[]> =
     await helper.warehouseOrdersAssignment(warehouses, orders);
 
-  logger.error(
+  logger.info(
     `[Batch Process] Started \n 
     Fetched ${orders.length} orders and ${warehouses.length} warehouses`
   );
 
   logger.info(
-    `[Cluster Assignments] Creating Request for ${assignments.size} Clusters`
+    `[Batch Process] Creating Request for ${assignments.size} assignments Clusters`
   );
 
   for (const [warehouseId, orderEntries] of assignments.entries()) {
@@ -309,19 +296,20 @@ export async function processBatch() {
     );
     assignments.set(warehouseId, orderEntries);
 
+    const warehouse = warehouses.find((w) => w.id === warehouseId)!;
+    if (!warehouse) {
+      logger.error(`[Batch Process] Warehouse ID ${warehouseId} not found`);
+      continue;
+    }
+
     const candidOrders: Order[] = orderEntries.map((e) => e.order);
-    if (grossWeight(candidOrders) < MIN_WEIGHT) {
+    // if (grossWeight(candidOrders) < MIN_WEIGHT) {
+    if (grossWeight(candidOrders) < warehouse.loadingWeightKg!) {
       logger.warn(
         `[Batch Process] [Warehouse ${warehouseId}] Skipped due to insufficient total weight (${grossWeight(
           candidOrders
         )} kg)`
       );
-      continue;
-    }
-
-    const warehouse = warehouses.find((w) => w.id === warehouseId)!;
-    if (!warehouse) {
-      logger.error(`[Batch Process] Warehouse ID ${warehouseId} not found`);
       continue;
     }
 

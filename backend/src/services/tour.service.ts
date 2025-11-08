@@ -274,11 +274,17 @@ function summarizeOrders(orders: Order[]) {
 
   for (const order of orders) {
     totalWeightKg += order.weight_kg ?? 0;
-    totalSLMDQty += order.quantity ?? 0;
+    // totalSLMDQty += order.orderItemsCount ?? 0;
     totalArticles += order.article_sku
       ? order.article_sku.split(",").length
       : 0;
   }
+
+  totalSLMDQty = orders.reduce((count, order) => {
+    const items =
+      order.items?.reduce((acc, item) => acc + item.quantity, 0) || 0;
+    return count + items;
+  }, 0);
 
   return { totalWeightKg, totalSLMDQty, totalArticles };
 }
@@ -287,7 +293,8 @@ async function computeTourCost(
   orders: Order[],
   totalDistanceKm: number,
   totalDurationHrs: number,
-  conn?: PoolConnection
+  conn?: PoolConnection,
+  twoDayTour: Boolean = false
 ): Promise<TourMatrix> {
   const connection = conn ?? pool;
   const [ratesRows]: any = await connection.execute(`
@@ -295,8 +302,27 @@ async function computeTourCost(
   ORDER BY id DESC
   LIMIT 1
   `);
-  const rates = ratesRows[0] as DeliveryCostRates;
-  // if (!rates) throw new Error("No delivery cost rates found");
+
+  const row = ratesRows[0];
+  const rates: DeliveryCostRates = {
+    currency_code: row.currency_code,
+    personnel_costs_per_hour: row.personnel_costs_per_hour,
+    diesel_costs_per_liter: row.diesel_costs_per_liter,
+    consumption_l_per_100km: row.consumption_l_per_100km,
+    van_costs_per_day: row.van_costs_per_day,
+
+    storage_cost_per_BKW: row.storage_cost_per_BKW,
+    bkw_per_tour: row.bkw_per_tour,
+    avg_tour_duration_hrs: row.avg_tour_duration_hrs,
+    avg_tour_length_km: row.avg_tour_length_km,
+    avg_number_tour_days: row.avg_number_tour_days,
+
+    hotel_costs: row.hotel_costs,
+    WA: row.WA,
+    WE: row.WE,
+    infeed: row.infeed,
+    panels_per_pallet: row.panels_per_pallet,
+  };
   if (!rates) {
     logger.warn("[Tour Cost] No cost rates found — returning default zeros");
     return {
@@ -315,6 +341,10 @@ async function computeTourCost(
   const { totalWeightKg, totalSLMDQty, totalArticles } =
     summarizeOrders(orders);
 
+  const tour_infeed = rates.infeed * totalSLMDQty;
+  const tour_we = rates.WE * totalSLMDQty;
+  const tour_wa = rates.WA;
+
   const personnelCost = rates.personnel_costs_per_hour * totalDurationHrs;
   const dieselCost =
     (rates.diesel_costs_per_liter *
@@ -322,15 +352,28 @@ async function computeTourCost(
       totalDistanceKm) /
     100;
   const vanCost = rates.van_costs_per_day;
+  const warehouseCost = 0;
+  const hotelCost = twoDayTour ? rates.hotel_costs : 0;
+
   const totalCost: number =
-    +rates.hotel_costs + +vanCost + +dieselCost + +personnelCost;
+    +vanCost +
+    +dieselCost +
+    +personnelCost +
+    +warehouseCost +
+    +tour_infeed +
+    +tour_we +
+    +tour_wa +
+    +hotelCost;
 
   const costPerStop = orders.length ? totalCost / orders.length : 0;
   const costPerArticle = totalArticles ? totalCost / totalArticles : 0;
   const costPerSlmd = totalSLMDQty ? totalCost / totalSLMDQty : 0;
 
   return {
-    hotelCost: rates.hotel_costs,
+    infeedTourCost: tour_infeed,
+    costWE: tour_we,
+    costWA: tour_wa,
+    hotelCost,
     vanTourCost: vanCost,
     dieselTourCost: dieselCost,
     personnelTourCost: personnelCost,
@@ -352,7 +395,7 @@ export async function persistTourCostMatrixAsync(
   try {
     await connection.beginTransaction();
 
-    // Getting tour data
+    // Getting Tour Data
     let tourData: any;
     if (type === TourType.dynamicTour) {
       const [rows]: any = await connection.execute(
@@ -367,9 +410,7 @@ export async function persistTourCostMatrixAsync(
       );
       tourData = rows[0];
     }
-
     if (!tourData) throw new Error(`Tour ${tourId} not found`);
-
     logger.info(`[Tour Cost] Calculating cost for tour: ${tourData.tour_name}`);
 
     const tourObj = tourData.tour_data;
@@ -383,6 +424,9 @@ export async function persistTourCostMatrixAsync(
       );
 
     const {
+      infeedTourCost,
+      costWE,
+      costWA,
       hotelCost,
       vanTourCost,
       dieselTourCost,
@@ -414,7 +458,7 @@ export async function persistTourCostMatrixAsync(
     if (!isExist) {
       query_matrix = `
         INSERT INTO delivery_cost_per_tour (
-          ${idColumn}, hotel_cost, van_tour_cost, diesel_tour_cost,
+          ${idColumn}, infeed_tour_cost, we_tour_cost, wa_tour_cost, hotel_cost, van_tour_cost, diesel_tour_cost,
           personnel_tour_cost, total_cost,
           delivery_cost_per_stop, delivery_cost_per_bkw, delivery_cost_per_slmd,
           total_distance_km, total_duration_hrs, total_weight_kg,
@@ -423,6 +467,9 @@ export async function persistTourCostMatrixAsync(
       `;
       params = [
         tourId,
+        infeedTourCost,
+        costWE,
+        costWA,
         hotelCost,
         vanTourCost,
         dieselTourCost,
@@ -438,7 +485,11 @@ export async function persistTourCostMatrixAsync(
     } else {
       query_matrix = `
         UPDATE delivery_cost_per_tour
-        SET hotel_cost = ?,
+        SET 
+            infeed_tour_cost = ?,
+            we_tour_cost = ?,
+            wa_tour_cost = ?,
+            hotel_cost = ?,
             van_tour_cost = ?,
             diesel_tour_cost = ?,
             personnel_tour_cost = ?,
@@ -452,6 +503,9 @@ export async function persistTourCostMatrixAsync(
         WHERE ${idColumn} = ?
       `;
       params = [
+        infeedTourCost,
+        costWE,
+        costWA,
         hotelCost,
         vanTourCost,
         dieselTourCost,

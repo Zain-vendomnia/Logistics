@@ -3,3 +3,4 @@ build
 # Ignore .env files containing sensitive information
 .env
 .uploads/
+.logs/

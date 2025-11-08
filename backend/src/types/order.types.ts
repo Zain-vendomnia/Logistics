@@ -25,20 +25,12 @@ export type Order = {
   order_number: string;
   status: OrderStatus;
 
-  article_sku?: string;
-  invoice_amount?: string;
-  payment_id?: number;
-
   order_time: Date;
   expected_delivery_time: Date;
 
   warehouse_id: number;
   warehouse_name?: string;
   warehouse_town?: string;
-
-  quantity?: number;
-  article_order_number?: string;
-  weight_kg?: number;
 
   customer_id?: string;
   customer_number?: string;
@@ -54,6 +46,14 @@ export type Order = {
   location: { lat: number; lng: number };
 
   created_at?: Date;
+
+  article_sku?: string;
+  invoice_amount?: string;
+  payment_id?: number;
+
+  article_order_number?: string;
+  weight_kg?: number;
+  quantity?: number; // orderItemsCount
 
   items?: OrderItem[];
 };
