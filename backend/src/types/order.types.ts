@@ -10,7 +10,7 @@ export type OrderDetails = {
 };
 
 export type OrderItem = {
-  id: string;
+  id: number;
   order_id: number;
   order_number: string;
   quantity: number;
@@ -64,6 +64,7 @@ export type ShopwareOrderDetails = {
   slmdl_quantity: number;
   warehouse_id: number | string;
 };
+
 export type ShopwareOrder = {
   orderID: number | string;
   ordernumber: string;
@@ -89,9 +90,30 @@ export type ShopwareOrder = {
   shipping_phone?: string | null;
 };
 
+export interface CancelItem extends OrderItem {
+  cancelQuantity: number;
+}
+
+export interface CancelOrderItem extends Omit<OrderItem, "order_id" | "order_number"> {
+  cancel_id: number;
+  article_sku: string;
+  quantity: number;
+  cancel_quantity: number;
+  created_at: Date;
+  updated_at?: Date | null;
+}
+export interface CancelOrder extends Omit<Order, "items"> {
+  id: number; // primary key in cancels_order table
+  user_id?: number;
+  created_by?: string;
+  items_count?: number;
+  total_cancelled_qty?: number;
+  items?: CancelOrderItem[];
+}
+
 export function mapShopwareOrderToLogisticOrder(
   order: ShopwareOrder
-): LogisticOrder {
+  ): LogisticOrder {
   const order_details: any[] = [];
   for (const item of order.OrderDetails) {
     order_details.push({
@@ -131,3 +153,4 @@ export function mapShopwareOrderToLogisticOrder(
 
   return LogisticsOrderObj;
 }
+

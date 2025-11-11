@@ -2,7 +2,9 @@ import express from "express";
 import validateToken from "../middlewares/validateToken";
 import roleCheck from "../middlewares/roleCheck";
 import {
-  getAllCancels,
+  getAllCancelOrders,
+  getCancelOrderItems,
+  searchCancelByOrderNumber,
   createCancel,
   updateCancel,
   deleteCancel,
@@ -11,25 +13,29 @@ import {
 
 const router = express.Router();
 
-// ✅ 1) Apply only auth globally
+// ✅ Apply auth globally
 router.use(validateToken);
 
-// ✅ 2) Admin + Driver can view cancel data (if needed)
-router.get("/", roleCheck(["admin", "driver"]), getAllCancels);
+// ✅ Admin + Driver can view cancel data
+router.get("/orders", roleCheck(["admin", "driver"]), getAllCancelOrders);
+router.get("/orders/:orderNumber/items", roleCheck(["admin", "driver"]), getCancelOrderItems);
 
-// ✅ 3) Admin-only routes for management
+// ✅ Search cancel orders by order number (Admin + Driver)
+router.get("/search", roleCheck(["admin", "driver"]), searchCancelByOrderNumber);
+
+// ✅ Admin-only routes
 router.use(roleCheck(["admin"]));
 
-// ➕ Create new cancel
+// Create new cancel
 router.post("/create", createCancel);
 
-// ✏️ Update a specific cancel by ID
+// Update cancel item
 router.put("/update/:id", updateCancel);
 
-// ❌ Delete a specific cancel by ID
+// Delete cancel item
 router.delete("/delete/:id", deleteCancel);
 
-// ⚠️ Delete all cancels (use carefully)
+// Delete all cancels
 router.delete("/delete-all", deleteAllCancels);
 
 export default router;

@@ -44,9 +44,14 @@ interface SelectedItem {
 interface GenerateCancelPopupProps {
   open: boolean;
   onClose: () => void;
+  onSuccess?: () => void; // ✅ Added this
 }
 
-const GenerateCancelPopup: React.FC<GenerateCancelPopupProps> = ({ open, onClose }) => {
+const GenerateCancelPopup: React.FC<GenerateCancelPopupProps> = ({ 
+  open, 
+  onClose,
+  onSuccess // ✅ Added this
+}) => {
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
@@ -54,10 +59,25 @@ const GenerateCancelPopup: React.FC<GenerateCancelPopupProps> = ({ open, onClose
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   
-  // Snackbar states
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error' | 'info' | 'warning'>('success');
+
+  const getUserData = () => {
+    try {
+      const userDataString = localStorage.getItem('userData') || localStorage.getItem('user');
+      if (userDataString) {
+        const userData = JSON.parse(userDataString);
+        return {
+          user_id: userData.user_id || null,
+          username: userData.username || null,
+        };
+      }
+    } catch (error) {
+      console.error('Error parsing user data from localStorage:', error);
+    }
+    return { user_id: null, username: null };
+  };
 
   const showSnackbar = (message: string, severity: 'success' | 'error' | 'info' | 'warning') => {
     setSnackbarMessage(message);
@@ -184,11 +204,18 @@ const GenerateCancelPopup: React.FC<GenerateCancelPopupProps> = ({ open, onClose
       return;
     }
 
-    // Prepare complete data with all required fields
+    const { user_id } = getUserData();
+
+    if (!user_id) {
+      setErrorMessage('User information not found. Please log in again.');
+      showSnackbar('User information not found. Please log in again.', 'error');
+      return;
+    }
+
     const cancelData = {
       orderNumber: invoiceNumber,
+      user_id: user_id,
       items: selectedItemsList.map((item) => {
-        // Find the full item details from orderItems
         const fullItem = orderItems.find((orderItem) => orderItem.id === item.id);
         
         return {
@@ -208,7 +235,6 @@ const GenerateCancelPopup: React.FC<GenerateCancelPopupProps> = ({ open, onClose
     try {
       setLoading(true);
       
-      // Call API to create cancel
       const response = await adminApiService.sendCancelDetails(cancelData);
       
       console.log('Cancel created successfully:', response);
@@ -216,12 +242,17 @@ const GenerateCancelPopup: React.FC<GenerateCancelPopupProps> = ({ open, onClose
       if (response.data.status === 'success') {
         showSnackbar('Cancel created successfully!', 'success');
         
-        // Clear all data but keep popup open
         setInvoiceNumber('');
         setOrderItems([]);
         setSelectedItems({});
         setErrorMessage('');
         setSuccessMessage('');
+        
+        // ✅ ONLY ADDED THIS - Call onSuccess to refresh parent table
+        if (onSuccess) {
+          onSuccess();
+        }
+        
       } else {
         setErrorMessage(response.data.message || 'Failed to create cancel');
         showSnackbar(response.data.message || 'Failed to create cancel', 'error');
@@ -262,7 +293,6 @@ const GenerateCancelPopup: React.FC<GenerateCancelPopupProps> = ({ open, onClose
           },
         }}
       >
-        {/* Close Button */}
         <IconButton
           onClick={handleClose}
           sx={{
@@ -275,16 +305,13 @@ const GenerateCancelPopup: React.FC<GenerateCancelPopupProps> = ({ open, onClose
           <CloseIcon />
         </IconButton>
 
-        {/* Title */}
         <DialogTitle sx={{ pb: 1, pt: 3, textAlign: 'center' }}>
           <Typography variant="h5" fontWeight={600}>
             Create Cancel
           </Typography>
         </DialogTitle>
 
-        {/* Content */}
         <DialogContent>
-          {/* Search Section */}
           <Box sx={{ display: 'flex', gap: 2, mb: 2, mt: 3 }}>
             <TextField
               fullWidth
@@ -310,7 +337,6 @@ const GenerateCancelPopup: React.FC<GenerateCancelPopupProps> = ({ open, onClose
             </Button>
           </Box>
 
-          {/* Messages */}
           {errorMessage && (
             <Alert severity="error" sx={{ mb: 2 }} onClose={() => setErrorMessage('')}>
               {errorMessage}
@@ -322,7 +348,6 @@ const GenerateCancelPopup: React.FC<GenerateCancelPopupProps> = ({ open, onClose
             </Alert>
           )}
 
-          {/* Table */}
           {orderItems.length > 0 ? (
             <Box sx={{ mt: 2 }}>
               <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 400 }}>
@@ -394,7 +419,6 @@ const GenerateCancelPopup: React.FC<GenerateCancelPopupProps> = ({ open, onClose
                 </Table>
               </TableContainer>
 
-              {/* Create Button */}
               <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
                 <Button
                   variant="contained"
@@ -435,7 +459,6 @@ const GenerateCancelPopup: React.FC<GenerateCancelPopupProps> = ({ open, onClose
         </DialogContent>
       </Dialog>
 
-      {/* Snackbar for notifications */}
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={4000}

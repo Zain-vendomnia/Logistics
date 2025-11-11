@@ -42,7 +42,7 @@ export const getOrderDetails = async (req: Request, res: Response) => {
     }
 
     // 🧩 Step 4: Handle cancelled orders
-    if (result.canceled) {
+    if (result.Cancelled) {
       const response: ApiResponse = {
         status: "warning",
         message: `Order ${orderNumber} has already been cancelled.`,
@@ -55,7 +55,7 @@ export const getOrderDetails = async (req: Request, res: Response) => {
     if (!result.delivered) {
       const response: ApiResponse = {
         status: "warning",
-        message: `Order ${orderNumber} is not delivered yet (current status: '${result.status}').`,
+        message: `Order ${orderNumber} is not delivered yet.`,
         statusCode: 200,
       };
       return res.status(200).json(response);

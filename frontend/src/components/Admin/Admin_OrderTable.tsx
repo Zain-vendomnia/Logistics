@@ -162,7 +162,7 @@ const AdminOrderTable: React.FC<AdminOrderTableProps> = ({
 
     if (statusFilter === "all") {
       matchesStatus =
-        order.status !== "delivered" && order.status !== "canceled";
+        order.status !== "delivered" && order.status !== "Cancelled";
     } else {
       matchesStatus = order.status === statusFilter;
     }

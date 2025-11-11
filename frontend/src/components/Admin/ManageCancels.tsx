@@ -12,119 +12,280 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Collapse,
+  IconButton,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Chip,
+  Paper,
+  TablePagination,
+  Tooltip,
+  CircularProgress,
 } from "@mui/material";
-import {
-  DataGrid,
-  GridColDef,
-  GridToolbar,
-} from "@mui/x-data-grid";
 import {
   Search,
   Edit,
   Delete,
   SaveAlt,
+  KeyboardArrowDown,
+  KeyboardArrowUp,
+  ShoppingCart,
+  ContentCopy,
+  Clear,
 } from "@mui/icons-material";
 import ExcelJS from "exceljs";
 import {
-  getAllCancels,
+  getAllCancelOrders,
+  getCancelOrderItems,
   updateCancel,
   deleteCancel,
   deleteAllCancels,
+  searchCancelByOrderNumber,
 } from "../../services/cancelService";
-import ConfirmDialog from "./ConfirmDialog"; 
+import ConfirmDialog from "./ConfirmDialog";
+import GenerateReturnPopup from './GenerateReturnPopup';
 
-interface CancelItem {
-  id: number;  // ✅ Changed from cancel_id to id
-  order_number: string;
+interface CancelOrderItem {
+  id: number;
+  cancel_id: number;
   article_sku: string;
-  original_quantity: number;
+  quantity: number;
   cancel_quantity: number;
   created_at: string;
+  updated_at: string;
+}
+
+interface CancelOrder {
+  order_number: string;
+  status: string;
+  warehouse_id: number;
+  address: string;
+  customer_name: string;
+  contact_number: string;
+  email: string;
+  created_at: string;
+  items_count: number;
+  total_cancelled_qty: number;
+  user_id: number;
+  created_by: string;
 }
 
 const ManageCancels = () => {
-  const [cancels, setCancels] = useState<CancelItem[]>([]);
+  const [orders, setOrders] = useState<CancelOrder[]>([]);
   const [loading, setLoading] = useState(false);
-  // const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
-    severity: "success" as "success" | "error" | "warning",
+    severity: "success" as "success" | "error" | "warning" | "info",
   });
   const [searchTerm, setSearchTerm] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
   const [editDialog, setEditDialog] = useState(false);
-  const [editRow, setEditRow] = useState<CancelItem | null>(null);
+  const [editItem, setEditItem] = useState<CancelOrderItem | null>(null);
   const [editQty, setEditQty] = useState<number>(0);
   const [actionLoading, setActionLoading] = useState(false);
+  
+  const [expandedRows, setExpandedRows] = useState<Map<string, CancelOrderItem[]>>(new Map());
+  const [loadingItems, setLoadingItems] = useState<Set<string>>(new Set());
+  
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
 
-  // Confirm Dialog States
+  const [openPopup, setOpenPopup] = useState(false);
+
   const [confirmDialog, setConfirmDialog] = useState({
     open: false,
     title: "",
     content: "",
+    confirmText: "Yes, Confirm",
+    confirmColor: "error" as "error" | "primary" | "secondary" | "success" | "warning" | "info",
     onConfirm: () => {},
   });
 
-  const showSnackbar = (message: string, severity: "success" | "error" | "warning") =>
+  const showSnackbar = (message: string, severity: "success" | "error" | "warning" | "info") =>
     setSnackbar({ open: true, message, severity });
   const closeSnackbar = () => setSnackbar((prev) => ({ ...prev, open: false }));
 
-  // Close confirm dialog
   const closeConfirmDialog = () => {
     setConfirmDialog({
       open: false,
       title: "",
       content: "",
+      confirmText: "Yes, Confirm",
+      confirmColor: "error",
       onConfirm: () => {},
     });
   };
 
-  // ✅ Fetch all cancels
-  const loadCancels = useCallback(async () => {
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  };
+
+  const loadOrders = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getAllCancels();
-      setCancels(data);
-    } catch (err) {
-      console.error("Error loading cancels:", err);
-      showSnackbar("Failed to load cancel data", "error");
+      const response = await getAllCancelOrders();
+      
+      if (response.status === "success" && Array.isArray(response.data)) {
+        setOrders(response.data);
+      } else if (Array.isArray(response)) {
+        setOrders(response);
+      } else {
+        setOrders([]);
+        showSnackbar("No cancel orders available", "warning");
+      }
+    } catch (err: any) {
+      console.error("Error loading orders:", err);
+      setOrders([]);
+      showSnackbar(err.message || "Failed to load cancel orders", "error");
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadCancels();
-  }, [loadCancels]);
+    loadOrders();
+  }, [loadOrders]);
 
-  // ✅ Filtered data
-  const filteredCancels = cancels.filter((item) =>
-    Object.values(item)
-      .join(" ")
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase())
+  const handleSearch = async () => {
+    if (!searchTerm.trim()) {
+      showSnackbar("Please enter an order number to search", "warning");
+      return;
+    }
+
+    setLoading(true);
+    setIsSearching(true);
+    try {
+      const response = await searchCancelByOrderNumber(searchTerm.trim());
+      
+      if (response.status === "success" && Array.isArray(response.data)) {
+        if (response.data.length === 0) {
+          showSnackbar(`No cancel orders found for: ${searchTerm}`, "info");
+        } else {
+          showSnackbar(`Found ${response.data.length} order(s)`, "success");
+        }
+        setOrders(response.data);
+        setPage(0);
+      } else {
+        setOrders([]);
+        showSnackbar("No cancel orders found", "info");
+      }
+    } catch (err: any) {
+      console.error("Error searching orders:", err);
+      setOrders([]);
+      if (err.message && err.message.includes("404")) {
+        showSnackbar(`No cancel orders found for: ${searchTerm}`, "info");
+      } else {
+        showSnackbar(err.message || "Failed to search cancel orders", "error");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ Simple clear function - clears search and shows all orders
+  const handleClearSearch = () => {
+    setSearchTerm("");
+    setIsSearching(false);
+    loadOrders();
+  };
+
+  // ✅ Handle Enter key to search
+  const handleSearchKeyPress = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Enter") {
+      handleSearch();
+    }
+  };
+
+  const loadOrderItems = async (orderNumber: string) => {
+    if (expandedRows.has(orderNumber)) {
+      return;
+    }
+
+    setLoadingItems((prev) => new Set(prev).add(orderNumber));
+
+    try {
+      const response = await getCancelOrderItems(orderNumber);
+      
+      if (response.status === "success" && Array.isArray(response.data)) {
+        setExpandedRows((prev) => new Map(prev).set(orderNumber, response.data));
+      } else {
+        showSnackbar("Failed to load order items", "error");
+      }
+    } catch (err: any) {
+      console.error("Error loading order items:", err);
+      showSnackbar(err.message || "Failed to load order items", "error");
+    } finally {
+      setLoadingItems((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(orderNumber);
+        return newSet;
+      });
+    }
+  };
+
+  const handleCopyOrderNumber = (orderNumber: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(orderNumber);
+    showSnackbar(`Order number ${orderNumber} copied!`, "success");
+  };
+
+  const toggleRowExpansion = async (orderNumber: string) => {
+    const isCurrentlyExpanded = expandedRows.has(orderNumber);
+
+    if (!isCurrentlyExpanded) {
+      await loadOrderItems(orderNumber);
+    } else {
+      setExpandedRows((prev) => {
+        const newMap = new Map(prev);
+        newMap.delete(orderNumber);
+        return newMap;
+      });
+    }
+  };
+
+  // ✅ No client-side filtering - show API results directly
+  const filteredOrders = orders;
+
+  const handleChangePage = (event: unknown, newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  const paginatedOrders = filteredOrders.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage
   );
 
-  // ✅ Handle edit
-  const handleEditClick = (row: CancelItem) => {
-    setEditRow(row);
-    setEditQty(row.cancel_quantity);
+  const handleEditClick = (item: CancelOrderItem) => {
+    setEditItem(item);
+    setEditQty(item.cancel_quantity);
     setEditDialog(true);
   };
 
   const handleEditSave = async () => {
-    if (!editRow) return;
+    if (!editItem) return;
 
-    // ✅ Validation: Check if cancel quantity is less than or equal to 0
     if (editQty <= 0) {
       showSnackbar("Cancel quantity must be greater than 0", "error");
       return;
     }
 
-    // ✅ Validation: Check if cancel quantity exceeds original quantity
-    if (editQty > editRow.original_quantity) {
+    if (editQty > editItem.quantity) {
       showSnackbar(
-        `Cancel quantity cannot exceed original quantity (${editRow.original_quantity})`,
+        `Cancel quantity cannot exceed original quantity (${editItem.quantity})`,
         "error"
       );
       return;
@@ -132,74 +293,168 @@ const ManageCancels = () => {
 
     setActionLoading(true);
     try {
-      await updateCancel(editRow.id, { cancel_quantity: editQty });  // ✅ Changed from cancel_id to id
-      showSnackbar("Cancel quantity updated successfully", "success");
-      setEditDialog(false);
-      loadCancels();
-    } catch (err) {
+      const response = await updateCancel(editItem.id, { cancel_quantity: editQty });
+      
+      if (response.status === "success") {
+        showSnackbar(response.message || "Cancel quantity updated successfully", "success");
+        setEditDialog(false);
+        
+        const orderNumber = Array.from(expandedRows.entries()).find(([_, items]) => 
+          items.some(item => item.id === editItem.id)
+        )?.[0];
+        
+        if (orderNumber) {
+          setExpandedRows((prev) => {
+            const newMap = new Map(prev);
+            newMap.delete(orderNumber);
+            return newMap;
+          });
+          await loadOrderItems(orderNumber);
+        }
+        
+        if (isSearching) {
+          handleSearch();
+        } else {
+          loadOrders();
+        }
+      } else {
+        showSnackbar(response.message || "Failed to update cancel", "error");
+      }
+    } catch (err: any) {
       console.error("Update error:", err);
-      showSnackbar("Failed to update cancel", "error");
+      showSnackbar(err.message || "Failed to update cancel", "error");
     } finally {
       setActionLoading(false);
     }
   };
 
-  // ✅ Handle delete with confirm dialog
-  const handleDelete = (id: number) => {
+  const handleDeleteItem = (id: number, orderNumber: string) => {
     setConfirmDialog({
       open: true,
-      title: "Delete Cancel?",
-      content: "Are you sure you want to delete this cancel? This action cannot be undone.",
+      title: "Delete Cancel Item?",
+      content: `Are you sure you want to delete this item from order ${orderNumber}?`,
+      confirmText: "Yes, Delete",
+      confirmColor: "error",
       onConfirm: async () => {
         try {
-          await deleteCancel(id);
-          showSnackbar("Cancel deleted successfully", "success");
-          loadCancels();
+          const response = await deleteCancel(id);
+          
+          if (response.status === "success") {
+            showSnackbar(response.message || "Cancel item deleted successfully", "success");
+            
+            setExpandedRows((prev) => {
+              const newMap = new Map(prev);
+              newMap.delete(orderNumber);
+              return newMap;
+            });
+            await loadOrderItems(orderNumber);
+            
+            if (isSearching) {
+              handleSearch();
+            } else {
+              loadOrders();
+            }
+          } else {
+            showSnackbar(response.message || "Failed to delete cancel item", "error");
+          }
           closeConfirmDialog();
-        } catch (err) {
+        } catch (err: any) {
           console.error("Delete error:", err);
-          showSnackbar("Failed to delete cancel", "error");
+          showSnackbar(err.message || "Failed to delete cancel item", "error");
           closeConfirmDialog();
         }
       },
     });
   };
 
-  // ✅ Delete all with confirm dialog
   const handleDeleteAll = () => {
+    if (orders.length === 0) {
+      showSnackbar("No cancels to delete", "warning");
+      return;
+    }
+
     setConfirmDialog({
       open: true,
       title: "Delete All Cancels?",
-      content: "Are you sure you want to delete ALL cancels? This action cannot be undone and will remove all cancel records from the system.",
+      content: "Are you sure you want to delete ALL cancel records?",
+      confirmText: "Yes, Delete All",
+      confirmColor: "error",
       onConfirm: async () => {
         try {
-          await deleteAllCancels();
-          showSnackbar("All cancels deleted successfully", "success");
-          loadCancels();
+          const response = await deleteAllCancels();
+          
+          if (response.status === "success") {
+            showSnackbar(response.message || "All cancels deleted successfully", "success");
+            setExpandedRows(new Map());
+            setSearchTerm("");
+            setIsSearching(false);
+            loadOrders();
+          } else {
+            showSnackbar(response.message || "Failed to delete all cancels", "error");
+          }
           closeConfirmDialog();
-        } catch (err) {
+        } catch (err: any) {
           console.error("Delete all error:", err);
-          showSnackbar("Failed to delete all cancels", "error");
+          showSnackbar(err.message || "Failed to delete all cancels", "error");
           closeConfirmDialog();
         }
       },
     });
   };
 
-  // ✅ Export Excel
   const handleExport = async () => {
+    if (filteredOrders.length === 0) {
+      showSnackbar("No data to export", "warning");
+      return;
+    }
+
     try {
+      showSnackbar("Preparing export... Please wait", "info");
+      
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet("Cancels");
+      
       worksheet.columns = [
-        { header: "Cancel ID", key: "id", width: 12 },  // ✅ Changed from cancel_id to id
-        { header: "Order Number", key: "order_number", width: 20 },
-        { header: "Article SKU", key: "article_sku", width: 25 },
-        { header: "Original Qty", key: "original_quantity", width: 15 },
-        { header: "Cancel Qty", key: "cancel_quantity", width: 15 },
-        { header: "Created At", key: "created_at", width: 20 },
+        { header: "Order Number", key: "order_number", width: 18 },
+        { header: "Customer Name", key: "customer_name", width: 20 },
+        { header: "Contact", key: "contact_number", width: 16 },
+        { header: "Email", key: "email", width: 25 },
+        { header: "Address", key: "address", width: 35 },
+        { header: "Warehouse ID", key: "warehouse_id", width: 14 },
+        { header: "Status", key: "status", width: 12 },
+        { header: "Created By", key: "created_by", width: 16 },
+        { header: "Created Date", key: "created_date", width: 16 },
+        { header: "Article SKU", key: "article_sku", width: 20 },
+        { header: "Original Qty", key: "quantity", width: 14 },
+        { header: "Cancel Qty", key: "cancel_quantity", width: 14 },
       ];
-      filteredCancels.forEach((row) => worksheet.addRow(row));
+
+      for (const order of filteredOrders) {
+        try {
+          const itemsResponse = await getCancelOrderItems(order.order_number);
+          const items = itemsResponse.status === "success" ? itemsResponse.data : [];
+          
+          items.forEach((item: CancelOrderItem) => {
+            worksheet.addRow({
+              order_number: order.order_number,
+              customer_name: order.customer_name,
+              contact_number: order.contact_number,
+              email: order.email,
+              address: order.address,
+              warehouse_id: order.warehouse_id,
+              status: order.status,
+              created_by: order.created_by,
+              created_date: formatDate(order.created_at),
+              article_sku: item.article_sku,
+              quantity: item.quantity,
+              cancel_quantity: item.cancel_quantity,
+            });
+          });
+        } catch (err) {
+          console.error(`Failed to fetch items for order ${order.order_number}`, err);
+        }
+      }
+
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -211,126 +466,349 @@ const ManageCancels = () => {
       a.click();
       window.URL.revokeObjectURL(url);
       showSnackbar("Exported successfully!", "success");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Export error:", err);
-      showSnackbar("Failed to export data", "error");
+      showSnackbar(err.message || "Failed to export data", "error");
     }
   };
 
-  // ✅ Columns with full width and proper styling
-  const columns: GridColDef[] = [
-    { 
-      field: "id",  // ✅ Changed from cancel_id to id
-      headerName: "Cancel ID", 
-      flex: 0.8,
-      minWidth: 100,
-    },
-    { 
-      field: "order_number", 
-      headerName: "Order Number", 
-      flex: 1.2,
-      minWidth: 150,
-    },
-    { 
-      field: "article_sku", 
-      headerName: "Article SKU", 
-      flex: 2,
-      minWidth: 220,
-    },
-    {
-      field: "original_quantity",
-      headerName: "Original Qty",
-      flex: 1,
-      minWidth: 120,
-      align: "center",
-      headerAlign: "center",
-    },
-    {
-      field: "cancel_quantity",
-      headerName: "Cancel Qty",
-      flex: 1,
-      minWidth: 120,
-      align: "center",
-      headerAlign: "center",
-    },
-    {
-      field: "created_at",
-      headerName: "Created At",
-      flex: 1.5,
-      minWidth: 160,
-      renderCell: (params) =>
-        new Date(params.value).toLocaleString("en-GB", {
-          dateStyle: "short",
-          timeStyle: "short",
-        }),
-    },
-    {
-      field: "actions",
-      headerName: "Actions",
-      flex: 1.2,
-      minWidth: 160,
-      sortable: false,
-      filterable: false,
-      renderCell: (params) => (
-        <Stack direction="row" spacing={1}>
-          <Button
-            size="small"
-            color="warning"
-            variant="contained"
-            onClick={() => handleEditClick(params.row)}
-            sx={{ minWidth: "auto", px: 1.5 }}
-          >
-            <Edit fontSize="small" />
-          </Button>
-          <Button
-            size="small"
-            color="error"
-            variant="contained"
-            onClick={() => handleDelete(params.row.id)}  // ✅ Changed from cancel_id to id
-            sx={{ minWidth: "auto", px: 1.5 }}
-          >
-            <Delete fontSize="small" />
-          </Button>
-        </Stack>
-      ),
-    },
-  ];
+  const handleOpenPopup = () => {
+    setOpenPopup(true);
+  };
+
+  const handleClosePopup = () => {
+    setOpenPopup(false);
+  };
+
+  const handleCancelSuccess = () => {
+    if (isSearching) {
+      handleClearSearch();
+    } else {
+      loadOrders();
+    }
+  };
+
+  const ExpandableRow = ({ order }: { order: CancelOrder }) => {
+    const isExpanded = expandedRows.has(order.order_number);
+    const isLoadingItems = loadingItems.has(order.order_number);
+    const items = expandedRows.get(order.order_number) || [];
+
+    return (
+      <>
+        <TableRow
+          sx={{
+            backgroundColor: isExpanded ? "#fff3e0" : "white",
+            "&:hover": { backgroundColor: "#f5f5f5" },
+            cursor: "pointer",
+          }}
+          onClick={() => toggleRowExpansion(order.order_number)}
+        >
+          <TableCell>
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Typography variant="body2" fontWeight={600} color="#ff9800">
+                {order.order_number}
+              </Typography>
+              <Tooltip title="Copy order number" arrow>
+                <IconButton
+                  size="small"
+                  onClick={(e) => handleCopyOrderNumber(order.order_number, e)}
+                  sx={{
+                    color: "#90a4ae",
+                    "&:hover": {
+                      color: "#ff9800",
+                      backgroundColor: "#fff3e0",
+                    },
+                  }}
+                >
+                  <ContentCopy fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Stack>
+          </TableCell>
+          <TableCell>
+            <Typography variant="body2">{order.customer_name}</Typography>
+            <Typography variant="caption" color="text.secondary">
+              {order.contact_number}
+            </Typography>
+          </TableCell>
+          <TableCell>
+            <Typography variant="body2" color="text.secondary">
+              {order.email}
+            </Typography>
+          </TableCell>
+          <TableCell align="center">
+            <Typography variant="body2">WH-{order.warehouse_id}</Typography>
+          </TableCell>
+          <TableCell align="center">
+            <Chip
+              label={order.status}
+              size="small"
+              color="error"
+              sx={{ textTransform: "capitalize", fontWeight: 600 }}
+            />
+          </TableCell>
+          <TableCell align="center">
+            <Chip
+              label={`${order.items_count} items`}
+              size="small"
+              sx={{ backgroundColor: "#e3f2fd", color: "#1976d2", fontWeight: 600 }}
+            />
+          </TableCell>
+          <TableCell align="center">
+            <Typography variant="body1" fontWeight={600} color="error">
+              {order.total_cancelled_qty}
+            </Typography>
+          </TableCell>
+          <TableCell>
+            <Typography variant="body2" fontWeight={500}>
+              {formatDate(order.created_at)}
+            </Typography>
+          </TableCell>
+          <TableCell>
+            <Chip
+              label={order.created_by}
+              size="small"
+              color="info"
+              variant="outlined"
+              sx={{ fontWeight: 600 }}
+            />
+          </TableCell>
+          <TableCell align="right" sx={{ width: 50 }}>
+            <IconButton size="small" sx={{ color: "#ff9800" }}>
+              {isLoadingItems ? (
+                <CircularProgress size={20} sx={{ color: "#ff9800" }} />
+              ) : isExpanded ? (
+                <KeyboardArrowUp />
+              ) : (
+                <KeyboardArrowDown />
+              )}
+            </IconButton>
+          </TableCell>
+        </TableRow>
+
+        <TableRow>
+          <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={10}>
+            <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+              <Box sx={{ margin: 2, backgroundColor: "#fafafa", p: 2, borderRadius: 1 }}>
+                <Stack direction="row" spacing={1} alignItems="center" mb={2}>
+                  <ShoppingCart sx={{ color: "#ff9800" }} />
+                  <Typography variant="subtitle1" fontWeight={600}>
+                    Cancelled Items
+                  </Typography>
+                </Stack>
+
+                <Typography variant="caption" color="text.secondary" display="block" mb={2}>
+                  <strong>Address:</strong> {order.address}
+                </Typography>
+
+                {isLoadingItems ? (
+                  <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+                    <CircularProgress sx={{ color: "#ff9800" }} />
+                  </Box>
+                ) : items.length === 0 ? (
+                  <Typography variant="body2" color="text.secondary" align="center" py={2}>
+                    No items found
+                  </Typography>
+                ) : (
+                  <Table size="small" sx={{ border: "1px solid #e0e0e0" }}>
+                    <TableHead>
+                      <TableRow sx={{ backgroundColor: "#90a4ae" }}>
+                        <TableCell sx={{ color: "white", fontWeight: 600 }}>Item ID</TableCell>
+                        <TableCell sx={{ color: "white", fontWeight: 600 }}>Cancel ID</TableCell>
+                        <TableCell sx={{ color: "white", fontWeight: 600 }}>Article SKU</TableCell>
+                        <TableCell align="center" sx={{ color: "white", fontWeight: 600 }}>
+                          Original Qty
+                        </TableCell>
+                        <TableCell align="center" sx={{ color: "white", fontWeight: 600 }}>
+                          Cancel Qty
+                        </TableCell>
+                        <TableCell align="center" sx={{ color: "white", fontWeight: 600 }}>
+                          Actions
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {items.map((item, index) => (
+                        <TableRow
+                          key={item.id}
+                          sx={{
+                            backgroundColor: index % 2 === 0 ? "white" : "#f5f5f5",
+                          }}
+                        >
+                          <TableCell>{item.id}</TableCell>
+                          <TableCell>
+                            <Chip
+                              label={item.cancel_id}
+                              size="small"
+                              sx={{ backgroundColor: "#e0e0e0", fontWeight: 600 }}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" fontWeight={500}>
+                              {item.article_sku}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="center">{item.quantity}</TableCell>
+                          <TableCell align="center">
+                            <Chip
+                              label={item.cancel_quantity}
+                              size="small"
+                              color="error"
+                              sx={{ fontWeight: 600 }}
+                            />
+                          </TableCell>
+                          <TableCell align="center">
+                            <Stack direction="row" spacing={1} justifyContent="center">
+                              <IconButton
+                                size="small"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditClick(item);
+                                }}
+                                sx={{
+                                  backgroundColor: "#ff9800",
+                                  color: "white",
+                                  "&:hover": { backgroundColor: "#f57c00" },
+                                }}
+                              >
+                                <Edit fontSize="small" />
+                              </IconButton>
+                              <IconButton
+                                size="small"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteItem(item.id, order.order_number);
+                                }}
+                                sx={{
+                                  backgroundColor: "#f44336",
+                                  color: "white",
+                                  "&:hover": { backgroundColor: "#d32f2f" },
+                                }}
+                              >
+                                <Delete fontSize="small" />
+                              </IconButton>
+                            </Stack>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </Box>
+            </Collapse>
+          </TableCell>
+        </TableRow>
+      </>
+    );
+  };
 
   return (
-    <Box sx={{ p: 3, backgroundColor: "#f5f5f5", minHeight: "100vh" }}>
-      {/* Search Bar + Action Buttons */}
+    <Box sx={{ p: 3, backgroundColor: "#f5f5f5", minHeight: "calc(100vh - 50px)" }}>
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h4" fontWeight={600} color="#333">
+          Manage Cancelled Orders
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Total Orders: {filteredOrders.length} | Total Items:{" "}
+          {filteredOrders.reduce((sum, order) => sum + order.items_count, 0)}
+          {isSearching && (
+            <Chip
+              label="Search Results"
+              size="small"
+              color="primary"
+              sx={{ ml: 1, fontWeight: 600 }}
+            />
+          )}
+        </Typography>
+      </Box>
+
       <Box
         sx={{
           backgroundColor: "white",
           p: 2,
           mb: 2,
-          borderRadius: 1,
+          borderRadius: 2,
           boxShadow: 1,
         }}
       >
-        <Stack direction="row" spacing={2} alignItems="center">
+        <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
+          {/* ✅ Search field without auto-search */}
           <TextField
-            placeholder="Search by order number or SKU..."
+            placeholder="Search by order number..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyPress={handleSearchKeyPress}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
                   <Search />
                 </InputAdornment>
               ),
+              endAdornment: searchTerm && (
+                <InputAdornment position="end">
+                  <IconButton size="small" onClick={handleClearSearch}>
+                    <Clear />
+                  </IconButton>
+                </InputAdornment>
+              ),
             }}
             size="small"
-            sx={{ flexGrow: 1, maxWidth: 400 }}
+            sx={{ flexGrow: 1, minWidth: 300 }}
           />
 
+          {/* ✅ Search Button - Required to trigger search */}
+          <Button
+            variant="contained"
+            onClick={handleSearch}
+            disabled={!searchTerm.trim() || loading}
+            sx={{
+              background: "linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)",
+              color: "white",
+              textTransform: "none",
+              fontWeight: 600,
+              "&:hover": {
+                background: "linear-gradient(45deg, #21CBF3 30%, #2196F3 90%)",
+              },
+              "&:disabled": {
+                background: "#e0e0e0",
+                color: "#9e9e9e",
+              },
+            }}
+          >
+            Search
+          </Button>
+
+          <Button
+            variant="contained"
+            onClick={handleOpenPopup}
+            sx={{
+              backgroundColor: '#ff5722',
+              color: 'white',
+              textTransform: 'none',
+              fontWeight: 600,
+              px: 3,
+              py: 1,
+              borderRadius: 2,
+              boxShadow: '0 2px 4px rgba(255, 87, 34, 0.3)',
+              '&:hover': {
+                backgroundColor: '#f4511e',
+                boxShadow: '0 4px 8px rgba(255, 87, 34, 0.4)',
+              },
+            }}
+          >
+            Create Cancel
+          </Button>
           <Button
             variant="contained"
             onClick={handleExport}
             startIcon={<SaveAlt />}
+            disabled={filteredOrders.length === 0}
             sx={{
-              backgroundColor: "#ff9800",
-              "&:hover": { backgroundColor: "#f57c00" },
+              background: "linear-gradient(45deg, #f7941d 30%, #f37021 90%)",
+              color: "white",
+              "&:hover": {
+                background: "linear-gradient(45deg, #f37021 30%, #f7941d 90%)",
+              },
             }}
           >
             Export Excel
@@ -341,128 +819,116 @@ const ManageCancels = () => {
             color="error"
             onClick={handleDeleteAll}
             startIcon={<Delete />}
+            disabled={orders.length === 0}
           >
             Delete All
           </Button>
         </Stack>
       </Box>
 
-      {/* Toolbar Section */}
-      <Box
-        sx={{
-          backgroundColor: "white",
-          px: 2,
-          py: 1,
-          borderTopLeftRadius: 4,
-          borderTopRightRadius: 4,
-          borderBottom: "1px solid #e0e0e0",
-        }}
-      >
-        <Stack direction="row" spacing={3} alignItems="center">
-          <Button
-            size="small"
-            sx={{ color: "#ff9800", textTransform: "none" }}
-          >
-            |||  Columns
-          </Button>
-          <Button
-            size="small"
-            sx={{ color: "#ff9800", textTransform: "none" }}
-          >
-            ☰  Filters
-          </Button>
-          <Button
-            size="small"
-            sx={{ color: "#ff9800", textTransform: "none" }}
-          >
-            ▦  Density
-          </Button>
-          <Button
-            size="small"
-            sx={{ color: "#ff9800", textTransform: "none" }}
-          >
-            ⬇  Export
-          </Button>
-        </Stack>
-      </Box>
+      <Paper sx={{ width: "100%", overflow: "hidden", borderRadius: 2 }}>
+        <Box sx={{ maxHeight: "calc(100vh - 340px)", overflow: "auto" }}>
+          <Table stickyHeader>
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ backgroundColor: "#90a4ae", color: "white", fontWeight: 600 }}>
+                  Order Number
+                </TableCell>
+                <TableCell sx={{ backgroundColor: "#90a4ae", color: "white", fontWeight: 600 }}>
+                  Customer
+                </TableCell>
+                <TableCell sx={{ backgroundColor: "#90a4ae", color: "white", fontWeight: 600 }}>
+                  Email
+                </TableCell>
+                <TableCell
+                  align="center"
+                  sx={{ backgroundColor: "#90a4ae", color: "white", fontWeight: 600 }}
+                >
+                  Warehouse
+                </TableCell>
+                <TableCell
+                  align="center"
+                  sx={{ backgroundColor: "#90a4ae", color: "white", fontWeight: 600 }}
+                >
+                  Status
+                </TableCell>
+                <TableCell
+                  align="center"
+                  sx={{ backgroundColor: "#90a4ae", color: "white", fontWeight: 600 }}
+                >
+                  Items Count
+                </TableCell>
+                <TableCell
+                  align="center"
+                  sx={{ backgroundColor: "#90a4ae", color: "white", fontWeight: 600 }}
+                >
+                  Total Cancelled
+                </TableCell>
+                <TableCell sx={{ backgroundColor: "#90a4ae", color: "white", fontWeight: 600 }}>
+                  Created Date
+                </TableCell>
+                <TableCell sx={{ backgroundColor: "#90a4ae", color: "white", fontWeight: 600 }}>
+                  Created By
+                </TableCell>
+                <TableCell
+                  align="right"
+                  sx={{ backgroundColor: "#90a4ae", color: "white", fontWeight: 600, width: 50 }}
+                >
+                  Expand
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={10} align="center" sx={{ py: 4 }}>
+                    <CircularProgress sx={{ color: "#ff9800" }} />
+                  </TableCell>
+                </TableRow>
+              ) : paginatedOrders.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={10} align="center" sx={{ py: 4 }}>
+                    <Typography color="text.secondary">
+                      {isSearching 
+                        ? `No results found for "${searchTerm}"`
+                        : "No cancelled orders found"
+                      }
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                paginatedOrders.map((order) => <ExpandableRow key={order.order_number} order={order} />)
+              )}
+            </TableBody>
+          </Table>
+        </Box>
 
-      {/* Data Grid - Full Width */}
-      <Box
-        sx={{
-          backgroundColor: "white",
-          width: "100%",
-          "& .MuiDataGrid-root": {
-            border: "none",
-            borderBottomLeftRadius: 4,
-            borderBottomRightRadius: 4,
-          },
-          "& .MuiDataGrid-columnHeaders": {
-            backgroundColor: "#90a4ae",
-            color: "white",
-            fontSize: "0.95rem",
-            fontWeight: 600,
-          },
-          "& .MuiDataGrid-columnHeader": {
-            backgroundColor: "#90a4ae",
-            color: "white",
-          },
-          "& .MuiDataGrid-columnHeaderTitle": {
-            color: "white",
-            fontWeight: 600,
-          },
-          "& .MuiDataGrid-row:nth-of-type(even)": {
-            backgroundColor: "#f5f5f5",
-          },
-          "& .MuiDataGrid-row:hover": {
-            backgroundColor: "#e3f2fd",
-          },
-          "& .MuiDataGrid-cell": {
-            borderBottom: "1px solid #e0e0e0",
-          },
-          "& .MuiDataGrid-footerContainer": {
-            backgroundColor: "#d3d3d3",
-            color: "white",
-          },
-        }}
-      >
-        <DataGrid
-          rows={filteredCancels}
-          columns={columns}
-          getRowId={(row) => row.id}  // ✅ Changed from cancel_id to id
-          loading={loading}
-          checkboxSelection
-          disableRowSelectionOnClick
-          slots={{ toolbar: GridToolbar }}
-          slotProps={{
-            toolbar: {
-              sx: { display: "none" }, // Hide default toolbar since we have custom one
-            },
-          }}
-          pageSizeOptions={[10, 25, 50, 100]}
-          initialState={{
-            pagination: { paginationModel: { pageSize: 25 } },
-          }}
+        <TablePagination
+          rowsPerPageOptions={[10, 25, 50, 100]}
+          component="div"
+          count={filteredOrders.length}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
           sx={{
-            minHeight: 400,
-            "& .MuiDataGrid-virtualScroller": {
-              minHeight: 300,
-            },
+            backgroundColor: "#f5f5f5",
+            borderTop: "1px solid #e0e0e0",
           }}
         />
-      </Box>
+      </Paper>
 
-      {/* Edit Quantity Dialog */}
       <Dialog open={editDialog} onClose={() => setEditDialog(false)} maxWidth="xs" fullWidth>
         <DialogTitle>Edit Cancel Quantity</DialogTitle>
         <DialogContent>
           <Typography variant="body2" mb={1}>
-            Order: <strong>{editRow?.order_number}</strong>
+            Item ID: <strong>{editItem?.id}</strong>
           </Typography>
           <Typography variant="body2" mb={1}>
-            SKU: <strong>{editRow?.article_sku}</strong>
+            SKU: <strong>{editItem?.article_sku}</strong>
           </Typography>
           <Typography variant="body2" mb={2} color="text.secondary">
-            Original Quantity: <strong>{editRow?.original_quantity}</strong>
+            Original Quantity: <strong>{editItem?.quantity}</strong>
           </Typography>
           <TextField
             fullWidth
@@ -470,11 +936,11 @@ const ManageCancels = () => {
             label="Cancel Quantity"
             value={editQty}
             onChange={(e) => setEditQty(Number(e.target.value))}
-            inputProps={{ 
+            inputProps={{
               min: 1,
-              max: editRow?.original_quantity
+              max: editItem?.quantity,
             }}
-            helperText={`Must be between 1 and ${editRow?.original_quantity}`}
+            helperText={`Must be between 1 and ${editItem?.quantity}`}
             sx={{ mt: 2 }}
           />
         </DialogContent>
@@ -483,50 +949,47 @@ const ManageCancels = () => {
             onClick={() => setEditDialog(false)}
             variant="contained"
             sx={{
-              background: 'linear-gradient(45deg, #f7941d 30%, #f37021 90%)',
-              color: 'white',
-              '&:hover': {
-                background: 'linear-gradient(45deg, #f37021 30%, #f7941d 90%)',
+              background: "linear-gradient(45deg, #f7941d 30%, #f37021 90%)",
+              color: "white",
+              "&:hover": {
+                background: "linear-gradient(45deg, #f37021 30%, #f7941d 90%)",
               },
             }}
           >
             Cancel
           </Button>
-          <Button
-            onClick={handleEditSave}
-            variant="contained"
-            color="primary"
-            disabled={actionLoading}
-          >
+          <Button onClick={handleEditSave} variant="contained" color="primary" disabled={actionLoading}>
             Save Changes
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Confirm Dialog */}
       <ConfirmDialog
         open={confirmDialog.open}
         title={confirmDialog.title}
         content={confirmDialog.content}
+        confirmText={confirmDialog.confirmText}
+        confirmColor={confirmDialog.confirmColor}
         onConfirm={confirmDialog.onConfirm}
         onCancel={closeConfirmDialog}
       />
 
-      {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3000}
         onClose={closeSnackbar}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       >
-        <Alert
-          severity={snackbar.severity}
-          onClose={closeSnackbar}
-          variant="filled"
-        >
+        <Alert severity={snackbar.severity} onClose={closeSnackbar} variant="filled">
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      <GenerateReturnPopup 
+        open={openPopup} 
+        onClose={handleClosePopup}
+        onSuccess={handleCancelSuccess}
+      />
     </Box>
   );
 };

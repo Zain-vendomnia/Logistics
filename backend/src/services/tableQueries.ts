@@ -208,7 +208,7 @@ export const LOGIC_ORDER_TABLE = `
     order_id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     shopware_order_id INT NOT NULL UNIQUE,
     order_number VARCHAR(45) NOT NULL,
-    status ENUM('initial', 'unassigned', 'assigned', 'inTransit', 'delivered', 'rescheduled', 'canceled') NOT NULL DEFAULT 'initial',
+    status ENUM('initial', 'unassigned', 'assigned', 'inTransit', 'delivered', 'rescheduled', 'cancelled') NOT NULL DEFAULT 'initial',
     article_sku VARCHAR(255) NULL,
     tracking_code VARCHAR(100) NULL,
     order_status_id INT NULL,
@@ -514,11 +514,12 @@ export const CREATE_CANCELS_ORDER_TABLE = `
     phone VARCHAR(50) DEFAULT NULL,
     latitude DECIMAL(10,7) DEFAULT NULL,
     longitude DECIMAL(10,7) DEFAULT NULL,
-    status ENUM('initial', 'unassigned', 'assigned', 'inTransit', 'delivered', 'rescheduled', 'canceled') DEFAULT 'initial',
+    status ENUM('initial', 'unassigned', 'assigned', 'inTransit', 'delivered', 'rescheduled', 'Cancelled') DEFAULT 'initial',
     article_sku	 VARCHAR(255) DEFAULT NULL,
     tracking_code VARCHAR(100) DEFAULT NULL,
     order_status_id INT DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    user_id INT DEFAULT NULL,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
   );
 `;

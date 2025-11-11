@@ -16,7 +16,7 @@ interface OrderItemRow extends RowDataPacket {
 interface FetchOrderItemsResult {
   found: boolean;
   delivered?: boolean;
-  canceled?: boolean;
+  Cancelled?: boolean;
   status?: string;
   orderItems?: OrderItemRow[];
 }
@@ -41,8 +41,8 @@ export const fetchOrderItems = async (
     const orderStatus = (orderRows[0].status as string).toLowerCase();
 
     // 🧩 Step 2: Check if the order is cancelled
-    if (orderStatus === "cancelled" || orderStatus === "canceled") {
-      return { found: true, canceled: true, status: orderStatus };
+    if (orderStatus === "cancelled" || orderStatus === "Cancelled") {
+      return { found: true, Cancelled: true, status: orderStatus };
     }
 
     // 🧩 Step 3: Allow only delivered orders
