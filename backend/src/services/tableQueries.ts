@@ -138,7 +138,7 @@ export const CREATE_TOUR_INFO_MASTER_TABLE = `
     notice VARCHAR(255) NOT NULL,
   
     tour_status ENUM('pending', 'live', 'confirmed', 'completed') DEFAULT 'pending',
-    created_by VARCHAR(45) NOT NULL,
+    created_by VARCHAR(45) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_by VARCHAR(45) NULL,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
@@ -208,7 +208,7 @@ export const LOGIC_ORDER_TABLE = `
     order_id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     shopware_order_id INT NOT NULL UNIQUE,
     order_number VARCHAR(45) NOT NULL,
-    status ENUM('initial', 'unassigned', 'assigned', 'inTransit', 'delivered', 'rescheduled', 'canceled') NOT NULL DEFAULT 'initial',
+    status ENUM('initial', 'unassigned', 'assigned', 'inTransit', 'delivered', 'rescheduled', 'cancelled') NOT NULL DEFAULT 'initial',
     article_sku VARCHAR(255) NULL,
     tracking_code VARCHAR(100) NULL,
     order_status_id INT NULL,
@@ -492,9 +492,9 @@ export const CREATE_ORDER_IMAGES_TABLE = `
   );
 `;
 
-export const CREATE_RETURNS_ORDER_TABLE = `
-  CREATE TABLE IF NOT EXISTS returns_order (
-    return_id INT AUTO_INCREMENT PRIMARY KEY,
+export const CREATE_CANCELS_ORDER_TABLE = `
+  CREATE TABLE IF NOT EXISTS cancels_order (
+    id INT AUTO_INCREMENT PRIMARY KEY,
     order_id INT DEFAULT NULL,
     shopware_order_id INT DEFAULT NULL,
     order_number VARCHAR(50) NOT NULL,
@@ -514,22 +514,23 @@ export const CREATE_RETURNS_ORDER_TABLE = `
     phone VARCHAR(50) DEFAULT NULL,
     latitude DECIMAL(10,7) DEFAULT NULL,
     longitude DECIMAL(10,7) DEFAULT NULL,
-    status ENUM('initial', 'unassigned', 'assigned', 'inTransit', 'delivered', 'rescheduled', 'canceled') DEFAULT 'initial',
+    status ENUM('initial', 'unassigned', 'assigned', 'inTransit', 'delivered', 'rescheduled', 'Cancelled') DEFAULT 'initial',
     article_sku	 VARCHAR(255) DEFAULT NULL,
     tracking_code VARCHAR(100) DEFAULT NULL,
     order_status_id INT DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    user_id INT DEFAULT NULL,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
   );
 `;
 
-export const CREATE_RETURNS_ORDER_ITEMS_TABLE = `
-  CREATE TABLE IF NOT EXISTS returns_order_items (
+export const CREATE_CANCELS_ORDER_ITEMS_TABLE = `
+  CREATE TABLE IF NOT EXISTS cancels_order_items (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    return_id INT NOT NULL,
+    cancel_id INT NOT NULL,
     article_sku VARCHAR(255) NOT NULL,
     quantity INT NOT NULL,
-    return_quantity INT DEFAULT 0,
+    cancel_quantity INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
   );

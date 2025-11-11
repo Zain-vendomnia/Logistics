@@ -21,8 +21,8 @@ import TourTracesSetup from "../../config/initialDBSetup/tourTracesSetup";
 import deliveryCostRatesSetup from "../../config/initialDBSetup/deliveryCostRatesSetup";
 import deliveryCostPerTourSetup from "../../config/initialDBSetup/deliveryCostPerTourSetup";
 import OrderImagesSetup from "../../config/initialDBSetup/orderImagesSetup";
-import returnsSetup from "../../config/initialDBSetup/returnsOrderSetup";
-import returnsOrderItemsSetup from "../../config/initialDBSetup/returnsOrderItemsSetup";
+import cancelsOrderSetup from "../../config/initialDBSetup/cancelsOrderSetup";
+import cancelsOrderItemsSetup from "../../config/initialDBSetup/cancelsOrderItemsSetup";
 
 export async function runInitialDbSetup() {
   await initialSetup();
@@ -48,6 +48,6 @@ export async function runInitialDbSetup() {
   await deliveryCostRatesSetup();
   await deliveryCostPerTourSetup();
   await OrderImagesSetup();
-  await returnsSetup();
-  await returnsOrderItemsSetup();
+  await cancelsOrderSetup();
+  await cancelsOrderItemsSetup();
 }

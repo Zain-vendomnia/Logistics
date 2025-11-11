@@ -325,7 +325,7 @@ const CreateTourModal = ({
         </Stack>
 
         <Stack direction="row" spacing={2} justifyContent="flex-end" mt={4}>
-          <Button onClick={handleClose} variant="outlined" sx={getButtonSx()}>
+          <Button onClick={handleClose} variant="contained" sx={getButtonSx()}>
             Cancel
           </Button>
           <Button

@@ -12,7 +12,7 @@ export enum OrderStatus {
   inTransit = "inTransit",
   delivered = "delivered",
   rescheduled = "rescheduled",
-  canceled = "canceled",
+  Cancelled = "Cancelled",
 }
 
 export interface LogisticOrder {

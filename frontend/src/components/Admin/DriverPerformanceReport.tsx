@@ -451,7 +451,7 @@ const DriverPerformanceReport: React.FC<DriverPerformanceReportProps> = ({
                 })} at {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                Logistics Management System © 2025
+                Sunniva Logistics Management System © 2025
               </Typography>
             </Box>
           </Box>

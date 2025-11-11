@@ -108,7 +108,7 @@ const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
           icon: <Leaderboard />,
           path: "/driver_performance",
         },
-        { text: "Returns", icon: <AssignmentReturn />, path: "/returns" },
+        { text: "Cancel", icon: <AssignmentReturn />, path: "/cancel" },
         { text: "Dynamic Tours", icon: <Moving />, path: "/mapboard/dynamic" },
         { text: "Logs", icon: <Moving />, path: "/logs" },
       ];
