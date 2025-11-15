@@ -2,6 +2,7 @@ export const CREATE_WAREHOUSE_DETAILS_TABLE = `
 CREATE TABLE IF NOT EXISTS warehouse_details (
     warehouse_id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     warehouse_name VARCHAR(100) NOT NULL,
+    loading_weight_kg INT UNSIGNED DEFAULT 1350,
     clerk_name VARCHAR(45) NOT NULL,
     clerk_mob VARCHAR(20) NOT NULL,
     address VARCHAR(110) NOT NULL,

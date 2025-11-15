@@ -462,8 +462,8 @@ export async function persistTourCostMatrixAsync(
           personnel_tour_cost, total_cost,
           delivery_cost_per_stop, delivery_cost_per_bkw, delivery_cost_per_slmd,
           total_distance_km, total_duration_hrs, total_weight_kg,
-          warehouse_tour_cost, infeed_tour_cost, we_tour_cost, wa_tour_cost
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0)
+          warehouse_tour_cost
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
       `;
       params = [
         tourId,
@@ -704,4 +704,42 @@ export async function estimateTourCostMatrixAsync(
   } as TourMatrix;
 
   // return undefined;
+}
+
+export async function removeTourMatrix(
+  tourId: number,
+  type: TourType = TourType.dynamicTour
+): Promise<boolean> {
+  try {
+    const idColumn =
+      type === TourType.masterTour ? "tour_id" : "dynamic_tour_id";
+
+    // First, verify if the matrix exists
+    const [rows]: any = await pool.execute(
+      `SELECT id FROM delivery_cost_per_tour WHERE ${idColumn} = ?`,
+      [tourId]
+    );
+
+    if (!rows || rows.length === 0) {
+      throw new Error(
+        `No tour matrix found for tourId ${tourId} [Tour Type: ${type}]`
+      );
+    }
+
+    // Proceed with deletion
+    const [result]: any = await pool.execute(
+      `DELETE FROM delivery_cost_per_tour WHERE ${idColumn} = ?`,
+      [tourId]
+    );
+
+    if (result.affectedRows === 0) {
+      throw new Error(`Failed to delete tour matrix for tourId ${tourId}`);
+    }
+
+    logger.info(`Tour matrix deleted successfully for tourId ${tourId}`);
+    return true;
+  } catch (error) {
+    logger.error(`Error deleting Tour Matrix for tourId ${tourId}:`, error);
+    throw error;
+  }
 }

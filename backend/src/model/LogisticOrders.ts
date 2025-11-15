@@ -460,8 +460,7 @@ export class LogisticOrder {
         status: raw.status,
         parent_order_id: raw.parent_order_id,
 
-        payment_id: raw.payment_id,
-
+        // payment_id: raw.payment_id,
         order_time: raw.order_time,
         expected_delivery_time: raw.expected_delivery_time,
 
@@ -581,7 +580,7 @@ export async function get_LogisticsOrdersAddress(orderIds: number[]) {
     `SELECT order_id, order_number, street, city, zipcode FROM logistic_order WHERE order_id IN (${placeholders})`,
     orderIds
   );
-  console.log("Orders Addresses:", orderRows);
+  // console.log("Orders Addresses:", orderRows);
 
   return orderRows;
 }
