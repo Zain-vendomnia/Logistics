@@ -11,8 +11,8 @@ const SECTOR_ANGLE_RAD = (SECTOR_ANGLE_DEG * Math.PI) / 180;
 // const MATRIX_RETRY = 2;
 // const MATRIX_RETRY_DELAY_MS = 1000;
 
-const MIN_ORDERS = 10;
-const MAX_CLUSTER_SIZE = 20;
+const MIN_ORDERS = 4;
+const MAX_CLUSTER_SIZE = 7;
 const CLOSE_TO_DISTANCE_KM = 25; // between consecutive orders (your local value)
 const TIME_WINDOW_HOURS = 10;
 // const MAX_TOUR_DISTANCE_METERS = 600 * 1000; // 600 km -> meters

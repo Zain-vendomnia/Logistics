@@ -42,6 +42,29 @@ export interface Driver {
   email: string;
 }
 
+export type CreateTour = {
+  dTour_id?: number;
+  dTour_name?: string;
+  tourDate: string;
+  startTime: string;
+  comments: string | null;
+  routeColor: string;
+  orderIds: number[];
+  driverId: number;
+  warehouseId: number;
+  userId?: string;
+  created_by?: string;
+  updated_by?: string;
+  type?:string;
+};
+
+export type UpdateTourOrders = {
+  Tour_id?: number;
+  Order_ids?: number[];
+  updated_by?:string;
+  warehouseId?:number;
+};
+
 // export type Order = {
 //   order_id: number;
 //   order_number: string;

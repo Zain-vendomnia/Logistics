@@ -333,7 +333,7 @@ export async function acceptDynamicTourAsync(
     const { tourId, tourName } = await createTourAsync(connection, tourPayload); //>>
 
     const hereMap_data = JSON.stringify(dTour.tour_data);
-    const hereMap_route = JSON.stringify(routes);
+    const hereMap_route = JSON.stringify(dTour?.tour_route);
     await tourInfo_master.updateHereMapResponse(
       connection,
       tourId,

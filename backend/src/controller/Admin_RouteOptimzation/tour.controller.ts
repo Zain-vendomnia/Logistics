@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { deleteTours, updateTour } from "../../model/tourModel";
+import { deleteTours, updateTour, updateTourOrders} from "../../model/tourModel";
 import { tourInfo_master } from "../../model/TourinfoMaster";
 // import { createRoutedata } from "../../services/createRoutedata";
 import { route_segments } from "../../model/routeSegments";
@@ -9,6 +9,7 @@ import { ResultSetHeader } from "mysql2";
 import {
   getTourDetailsById,
   getTourMapDataAsync,
+  getUpdatedTourMapData,
 } from "../../services/tour.service";
 import { logWithTime } from "../../utils/logging";
 
@@ -165,6 +166,51 @@ export const updateTourController = async (req: Request, res: Response) => {
     res.status(500).json({
       message: "Error updating tour",
       error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
+export const updateTourOrdersController = async (req: Request, res: Response) => {
+  const { Tour_id, Order_ids, warehouseId, updated_by } =
+    req.body;
+   
+    // return req.body;
+  if (!Tour_id) {
+    return res.status(400).json({ message: "Tour ID is required for update" });
+  }
+
+  if (
+    !Order_ids
+  ) {
+    return res
+      .status(400)
+      .json({ message: "Order IDs are required for the update" });
+  }
+
+  try {
+
+    const tourPayload = {tour_id: Tour_id, order_ids: Order_ids, updated_by:updated_by, warehouseId:warehouseId };
+
+    const mapData = await getUpdatedTourMapData(tourPayload);
+    if (!mapData) {
+      res.status(500).json({ message: "Failed to Edit the tour" });
+    }
+
+    const result = await updateTourOrders(tourPayload);
+
+    const affectedRows = (result as ResultSetHeader).affectedRows;
+
+    if (affectedRows > 0) {
+      return res.status(200).json({ message: "Tour updated successfully" });
+    } else {
+      return res
+        .status(404)
+        .json({ message: "Tour not found or no changes made" });
+    }
+  } catch (error) {
+    res.status(500).json({
+      message: "Error updating tour",
+      // error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 };

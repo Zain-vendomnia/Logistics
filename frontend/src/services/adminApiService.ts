@@ -6,6 +6,7 @@ import {
   DynamicTourPayload,
   DynamicTourRes,
   rejectDynamicTour_Req,
+  TourPayload,
 } from "../types/tour.type";
 import { Order } from "../types/order.type";
 import { WarehouseDetails } from "../types/dto.type";
@@ -42,11 +43,16 @@ const fetchOrdersWithItems = async (orderIds: string): Promise<Order[]> => {
   return res.data as Order[];
 };
 
-const getTour = (tourId: number) =>
-  axios.get(`${API_BaseUrl}getTour`, {
+const getTour = async (tourId: number) =>
+{
+  const tourObject = await axios.get(`${API_BaseUrl}getTour`, {
     headers: authHeader(),
     params: { tourId },
   });
+
+  return tourObject.data as TourPayload;
+
+}
 
 const getWarehouse = async (id: number): Promise<WarehouseDetails> => {
   const res = await axios.get(`${API_BaseUrl}getWarehouse/${id}`, {
@@ -58,6 +64,7 @@ const getWarehouse = async (id: number): Promise<WarehouseDetails> => {
 
 const createTour = (tourData: CreateTour_Req) =>
   axios.post(`${API_BaseUrl}createtour`, tourData, { headers: authHeader() });
+
 
 const createtourHereApi = (tourDatas: CreateTour_Req) => {
   console.log("tourDatas Received:", tourDatas);
@@ -106,7 +113,14 @@ const fetchRouteSegmentData = (tour_id: number) =>
   };
 
 
-const updateTour = (tourData: Record<string, any>) =>
+// Update Single Tour Call
+const updateTourOrders = (tourData: Record<string, any>) =>{
+
+  return axios.put(`${API_BaseUrl}updateTourOrders`, tourData, { headers: authHeader() });
+}
+
+
+  const updateTour = (tourData: Record<string, any>) =>
   axios.put(`${API_BaseUrl}updateTour`, tourData, { headers: authHeader() });
 
 const getOrderCount = async (): Promise<number> => {
@@ -317,6 +331,7 @@ const adminApiService = {
   exportTours,
   fetchRouteSegmentData,
   updateTour,
+  updateTourOrders,
   getOrderCount,
   sendEmail,
   fetchAlltourstatushistory,

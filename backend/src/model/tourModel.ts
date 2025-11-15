@@ -9,7 +9,10 @@ export const createTourAsync = async (
   tour: CreateTour
 ) => {
   logWithTime("[Create Tour Initiated]");
+
   try {
+
+    
     // 1. Get Driver: name, userId, active status
     const [driverUserRows]: any = await connection.query(
       `SELECT u.is_active, d.name
@@ -60,7 +63,8 @@ export const createTourAsync = async (
       tour.tourDate,
       JSON.stringify(tour.orderIds),
       tour.warehouseId,
-      tour.userId,
+      // tour.userId,
+      1
     ];
 
     console.log("[tourModel] Creating tour with values:", insertValues);
@@ -275,6 +279,46 @@ export const updateTour = async (tourData: any) => {
       WHERE tour_id = ?
     `;
     await connection.query(updateDriverQuery, [driverid, tourDate, id]);
+
+    await connection.commit();
+    return tourinfoResult;
+  } catch (error: unknown) {
+    await connection.rollback();
+
+    if (error instanceof Error) {
+      console.error("[updateTour] Error:", error.message);
+      throw error;
+    } else {
+      console.error("[updateTour] Unknown error:", error);
+      throw new Error("An unknown error occurred while updating the tour.");
+    }
+  } finally {
+    connection.release();
+  }
+};
+
+// Service function
+export const updateTourOrders = async (tourData: any) => {
+  const { tour_id, order_ids,updated_by } =
+    tourData;
+
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    // 1. Update tourinfo_master
+    const updateTourinfoQuery = `
+      UPDATE tourinfo_master 
+      SET order_ids = ?, updated_by = ? 
+      WHERE id = ?
+    `;
+    const [tourinfoResult] = await connection.query(updateTourinfoQuery, [
+       JSON.stringify(order_ids),
+      updated_by,
+      tour_id,
+    ]);
+
 
     await connection.commit();
     return tourinfoResult;

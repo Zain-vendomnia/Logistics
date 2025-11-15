@@ -137,6 +137,7 @@ adminRouter.post("/routeoptimize/createtourHereApi", runTourController);
 adminRouter.get("/routeoptimize/getAlltours", getAllTourController);
 adminRouter.get("/routeoptimize/tourcount", TourCtrl.getTourcountcheck);
 adminRouter.put("/routeoptimize/updateTour", TourCtrl.updateTourController);
+adminRouter.put("/routeoptimize/updateTourOrders", TourCtrl.updateTourOrdersController);
 adminRouter.delete("/routeoptimize/deleteTours", TourCtrl.deleteTourController);
 adminRouter.post("/routeoptimize/exportTours", ExportTourController);
 adminRouter.post(

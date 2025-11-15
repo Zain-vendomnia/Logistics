@@ -13,6 +13,14 @@ export type CreateTour = {
   warehouseId: number;
   userId?: string;
   created_by?: string;
+  updated_by?:string;
+};
+
+export type UpdateTourOrders = {
+  Tour_id?: number;
+  Order_ids?: number[];
+  updated_by?:string;
+  warehouseId?:number;
 };
 
 export type rejectDynamicTour_Req = {

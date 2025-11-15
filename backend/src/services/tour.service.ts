@@ -29,7 +29,10 @@ export async function getTourMapDataAsync(tourPayload: CreateTour) {
       tourPayload.orderIds,
       tourPayload.warehouseId
     );
-    const routes = await getRouteSegments_mapApi(tour);
+    const SegmentRoutes = await getRouteSegments_mapApi(tour);
+    const routes = await hereMapService.getRoutesForTour(tour);
+    if (!routes)
+      throw new Error("Null Response from Here Map - Routes creation");
 
     await connection.beginTransaction();
 
@@ -45,7 +48,7 @@ export async function getTourMapDataAsync(tourPayload: CreateTour) {
       hereMap_route
     );
 
-    await saveRouteSegments(connection, tourId, routes);
+    await saveRouteSegments(connection, tourId, SegmentRoutes);
 
     const { unassignedOrderIds } = await updateTourOrdersStatus(
       connection,
@@ -74,6 +77,73 @@ export async function getTourMapDataAsync(tourPayload: CreateTour) {
 
     return {
       tour: tourName,
+      routes,
+      notAssigned,
+      unassigned: unassignedOrders.map((o) => o.order_number).join(","),
+    };
+  } catch (error) {
+    await connection.rollback();
+
+    console.error("Transaction failed - Tour Creation:", error);
+    throw new Error(`Tour creation failed ${(error as Error).message}`);
+  } finally {
+    connection.release();
+  }
+}
+
+export async function getUpdatedTourMapData(tourPayload:any) {
+  const connection = await pool.getConnection();
+
+  try {
+    const { tour, unassigned } = await hereMapService.CreateTourRouteAsync(
+      tourPayload.order_ids,
+      tourPayload.warehouseId
+    );
+    const SegmentRoutes = await getRouteSegments_mapApi(tour);
+    const routes = await hereMapService.getRoutesForTour(tour);
+    if (!routes)
+      throw new Error("Null Response from Here Map - Routes creation");
+
+    await connection.beginTransaction();
+
+    const hereMap_data = JSON.stringify({ tour, unassigned });
+    const hereMap_route = JSON.stringify(routes);
+    await tourInfo_master.updateHereMapResponse(
+      connection,
+      tourPayload.tour_id,
+      hereMap_data,
+      hereMap_route
+    );
+
+    await saveRouteSegments(connection, tourPayload.tour_id, SegmentRoutes);
+
+    const { unassignedOrderIds } = await updateTourOrdersStatus(
+      connection,
+      tourPayload.tour_id,
+      tourPayload.order_ids,
+      unassigned
+    );
+
+    await connection.commit();
+
+    // Prepare res
+    const unassignedOrders = await LogisticOrder.getOrdersByIds(
+      unassignedOrderIds
+    );
+    const notAssigned: NotAssigned[] = unassigned.map((u) => {
+      const id = u.jobId.split("_")[1];
+      const matchedOrder = unassignedOrders.find(
+        (order) => order.order_id === Number(id)
+      );
+      return {
+        id,
+        orderNumber: matchedOrder?.order_number || null,
+        reason: u.reasons,
+      };
+    });
+
+    return {
+      tour: tourPayload.tour_id,
       routes,
       notAssigned,
       unassigned: unassignedOrders.map((o) => o.order_number).join(","),

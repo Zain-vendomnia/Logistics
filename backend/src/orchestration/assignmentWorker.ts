@@ -19,7 +19,7 @@ import { haversineKm } from "../helpers/tour.helper";
 // const SECTOR_ANGLE_RAD = (SECTOR_ANGLE_DEG * Math.PI) / 180;
 const MATRIX_CONCURRENCY = 7; // Concurrent calls
 
-const MIN_ORDERS = 10;
+const MIN_ORDERS = 4;
 // const MAX_CLUSTER_SIZE = 32;
 const CLOSE_TO_DISTANCE_KM = 25; // between consecutive orders (your local value)
 const TIME_WINDOW_HOURS = 10;

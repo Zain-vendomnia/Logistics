@@ -92,10 +92,12 @@ const DynamicTourOrderDetails = ({ order }: Props) => {
             size="small"
             aria-label="a dense table"
           >
-            <TableRow>
-              <TableCell sx={{ fontSize: fontsize }}>Article</TableCell>
-              <TableCell sx={{ fontSize: fontsize }}>Quantity</TableCell>
-            </TableRow>
+            <TableBody>
+              <TableRow>
+                <TableCell sx={{ fontSize: fontsize }}>Article</TableCell>
+                <TableCell sx={{ fontSize: fontsize }}>Quantity</TableCell>
+              </TableRow>
+            </TableBody>
             <TableBody>
               {ItemRows.map((row, idx) => (
                 <TableRow key={idx}>

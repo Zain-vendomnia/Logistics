@@ -194,7 +194,6 @@ const DymanicMapBoard = () => {
     // }, []);
   }, [isLoading, vehicleTours]);
 
-// important
   // mapRef to selected tour
   useEffect(() => {
     if (!selectedTour || !selectedTour.tour_route || !mapRef.current) return;

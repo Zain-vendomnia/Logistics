@@ -181,3 +181,28 @@ export type rejectDynamicTour_Req = {
   userId: string;
   reason: string;
 };
+
+export interface TourPayload {
+  id?: number;
+  tour_name?: string;
+  tour_route?: Geometry | null; // object;
+  orderIds: string; // Comma-separated
+  totalOrdersItemsQty: number;
+
+  total_weight_kg?: number;
+  toal_distance_km?: number;
+  total_duration_hrs?: number;
+
+  warehouse_id: number;
+  warehouse_name?: string;
+  warehouse_colorCode?: string;
+
+  created_at?: string | null;
+  updated_at?: string | null;
+  updated_by?: string | null;
+
+  approved_by?: string | null;
+  approved_at?: string | null;
+
+  matrix?: TourMatrix;
+}

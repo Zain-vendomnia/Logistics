@@ -431,14 +431,14 @@ const AdminTourTemplates = () => {
         <Stack direction="row" spacing={1} alignItems="center" height="100%">
           <Button
             variant="outlined"
-            onClick={() => navigate(`/Admin_TourMapView/${row.id}`)}
+            onClick={() => navigate(`/tourmapboard/${row.id}`)}
             size='small'
             sx={(theme) => ({
               padding: '8px 24px',
               borderRadius: '4px',
               textTransform: 'none',
               fontWeight: '500',
-              background: theme.palette.primary.gradient,
+              background: theme.palette.primary.main,
               color: "#fff",
               transition: "all 0.3s ease",
               "&:hover": {
