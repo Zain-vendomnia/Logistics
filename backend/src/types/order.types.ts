@@ -20,10 +20,18 @@ export type OrderItem = {
   warehouse_id?: string;
 };
 
+export enum OrderType {
+  NORMAL = "normal",
+  CANCELLED = "cancelled",
+  URGENT = "urgent",
+}
+
 export type Order = {
   order_id: number;
   order_number: string;
   status: OrderStatus;
+
+  type: OrderType;
 
   order_time: Date;
   expected_delivery_time: Date;
@@ -46,6 +54,7 @@ export type Order = {
   location: { lat: number; lng: number };
 
   created_at?: Date;
+  updated_at?: Date;
 
   article_sku?: string;
   invoice_amount?: string;

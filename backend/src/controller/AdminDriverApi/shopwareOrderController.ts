@@ -2,7 +2,7 @@
 import { Request, Response } from "express";
 import { emitNewOrder } from "../../socket/tourPlanning.socket";
 import { LogisticOrder, OrderStatus } from "../../model/LogisticOrders";
-import { Order } from "../../types/order.types";
+import { Order, OrderType } from "../../types/order.types";
 
 // function randomOffset(maxOffset = 0.009) {
 //   return (Math.random() * 2 - 1) * maxOffset;
@@ -35,7 +35,8 @@ export async function newShopOrder(_req: Request, res: Response) {
       order_id: Number(id),
       order_number: String(newOrderNumber),
       status: OrderStatus.initial,
-
+      type: OrderType.NORMAL,
+      
       city: orderData.city,
       zipcode: orderData.zipcode,
       street: orderData.street,

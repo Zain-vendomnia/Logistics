@@ -7,6 +7,7 @@ import {
   getRouteSegments_mapApi,
   getTourMatrix,
   saveRouteSegments,
+  removeTourMatrix,
 } from "./tour.service";
 
 import { createTourAsync } from "../model/tourModel";
@@ -434,6 +435,8 @@ export async function rejectDynamicTourAsync(payload: rejectDynamicTour_Req) {
     console.log("Updated status for unassigned orders:", isUpdated);
 
     await connection.commit();
+
+    removeTourMatrix(payload.tour_id);
 
     return true;
   } catch (error) {

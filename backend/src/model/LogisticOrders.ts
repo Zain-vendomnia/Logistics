@@ -1,7 +1,12 @@
 import { ResultSetHeader, RowDataPacket } from "mysql2";
 import pool from "../config/database";
 import { CheckOrderCount } from "../types/dto.types";
-import { Order, OrderDetails, OrderItem } from "../types/order.types";
+import {
+  Order,
+  OrderDetails,
+  OrderItem,
+  OrderType,
+} from "../types/order.types";
 import { PoolConnection } from "mysql2/promise";
 import { geocode } from "../services/hereMap.service";
 import { Location } from "../types/hereMap.types";
@@ -321,6 +326,7 @@ export class LogisticOrder {
       order_id: raw.order_id,
       order_number: raw.order_number,
       status: raw.status,
+      type: OrderType.NORMAL,
 
       // payment_id: raw.payment_id,
       article_sku: raw.article_sku,
@@ -474,9 +480,9 @@ export class LogisticOrder {
         order_id: raw.order_id,
         order_number: raw.order_number,
         status: raw.status,
+        type: OrderType.NORMAL,
 
-        payment_id: raw.payment_id,
-
+        // payment_id: raw.payment_id,
         order_time: raw.order_time,
         expected_delivery_time: raw.expected_delivery_time,
 
@@ -581,11 +587,19 @@ export class LogisticOrder {
         return acc + itemWeight;
       }, 0);
 
+      const now = Date.now();
+      const dueby_fiveDays = now + 5 * 24 * 3600 * 1000;
+      const isUrgent =
+        order.expected_delivery_time &&
+        new Date(order.expected_delivery_time).getTime() >= dueby_fiveDays;
+      const orderType = isUrgent ? OrderType.URGENT : OrderType.NORMAL;
+
       return {
         ...order,
         quantity: quantity,
         article_order_number: article_order_number,
         weight_kg: totalWeight,
+        type: orderType,
         items: (items as any[])
           .filter((item) => item.order_id === order.order_id)
           .map((item) => ({
@@ -659,7 +673,7 @@ export async function get_LogisticsOrdersAddress(orderIds: number[]) {
     `SELECT order_id, order_number, street, city, zipcode FROM logistic_order WHERE order_id IN (${placeholders})`,
     orderIds
   );
-  console.log("Orders Addresses:", orderRows);
+  // console.log("Orders Addresses:", orderRows);
 
   return orderRows;
 }

@@ -69,6 +69,7 @@ export const getWarehouseWithVehicles = async (
   return {
     id: rows[0].warehouse_id,
     name: rows[0].warehouse_name,
+    loadingWeightKg: rows[0].loading_weight_kg,
     clerkName: rows[0].clerk_name,
     clerkMob: rows[0].clerk_mob,
     address: rows[0].address,
@@ -118,6 +119,7 @@ export const getActiveWarehousesWithVehicles = async (): Promise<
       warehouses.set(rows[i].warehouse_id, {
         id: rows[i].warehouse_id,
         name: rows[i].warehouse_name,
+        loadingWeightKg: rows[i].loading_weight_kg,
         clerkName: rows[i].clerk_name,
         clerkMob: rows[i].clerk_mob,
         address: rows[i].address,
@@ -178,7 +180,6 @@ export const updateWarehouse = async (
   id: number,
   warehouse: Warehouse
 ): Promise<boolean> => {
-
   console.log("===== Update Warehouse Service =====");
   console.log("Warehouse Data:", warehouse);
   console.log("===================================");
@@ -228,7 +229,6 @@ export const updateWarehouse = async (
     if (connection) connection.release();
   }
 };
-
 
 // Disable single warehouse
 export const disableWarehouse = async (
