@@ -35,6 +35,7 @@ const CANCEL_ORDER_BASE_QUERY = `
     co.order_number,
     co.status,
     co.warehouse_id,
+    wd.town AS warehouse_town,
     CONCAT(co.street, ', ', co.city, ', ', co.zipcode) AS address,
     CONCAT(co.firstname, ' ', co.lastname) AS customer_name,
     co.phone AS contact_number,
@@ -46,6 +47,7 @@ const CANCEL_ORDER_BASE_QUERY = `
     (SELECT COALESCE(SUM(cancel_quantity), 0) FROM cancels_order_items WHERE cancel_id = co.id) AS total_cancelled_qty
   FROM cancels_order co
   LEFT JOIN users u ON co.user_id = u.user_id
+  LEFT JOIN warehouse_details wd ON co.warehouse_id = wd.warehouse_id
 `;
 
 /**
@@ -56,6 +58,7 @@ const mapCancelOrderRow = (order: RowDataPacket): Partial<CancelOrder> => ({
   order_number: order.order_number,
   status: order.status,
   warehouse_id: order.warehouse_id,
+  warehouse_town: order.warehouse_town,
   phone: order.contact_number,
   email: order.email,
   created_at: order.created_at,

@@ -14,7 +14,7 @@ import warehouseDetailsSetup from "../../config/initialDBSetup/warehouseDetailsS
 import vahicleDetailsSetup from "../../config/initialDBSetup/vehicleDetailsSetup";
 import WMSOrderSetup from "../../config/initialDBSetup/wms_orders";
 import WMSOrderArticlesSetup from "../../config/initialDBSetup/wms_order_articles";
-import WhatsappChatsSetup from "../../config/initialDBSetup/whatsappChat";
+import CustomerChatsSetup from "../../config/initialDBSetup/customerChat";
 import NotificationsTrackSetup from "../../config/initialDBSetup/notifications_track";
 import DynamicTourSetup from "../../config/initialDBSetup/dynamicTourSetup";
 import TourTracesSetup from "../../config/initialDBSetup/tourTracesSetup";
@@ -41,7 +41,7 @@ export async function runInitialDbSetup() {
   await routeUpdatesSetup();
   await apiResponseLogSetup();
   await solarItemsSetup();
-  await WhatsappChatsSetup();
+  await CustomerChatsSetup();
   await NotificationsTrackSetup();
   await DynamicTourSetup();
   await TourTracesSetup();

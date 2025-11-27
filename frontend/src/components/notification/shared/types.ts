@@ -1,31 +1,58 @@
 // /shared/types.ts
-// Optimized type definitions - single source of truth
+// Type definitions for customer list and multi-channel communication
+
+// ==========================================
+// API RESPONSE
+// ==========================================
+
+export interface ApiResponse<T = any> {
+  status: 'success' | 'error' | 'warning';
+  message: string;
+  data: T;
+}
 
 // ==========================================
 // CORE INTERFACES
 // ==========================================
 
-// Consolidated Customer interface - single version for all components
 export interface Customer {
-  // Required core properties
   order_id: number;
-  name: string;
-  status: CustomerStatus;
-  unreadCount: number;
-  
-  // Optional messaging properties
-  lastMessage?: string;
-  avatar?: string;
-  lastActive?: string;
-  timestamp?: string;
-  
-  // Optional contact/order data
-  phone?: string;
   order_number?: string;
-  message_type?: MessageType;
+  name: string;
+  phone?: string;
+  email?: string;
+  status?: string;
+  // Multi-channel fields
+  last_message?: string;
+  last_message_time?: string;
+  last_message_at?: string; // New field from database
+  last_channel?: 'whatsapp' | 'sms' | 'email' | 'none' | null;
+  last_communication_channel?: 'whatsapp' | 'sms' | 'email' | 'none'; // New field from database
+  unread_count?: number;
+  has_unread?: boolean; // New field - indicates if customer has unread messages
 }
 
-// Message interface - moved from messageService to fix circular dependency
+// ==========================================
+// COMPONENT PROPS
+// ==========================================
+
+export interface CustomerListProps {
+  customers: Customer[];
+  selectedCustomerId: number | null;
+  onSelectCustomer: (id: number) => void;
+  totalUnreadCount?: number;
+}
+
+export interface ChatWindowProps {
+  customer: Customer;
+  orderId: number;
+  onClose?: () => void; 
+}
+
+// ==========================================
+// MESSAGE INTERFACES
+// ==========================================
+
 export interface Message {
   id: string;
   order_id: number;
@@ -34,32 +61,35 @@ export interface Message {
   body: string;
   sender: string;
   content: string;
+  message: string; // Alternative field name
   direction: 'inbound' | 'outbound';
-  message_type: 'text' | 'file';
+  message_type: 'text' | 'file' | 'media';
+  communication_channel: 'whatsapp' | 'sms' | 'email'; // Multi-channel support
   created_at: string;
   updated_at?: string;
   delivery_status: DeliveryStatus;
+  status?: string; // Alternative field name
   is_read: number;
   timestamp: string;
   type: MessageType;
   fileName?: string;
   twilio_sid?: string | null;
+  message_id?: string;
   fileUrl?: string;
   fileType?: string;
   errorCode?: string;
   errorMessage?: string;
+  error_code?: string | null;
+  error_message?: string | null;
   readAt?: string | null;
-}
-
-// Request/Response interfaces
-export interface MessageRequest {
-  sender: string;
-  content: string;
-  type: 'text' | 'file';
-  phone_number: number;
-  fileName?: string;
-  fileUrl?: string;
-  fileType?: string;
+  read_at?: string | null;
+  send_user_id?: number;
+  media_url?: string | null;
+  media_content_type?: string | null;
+  error?: {
+    code: string;
+    message: string;
+  };
 }
 
 export interface MessageUpdate {
@@ -67,63 +97,67 @@ export interface MessageUpdate {
   message: Message;
 }
 
-export interface MessageStatusUpdate {
-  messageId: string;
-  update: {
-    delivery_status?: string;
-    twilio_sid?: string;
-  };
-}
-
-export interface SendMessageResponse {
-  success: boolean;
-  status?: 'success' | 'error';
-  message?: Message;
-  error?: string;
-  twilioStatus?: string;
-}
-
-// ==========================================
-// FILTER & STATS INTERFACES
-// ==========================================
-
-export interface FilterOptions {
-  showUnreadOnly: boolean;
-  statusFilter: 'all' | CustomerStatus;
-}
-
-export interface CustomerStats {
-  total: number;
-  filtered: number;
-  online: number;
-  unread: number;
-}
-
-// ==========================================
-// COMPONENT PROP INTERFACES
-// ==========================================
-
-export interface CustomerListProps {
-  customers: Customer[];
-  selectedCustomerId: number | null;
-  onSelectCustomer: (id: number) => void;
-  searchQuery: string;
-  onSearchChange: (query: string) => void;
-  filters: FilterOptions;
-  onFilterChange: (filters: Partial<FilterOptions>) => void;
-  onClearAll: () => void;
-  stats: CustomerStats;
-}
-
-export interface ChatWindowProps {
-  customer: Customer;
+export interface MessageRequest {
   orderId: number;
+  content: string;
+  type: 'text' | 'file';
+  sender?: string;
+  phone_number?: number;
+  fileName?: string;
+  fileUrl?: string;
+  fileType?: string;
 }
 
 // ==========================================
-// TYPE UNIONS - Simplified
+// ENUMS & TYPES
 // ==========================================
 
-export type CustomerStatus = 'online' | 'offline' | 'away' | 'busy';
 export type MessageType = 'text' | 'image' | 'document' | 'voice' | 'file' | 'video' | 'audio' | 'location' | 'contacts' | 'sticker' | 'unknown';
+
 export type DeliveryStatus = 'pending' | 'sent' | 'delivered' | 'read' | 'failed' | 'sending';
+
+export type CommunicationChannel = 'whatsapp' | 'sms' | 'email' ;
+
+// ==========================================
+// WEBSOCKET EVENT TYPES
+// ==========================================
+
+export interface CustomerListUpdateEvent {
+  customers: Customer[];
+  timestamp: string;
+  triggerReason?: string;
+}
+
+export interface SingleCustomerUpdateEvent {
+  customer: Customer;
+  updateType: 'new_message' | 'status_change' | 'new_customer';
+  timestamp: string;
+  additionalData?: any;
+}
+
+export interface TotalUnreadUpdateEvent {
+  totalUnreadCount: number;
+  timestamp: string;
+}
+
+export interface NewMessageEvent {
+  orderId: number;
+  message: Message;
+  timestamp: string;
+}
+
+export interface MessageStatusUpdateEvent {
+  messageId: string;
+  orderId: number;
+  status: DeliveryStatus;
+  channel?: CommunicationChannel;
+  timestamp: string;
+}
+
+export interface ChannelNotificationEvent {
+  type: 'fallback' | 'channel_switch' | 'delivery_failure';
+  originalChannel: CommunicationChannel;
+  fallbackChannel?: CommunicationChannel;
+  message: string;
+  timestamp: string;
+}

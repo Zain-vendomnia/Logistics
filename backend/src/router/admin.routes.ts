@@ -29,7 +29,7 @@ import { hereMapController } from "../controller/dynamic/hereMapController";
 
 import driverRoutes from "./driver.routes";
 import customerRoutes from "./customers.routes";
-import messagesRoutes from "./messages.routes";
+// import messagesRoutes from "./messages.routes";
 import vehicleRoutes from "./vehicle.routes";
 import warehouseRoutes from "./warehouse.routes";
 import * as dTourControler from "../controller/dynamic/dynamicTour.controller";
@@ -46,7 +46,7 @@ import { shopwareAuth } from "../middlewares/shopwareAuth";
 import { fetchAppLogs } from "../controller/Admin_Api/logs.controller";
 
 const adminRouter = Router();
-adminRouter.use("/messages", messagesRoutes);
+// adminRouter.use("/messages", messagesRoutes);
 
 // Public routes (no authentication required)
 adminRouter.get("/customer/updatelatlng", updatelatlngController);

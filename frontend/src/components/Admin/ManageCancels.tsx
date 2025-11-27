@@ -62,6 +62,7 @@ interface CancelOrder {
   order_number: string;
   status: string;
   warehouse_id: number;
+  warehouse_town: string;
   address: string;
   customer_name: string;
   contact_number: string;
@@ -92,7 +93,7 @@ const ManageCancels = () => {
   const [loadingItems, setLoadingItems] = useState<Set<string>>(new Set());
   
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(25);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const [openPopup, setOpenPopup] = useState(false);
 
@@ -462,10 +463,11 @@ const ManageCancels = () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `cancels_${new Date().toISOString().split("T")[0]}.xlsx`;
+      a.download = `cancels_export_${new Date().toISOString().split("T")[0]}.xlsx`;
       a.click();
       window.URL.revokeObjectURL(url);
-      showSnackbar("Exported successfully!", "success");
+
+      showSnackbar("Export completed successfully!", "success");
     } catch (err: any) {
       console.error("Export error:", err);
       showSnackbar(err.message || "Failed to export data", "error");
@@ -482,7 +484,7 @@ const ManageCancels = () => {
 
   const handleCancelSuccess = () => {
     if (isSearching) {
-      handleClearSearch();
+      handleSearch();
     } else {
       loadOrders();
     }
@@ -490,35 +492,26 @@ const ManageCancels = () => {
 
   const ExpandableRow = ({ order }: { order: CancelOrder }) => {
     const isExpanded = expandedRows.has(order.order_number);
-    const isLoadingItems = loadingItems.has(order.order_number);
     const items = expandedRows.get(order.order_number) || [];
+    const isLoadingItems = loadingItems.has(order.order_number);
 
     return (
       <>
         <TableRow
-          sx={{
-            backgroundColor: isExpanded ? "#fff3e0" : "white",
-            "&:hover": { backgroundColor: "#f5f5f5" },
-            cursor: "pointer",
-          }}
+          hover
           onClick={() => toggleRowExpansion(order.order_number)}
+          sx={{ cursor: "pointer", "&:hover": { backgroundColor: "#f5f5f5" } }}
         >
           <TableCell>
             <Stack direction="row" spacing={1} alignItems="center">
-              <Typography variant="body2" fontWeight={600} color="#ff9800">
+              <Typography variant="body2" fontWeight={600}>
                 {order.order_number}
               </Typography>
-              <Tooltip title="Copy order number" arrow>
+              <Tooltip title="Copy Order Number">
                 <IconButton
                   size="small"
                   onClick={(e) => handleCopyOrderNumber(order.order_number, e)}
-                  sx={{
-                    color: "#90a4ae",
-                    "&:hover": {
-                      color: "#ff9800",
-                      backgroundColor: "#fff3e0",
-                    },
-                  }}
+                  sx={{ color: "#ff9800" }}
                 >
                   <ContentCopy fontSize="small" />
                 </IconButton>
@@ -526,7 +519,9 @@ const ManageCancels = () => {
             </Stack>
           </TableCell>
           <TableCell>
-            <Typography variant="body2">{order.customer_name}</Typography>
+            <Typography variant="body2" fontWeight={500}>
+              {order.customer_name}
+            </Typography>
             <Typography variant="caption" color="text.secondary">
               {order.contact_number}
             </Typography>
@@ -537,15 +532,7 @@ const ManageCancels = () => {
             </Typography>
           </TableCell>
           <TableCell align="center">
-            <Typography variant="body2">WH-{order.warehouse_id}</Typography>
-          </TableCell>
-          <TableCell align="center">
-            <Chip
-              label={order.status}
-              size="small"
-              color="error"
-              sx={{ textTransform: "capitalize", fontWeight: 600 }}
-            />
+            <Typography variant="body2">{order.warehouse_town}</Typography>
           </TableCell>
           <TableCell align="center">
             <Chip
@@ -587,7 +574,7 @@ const ManageCancels = () => {
         </TableRow>
 
         <TableRow>
-          <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={10}>
+          <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={9}>
             <Collapse in={isExpanded} timeout="auto" unmountOnExit>
               <Box sx={{ margin: 2, backgroundColor: "#fafafa", p: 2, borderRadius: 1 }}>
                 <Stack direction="row" spacing={1} alignItems="center" mb={2}>
@@ -613,8 +600,7 @@ const ManageCancels = () => {
                   <Table size="small" sx={{ border: "1px solid #e0e0e0" }}>
                     <TableHead>
                       <TableRow sx={{ backgroundColor: "#90a4ae" }}>
-                        <TableCell sx={{ color: "white", fontWeight: 600 }}>Item ID</TableCell>
-                        <TableCell sx={{ color: "white", fontWeight: 600 }}>Cancel ID</TableCell>
+                        <TableCell sx={{ color: "white", fontWeight: 600 }}>S.No</TableCell>
                         <TableCell sx={{ color: "white", fontWeight: 600 }}>Article SKU</TableCell>
                         <TableCell align="center" sx={{ color: "white", fontWeight: 600 }}>
                           Original Qty
@@ -635,13 +621,10 @@ const ManageCancels = () => {
                             backgroundColor: index % 2 === 0 ? "white" : "#f5f5f5",
                           }}
                         >
-                          <TableCell>{item.id}</TableCell>
                           <TableCell>
-                            <Chip
-                              label={item.cancel_id}
-                              size="small"
-                              sx={{ backgroundColor: "#e0e0e0", fontWeight: 600 }}
-                            />
+                            <Typography variant="body2" fontWeight={600}>
+                              {index + 1}
+                            </Typography>
                           </TableCell>
                           <TableCell>
                             <Typography variant="body2" fontWeight={500}>
@@ -827,7 +810,7 @@ const ManageCancels = () => {
       </Box>
 
       <Paper sx={{ width: "100%", overflow: "hidden", borderRadius: 2 }}>
-        <Box sx={{ maxHeight: "calc(100vh - 340px)", overflow: "auto" }}>
+        <Box sx={{ height: "calc(100vh - 340px)", overflow: "auto" }}>
           <Table stickyHeader>
             <TableHead>
               <TableRow>
@@ -845,12 +828,6 @@ const ManageCancels = () => {
                   sx={{ backgroundColor: "#90a4ae", color: "white", fontWeight: 600 }}
                 >
                   Warehouse
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{ backgroundColor: "#90a4ae", color: "white", fontWeight: 600 }}
-                >
-                  Status
                 </TableCell>
                 <TableCell
                   align="center"
@@ -881,13 +858,13 @@ const ManageCancels = () => {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={10} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
                     <CircularProgress sx={{ color: "#ff9800" }} />
                   </TableCell>
                 </TableRow>
               ) : paginatedOrders.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
                     <Typography color="text.secondary">
                       {isSearching 
                         ? `No results found for "${searchTerm}"`

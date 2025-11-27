@@ -9,7 +9,14 @@ import { Order } from "../types/order.types";
 import { logWithTime } from "../utils/logging";
 
 export const getAllWarehouses = async (): Promise<Warehouse[]> => {
-  const [rows] = await pool.query("SELECT * FROM warehouse_details");
+  const [rows] = await pool.query(`
+    SELECT 
+      wd.*,
+      GROUP_CONCAT(vd.license_plate) AS vehicle_license_plates
+    FROM warehouse_details wd
+    LEFT JOIN vehicle_details vd ON wd.warehouse_id = vd.warehouse_id
+    GROUP BY wd.warehouse_id
+  `);
 
   if (!rows || (rows as any[]).length === 0)
     throw new Error("No warehouse exist in Database");
@@ -17,6 +24,9 @@ export const getAllWarehouses = async (): Promise<Warehouse[]> => {
   const warehouses: Warehouse[] = (rows as any[]).map((row) => ({
     id: row.warehouse_id,
     ...row,
+    vehicle_license_plates: row.vehicle_license_plates 
+      ? row.vehicle_license_plates.split(',') 
+      : [] // Returns ['V01', 'V02'] or empty array
   }));
 
   return warehouses;

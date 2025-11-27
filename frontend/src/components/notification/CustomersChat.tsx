@@ -1,61 +1,87 @@
-import React, { useState, useEffect,  useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ThemeProvider, CssBaseline, Box, Container, Typography, CircularProgress } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 import CustomerList from './CustomersList';
 import ChatWindow from './ChatWindow';
 import theme from '../../theme';
-import { getAllCustomers, SearchCustomers } from '../../services/customerService';
-import { updateCustomerUnreadCount, socketService } from '../../services/messageService';
+import { getAllCustomers } from '../../services/customerService';
+import { 
+  joinAdminRoom, 
+  leaveAdminRoom,
+  getUnreadCount,
+  onCustomerUpdated,
+  onCustomerReorder,
+  onCustomerReadUpdated,
+  onUnreadCount,
+  offEvent
+} from '../../socket/communicationSocket';
 import { Customer } from './shared/types';
-import { normalizeCustomer } from './shared/utils';
 
-interface ApiResponse<T = any> {
-  status: 'success' | 'error' | 'warning';
-  message: string;
-  data: T;
-}
+// ==========================================
+// DATA MAPPING FUNCTIONS
+// ==========================================
+
+/**
+ * Maps backend customer data to frontend Customer interface
+ */
+const mapToCustomer = (data: any): Customer => {
+  return {
+    order_id: data.order_id || data.orderId || data.id,
+    order_number: data.order_number || data.orderNumber,
+    name: data.name || data.customerName || data.customer_name || 'Unknown Customer',
+    phone: data.phone || data.customerPhone || data.customer_phone || '',
+    email: data.email || data.customerEmail || data.customer_email || '',
+    status: data.status,
+    last_message: data.last_message || data.lastMessage?.content || '',
+    last_message_time: data.last_message_time || data.last_message_at || data.lastMessageTime || data.lastActive || data.last_active,
+    last_message_at: data.last_message_at || data.lastMessageTime || data.lastActive,
+    last_channel: data.last_channel || data.last_communication_channel || data.lastChannel || data.lastMessage?.communication_channel || 'whatsapp',
+    last_communication_channel: data.last_communication_channel || data.last_channel || data.lastChannel || data.lastMessage?.communication_channel || 'none',
+    unread_count: data.unread_count ?? data.unreadCount ?? 0,
+    has_unread: data.has_unread ?? data.hasUnread ?? ((data.unread_count ?? data.unreadCount ?? 0) > 0),
+  };
+};
+
+/**
+ * Maps an array of backend customers to frontend Customer array
+ */
+const mapToCustomers = (dataArray: any[]): Customer[] => {
+  if (!Array.isArray(dataArray)) {
+    console.error('❌ Invalid customers data - not an array:', dataArray);
+    return [];
+  }
+  
+  return dataArray.map(mapToCustomer).filter(customer => {
+    if (!customer.order_id) {
+      console.warn('⚠️ Customer missing order_id:', customer);
+      return false;
+    }
+    return true;
+  });
+};
 
 const CustomersChat: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [isSearching, setIsSearching] = useState(false);
-  
+  const [totalUnreadCount, setTotalUnreadCount] = useState(0);
   const mountedRef = useRef(true);
 
-  const updateCustomerInList = useCallback((updatedCustomer: Customer, customerList: Customer[]) => {
-    const exists = customerList.some(c => c.order_id === updatedCustomer.order_id);
-    
-    if (exists) {
-      return customerList
-        .map(customer => 
-          customer.order_id === updatedCustomer.order_id 
-            ? { ...customer, ...updatedCustomer }
-            : customer
-        )
-        .sort((a, b) => {
-          const timeA = new Date(a.timestamp || a.lastActive || 0).getTime();
-          const timeB = new Date(b.timestamp || b.lastActive || 0).getTime();
-          return timeB - timeA;
-        });
-    }
-    return [updatedCustomer, ...customerList];
-  }, []);
-
+  // Fetch customers via REST API
   const fetchCustomers = useCallback(async () => {
     try {
       setIsLoading(true);
       const response = await getAllCustomers();
       
-      if (mountedRef.current) {
-        const normalized = response.map(normalizeCustomer);
-        setAllCustomers(normalized);
-        setCustomers(normalized);
+      console.log('📦 API Response:', response);
+      
+      if (mountedRef.current && response.status === 'success') {
+        const mappedCustomers = mapToCustomers(response.data);
+        console.log('✅ Mapped customers:', mappedCustomers);
+        setCustomers(mappedCustomers);
       }
     } catch (err) {
-      console.error('Failed to fetch customers:', err);
+      console.error('❌ Failed to fetch customers:', err);
     } finally {
       if (mountedRef.current) {
         setIsLoading(false);
@@ -63,135 +89,204 @@ const CustomersChat: React.FC = () => {
     }
   }, []);
 
-  const performSearch = useCallback(async () => {
-    if (!searchQuery.trim()) {
-      setCustomers(allCustomers);
-      return;
-    }
-
-    try {
-      setIsSearching(true);
-      const response: ApiResponse<Customer[]> = await SearchCustomers(searchQuery);
-      
-      if (mountedRef.current) {
-        const normalizedResults = response.data?.map(normalizeCustomer) || [];
-        setCustomers(normalizedResults);
-      }
-    } catch (err) {
-      console.error('Search failed:', err);
-      setCustomers(allCustomers);
-    } finally {
-      if (mountedRef.current) {
-        setIsSearching(false);
-      }
-    }
-  }, [searchQuery, allCustomers]);
-
-  const handleCustomerListUpdate = useCallback((data: any) => {
-    if (!mountedRef.current || !data.customers) return;
-    
-    const normalized = data.customers.map(normalizeCustomer);
-    setAllCustomers(normalized);
-    
-    if (!searchQuery.trim()) {
-      setCustomers(normalized);
-    }
-    setIsLoading(false);
-  }, [searchQuery]);
-
-  const handleSingleCustomerUpdate = useCallback((data: any) => {
+  // Handle single customer update (legacy)
+  const handleCustomerUpdate = useCallback((data: any) => {
     if (!mountedRef.current) return;
     
-    let normalizedCustomer: Customer;
+    console.log('👤 Customer update:', data);
     
-    if (data.customer) {
-      normalizedCustomer = normalizeCustomer(data.customer);
-    } else {
-      const existingCustomer = allCustomers.find(c => c.order_id === data.orderId);
-      if (!existingCustomer) return;
+    setCustomers(prev => {
+      const orderId = data.orderId || data.order_id || data.id;
+      
+      if (!orderId) {
+        console.error('❌ Customer update missing orderId:', data);
+        return prev;
+      }
+      
+      const existingIndex = prev.findIndex(c => c.order_id === orderId);
+      
+      if (existingIndex !== -1) {
+        const updated = [...prev];
+        const existingCustomer = updated[existingIndex];
+        
+        updated[existingIndex] = {
+          ...existingCustomer,
+          name: data.customerName || data.name || existingCustomer.name,
+          phone: data.customerPhone || data.phone || existingCustomer.phone,
+          last_message: data.lastMessage?.content || data.last_message || existingCustomer.last_message,
+          last_message_time: data.lastActive || data.last_message_at || data.last_message_time || existingCustomer.last_message_time,
+          last_message_at: data.last_message_at || data.lastActive || existingCustomer.last_message_at,
+          unread_count: data.unreadCount ?? data.unread_count ?? existingCustomer.unread_count,
+          has_unread: data.unreadCount > 0 || data.unread_count > 0,
+          last_channel: data.lastMessage?.communication_channel || data.last_channel || data.last_communication_channel || existingCustomer.last_channel,
+          last_communication_channel: data.last_communication_channel || data.lastMessage?.communication_channel || existingCustomer.last_communication_channel,
+        };
+        
+        return updated;
+      } else {
+        const newCustomer = mapToCustomer(data);
+        console.log('➕ Adding new customer:', newCustomer);
+        return [newCustomer, ...prev];
+      }
+    });
+  }, []);
 
-      normalizedCustomer = {
-        ...existingCustomer,
-        lastMessage: data.message?.content || `[${data.message?.type || 'message'}]`,
-        timestamp: data.lastActive,
-        lastActive: data.lastActive,
-        unreadCount: (data.message?.direction === 'inbound' && 
-                     selectedCustomer?.order_id !== existingCustomer.order_id) 
-                     ? data.unreadCount : existingCustomer.unreadCount || 0
-      };
-    }
+  /**
+   * Handle customer reorder event
+   * Triggered when a message is sent or received - moves customer to top
+   */
+  const handleCustomerReorder = useCallback((data: any) => {
+    if (!mountedRef.current) return;
     
-    setAllCustomers(prev => updateCustomerInList(normalizedCustomer, prev));
+    const orderId = data.orderId || data.order_id;
+    console.log('🔄 Customer reorder event:', orderId, data);
     
-    if (!searchQuery.trim()) {
-      setCustomers(prev => updateCustomerInList(normalizedCustomer, prev));
-    }
-    
-    if (selectedCustomer?.order_id === normalizedCustomer.order_id) {
-      setSelectedCustomer(prev => prev ? { ...prev, ...normalizedCustomer } : prev);
-    }
-  }, [searchQuery, selectedCustomer?.order_id, updateCustomerInList, allCustomers]);
+    setCustomers(prev => {
+      const existingIndex = prev.findIndex(c => c.order_id === orderId);
+      
+      if (existingIndex !== -1) {
+        // Customer exists - update and move to top
+        const updated = [...prev];
+        const existingCustomer = updated[existingIndex];
+        
+        const updatedCustomer: Customer = {
+          ...existingCustomer,
+          name: data.customerName || existingCustomer.name,
+          phone: data.customerPhone || existingCustomer.phone,
+          email: data.customerEmail || existingCustomer.email,
+          last_message: data.lastMessage?.content || existingCustomer.last_message,
+          last_message_time: data.lastMessageTime || data.lastActive || existingCustomer.last_message_time,
+          last_message_at: data.lastMessageTime || data.lastActive || existingCustomer.last_message_at,
+          unread_count: data.unreadCount ?? existingCustomer.unread_count,
+          has_unread: data.hasUnread !== undefined ? data.hasUnread : (data.unreadCount > 0) || existingCustomer.has_unread,
+          last_channel: data.lastChannel || data.lastMessage?.communication_channel || existingCustomer.last_channel,
+          last_communication_channel: data.lastChannel || data.lastMessage?.communication_channel || existingCustomer.last_communication_channel,
+        };
+        
+        // Remove from current position
+        updated.splice(existingIndex, 1);
+        
+        // Add to top of list
+        updated.unshift(updatedCustomer);
+        
+        console.log(`✅ Customer ${orderId} moved to top | Unread: ${updatedCustomer.unread_count}`);
+        
+        return updated;
+      } else {
+        // New customer - add to top
+        const newCustomer = mapToCustomer({
+          order_id: orderId,
+          order_number: data.orderNumber,
+          name: data.customerName,
+          phone: data.customerPhone,
+          email: data.customerEmail,
+          status: data.status,
+          last_message: data.lastMessage?.content,
+          last_message_time: data.lastMessageTime || data.lastActive,
+          last_message_at: data.lastMessageTime || data.lastActive,
+          last_channel: data.lastChannel || data.lastMessage?.communication_channel,
+          last_communication_channel: data.lastChannel || data.lastMessage?.communication_channel,
+          unread_count: data.unreadCount || 0,
+          has_unread: data.hasUnread || false,
+        });
+        
+        console.log('➕ New customer added to top:', newCustomer);
+        
+        return [newCustomer, ...prev];
+      }
+    });
+  }, []);
 
-  const handleSelectCustomer = useCallback(async (id: number) => {
+  /**
+   * Handle customer read status update
+   */
+  const handleCustomerReadUpdated = useCallback((data: any) => {
+    if (!mountedRef.current) return;
+    
+    const orderId = data.orderId || data.order_id;
+    console.log('✅ Customer read updated:', orderId, data);
+    
+    setCustomers(prev => {
+      const existingIndex = prev.findIndex(c => c.order_id === orderId);
+      
+      if (existingIndex !== -1) {
+        const updated = [...prev];
+        updated[existingIndex] = {
+          ...updated[existingIndex],
+          unread_count: data.unreadCount ?? 0,
+          has_unread: data.hasUnread ?? false,
+        };
+        return updated;
+      }
+      
+      return prev;
+    });
+  }, []);
+
+  // Handle unread count
+  const handleUnreadCountUpdate = useCallback((data: any) => {
+    if (!mountedRef.current) return;
+    console.log('📊 Unread count:', data.totalUnreadCount);
+    setTotalUnreadCount(data.totalUnreadCount || 0);
+  }, []);
+
+  // Select customer
+  const handleSelectCustomer = useCallback((id: number) => {
     const customer = customers.find(c => c.order_id === id);
-    if (!customer) return;
-
-    const updated = { ...customer, unreadCount: 0 };
-    setSelectedCustomer(updated);
-    
-    const updateUnreadCount = (customers: Customer[]) => 
-      customers.map(c => c.order_id === id ? updated : c);
-    
-    setCustomers(updateUnreadCount);
-    setAllCustomers(updateUnreadCount);
-
-    try {
-      await updateCustomerUnreadCount(id, 0);
-    } catch (err) {
-      console.error('Failed to update unread count:', err);
+    if (customer) {
+      console.log(`👤 Selected: ${customer.name} (ID: ${id})`);
+      setSelectedCustomer(customer);
+    } else {
+      console.warn(`⚠️ Customer not found with ID: ${id}`);
     }
   }, [customers]);
 
-  const handleClearSearch = useCallback(() => {
-    setSearchQuery('');
-    setCustomers(allCustomers);
-  }, [allCustomers]);
-
+  // Initial load
   useEffect(() => {
-    socketService.connect();
-    const socket = socketService.getSocket();
+    fetchCustomers();
+  }, [fetchCustomers]);
+
+  // Socket setup
+  useEffect(() => {
+    console.log('🔌 Setting up socket...');
     
-    socket?.on('customer-list-initial', handleCustomerListUpdate);
-    socket?.on('customer-list-update', handleCustomerListUpdate);
-    socket?.on('customer-single-update', handleSingleCustomerUpdate);
-    
-    socket?.emit('join-admin-room');
+    setTimeout(() => {
+      joinAdminRoom();
+      getUnreadCount();
+    }, 500);
+
+    // Register socket event handlers
+    onCustomerUpdated(handleCustomerUpdate);
+    onCustomerReorder(handleCustomerReorder);
+    onCustomerReadUpdated(handleCustomerReadUpdated);
+    onUnreadCount(handleUnreadCountUpdate);
 
     return () => {
-      socket?.emit('leave-admin-room');
-      socket?.off('customer-list-initial', handleCustomerListUpdate);
-      socket?.off('customer-list-update', handleCustomerListUpdate);
-      socket?.off('customer-single-update', handleSingleCustomerUpdate);
+      console.log('🧹 Cleanup socket...');
+      offEvent('customer:updated');
+      offEvent('customer:reorder');
+      offEvent('customer:read-updated');
+      offEvent('unread:count');
+      leaveAdminRoom();
     };
-  }, [handleCustomerListUpdate, handleSingleCustomerUpdate]);
+  }, [handleCustomerUpdate, handleCustomerReorder, handleCustomerReadUpdated, handleUnreadCountUpdate]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (isLoading) fetchCustomers();
-    }, 2000);
-
-    return () => clearTimeout(timer);
-  }, [fetchCustomers, isLoading]);
-
-  useEffect(() => {
-    return () => { mountedRef.current = false; };
+    return () => { 
+      mountedRef.current = false; 
+    };
   }, []);
 
   if (isLoading) {
     return (
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <Box sx={{ display: 'flex', height: 'calc(100vh - 60px)', alignItems: 'center', justifyContent: 'center' }}>
+        <Box sx={{ 
+          display: 'flex', 
+          height: 'calc(100vh - 60px)', 
+          alignItems: 'center', 
+          justifyContent: 'center' 
+        }}>
           <CircularProgress />
         </Box>
       </ThemeProvider>
@@ -206,11 +301,7 @@ const CustomersChat: React.FC = () => {
           customers={customers}
           selectedCustomerId={selectedCustomer?.order_id ?? null}
           onSelectCustomer={handleSelectCustomer}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          onSearch={performSearch}
-          onClearSearch={handleClearSearch}
-          isSearching={isSearching}
+          totalUnreadCount={totalUnreadCount}
         />
         
         <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>

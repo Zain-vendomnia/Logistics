@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react";
-import { AppBar, Box, Button, Stack, Toolbar, Badge } from "@mui/material";
+import { useEffect } from "react";
+import { AppBar, Box, Button, Stack, Toolbar } from "@mui/material";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../providers/AuthProvider";
 import EventBus from "../../common/EventBus";
-import { socketService } from "../../services/unreadCountService";
 import {
   Person as PersonIcon,
   Dashboard as DashboardIcon,
@@ -19,7 +18,6 @@ const NavBar = () => {
   const { clearSessionStack } = useLayoutNavigator();
   const location = useLocation();
   const navigate = useNavigate();
-  const [totalUnreadCount, setTotalUnreadCount] = useState(0);
   const logo = "/sunniva_white.svg";
   const path = location.pathname;
 
@@ -39,30 +37,6 @@ const NavBar = () => {
       color: isActive(p) ? "#fff !important" : "#fff !important",
     },
   });
-
-  // Socket for unread messages
-  useEffect(() => {
-    if (showAdminBoard && user) {
-      socketService.connect();
-
-      // Handler for unread count updates
-      const handleTotalUnreadUpdate = (data: any) => {
-        setTotalUnreadCount(data.totalUnreadCount || 0);
-      };
-
-      const socket = socketService.getSocket();
-      socket?.on("total-unread-update", handleTotalUnreadUpdate);
-
-      // Request initial unread count
-      socket?.emit("request-total-unread");
-
-      // Cleanup function for useEffect
-      return () => {
-        socket?.off("total-unread-update", handleTotalUnreadUpdate);
-      };
-    }
-  }, [showAdminBoard, user]);
-
 
   useEffect(() => EventBus.on("logout", () => {
     logout();
@@ -96,15 +70,7 @@ const NavBar = () => {
               <>
                 <Button component={Link} to="/admin-drivers" sx={navStyle("/admin-drivers")}><PersonIcon sx={{ fontSize: '1.1rem' }} />Drivers</Button>
                 <Button component={Link} to="/profile" sx={navStyle("/profile")}><AccountBoxIcon sx={{ fontSize: '1.1rem' }} />Profile</Button>
-                <Box sx={{ position: 'relative' }}>
-                  <Button component={Link} to="/chat" sx={navStyle("/chat")}><ChatIcon sx={{ fontSize: '1.1rem' }} />Chat</Button>
-                  {totalUnreadCount > 0 && (
-                    <Badge badgeContent={totalUnreadCount} color="error" sx={{
-                      position: 'absolute', top: 5, right: 8,
-                      '& .MuiBadge-badge': { backgroundColor: 'blue', color: 'white', fontSize: '0.8rem', fontWeight: 'bold', minWidth: 16, height: 16, borderRadius: 8, border: '1px solid white', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }
-                    }} />
-                  )}
-                </Box>
+                <Button component={Link} to="/chat" sx={navStyle("/chat")}><ChatIcon sx={{ fontSize: '1.1rem' }} />Chat</Button>
               </>
             )}
 

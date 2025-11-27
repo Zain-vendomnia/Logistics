@@ -21,19 +21,20 @@ CREATE TABLE IF NOT EXISTS warehouse_details (
 
 export const INSERT_WAREHOUSE_DETAILS_DATA = `
 INSERT INTO warehouse_details
-  (warehouse_id, warehouse_name, clerk_name, clerk_mob, email, address, zip_code, town, zip_codes_delivering, color_code)
+  (warehouse_id, warehouse_name, clerk_name, clerk_mob, email, address, zip_code, town, zip_codes_delivering, color_code, is_active)
 VALUES
-  (1, 'Sunniva GmbH', 'Sam', '+496786863655', 'sam@gmail.com', 'Honer Str. 49', '37269', 'Eschwege', '30,31,34,36,37,38,98,99', '#F7941D'),
-  (2, 'AdL Logistic GmbH', 'Tom', '8098075454', 'tom@gmail.com', 'Gerlinger Str. 34', '12349', 'Berlin', '10,11,12,13,14,15,16,17,39', '#1ABC9C'),
-  (3, 'Frankfurt', 'Ken', '87987579', 'ken@gmail.com', 'Fokkerstr. 8', '04435', 'Schkeuditz', '01,02,03,04,05,06,07,08,09', '#2ECC71'),
-  (4, 'Zahn Logistics GmbH', 'Clerk Name', '0000000000', 'zahn@example.com', 'Christof-Ruthof-Weg 7', '55252', 'Mainz-Kastel', '60,61,62,63,64,65,66,67,68,69,54,55,56,35', '#3498DB'),
-  (5, 'Plischka und Schmeling', 'Clerk Name', '0000000000', 'plischka@example.com', 'Fokkerstr. 8', '04435', 'Schkeuditz', '01,02,03,04,05,06,07,08,09', '#9B59B6'),
-  (6, 'ILB Transit & Logistik GmbH & Co. KG', 'Clerk Name', '0000000000', 'ilb@example.com', 'Bonifatiusstraße 391', '48432', 'Rheine', '48,49,32,33,26,27,28', '#34495E'),
-  (7, 'Recht Logistik Gruppe', 'Clerk Name', '0000000000', 'recht@example.com', 'Weetfelder Str.', '59199', 'Bönen', '40,41,42,43,44,45,46,47,50,51,52,53,57,58,59', '#E74C3C'),
-  (8, 'Geis Eurocargo GmbH', 'Clerk Name', '0000000000', 'geis@example.com', 'Ipsheimer Straße 19', '90431', 'Nürnberg', '90,91,92,93,94,95,96,97', '#F1C40F'),
-  (9, 'LINTHER SPEDITION GmbH', 'Clerk Name', '0000000000', 'linther@example.com', 'Kronwinkler Str. 31', '81245', 'Muenchen', '80,81,82,83,84,85,86,87', '#E67E22'),
-  (10, 'NL - LOGISTICS GmbH', 'Clerk Name', '0000000000', 'nl@example.com', 'Halskestraße 38', '22113', 'Hamburg', '20,21,22,23,24,25,29,18,19', '#8E44AD');
+  (1, 'Sunniva GmbH', 'Sam', '+496786863655', 'sam@gmail.com', 'Honer Str. 49', '37269', 'Eschwege', '30,31,34,36,37,38,98,99', '#F7941D', 1),
+  (2, 'AdL Logistic GmbH', 'Tom', '8098075454', 'tom@gmail.com', 'Gerlinger Str. 34', '12349', 'Berlin', '10,11,12,13,14,15,16,17,39', '#1ABC9C', 1),
+  (3, 'Frankfurt', 'Ken', '87987579', 'ken@gmail.com', 'Fokkerstr. 8', '04435', 'Schkeuditz', '01,02,03,04,05,06,07,08,09', '#2ECC71', 1),
+  (4, 'Zahn Logistics GmbH', 'Clerk Name', '0000000000', 'zahn@example.com', 'Christof-Ruthof-Weg 7', '55252', 'Mainz-Kastel', '60,61,62,63,64,65,66,67,68,69,54,55,56,35', '#3498DB', 1),
+  (5, 'Plischka und Schmeling', 'Clerk Name', '0000000000', 'plischka@example.com', 'Fokkerstr. 8', '04435', 'Schkeuditz', '01,02,03,04,05,06,07,08,09', '#9B59B6', 1),
+  (6, 'ILB Transit & Logistik GmbH & Co. KG', 'Clerk Name', '0000000000', 'ilb@example.com', 'Bonifatiusstraße 391', '48432', 'Rheine', '48,49,32,33,26,27,28', '#34495E', 1),
+  (7, 'Recht Logistik Gruppe', 'Clerk Name', '0000000000', 'recht@example.com', 'Weetfelder Str.', '59199', 'Bönen', '40,41,42,43,44,45,46,47,50,51,52,53,57,58,59', '#E74C3C', 1),
+  (8, 'Geis Eurocargo GmbH', 'Clerk Name', '0000000000', 'geis@example.com', 'Ipsheimer Straße 19', '90431', 'Nürnberg', '90,91,92,93,94,95,96,97', '#F1C40F', 1),
+  (9, 'LINTHER SPEDITION GmbH', 'Clerk Name', '0000000000', 'linther@example.com', 'Kronwinkler Str. 31', '81245', 'Muenchen', '80,81,82,83,84,85,86,87', '#E67E22', 1),
+  (10, 'NL - LOGISTICS GmbH', 'Clerk Name', '0000000000', 'nl@example.com', 'Halskestraße 38', '22113', 'Hamburg', '20,21,22,23,24,25,29,18,19', '#8E44AD', 1);
 `;
+
 
 export const CREATE_DRIVER_DETAILS_TABLE = `
  CREATE TABLE IF NOT EXISTS driver_details (
@@ -316,33 +317,20 @@ export const CREATE_SOLARMODULES_ITEMS_TABLE = `
   );
 `;
 
-export const CREATE_WHATSAPPCHATS_TABLE = `
-  CREATE TABLE IF NOT EXISTS whatsapp_chats (
+export const CREATE_CUSTOMER_CHATS_TABLE = `
+  CREATE TABLE IF NOT EXISTS customer_chats (
     id INT AUTO_INCREMENT PRIMARY KEY,
     order_id INT NOT NULL,
-    twilio_sid VARCHAR(255) NULL COMMENT 'Twilio Message SID for tracking',
-    \`from\` VARCHAR(50) NOT NULL,
-    \`to\` VARCHAR(50) NOT NULL,
-    body TEXT NULL,
-    direction ENUM('inbound', 'outbound') NOT NULL,
-    message_type ENUM('text','image','video','audio' ,'document','location','contacts','sticker', 'unknown','file') DEFAULT 'text' COMMENT 'text=regular message, file/media=attachments',
-    media_url TEXT NULL COMMENT 'Twilio media URL if media message',
-    media_content_type VARCHAR(100) NULL COMMENT 'image/jpeg, application/pdf, etc',
-    delivery_status ENUM('pending', 'queued', 'sent', 'delivered', 'read', 'failed', 'undelivered') 
-      DEFAULT 'pending' 
-      COMMENT 'pending=initial, queued=twilio accepted, sent=to carrier, delivered=to phone, read=user read, failed=error',
-    error_code VARCHAR(50) NULL COMMENT 'Twilio error code if failed',
-    error_message TEXT NULL COMMENT 'Error description if failed',
-    is_read BOOLEAN DEFAULT FALSE COMMENT 'Manually marked as read by admin',
-    read_at TIMESTAMP NULL COMMENT 'When manually marked as read by admin',
+    convo json NULL COMMENT 'JSON array of conversation messages with timestamps',
+    convo_is_read BOOLEAN DEFAULT TRUE COMMENT 'Mark entire conversation as read (0=unread, 1=read)',
+    last_message TEXT NULL,
+    last_message_at DATETIME NULL,
+    last_communication_channel ENUM('whatsapp', 'sms', 'email') ,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_order_id (order_id),
-    INDEX idx_direction (direction),
     INDEX idx_created_at (created_at),
-    INDEX idx_delivery_status (delivery_status),
-    INDEX idx_twilio_sid (twilio_sid),
-    INDEX idx_message_type (message_type),
+    INDEX idx_convo_is_read (convo_is_read),
     CONSTRAINT fk_order_id_logistic_order
       FOREIGN KEY (order_id) REFERENCES logistic_order(order_id)
       ON DELETE CASCADE ON UPDATE CASCADE

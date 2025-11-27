@@ -1,16 +1,26 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   Box, AppBar, Toolbar, Typography, Avatar, IconButton, Paper, TextField,
-  CircularProgress, Alert, Dialog, DialogContent, DialogTitle
+  CircularProgress, Alert, Dialog, DialogContent, DialogTitle, Chip
 } from '@mui/material';
 import {
   AttachFile, Send, Close, PhoneDisabled, Image, Description,
   Check, DoneAll, AccessTime, ErrorOutline
 } from '@mui/icons-material';
+import WhatsAppIcon from '@mui/icons-material/WhatsApp';
+import SmsIcon from '@mui/icons-material/Sms';
+import EmailIcon from '@mui/icons-material/Email';
 import { 
-  getMessagesByOrderId, sendMessage, socketService, uploadFile,
-  updateMessageInArray, updateMessageStatus, isOptimisticMessage
+  getMessagesByOrderId, sendMessage, uploadFile,
+  createOptimisticMessage
 } from '../../services/messageService';
+import { 
+  joinCustomerChat, 
+  leaveCustomerChat, 
+  onNewMessage, 
+  onMessageStatusUpdated,
+  offEvent 
+} from '../../socket/communicationSocket';
 import { Customer, ChatWindowProps, Message, MessageRequest } from './shared/types';
 import { getInitials, getAvatarColor } from './shared/utils';
 
@@ -19,25 +29,77 @@ interface GroupedMessage {
   messages: Message[];
 }
 
-const MessageStatusIcon = ({ status }: { status?: string }) => {
-  const iconStyle = { fontSize: 16, ml: 0.5 };
+const ChannelIcon = ({ channel, size = 16 }: { channel?: 'whatsapp' | 'sms' | 'email'; size?: number }) => {
+  const iconStyle = { fontSize: size };
   
-  switch(status?.toLowerCase()) {
-    case 'sent':
-      return <Check sx={{ ...iconStyle, color: '#8e8e93' }} />;
-    case 'delivered':
-      return <DoneAll sx={{ ...iconStyle, color: '#8e8e93' }} />;
-    case 'read':
-      return <DoneAll sx={{ ...iconStyle, color: '#34b7f1' }} />;
-    case 'failed':
-    case 'error':
-      return <ErrorOutline sx={{ ...iconStyle, color: '#f44336' }} />;
-    case 'pending':
-    case 'sending':
-      return <AccessTime sx={{ ...iconStyle, color: '#8e8e93' }} />;
+  switch (channel) {
+    case 'whatsapp':
+      return <WhatsAppIcon sx={{ ...iconStyle, color: '#25d366' }} />;
+    case 'sms':
+      return <SmsIcon sx={{ ...iconStyle, color: '#1976d2' }} />;
+    case 'email':
+      return <EmailIcon sx={{ ...iconStyle, color: '#d32f2f' }} />;
     default:
-      return <AccessTime sx={{ ...iconStyle, color: '#8e8e93' }} />;
+      return null;
   }
+};
+
+const getChannelName = (channel?: 'whatsapp' | 'sms' | 'email'): string => {
+  switch (channel) {
+    case 'whatsapp': return 'WhatsApp';
+    case 'sms': return 'SMS';
+    case 'email': return 'Email';
+    default: return 'Unknown';
+  }
+};
+
+const MessageStatusIcon = ({ 
+  status, 
+  channel 
+}: { 
+  status?: string; 
+  channel?: 'whatsapp' | 'sms' | 'email' 
+}) => {
+  const iconStyle = { fontSize: 16, ml: 0.5 };
+  const normalizedStatus = status?.toLowerCase();
+
+  if (channel === 'whatsapp') {
+    switch(normalizedStatus) {
+      case 'sending':
+      case 'queued':
+        return <CircularProgress size={12} sx={{ ml: 0.5, color: '#8e8e93' }} />;
+      case 'sent':
+        return <Check sx={{ ...iconStyle, color: '#8e8e93' }} />;
+      case 'delivered':
+        return <DoneAll sx={{ ...iconStyle, color: '#8e8e93' }} />;
+      case 'read':
+        return <DoneAll sx={{ ...iconStyle, color: '#34b7f1' }} />;
+      case 'failed':
+      case 'error':
+        return <ErrorOutline sx={{ ...iconStyle, color: '#f44336' }} />;
+      default:
+        return <AccessTime sx={{ ...iconStyle, color: '#8e8e93' }} />;
+    }
+  }
+  
+  if (channel === 'sms' || channel === 'email') {
+    switch(normalizedStatus) {
+      case 'sending':
+      case 'queued':
+        return <CircularProgress size={12} sx={{ ml: 0.5, color: '#8e8e93' }} />;
+      case 'sent':
+        return <Check sx={{ ...iconStyle, color: '#8e8e93' }} />;
+      case 'delivered':
+        return <DoneAll sx={{ ...iconStyle, color: '#8e8e93' }} />;
+      case 'failed':
+      case 'error':
+        return <ErrorOutline sx={{ ...iconStyle, color: '#f44336' }} />;
+      default:
+        return <AccessTime sx={{ ...iconStyle, color: '#8e8e93' }} />;
+    }
+  }
+  
+  return <AccessTime sx={{ ...iconStyle, color: '#8e8e93' }} />;
 };
 
 const formatTime = (dateStr: string): string => {
@@ -48,11 +110,15 @@ const formatTime = (dateStr: string): string => {
   });
 };
 
+const getMessageContent = (message: Message): string => {
+  return message.content || message.message || message.body || '';
+};
+
 const groupMessagesByDate = (messages: Message[]): GroupedMessage[] => {
   const groups: { [key: string]: Message[] } = {};
   
   messages.forEach(message => {
-    const dateKey = new Date(message.timestamp).toDateString();
+    const dateKey = new Date(message.created_at).toDateString();
     if (!groups[dateKey]) groups[dateKey] = [];
     groups[dateKey].push(message);
   });
@@ -61,7 +127,7 @@ const groupMessagesByDate = (messages: Message[]): GroupedMessage[] => {
     .map(([date, messages]) => ({
       date,
       messages: messages.sort((a, b) => 
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
     }))
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 };
@@ -141,159 +207,216 @@ const MessageItem = React.memo<{
   customer: Customer; 
   isMyMessage: boolean;
 }>(({ message, customer, isMyMessage }) => {
-  const senderName = isMyMessage ? 'You' : customer.name;
-  const isMediaMessage = message.message_type === 'file' || message.type !== 'text';
-  const isOptimistic = isOptimisticMessage(message);
+  const hasMedia = Boolean(message.fileUrl);
+  const messageText = getMessageContent(message);
+  const showAvatar = !isMyMessage;
+  const showStatus = isMyMessage;
 
   return (
     <Box sx={{ 
       display: 'flex', 
-      flexDirection: isMyMessage ? 'row-reverse' : 'row', 
-      alignItems: 'flex-end', 
-      gap: 1, 
-      mb: 2,
-      opacity: isOptimistic ? 0.7 : 1
+      justifyContent: isMyMessage ? 'flex-end' : 'flex-start',
+      mb: 1,
+      alignItems: 'flex-end',
+      gap: 0.5
     }}>
-      <Avatar sx={{ 
-        bgcolor: isMyMessage ? '#128c7e' : getAvatarColor(senderName), 
-        width: 32, 
-        height: 32
-      }}>
-        {getInitials(senderName)}
-      </Avatar>
-      
-      <Box sx={{ maxWidth: '70%' }}>
-        <Paper 
-          elevation={1}
+      {showAvatar && (
+        <Avatar 
           sx={{ 
-            p: 1.5, 
-            bgcolor: isMyMessage ? '#dcf8c6' : 'white', 
-            borderRadius: isMyMessage ? '10px 10px 0 10px' : '10px 10px 10px 0',
-            position: 'relative',
-            ...(isOptimistic && { opacity: 0.8 })
+            width: 28, 
+            height: 28, 
+            bgcolor: getAvatarColor(customer.name),
+            fontSize: '0.75rem'
           }}
         >
-          {message.content && !message.content.startsWith('[') && (
-            <Typography variant="body2" sx={{ mb: isMediaMessage ? 1 : 0, wordBreak: 'break-word', color: '#303030' }}>
-              {message.content}
+          {getInitials(customer.name)}
+        </Avatar>
+      )}
+      
+      <Box sx={{ 
+        maxWidth: '70%',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: isMyMessage ? 'flex-end' : 'flex-start'
+      }}>
+        <Paper
+          elevation={0}
+          sx={{
+            p: 1.5,
+            borderRadius: 2,
+            bgcolor: isMyMessage ? '#dcf8c6' : 'white',
+            borderBottomRightRadius: isMyMessage ? 0 : 2,
+            borderBottomLeftRadius: !isMyMessage ? 0 : 2,
+            position: 'relative',
+            wordBreak: 'break-word'
+          }}
+        >
+          {hasMedia && <MediaDisplay message={message} />}
+          {messageText && (
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                whiteSpace: 'pre-wrap',
+                mt: hasMedia ? 1 : 0
+              }}
+            >
+              {messageText}
             </Typography>
           )}
-          
-          {(isMediaMessage || message.fileUrl) && <MediaDisplay message={message} />}
           
           <Box sx={{ 
             display: 'flex', 
             alignItems: 'center', 
+            gap: 0.5, 
             justifyContent: 'flex-end',
-            gap: 0.3,
             mt: 0.5
           }}>
-            <Typography variant="caption" sx={{ 
-              color: '#8e8e93',
-              fontSize: '0.68rem'
-            }}>
-              {formatTime(message.timestamp)}
+            {message.communication_channel && (
+              <ChannelIcon channel={message.communication_channel} size={12} />
+            )}
+            <Typography variant="caption" sx={{ color: '#667781', fontSize: '0.7rem' }}>
+              {formatTime(message.created_at)}
             </Typography>
-            {isMyMessage && <MessageStatusIcon status={message.delivery_status} />}
+            {showStatus && (
+              <MessageStatusIcon 
+                status={message.status || message.delivery_status} 
+                channel={message.communication_channel}
+              />
+            )}
           </Box>
         </Paper>
-        
-        {/* Status text below message for sent messages */}
-        {isMyMessage && message.delivery_status && ['failed', 'error'].includes(message.delivery_status.toLowerCase()) && (
-          <Typography 
-            variant="caption" 
-            sx={{ 
-              display: 'block',
-              textAlign: 'right',
-              mt: 0.3,
-              color: '#f44336',
-              fontSize: '0.65rem'
-            }}
-          >
-            Failed to send
-          </Typography>
-        )}
       </Box>
     </Box>
   );
 });
 
-const ChatWindow: React.FC<ChatWindowProps> = ({ customer, orderId }) => {
+const ChatWindow: React.FC<ChatWindowProps> = ({ customer, onClose }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Track pending optimistic message IDs to prevent socket duplicates
+  const pendingMessageIdsRef = useRef<Set<string>>(new Set());
+  // Track real message IDs we've already processed from socket
+  const processedSocketMessageIdsRef = useRef<Set<string>>(new Set());
 
-  const hasValidPhone = useMemo(() => 
-    customer.phone && customer.phone.replace(/\D/g, '') !== '', 
-    [customer.phone]
-  );
+  const orderId = customer.order_id;
+  const hasValidPhone = Boolean(customer.phone);
 
-  const isMyMessage = useCallback((msg: Message) => 
-    msg.direction === 'outbound' || msg.sender === 'You' || msg.sender === 'admin', 
-    []
-  );
+  const isMyMessage = useCallback((message: Message) => {
+    return message.direction === 'outbound' || message.sender === 'admin';
+  }, []);
 
   const groupedMessages = useMemo(() => groupMessagesByDate(messages), [messages]);
 
-  const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) setSelectedFile(file);
+  const lastChannel = useMemo(() => {
+    const lastMsg = [...messages]
+      .reverse()
+      .find(m => m.communication_channel);
+    return lastMsg?.communication_channel;
+  }, [messages]);
+
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        alert('File too large (max 10MB)');
+        return;
+      }
+      setSelectedFile(file);
+    }
   }, []);
 
   const handleSendMessage = useCallback(async () => {
     if ((!newMessage.trim() && !selectedFile) || sending || !hasValidPhone) return;
-    
+
     setSending(true);
+    let fileUrl: string | undefined;
+    let fileType: string | undefined;
+    let fileName: string | undefined;
 
     try {
-      let messageData: MessageRequest;
-      
       if (selectedFile) {
         setUploading(true);
-        
         const uploadResult = await uploadFile(selectedFile, orderId.toString());
         setUploading(false);
+
+        if (!uploadResult.success) {
+          alert(`Upload failed: ${uploadResult.error}`);
+          setSending(false);
+          return;
+        }
+
+        fileUrl = uploadResult.fileUrl;
+        fileType = selectedFile.type;
+        fileName = selectedFile.name;
+      }
+
+      const messageRequest: MessageRequest = {
+        orderId,
+        content: newMessage.trim() || '',
+        type: selectedFile ? 'file' : 'text',
+        fileUrl,
+        fileType,
+        fileName,
+      };
+
+      const optimisticMsg = createOptimisticMessage(
+        orderId,
+        messageRequest.content,
+        messageRequest.type,
+        { fileName, fileUrl, fileType }
+      );
+
+      // Track this optimistic message ID
+      pendingMessageIdsRef.current.add(optimisticMsg.id);
+
+      setMessages(prev => [...prev, optimisticMsg]);
+      setNewMessage('');
+      setSelectedFile(null);
+
+      const result = await sendMessage(orderId, messageRequest, optimisticMsg);
+
+      if (result.success && result.message) {
+        const realMessageId = result.message.id || result.message.message_id;
         
-        if (!uploadResult.success) return;
+        // Mark the real message ID as processed so socket won't add it again
+        if (realMessageId) {
+          processedSocketMessageIdsRef.current.add(realMessageId);
+        }
         
-        messageData = {
-          sender: 'admin',
-          content: `Sent ${selectedFile.type.startsWith('image/') ? 'an image' : 'a file'}: ${selectedFile.name}`,
-          type: 'file',
-          phone_number: Number(customer.phone?.replace(/\D/g, '') || 0),
-          fileName: selectedFile.name,
-          fileUrl: uploadResult.fileUrl,
-          fileType: selectedFile.type
-        };
+        // Remove from pending and replace optimistic with real message
+        pendingMessageIdsRef.current.delete(optimisticMsg.id);
+        
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.id === optimisticMsg.id ? result.message! : msg
+          )
+        );
       } else {
-        messageData = {
-          sender: 'admin',
-          content: newMessage.trim(),
-          type: 'text',
-          phone_number: Number(customer.phone?.replace(/\D/g, '') || 0),
-        };
+        // Remove from pending on failure
+        pendingMessageIdsRef.current.delete(optimisticMsg.id);
+        
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.id === optimisticMsg.id
+              ? { ...msg, status: 'failed', delivery_status: 'failed', errorMessage: result.error }
+              : msg
+          )
+        );
       }
-
-      const result = await sendMessage(orderId, messageData);
-
-      if (result.success) {
-        setNewMessage('');
-        setSelectedFile(null);
-        if (fileInputRef.current) fileInputRef.current.value = '';
-      }
-    } catch (err) {
-      console.error('Send failed:', err);
+    } catch (error) {
+      console.error('Error sending message:', error);
     } finally {
       setSending(false);
       setUploading(false);
     }
-  }, [newMessage, selectedFile, sending, hasValidPhone, orderId, customer.phone]);
+  }, [newMessage, selectedFile, sending, hasValidPhone, orderId]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -302,9 +425,14 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ customer, orderId }) => {
     }
   }, [handleSendMessage]);
 
+  // Load messages
   useEffect(() => {
     if (!orderId) return;
     setLoading(true);
+    
+    // Clear tracking refs when order changes
+    pendingMessageIdsRef.current.clear();
+    processedSocketMessageIdsRef.current.clear();
     
     getMessagesByOrderId(orderId)
       .then(setMessages)
@@ -312,34 +440,116 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ customer, orderId }) => {
       .finally(() => setLoading(false));
   }, [orderId]);
 
+  // Socket listeners
   useEffect(() => {
     if (!orderId) return;
-    
-    socketService.connect();
-    socketService.joinOrder(orderId);
 
-    const handleNewMessage = (msg: Message) => {
-      setMessages(prev => prev.find(m => m.id === msg.id) ? prev : [...prev, msg]);
-    };
-    const handleMessageUpdated = (update: any) => {
-      setMessages(prev => updateMessageInArray(prev, update.message, update.tempId));
-    };
-    const handleMessageStatusUpdated = (update: any) => {
-      setMessages(prev => updateMessageStatus(prev, update.messageId, update.update));
-    };
+    console.log(`🔌 Joining chat: ${orderId}`);
+    joinCustomerChat(orderId);
 
-    socketService.onNewMessage(handleNewMessage);
-    socketService.onMessageUpdated(handleMessageUpdated);
-    socketService.onMessageStatusUpdated(handleMessageStatusUpdated);
+    onNewMessage((data) => {
+      console.log('📨 New message from socket:', data);
+      const newMsg = data.message;
+      const incomingId = newMsg.id || newMsg.message_id;
+      
+      // Skip if this message was already processed via API response
+      if (incomingId && processedSocketMessageIdsRef.current.has(incomingId)) {
+        console.log('⏭️ Skipping already processed message:', incomingId);
+        return;
+      }
+      
+      setMessages(prev => {
+        // Check for duplicates by various ID fields
+        const exists = prev.some(m => {
+          // Check direct ID match
+          if (m.id === incomingId || m.message_id === incomingId) return true;
+          if (incomingId && (m.id === incomingId || m.message_id === incomingId)) return true;
+          
+          // Check twilio_sid match
+          if (newMsg.twilio_sid && m.twilio_sid === newMsg.twilio_sid) return true;
+          
+          return false;
+        });
+        
+        if (exists) {
+          console.log('⏭️ Message already exists in state:', incomingId);
+          return prev;
+        }
+
+        // For outbound messages, check if there's a pending optimistic message
+        // that should be replaced instead of adding a new one
+        if (newMsg.direction === 'outbound') {
+          const hasPendingOptimistic = prev.some(m => 
+            pendingMessageIdsRef.current.has(m.id) && 
+            m.direction === 'outbound'
+          );
+          
+          if (hasPendingOptimistic) {
+            console.log('⏭️ Has pending optimistic message, skipping socket message');
+            // Mark this ID as processed so when API response comes, it won't conflict
+            if (incomingId) {
+              processedSocketMessageIdsRef.current.add(incomingId);
+            }
+            return prev;
+          }
+        }
+
+        const formattedMessage: Message = {
+          id: newMsg.id || incomingId,
+          order_id: orderId,
+          from: newMsg.from || '',
+          to: newMsg.to || '',
+          body: newMsg.content || newMsg.body || '',
+          sender: newMsg.direction === 'outbound' ? 'admin' : 'customer',
+          content: newMsg.content || newMsg.body || '',
+          message: newMsg.content || newMsg.body || '',
+          direction: newMsg.direction,
+          message_type: newMsg.type || newMsg.message_type || 'text',
+          communication_channel: newMsg.communication_channel,
+          created_at: newMsg.timestamp || newMsg.created_at || new Date().toISOString(),
+          delivery_status: newMsg.status || newMsg.delivery_status || 'sent',
+          status: newMsg.status || newMsg.delivery_status || 'sent',
+          is_read: newMsg.is_read ? 1 : 0,
+          timestamp: newMsg.timestamp || newMsg.created_at || new Date().toISOString(),
+          type: newMsg.type === 'file' ? 'file' : 'text',
+          fileName: newMsg.fileName,
+          message_id: newMsg.id || incomingId,
+          fileUrl: newMsg.fileUrl,
+          fileType: newMsg.fileType,
+          twilio_sid: newMsg.twilio_sid,
+        };
+
+        console.log('✅ Adding new message from socket:', formattedMessage.id);
+        return [...prev, formattedMessage];
+      });
+    });
+
+    onMessageStatusUpdated((data) => {
+      console.log('🔄 Status updated:', data);
+      
+      setMessages(prev =>
+        prev.map(msg => {
+          if (msg.message_id === data.messageId || msg.id === data.messageId) {
+            return {
+              ...msg,
+              status: data.status,
+              delivery_status: data.status,
+            };
+          }
+          return msg;
+        })
+      );
+    });
 
     return () => {
-      socketService.leaveOrder(orderId);
-      socketService.offNewMessage(handleNewMessage);
-      socketService.offMessageUpdated(handleMessageUpdated);
-      socketService.offMessageStatusUpdated(handleMessageStatusUpdated);
+      console.log(`📤 Leaving chat: ${orderId}`);
+      leaveCustomerChat(orderId);
+      offEvent('message:new');
+      offEvent('message:status-updated');
     };
   }, [orderId]);
 
+  // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -352,18 +562,31 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ customer, orderId }) => {
             {getInitials(customer.name)}
           </Avatar>
           <Box sx={{ flexGrow: 1 }}>
-  <Typography variant="h6" sx={{ fontSize: '1.1rem', fontWeight: 600 }}>
-    {customer.name}
-  </Typography>
-  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-    <Typography variant="body2" color="text.secondary">
-      {customer.phone || 'No phone'}
-    </Typography>
-    <Typography variant="body2" color="text.secondary">
-      <strong>Order</strong> #{customer.order_number} • <strong>Order Status:</strong> {customer.status || 'Unknown'}
-    </Typography>
-  </Box>
-</Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography variant="h6" sx={{ fontSize: '1.1rem', fontWeight: 600 }}>
+                {customer.name}
+              </Typography>
+              {lastChannel && (
+                <Chip 
+                  icon={<ChannelIcon channel={lastChannel} size={14} />}
+                  label={getChannelName(lastChannel)}
+                  size="small"
+                  sx={{ height: 20, fontSize: '0.7rem' }}
+                />
+              )}
+            </Box>
+            <Typography variant="body2" color="text.secondary">
+              {customer.email || 'No email'}
+            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography variant="body2" color="text.secondary">
+                {customer.phone || 'No phone'}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                <strong>Order</strong> #{customer.order_number} • <strong>Status:</strong> {customer.status || 'Unknown'}
+              </Typography>
+            </Box>
+          </Box>
         </Toolbar>
       </AppBar>
 
@@ -388,8 +611,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ customer, orderId }) => {
           </Box>
         ) : (
           <Box>
-            {groupedMessages.map(group => (
-              <Box key={group.date}>
+            {groupedMessages.map((group, groupIndex) => (
+              <Box key={`${group.date}-${groupIndex}`}>
                 <Typography variant="caption" sx={{ 
                   display: 'block',
                   textAlign: 'center',
@@ -398,9 +621,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ customer, orderId }) => {
                 }}>
                   {new Date(group.date).toLocaleDateString()}
                 </Typography>
-                {group.messages.map(message => (
+                {group.messages.map((message, msgIndex) => (
                   <MessageItem 
-                    key={message.id} 
+                    key={message.id || message.message_id || `msg-${msgIndex}`}
                     message={message} 
                     customer={customer} 
                     isMyMessage={isMyMessage(message)} 

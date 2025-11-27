@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
   Box, Button, Snackbar, Alert, Stack, Typography, Paper, TextField, InputAdornment,
-   FormControl, InputLabel, Select, MenuItem, Grid
+   FormControl, InputLabel, Select, MenuItem, Grid, Chip
 } from "@mui/material";
 import { DataGrid, GridColDef, GridToolbar } from "@mui/x-data-grid";
 import { 
   SaveAlt, DomainDisabledOutlined, Edit, Add, DomainAddOutlined, 
-  Search, FilterList, CheckCircleOutline, CancelOutlined
+  Search, FilterList, CheckCircleOutline, CancelOutlined, DirectionsCar
 } from "@mui/icons-material";
 import ExcelJS from 'exceljs';
 import {
@@ -26,6 +26,7 @@ type Warehouse = {
   is_active: number;
   created_at: string;
   updated_at: string | null;
+  vehicle_license_plates?: string[]; // Added for vehicles
 };
 
 const ManageWarehouses = () => {
@@ -214,6 +215,7 @@ const handleExport = async () => {
     worksheet.columns = [
       { header: 'ID', key: 'id', width: 8 },
       { header: 'Name', key: 'name', width: 25 },
+      { header: 'Vehicles', key: 'vehicles', width: 30 },
       { header: 'Address', key: 'address', width: 35 },
       { header: 'Contact', key: 'contact', width: 18 },
       { header: 'Email', key: 'email', width: 30 },
@@ -255,6 +257,9 @@ const handleExport = async () => {
       const row = worksheet.addRow({
         id: warehouse.warehouse_id,
         name: warehouse.warehouse_name,
+        vehicles: warehouse.vehicle_license_plates && warehouse.vehicle_license_plates.length > 0 
+          ? warehouse.vehicle_license_plates.join(', ') 
+          : 'No vehicles',
         address: warehouse.address,
         contact: warehouse.clerk_mob,
         email: warehouse.email,
@@ -276,7 +281,7 @@ const handleExport = async () => {
         };
 
         // Status column special styling
-        if (colNumber === 6) { // Status column
+        if (colNumber === 7) { // Status column (moved from 6 to 7)
           cell.font = {
             bold: true,
             color: { 
@@ -289,7 +294,7 @@ const handleExport = async () => {
             vertical: 'middle',
             horizontal: 'center'
           };
-        } else if (colNumber === 7 || colNumber === 8) { // Date columns
+        } else if (colNumber === 8 || colNumber === 9) { // Date columns
           cell.font = {
             color: { argb: '000000' },
             size: 11,
@@ -330,7 +335,7 @@ const handleExport = async () => {
     // Style the title section
     const titleRow = worksheet.getRow(1);
     titleRow.height = 30;
-    worksheet.mergeCells('A1:H1'); // Adjusted for 8 columns
+    worksheet.mergeCells('A1:I1'); // Adjusted for 9 columns
     
     const titleCell = worksheet.getCell('A1');
     titleCell.fill = {
@@ -371,7 +376,7 @@ const handleExport = async () => {
     // Apply autofilter to the data range (excluding title rows)
     worksheet.autoFilter = {
       from: { row: 5, column: 1 },
-      to: { row: worksheet.rowCount, column: 8 } // Adjusted for 8 columns
+      to: { row: worksheet.rowCount, column: 9 } // Adjusted for 9 columns
     };
 
     // Freeze the header row
@@ -414,16 +419,6 @@ const handleExport = async () => {
     setStatusFilter("all");
   };
 
-  const formatDateTime = (dateString: string | null) => {
-    if (!dateString) return "-";
-    return new Date(dateString).toLocaleString('en-GB', {
-      day: '2-digit',
-      month: '2-digit', 
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
 
   const columns: GridColDef[] = [
     { 
@@ -437,6 +432,58 @@ const handleExport = async () => {
       headerName: "Warehouse Name", 
       flex: 1.5,
       minWidth: 200
+    },
+    { 
+      field: "vehicle_license_plates", 
+      headerName: "Vehicles", 
+      flex: 2,
+      minWidth: 250,
+      sortable: false,
+      renderCell: (params) => {
+        const vehicles = params.value as string[] | undefined;
+        
+        if (!vehicles || vehicles.length === 0) {
+          return (
+            <Stack direction="row" spacing={0.5} alignItems="center">
+              <DirectionsCar sx={{ fontSize: 16, color: '#9e9e9e' }} />
+              <Typography variant="body2" color="text.secondary" fontSize="0.875rem">
+                No vehicles
+              </Typography>
+            </Stack>
+          );
+        }
+        
+        return (
+          <Stack 
+            direction="row" 
+            spacing={0.5} 
+            alignItems="center" 
+            flexWrap="wrap" 
+            sx={{ py: 1, gap: 0.5 }}
+          >
+            {vehicles.map((plate, index) => (
+              <Chip
+                key={index}
+                label={plate}
+                size="small"
+                // icon={<DirectionsCar sx={{ fontSize: 14 }} />}
+                sx={{
+                  backgroundColor: '#398fd4ff',
+                  color: '#edf1f1ff',
+                  fontWeight: 600,
+                  fontSize: '0.75rem',
+                  height: '24px',
+                  borderRadius: '12px',
+                  '& .MuiChip-icon': {
+                    color: '#1976d2',
+                    fontSize: 14
+                  }
+                }}
+              />
+            ))}
+          </Stack>
+        );
+      }
     },
     { 
       field: "clerk_name", 
@@ -484,26 +531,7 @@ const handleExport = async () => {
             </>
           )}
         </Stack>
-        // <Chip
-        //   icon={params.value === 1 ? <CheckCircle /> : <Cancel />}
-        //   label={params.value === 1 ? "Active" : "Inactive"}
-        //   color={params.value === 1 ? "success" : "error"}
-        //   variant="outlined"
-        //   size="small"
-        // />
       ),
-    },
-    // {
-    //   field: "created_at",
-    //   headerName: "Created",
-    //   width: 140,
-    //   renderCell: (params) => formatDateTime(params.value),
-    // },
-    {
-      field: "updated_at",
-      headerName: "Updated",
-      width: 140,
-      renderCell: (params) => formatDateTime(params.value),
     },
     {
       field: "actions",
@@ -645,8 +673,7 @@ const handleExport = async () => {
         {/* Action Buttons */}
         <Stack direction="row" spacing={2} mb={2} flexWrap="wrap">
           <Button
-            // variant="contained"
-           sx={{
+            sx={{
             background: 'linear-gradient(45deg, #f97316, #ea580c)',
             color: 'white',
             fontWeight: 600,
@@ -727,8 +754,9 @@ const handleExport = async () => {
             columns={columns}
             getRowId={(row) => row.warehouse_id}
             checkboxSelection
-              rowSelectionModel={selectedIds}
+            rowSelectionModel={selectedIds}
             autoHeight
+            getRowHeight={() => 'auto'}
             disableRowSelectionOnClick
             onRowSelectionModelChange={(ids) => setSelectedIds(ids as number[])}
             slots={{ toolbar: GridToolbar }}
@@ -756,6 +784,11 @@ const handleExport = async () => {
               },
               "& .MuiDataGrid-row:hover": {
                 backgroundColor: "#e3f2fd !important",
+              },
+              "& .MuiDataGrid-cell": {
+                display: 'flex',
+                alignItems: 'center',
+                py: 1,
               },
             }}
           />

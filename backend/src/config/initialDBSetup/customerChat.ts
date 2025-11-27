@@ -1,8 +1,8 @@
 import pool from "../database";
 import { RowDataPacket } from "mysql2";
-import { CREATE_WHATSAPPCHATS_TABLE } from "../../services/tableQueries";
+import { CREATE_CUSTOMER_CHATS_TABLE } from "../../services/tableQueries";
 
-const WhatsappChatsSetup = async () => {
+const CustomerChatsSetup = async () => {
   try {
     console.log("Checking if 'whatsapp_chats' table exists...");
 
@@ -15,7 +15,7 @@ const WhatsappChatsSetup = async () => {
     }
 
     console.log("Table not found. Creating 'whatsapp_chats' table...");
-    await pool.query(CREATE_WHATSAPPCHATS_TABLE);
+    await pool.query(CREATE_CUSTOMER_CHATS_TABLE);
     console.log("Table 'whatsapp_chats' successfully created.");
   } catch (error) {
     console.error(
@@ -25,4 +25,4 @@ const WhatsappChatsSetup = async () => {
   }
 };
 
-export default WhatsappChatsSetup;
+export default CustomerChatsSetup;
