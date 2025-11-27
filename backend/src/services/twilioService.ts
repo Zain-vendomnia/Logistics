@@ -5,7 +5,8 @@ import nodemailer from "nodemailer";
 const TWILIO_SID = process.env.TWILIO_SID!;
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN!;
 const TWILIO_WHATSAPP_NUMBER = process.env.TWILIO_WHATSAPP_NUMBER!;
-const TWILIO_SMS_NUMBER = process.env.TWILIO_SMS_NUMBER!;
+// const TWILIO_SMS_NUMBER = process.env.TWILIO_SMS_NUMBER!;
+const TWILIO_MESSAGING_SERVICE_SID = process.env.TWILIO_MESSAGING_SERVICE_SID!;
 
 // Email credentials from .env
 const EMAIL_USER = process.env.EMAIL_USER!;
@@ -73,40 +74,40 @@ const twilioService = {
   },
 
   // Send SMS message
-  sendSMS: async (params: {
-    to: string;
-    body: string;
-    mediaUrl?: string;
-  }): Promise<TwilioResult> => {
-    try {
-      const messageOptions: any = {
-        from: TWILIO_SMS_NUMBER,
-        to: params.to,
-        body: params.body,
-      };
+sendSMS: async (params: {
+  to: string;
+  body: string;
+  mediaUrl?: string;
+}): Promise<TwilioResult> => {
+  try {
+    const messageOptions: any = {
+      messagingServiceSid: TWILIO_MESSAGING_SERVICE_SID,  // ← Add this
+      to: params.to,
+      body: params.body,
+    };
 
-      if (params.mediaUrl) {
-        messageOptions.mediaUrl = [params.mediaUrl];
-      }
-
-      const message = await twilioClient.messages.create(messageOptions);
-
-      return {
-        success: true,
-        sid: message.sid,
-        from: TWILIO_SMS_NUMBER,
-      };
-    } catch (error: any) {
-      console.error("SMS send error:", error);
-      return {
-        success: false,
-        sid: "",
-        from: TWILIO_SMS_NUMBER,
-        error: error.message,
-        errorCode: error.code,
-      };
+    if (params.mediaUrl) {
+      messageOptions.mediaUrl = [params.mediaUrl];
     }
-  },
+
+    const message = await twilioClient.messages.create(messageOptions);
+
+    return {
+      success: true,
+      sid: message.sid,
+      from: "Sunniva SMS Service",  // ← Change this
+    };
+  } catch (error: any) {
+    console.error("SMS send error:", error);
+    return {
+      success: false,
+      sid: "",
+      from: "Sunniva SMS Service",
+      error: error.message,
+      errorCode: error.code,
+    };
+  }
+},
 
   // Send Email
   sendEmail: async (params: {

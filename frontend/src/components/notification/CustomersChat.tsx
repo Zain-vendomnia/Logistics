@@ -13,6 +13,10 @@ import {
   onCustomerReorder,
   onCustomerReadUpdated,
   onUnreadCount,
+  onCustomerTimestampSync,
+  onCustomerViewerUpdate,
+  onCustomerViewerLeft,
+  onAdminStatusChanged,
   offEvent
 } from '../../socket/communicationSocket';
 import { Customer } from './shared/types';
@@ -65,6 +69,8 @@ const CustomersChat: React.FC = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [totalUnreadCount, setTotalUnreadCount] = useState(0);
+  const [adminViewingMap, setAdminViewingMap] = useState<Map<number, string>>(new Map());
+  const [totalAdminsOnline, setTotalAdminsOnline] = useState(0);
   const mountedRef = useRef(true);
 
   // Fetch customers via REST API
@@ -230,6 +236,79 @@ const CustomersChat: React.FC = () => {
     setTotalUnreadCount(data.totalUnreadCount || 0);
   }, []);
 
+  /**
+   * PHASE 1: Handle periodic timestamp updates from server (every 60s)
+   * Data: { updates: [{ order_id, last_message_at, unread_count }], timestamp, updateCount }
+   */
+  const handleTimestampSync = useCallback((data: any) => {
+    if (!mountedRef.current || !data.updates) return;
+    
+    console.log(`🔄 Timestamp sync received | Updates: ${data.updates.length}`);
+    
+    setCustomers(prev => {
+      let updated = false;
+      const newCustomers = prev.map(customer => {
+        const update = data.updates.find((u: any) => u.order_id === customer.order_id);
+        if (update) {
+          updated = true;
+          return {
+            ...customer,
+            last_message_time: update.last_message_at,
+            last_message_at: update.last_message_at,
+            unread_count: update.unread_count,
+            has_unread: update.unread_count > 0,
+          };
+        }
+        return customer;
+      });
+      
+      return updated ? newCustomers : prev;
+    });
+  }, []);
+
+  /**
+   * PHASE 1: Handle admin viewing customer update
+   * Data: { orderId, viewedBySocketId, viewedByUserId, timestamp }
+   */
+  const handleAdminViewing = useCallback((data: any) => {
+    if (!mountedRef.current) return;
+    
+    console.log(`👁️ Admin viewing: ${data.orderId} | User: ${data.viewedByUserId}`);
+    
+    setAdminViewingMap(prev => {
+      const newMap = new Map(prev);
+      newMap.set(data.orderId, data.viewedByUserId);
+      return newMap;
+    });
+  }, []);
+
+  /**
+   * PHASE 1: Handle admin left customer
+   * Data: { orderId, leftByUserId, timestamp }
+   */
+  const handleAdminLeft = useCallback((data: any) => {
+    if (!mountedRef.current) return;
+    
+    console.log(`👋 Admin left: ${data.orderId}`);
+    
+    setAdminViewingMap(prev => {
+      const newMap = new Map(prev);
+      newMap.delete(data.orderId);
+      return newMap;
+    });
+  }, []);
+
+  /**
+   * PHASE 1: Handle admin room status change
+   * Data: { event: 'join'|'leave', totalAdminsOnline }
+   */
+  const handleAdminStatusChanged = useCallback((data: any) => {
+    if (!mountedRef.current) return;
+    
+    console.log(`👥 Admin status: ${data.event} | Total online: ${data.totalAdminsOnline}`);
+    setTotalAdminsOnline(data.totalAdminsOnline || 0);
+  }, []);
+
   // Select customer
   const handleSelectCustomer = useCallback((id: number) => {
     const customer = customers.find(c => c.order_id === id);
@@ -248,28 +327,38 @@ const CustomersChat: React.FC = () => {
 
   // Socket setup
   useEffect(() => {
-    console.log('🔌 Setting up socket...');
+    console.log('📡 Setting up socket...');
     
     setTimeout(() => {
       joinAdminRoom();
       getUnreadCount();
     }, 500);
 
-    // Register socket event handlers
+    // Register socket event handlers - Legacy
     onCustomerUpdated(handleCustomerUpdate);
     onCustomerReorder(handleCustomerReorder);
     onCustomerReadUpdated(handleCustomerReadUpdated);
     onUnreadCount(handleUnreadCountUpdate);
+
+    // Register PHASE 1 socket event handlers
+    onCustomerTimestampSync(handleTimestampSync);
+    onCustomerViewerUpdate(handleAdminViewing);
+    onCustomerViewerLeft(handleAdminLeft);
+    onAdminStatusChanged(handleAdminStatusChanged);
 
     return () => {
       console.log('🧹 Cleanup socket...');
       offEvent('customer:updated');
       offEvent('customer:reorder');
       offEvent('customer:read-updated');
+      offEvent('customer:timestamp-sync');
+      offEvent('customer:viewer-update');
+      offEvent('customer:viewer-left');
+      offEvent('admin:status-changed');
       offEvent('unread:count');
       leaveAdminRoom();
     };
-  }, [handleCustomerUpdate, handleCustomerReorder, handleCustomerReadUpdated, handleUnreadCountUpdate]);
+  }, [handleCustomerUpdate, handleCustomerReorder, handleCustomerReadUpdated, handleUnreadCountUpdate, handleTimestampSync, handleAdminViewing, handleAdminLeft, handleAdminStatusChanged]);
 
   useEffect(() => {
     return () => { 
@@ -302,6 +391,8 @@ const CustomersChat: React.FC = () => {
           selectedCustomerId={selectedCustomer?.order_id ?? null}
           onSelectCustomer={handleSelectCustomer}
           totalUnreadCount={totalUnreadCount}
+          adminViewingMap={adminViewingMap}
+          totalAdminsOnline={totalAdminsOnline}
         />
         
         <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>

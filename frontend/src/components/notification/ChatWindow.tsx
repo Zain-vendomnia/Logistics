@@ -19,6 +19,8 @@ import {
   leaveCustomerChat, 
   onNewMessage, 
   onMessageStatusUpdated,
+  notifyAdminViewing,
+  notifyAdminLeftChat,
   offEvent 
 } from '../../socket/communicationSocket';
 import { Customer, ChatWindowProps, Message, MessageRequest } from './shared/types';
@@ -446,6 +448,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ customer, onClose }) => {
 
     console.log(`🔌 Joining chat: ${orderId}`);
     joinCustomerChat(orderId);
+    
+    // PHASE 1: Notify other admins that you're viewing this customer
+    notifyAdminViewing(orderId);
 
     onNewMessage((data) => {
       console.log('📨 New message from socket:', data);
@@ -544,6 +549,10 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ customer, onClose }) => {
     return () => {
       console.log(`📤 Leaving chat: ${orderId}`);
       leaveCustomerChat(orderId);
+      
+      // PHASE 1: Notify other admins that you left this customer
+      notifyAdminLeftChat(orderId);
+      
       offEvent('message:new');
       offEvent('message:status-updated');
     };

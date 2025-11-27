@@ -1,13 +1,14 @@
-import React, { memo } from 'react';
+import React, { memo, useState, useEffect } from 'react';
 import {
   Drawer, AppBar, Toolbar, Typography, List, ListItem, ListItemText,
   ListItemAvatar, Avatar, Box, Badge, Chip
 } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import SmsIcon from '@mui/icons-material/Sms';
 import EmailIcon from '@mui/icons-material/Email';
-import { Customer, CustomerListProps } from './shared/types';
+import { Customer } from './shared/types';
 import { getInitials, getAvatarColor } from './shared/utils';
 
 const SIDEBAR_WIDTH = 360;
@@ -54,11 +55,26 @@ const truncateMessage = (message: string, maxLength: number = 35): string => {
   return message.substring(0, maxLength) + '...';
 };
 
-const CustomerItem = memo<{
+interface CustomerItemProps {
   customer: Customer;
   isSelected: boolean;
   onClick: () => void;
-}>(({ customer, isSelected, onClick }) => {
+  adminViewing?: string;
+}
+
+const CustomerItem = memo<CustomerItemProps>(({ customer, isSelected, onClick, adminViewing }) => {
+  // State to force re-render for timestamp updates
+  const [, setTimestamp] = useState(new Date());
+
+  // Update timestamp every 30 seconds to show fresh relative time
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimestamp(new Date());
+    }, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <ListItem
       onClick={onClick}
@@ -69,7 +85,8 @@ const CustomerItem = memo<{
         '&:hover': { bgcolor: isSelected ? 'primary.dark' : 'action.hover' },
         borderBottom: 1,
         borderColor: 'divider',
-        py: 1.5
+        py: 1.5,
+        position: 'relative'
       }}
     >
       <ListItemAvatar>
@@ -144,17 +161,50 @@ const CustomerItem = memo<{
           component: 'div'
         }}
       />
+
+      {/* PHASE 1: Admin presence indicator badge */}
+      {adminViewing && (
+        <Chip
+          icon={<VisibilityIcon />}
+          label={`${adminViewing} viewing`}
+          size="small"
+          color="info"
+          variant="outlined"
+          sx={{
+            position: 'absolute',
+            right: 8,
+            top: 8,
+            fontSize: '0.65rem',
+            height: 22,
+            '& .MuiChip-icon': {
+              fontSize: '14px',
+              marginLeft: '4px',
+            }
+          }}
+        />
+      )}
     </ListItem>
   );
 });
 
 CustomerItem.displayName = 'CustomerItem';
 
+interface CustomerListProps {
+  customers: Customer[];
+  selectedCustomerId: number | null;
+  onSelectCustomer: (id: number) => void;
+  totalUnreadCount?: number;
+  adminViewingMap?: Map<number, string>;
+  totalAdminsOnline?: number;
+}
+
 const CustomerList: React.FC<CustomerListProps> = ({
   customers,
   selectedCustomerId,
   onSelectCustomer,
-  totalUnreadCount = 0
+  totalUnreadCount = 0,
+  adminViewingMap = new Map(),
+  totalAdminsOnline = 0
 }) => {
   return (
     <Drawer
@@ -187,6 +237,15 @@ const CustomerList: React.FC<CustomerListProps> = ({
             <Typography variant="body2" color="text.secondary">
               {customers.length}
             </Typography>
+            {totalAdminsOnline > 0 && (
+              <Typography variant="caption" sx={{ 
+                color: 'success.main',
+                fontSize: '0.7rem',
+                ml: 1
+              }}>
+                👥 {totalAdminsOnline}
+              </Typography>
+            )}
           </Box>
         </Toolbar>
       </AppBar>
@@ -200,6 +259,7 @@ const CustomerList: React.FC<CustomerListProps> = ({
                 customer={customer}
                 isSelected={selectedCustomerId === customer.order_id}
                 onClick={() => onSelectCustomer(customer.order_id)}
+                adminViewing={adminViewingMap.get(customer.order_id)}
               />
             ))}
           </List>

@@ -8,7 +8,12 @@ import { getConversationByOrderId } from "../services/communicationService";
 
 // Track admin connections
 const adminConnections = new Set<string>();
+const adminViewingCustomer = new Map<string, number>(); // socketId -> orderId
 let globalUnreadCount = 0;
+let customerListCache: any[] = [];
+let customerListCacheTimestamp = 0;
+const CACHE_DURATION = 30000; // 30 seconds cache for customer list
+let timestampSyncInterval: NodeJS.Timeout | null = null;
 
 /**
  * Get actual unread count from database
@@ -39,6 +44,194 @@ const initializeGlobalUnreadCount = async () => {
 };
 
 /**
+ * Get customer list with pagination and last message timestamps
+ */
+const getCustomerList = async (
+  limit: number = 50,
+  offset: number = 0
+): Promise<{ customers: any[]; total: number }> => {
+  try {
+    const now = Date.now();
+    
+    // Check cache validity
+    if (
+      customerListCache.length > 0 &&
+      now - customerListCacheTimestamp < CACHE_DURATION
+    ) {
+      console.log(`📦 Using cached customer list | Age: ${now - customerListCacheTimestamp}ms`);
+      const total = customerListCache.length;
+      const paginated = customerListCache.slice(offset, offset + limit);
+      return { customers: paginated, total };
+    }
+
+    console.log(`🔄 Fetching fresh customer list from database`);
+
+    // Get customers with their last message info and unread count
+    const query = `
+      SELECT 
+        lo.order_id,
+        lo.order_number,
+        TRIM(CONCAT(COALESCE(lo.firstname, ''), ' ', COALESCE(lo.lastname, ''))) AS customer_name,
+        lo.phone,
+        lo.email,
+        lo.status,
+        cc.last_message,
+        cc.last_message_at,
+        cc.last_communication_channel,
+        cc.convo_is_read,
+        (
+          SELECT COUNT(*) 
+          FROM (
+            SELECT 1 
+            FROM customer_chats 
+            WHERE order_id = lo.order_id 
+            AND convo IS NOT NULL 
+            LIMIT 1
+          ) AS check_convo
+        ) as has_messages
+      FROM logistic_order lo
+      LEFT JOIN customer_chats cc ON lo.order_id = cc.order_id
+      WHERE lo.status NOT IN ('delivered', 'cancelled')
+      ORDER BY COALESCE(cc.last_message_at, lo.created_at) DESC
+      LIMIT ? OFFSET ?
+    `;
+
+    const [rows] = (await pool.query(query, [
+      limit + offset,
+      0,
+    ])) as [any[], any];
+
+    // Process each row to extract unread count from convo JSON
+    const customers = rows.map((row: any) => {
+      let unreadCount = 0;
+      
+      if (row.has_messages) {
+        // Unread count logic: if convo_is_read = 0, there are unread messages
+        unreadCount = row.convo_is_read === 0 ? 1 : 0;
+      }
+
+      const lastMessageTime = row.last_message_at 
+        ? new Date(row.last_message_at).getTime()
+        : null;
+
+      return {
+        order_id: row.order_id,
+        order_number: row.order_number,
+        customer_name: row.customer_name || "Unknown",
+        phone: row.phone,
+        email: row.email,
+        status: row.status,
+        last_message: row.last_message,
+        last_message_at: row.last_message_at,
+        last_message_timestamp: lastMessageTime,
+        last_communication_channel: row.last_communication_channel || "none",
+        unread_count: unreadCount,
+        has_unread: unreadCount > 0,
+      };
+    });
+
+    // Get total count
+    const [countRows] = (await pool.query(
+      `SELECT COUNT(*) as total FROM logistic_order lo 
+       WHERE lo.status NOT IN ('delivered', 'cancelled')`
+    )) as [{ total: number }[], any];
+
+    const total = countRows[0]?.total || 0;
+
+    // Update cache
+    customerListCache = customers;
+    customerListCacheTimestamp = now;
+
+    console.log(`✅ Customer list cached | Count: ${customers.length} | Total: ${total}`);
+
+    return {
+      customers: customers.slice(offset, offset + limit),
+      total,
+    };
+  } catch (error) {
+    console.error(`❌ Error fetching customer list:`, error);
+    return { customers: [], total: 0 };
+  }
+};
+
+/**
+ * Get only timestamp updates for all customers (lightweight broadcast)
+ */
+const getCustomerTimestampUpdates = async (): Promise<any[]> => {
+  try {
+    const query = `
+      SELECT 
+        lo.order_id,
+        cc.last_message_at,
+        cc.convo_is_read
+      FROM logistic_order lo
+      LEFT JOIN customer_chats cc ON lo.order_id = cc.order_id
+      WHERE lo.status NOT IN ('delivered', 'cancelled')
+      AND cc.last_message_at IS NOT NULL
+      ORDER BY COALESCE(cc.last_message_at, lo.created_at) DESC
+    `;
+
+    const [rows] = (await pool.query(query)) as [any[], any];
+
+    return rows.map((row: any) => ({
+      order_id: row.order_id,
+      last_message_at: row.last_message_at,
+      last_message_timestamp: new Date(row.last_message_at).getTime(),
+      unread_count: row.convo_is_read === 0 ? 1 : 0,
+    }));
+  } catch (error) {
+    console.error(`❌ Error fetching timestamp updates:`, error);
+    return [];
+  }
+};
+
+/**
+ * Start timestamp sync interval
+ */
+const startTimestampSync = () => {
+  if (timestampSyncInterval) return;
+
+  console.log(`⏱️ Starting timestamp sync interval (every 60 seconds)`);
+
+  timestampSyncInterval = setInterval(async () => {
+    try {
+      const io = getIO();
+      const adminRoomSize = io.sockets.adapter.rooms.get("admin-room")?.size || 0;
+
+      if (adminRoomSize === 0) {
+        console.log(`⏸️ No admins connected, skipping timestamp sync`);
+        return;
+      }
+
+      const updates = await getCustomerTimestampUpdates();
+
+      if (updates.length > 0) {
+        emitToRoom("admin-room", "customer:timestamp-sync", {
+          updates,
+          timestamp: new Date().toISOString(),
+          updateCount: updates.length,
+        });
+
+        console.log(`🔄 Timestamp sync broadcasted | Updates: ${updates.length}`);
+      }
+    } catch (error) {
+      console.error(`❌ Error in timestamp sync:`, error);
+    }
+  }, 60000); // 60 seconds
+};
+
+/**
+ * Stop timestamp sync interval
+ */
+const stopTimestampSync = () => {
+  if (timestampSyncInterval) {
+    clearInterval(timestampSyncInterval);
+    timestampSyncInterval = null;
+    console.log(`⏹️ Timestamp sync interval stopped`);
+  }
+};
+
+/**
  * Initialize Communication socket event handlers
  */
 export const initCommunicationSocket = () => {
@@ -46,6 +239,9 @@ export const initCommunicationSocket = () => {
 
   // Initialize unread count on startup
   initializeGlobalUnreadCount();
+
+  // Start timestamp sync when first admin joins
+  let startedTimestampSync = false;
 
   io.on("connection", (socket: Socket) => {
     console.log(`🔌 Socket connected: ${socket.id} | Role: ${socket.userRole}`);
@@ -59,6 +255,12 @@ export const initCommunicationSocket = () => {
         adminConnections.add(socket.id);
         globalUnreadCount = await getActualUnreadCountFromDB();
 
+        // Start timestamp sync on first admin join
+        if (!startedTimestampSync) {
+          startTimestampSync();
+          startedTimestampSync = true;
+        }
+
         const timestamp = new Date().toISOString();
 
         socket.emit("unread:count", {
@@ -71,7 +273,14 @@ export const initCommunicationSocket = () => {
           timestamp,
         });
 
-        console.log(`✅ Admin ${socket.id} joined admin-room | Unread: ${globalUnreadCount}`);
+        // Broadcast that an admin joined
+        emitToRoom("admin-room", "admin:status-changed", {
+          event: "admin_joined",
+          totalAdminsOnline: adminConnections.size,
+          timestamp,
+        });
+
+        console.log(`✅ Admin ${socket.id} joined admin-room | Unread: ${globalUnreadCount} | Total admins: ${adminConnections.size}`);
       } else {
         socket.emit("error", { message: "Unauthorized: Admin access required" });
       }
@@ -83,7 +292,21 @@ export const initCommunicationSocket = () => {
     socket.on("admin:leave", () => {
       socket.leave("admin-room");
       adminConnections.delete(socket.id);
-      console.log(`🚪 Admin ${socket.id} left admin-room`);
+      adminViewingCustomer.delete(socket.id);
+
+      // Stop timestamp sync if no admins left
+      if (adminConnections.size === 0) {
+        stopTimestampSync();
+        startedTimestampSync = false;
+      }
+
+      emitToRoom("admin-room", "admin:status-changed", {
+        event: "admin_left",
+        totalAdminsOnline: adminConnections.size,
+        timestamp: new Date().toISOString(),
+      });
+
+      console.log(`🚪 Admin ${socket.id} left admin-room | Total admins: ${adminConnections.size}`);
     });
 
     /* =================================================================
@@ -103,27 +326,79 @@ export const initCommunicationSocket = () => {
     });
 
     /* =================================================================
-       EVENT 4: JOIN SPECIFIC CUSTOMER CHAT
+       EVENT 4: REQUEST CUSTOMER LIST (WITH PAGINATION)
     ================================================================= */
-    socket.on("customer:join", (orderId: string) => {
-      if (orderId) {
-        socket.join(`order-${orderId}`);
-        console.log(`📥 Socket ${socket.id} joined order-${orderId}`);
+    socket.on("customer:list-request", async (data: { limit?: number; offset?: number }) => {
+      try {
+        if (socket.userRole !== "admin" && socket.userRole !== "support") {
+          return socket.emit("error", { message: "Unauthorized" });
+        }
+
+        const limit = Math.min(data.limit || 50, 100); // Max 100 per page
+        const offset = Math.max(data.offset || 0, 0);
+
+        const { customers, total } = await getCustomerList(limit, offset);
+
+        socket.emit("customer:list-response", {
+          customers,
+          pagination: {
+            limit,
+            offset,
+            total,
+            hasMore: offset + limit < total,
+          },
+          timestamp: new Date().toISOString(),
+        });
+
+        console.log(`📋 Customer list sent to ${socket.id} | Count: ${customers.length} | Total: ${total}`);
+      } catch (err) {
+        console.error("❌ Error fetching customer list:", err);
+        socket.emit("error", { message: "Failed to fetch customer list" });
       }
     });
 
     /* =================================================================
-       EVENT 5: LEAVE SPECIFIC CUSTOMER CHAT
+       EVENT 5: ADMIN VIEWING CUSTOMER (PRESENCE TRACKING)
     ================================================================= */
-    socket.on("customer:leave", (orderId: string) => {
-      if (orderId) {
-        socket.leave(`order-${orderId}`);
-        console.log(`📤 Socket ${socket.id} left order-${orderId}`);
-      }
+    socket.on("admin:viewing-customer", (data: { orderId: number }) => {
+      if (!data.orderId) return;
+
+      adminViewingCustomer.set(socket.id, data.orderId);
+
+      // Broadcast to all admins that someone is viewing this customer
+      emitToRoom("admin-room", "customer:viewer-update", {
+        orderId: data.orderId,
+        viewedBySocketId: socket.id,
+        viewedByUserId: socket.userId,
+        timestamp: new Date().toISOString(),
+      });
+
+      console.log(
+        `👁️ Admin ${socket.id} (${socket.userId}) viewing customer ${data.orderId}`
+      );
     });
 
     /* =================================================================
-       EVENT 6: GET SINGLE CUSTOMER MESSAGES
+       EVENT 6: ADMIN LEFT CUSTOMER CHAT
+    ================================================================= */
+    socket.on("admin:left-customer-chat", (data: { orderId: number }) => {
+      if (!data.orderId) return;
+
+      adminViewingCustomer.delete(socket.id);
+
+      // Broadcast that admin left this customer
+      emitToRoom("admin-room", "customer:viewer-left", {
+        orderId: data.orderId,
+        leftBySocketId: socket.id,
+        leftByUserId: socket.userId,
+        timestamp: new Date().toISOString(),
+      });
+
+      console.log(`👋 Admin ${socket.id} (${socket.userId}) left customer ${data.orderId}`);
+    });
+
+    /* =================================================================
+       EVENT 7: GET SINGLE CUSTOMER MESSAGES
     ================================================================= */
     socket.on("customer:get-messages", async (data: { orderId: number }) => {
       try {
@@ -153,7 +428,27 @@ export const initCommunicationSocket = () => {
     });
 
     /* =================================================================
-       EVENT 7: GET MESSAGE STATUS
+       EVENT 8: JOIN SPECIFIC CUSTOMER CHAT
+    ================================================================= */
+    socket.on("customer:join", (orderId: string) => {
+      if (orderId) {
+        socket.join(`order-${orderId}`);
+        console.log(`📥 Socket ${socket.id} joined order-${orderId}`);
+      }
+    });
+
+    /* =================================================================
+       EVENT 9: LEAVE SPECIFIC CUSTOMER CHAT
+    ================================================================= */
+    socket.on("customer:leave", (orderId: string) => {
+      if (orderId) {
+        socket.leave(`order-${orderId}`);
+        console.log(`📤 Socket ${socket.id} left order-${orderId}`);
+      }
+    });
+
+    /* =================================================================
+       EVENT 10: GET MESSAGE STATUS
     ================================================================= */
     socket.on("message:get-status", async (data: { messageId: string; orderId: number }) => {
       try {
@@ -206,6 +501,14 @@ export const initCommunicationSocket = () => {
     ================================================================= */
     socket.on("disconnect", () => {
       adminConnections.delete(socket.id);
+      adminViewingCustomer.delete(socket.id);
+
+      // Stop timestamp sync if no admins left
+      if (adminConnections.size === 0) {
+        stopTimestampSync();
+        startedTimestampSync = false;
+      }
+
       console.log(`🔌 Socket disconnected: ${socket.id}`);
     });
   });
@@ -281,6 +584,10 @@ export const broadcastCustomerReorder = async (
   try {
     console.log(`🔄 Broadcasting customer reorder | Order: ${orderId} | Direction: ${direction}`);
 
+    // Invalidate customer list cache to force refresh on next request
+    customerListCache = [];
+    customerListCacheTimestamp = 0;
+
     // Get customer info from database
     const [customerRows] = (await pool.query(
       `SELECT 
@@ -305,16 +612,13 @@ export const broadcastCustomerReorder = async (
 
     // Get unread count for this customer
     const [chatRows] = (await pool.query(
-      `SELECT convo FROM customer_chats WHERE order_id = ?`,
+      `SELECT convo_is_read FROM customer_chats WHERE order_id = ?`,
       [orderId]
     )) as [any[], any];
 
     let unreadCount = 0;
-    if (chatRows.length > 0 && chatRows[0].convo) {
-      const messages = typeof chatRows[0].convo === "string" 
-        ? JSON.parse(chatRows[0].convo) 
-        : chatRows[0].convo;
-      unreadCount = messages.filter((m: any) => m.direction === "inbound" && !m.is_read).length;
+    if (chatRows.length > 0) {
+      unreadCount = chatRows[0].convo_is_read === 0 ? 1 : 0;
     }
 
     // Emit customer reorder event to all admins
@@ -433,14 +737,13 @@ export const broadcastInboundMessage = async (
   
   try {
     // Get actual unread count from messages
-    const [rows] = (await pool.query(`SELECT convo FROM customer_chats WHERE order_id = ?`, [
+    const [rows] = (await pool.query(`SELECT convo_is_read FROM customer_chats WHERE order_id = ?`, [
       orderId,
     ])) as [any[], any];
     
     let unreadCount = 0;
-    if (rows.length > 0 && rows[0].convo) {
-      const messages = typeof rows[0].convo === "string" ? JSON.parse(rows[0].convo) : rows[0].convo;
-      unreadCount = messages.filter((m: any) => m.direction === "inbound" && !m.is_read).length;
+    if (rows.length > 0) {
+      unreadCount = rows[0].convo_is_read === 0 ? 1 : 0;
     }
     
     // Broadcast to all admins for customer list update
@@ -491,4 +794,35 @@ export const hasConnectedAdmins = (): boolean => {
 
 export const updateGlobalUnreadCount = async () => {
   await broadcastUnreadCount();
+};
+
+/**
+ * Get count of admins viewing a specific customer
+ */
+export const getCustomerViewerCount = (orderId: number): number => {
+  let count = 0;
+  adminViewingCustomer.forEach((id) => {
+    if (id === orderId) count++;
+  });
+  return count;
+};
+
+/**
+ * Check if any admin is currently viewing a customer
+ */
+export const isCustomerBeingViewed = (orderId: number): boolean => {
+  let isViewed = false;
+  adminViewingCustomer.forEach((id) => {
+    if (id === orderId) isViewed = true;
+  });
+  return isViewed;
+};
+
+/**
+ * Force invalidate customer list cache
+ */
+export const invalidateCustomerListCache = () => {
+  customerListCache = [];
+  customerListCacheTimestamp = 0;
+  console.log(`♻️ Customer list cache invalidated`);
 };

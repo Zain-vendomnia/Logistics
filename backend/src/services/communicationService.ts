@@ -5,6 +5,7 @@ import {
   updateGlobalUnreadCount,
   handleMessageRead,
   broadcastOutboundMessage,
+  invalidateCustomerListCache,
 } from "../socket/communication.socket";
 
 interface Message {
@@ -85,7 +86,7 @@ export const getConversationByOrderId = async (
   includeCustomerInfo: boolean = false
 ): Promise<ConversationData> => {
   try {
-    console.log(`🔍 Fetching conversation for order: ${orderId}`);
+    console.log(`📖 Fetching conversation for order: ${orderId}`);
 
     const query = `
       SELECT 
@@ -129,7 +130,7 @@ export const getConversationByOrderId = async (
     if (row.convo) {
       try {
         if (typeof row.convo === 'string') {
-          console.log(`🔄 Parsing convo string for order ${orderId}`);
+          console.log(`📄 Parsing convo string for order ${orderId}`);
           messages = JSON.parse(row.convo);
         } else if (typeof row.convo === 'object') {
           console.log(`✅ Convo already object for order ${orderId}`);
@@ -285,6 +286,9 @@ export const sendMessageToCustomer = async (params: SendMessageParams) => {
     // Broadcast customer reorder event for outbound messages
     await broadcastOutboundMessage(orderId, newMessage, customerInfo);
 
+    // Invalidate cache since conversation changed
+    invalidateCustomerListCache();
+
     console.log(`✅ Message sent successfully | Order: ${orderId} | Channel: ${channel}`);
 
     return {
@@ -371,6 +375,9 @@ export const receiveInboundMessage = async (orderId: number, message: any) => {
     await saveConversation(orderId, updatedMessages, false, isFirstMessage);
     await updateGlobalUnreadCount();
     emitMessageToOrder(orderId.toString(), message);
+
+    // Invalidate cache since conversation changed
+    invalidateCustomerListCache();
 
     console.log(`✅ Inbound message saved | Order: ${orderId}`);
 
@@ -460,6 +467,9 @@ export const updateMessageStatusById = async (
     }
 
     await saveConversation(orderId, conversation.messages, true, false);
+
+    // Invalidate cache since message status changed
+    invalidateCustomerListCache();
 
     console.log(`✅ Message status updated | Order: ${orderId} | MessageID: ${messageId} | Status: ${message.status}`);
     

@@ -28,7 +28,38 @@ export const onAdminJoined = (callback: (data: any) => void) => {
 };
 
 // ============================================================================
-// CUSTOMER LIST
+// CUSTOMER LIST (NEW - Phase 1)
+// ============================================================================
+
+/**
+ * Request paginated customer list from server
+ */
+export const requestCustomerList = (limit: number = 50, offset: number = 0) => {
+  if (socket?.connected) {
+    socket.emit("customer:list-request", { limit, offset });
+    console.log(`📋 Requested customer list | Limit: ${limit}, Offset: ${offset}`);
+  } else {
+    console.warn("⚠️ Socket not connected");
+  }
+};
+
+/**
+ * Listen for customer list response from server
+ */
+export const onCustomerListResponse = (callback: (data: any) => void) => {
+  socket?.on("customer:list-response", callback);
+};
+
+/**
+ * Listen for periodic timestamp updates (every 60 seconds)
+ * Data: { updates: [{ order_id, last_message_at, unread_count }], timestamp, updateCount }
+ */
+export const onCustomerTimestampSync = (callback: (data: any) => void) => {
+  socket?.on("customer:timestamp-sync", callback);
+};
+
+// ============================================================================
+// CUSTOMER LIST (LEGACY)
 // ============================================================================
 
 export const getCustomersList = () => {
@@ -62,6 +93,59 @@ export const onCustomerReorder = (callback: (data: any) => void) => {
  */
 export const onCustomerReadUpdated = (callback: (data: any) => void) => {
   socket?.on("customer:read-updated", callback);
+};
+
+// ============================================================================
+// ADMIN PRESENCE TRACKING (NEW - Phase 1)
+// ============================================================================
+
+/**
+ * Tell other admins you're viewing this customer
+ * This prevents duplicate replies and shows collaboration
+ */
+export const notifyAdminViewing = (orderId: number) => {
+  if (socket?.connected) {
+    socket.emit("admin:viewing-customer", { orderId });
+    console.log(`👁️ Notified admins viewing customer: ${orderId}`);
+  } else {
+    console.warn("⚠️ Socket not connected");
+  }
+};
+
+/**
+ * Tell other admins you left this customer chat
+ */
+export const notifyAdminLeftChat = (orderId: number) => {
+  if (socket?.connected) {
+    socket.emit("admin:left-customer-chat", { orderId });
+    console.log(`👋 Notified admins left customer: ${orderId}`);
+  } else {
+    console.warn("⚠️ Socket not connected");
+  }
+};
+
+/**
+ * Listen for other admins viewing customers
+ * Data: { orderId, viewedBySocketId, viewedByUserId, timestamp }
+ */
+export const onCustomerViewerUpdate = (callback: (data: any) => void) => {
+  socket?.on("customer:viewer-update", callback);
+};
+
+/**
+ * Listen for other admins leaving customer chats
+ * Data: { orderId, leftByUserId, timestamp }
+ */
+export const onCustomerViewerLeft = (callback: (data: any) => void) => {
+  socket?.on("customer:viewer-left", callback);
+};
+
+/**
+ * Listen for admin room status changes (join/leave)
+ * Data: { event: 'join'|'leave', totalAdminsOnline }
+ */
+export const onAdminStatusChanged = (callback: (data: any) => void) => {
+  socket?.on("admin:status-changed", callback);
 };
 
 // ============================================================================

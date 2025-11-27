@@ -4,6 +4,7 @@ import { RowDataPacket } from "mysql2";
 import {
   broadcastMessageStatus,
   broadcastInboundMessage,
+  invalidateCustomerListCache,
 } from "../socket/communication.socket";
 import { updateMessageStatusById, receiveInboundMessage } from "../services/communicationService";
 
@@ -69,7 +70,7 @@ export const handleWhatsAppWebhook = async (req: Request, res: Response) => {
       });
     }
 
-    console.log("🔥 WhatsApp webhook received:", {
+    console.log("📥 WhatsApp webhook received:", {
       from: From,
       to: To,
       messageSid: MessageSid,
@@ -121,6 +122,9 @@ export const handleWhatsAppWebhook = async (req: Request, res: Response) => {
       phone: order.phone,
     });
 
+    // Invalidate customer list cache
+    invalidateCustomerListCache();
+
     console.log(
       `✅ WhatsApp message processed | Order: ${order.order_id} | Customer: ${order.customer_name}`
     );
@@ -157,7 +161,7 @@ export const handleSMSWebhook = async (req: Request, res: Response) => {
       });
     }
 
-    console.log("🔥 SMS webhook received:", {
+    console.log("📥 SMS webhook received:", {
       from: From,
       to: To,
       messageSid: MessageSid,
@@ -204,6 +208,9 @@ export const handleSMSWebhook = async (req: Request, res: Response) => {
       phone: order.phone,
     });
 
+    // Invalidate customer list cache
+    invalidateCustomerListCache();
+
     console.log(`✅ SMS message processed | Order: ${order.order_id} | Customer: ${order.customer_name}`);
     res.status(200).send("OK");
   } catch (err) {
@@ -228,7 +235,9 @@ export const handleSMSWebhook = async (req: Request, res: Response) => {
 export const handleStatusWebhook = async (req: Request, res: Response) => {
   try {
     const { MessageSid, MessageStatus, To, From, ErrorCode, ErrorMessage } = req.body;
-
+ 
+    console.log("📊 Status webhook payload:", req.body);
+    
     // ✅ Validate required fields
     if (!MessageSid) {
       console.warn("⚠️ Missing MessageSid in status webhook");
@@ -258,8 +267,8 @@ export const handleStatusWebhook = async (req: Request, res: Response) => {
     const normalizedStatus = normalizeMessageStatus(MessageStatus);
 
     // Extract phone number (prioritize To, fallback to From)
-    const cleanTo = (To || "").replace(/^(whatsapp:|sms:|\+)?/, "");
-    const cleanFrom = (From || "").replace(/^(whatsapp:|sms:|\+)?/, "");
+    const cleanTo = (To || "").replace(/^(whatsapp:|sms:)/, "");
+    const cleanFrom = (From || "").replace(/^(whatsapp:|sms:)/, "");
     const phoneToLookup = cleanTo || cleanFrom;
 
     if (!phoneToLookup) {
@@ -267,7 +276,7 @@ export const handleStatusWebhook = async (req: Request, res: Response) => {
       return res.status(200).send("OK");
     }
 
-    console.log(`🔍 Looking up order for phone: ${phoneToLookup}`);
+    console.log(`📖 Looking up order for phone: ${phoneToLookup}`);
 
     // ✅ Query with retry mechanism and type safety
     const [rows] = await retryQuery(
@@ -299,6 +308,9 @@ export const handleStatusWebhook = async (req: Request, res: Response) => {
 
     // ✅ Broadcast status update via WebSocket
     broadcastMessageStatus(MessageSid, orderId, normalizedStatus, channel);
+
+    // Invalidate customer list cache
+    invalidateCustomerListCache();
 
     console.log(
       `✅ Status update broadcasted | ${normalizedStatus} | Order: ${orderId} | Channel: ${channel} | MessageID: ${MessageSid}`
