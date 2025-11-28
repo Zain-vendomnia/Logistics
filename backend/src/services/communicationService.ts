@@ -25,6 +25,14 @@ interface Message {
   read_at?: string | null;
   send_user_id?: number;
   status?: string;
+  // Email specific fields
+  subject?: string;
+  html_content?: string | null;
+  from_name?: string | null;
+  attachment_count?: number;
+  attachments?: any[] | null;
+  spam_score?: number | null;
+  metadata?: any;
 }
 
 interface ConversationData {
@@ -51,6 +59,20 @@ interface CustomerInfo {
 }
 
 /**
+ * Get the most recent message from messages array (sorted by created_at)
+ */
+const getMostRecentMessage = (messages: Message[]): Message | null => {
+  if (!messages || messages.length === 0) return null;
+  
+  // Sort by created_at descending and return the first (most recent)
+  const sorted = [...messages].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+  
+  return sorted[0];
+};
+
+/**
  * Get customer info from logistic_order table
  */
 const getCustomerInfo = async (orderId: number): Promise<CustomerInfo> => {
@@ -64,7 +86,7 @@ const getCustomerInfo = async (orderId: number): Promise<CustomerInfo> => {
       LIMIT 1
     `;
 
-    const [rows] = await pool.query(query, [orderId]) as [any[], any];
+    const [rows] = (await pool.query(query, [orderId])) as [any[], any];
 
     if (rows.length === 0) {
       throw new Error(`Customer not found for order ${orderId}`);
@@ -100,7 +122,7 @@ export const getConversationByOrderId = async (
       LIMIT 1
     `;
 
-    const [rows] = await pool.query(query, [orderId]) as [any[], any];
+    const [rows] = (await pool.query(query, [orderId])) as [any[], any];
 
     console.log(`📊 Query result: Found ${rows.length} conversation(s)`);
 
@@ -126,13 +148,13 @@ export const getConversationByOrderId = async (
 
     const row = rows[0];
     let messages: Message[] = [];
-    
+
     if (row.convo) {
       try {
-        if (typeof row.convo === 'string') {
-          console.log(`📄 Parsing convo string for order ${orderId}`);
+        if (typeof row.convo === "string") {
+          console.log(`🔄 Parsing convo string for order ${orderId}`);
           messages = JSON.parse(row.convo);
-        } else if (typeof row.convo === 'object') {
+        } else if (typeof row.convo === "object") {
           console.log(`✅ Convo already object for order ${orderId}`);
           messages = row.convo;
         }
@@ -143,14 +165,14 @@ export const getConversationByOrderId = async (
       }
     }
 
-    const lastMessage = messages.length > 0 
-      ? messages.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
-      : null;
-
+    // Get the most recent message
+    const lastMessage = getMostRecentMessage(messages);
     const lastChannel = lastMessage?.communication_channel || null;
-    const unreadCount = messages.filter(m => m.direction === "inbound" && !m.is_read).length;
+    const unreadCount = messages.filter((m) => m.direction === "inbound" && !m.is_read).length;
 
-    console.log(`✅ Successfully retrieved conversation for order ${orderId} | Messages: ${messages.length} | Unread: ${unreadCount}`);
+    console.log(
+      `✅ Successfully retrieved conversation for order ${orderId} | Messages: ${messages.length} | Unread: ${unreadCount}`
+    );
 
     return {
       order_id: orderId,
@@ -161,27 +183,30 @@ export const getConversationByOrderId = async (
     };
   } catch (error) {
     console.error(`❌ Error in getConversationByOrderId for order ${orderId}:`, error);
-    
+
     if (error instanceof Error) {
-      if (error.message.includes('ER_NO_SUCH_TABLE')) {
+      if (error.message.includes("ER_NO_SUCH_TABLE")) {
         throw new Error('Database table "customer_chats" does not exist');
-      } else if (error.message.includes('ER_BAD_FIELD_ERROR')) {
-        throw new Error('Invalid column name in customer_chats table');
-      } else if (error.message.includes('ECONNREFUSED')) {
-        throw new Error('Database connection refused');
+      } else if (error.message.includes("ER_BAD_FIELD_ERROR")) {
+        throw new Error("Invalid column name in customer_chats table");
+      } else if (error.message.includes("ECONNREFUSED")) {
+        throw new Error("Database connection refused");
       }
     }
-    
-    throw new Error(error instanceof Error ? error.message : "Failed to fetch conversation from database");
+
+    throw new Error(
+      error instanceof Error ? error.message : "Failed to fetch conversation from database"
+    );
   }
 };
 
 /**
- * Detect which channel to use
+ * Detect which channel to use based on conversation history
  */
 const detectChannel = (messages: Message[]): "whatsapp" | "sms" | "email" => {
+  // Priority: Last inbound message channel > Last outbound message channel > Default (whatsapp)
   const lastInboundMessage = messages
-    .filter(m => m.direction === "inbound")
+    .filter((m) => m.direction === "inbound")
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
 
   if (lastInboundMessage) {
@@ -189,7 +214,7 @@ const detectChannel = (messages: Message[]): "whatsapp" | "sms" | "email" => {
   }
 
   const lastOutboundMessage = messages
-    .filter(m => m.direction === "outbound")
+    .filter((m) => m.direction === "outbound")
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
 
   return lastOutboundMessage?.communication_channel || "whatsapp";
@@ -226,9 +251,10 @@ export const sendMessageToCustomer = async (params: SendMessageParams) => {
       created_at: new Date().toISOString(),
       read_at: null,
       send_user_id: userId,
+      status: "sending",
     };
 
-    // Send via Twilio based on channel - using object params
+    // Send via Twilio/SendGrid based on channel
     let twilioResult;
     switch (channel) {
       case "whatsapp":
@@ -256,7 +282,7 @@ export const sendMessageToCustomer = async (params: SendMessageParams) => {
         throw new Error("Invalid communication channel");
     }
 
-    // Update message with Twilio response
+    // Update message with service response
     newMessage.from = twilioResult.from;
     newMessage.message_id = twilioResult.sid;
     newMessage.status = twilioResult.status || "sent";
@@ -264,20 +290,23 @@ export const sendMessageToCustomer = async (params: SendMessageParams) => {
     if (twilioResult.error) {
       newMessage.error_code = twilioResult.errorCode;
       newMessage.error_message = twilioResult.error;
+      newMessage.status = "failed";
     }
 
     // Mark all previous inbound messages as read
-    const updatedPreviousMessages = conversation.messages.map(msg => {
+    const updatedPreviousMessages = conversation.messages.map((msg) => {
       if (msg.direction === "inbound" && !msg.is_read) {
         return { ...msg, is_read: true, read_at: new Date().toISOString() };
       }
       return msg;
     });
 
+    // Add the new message to the conversation
     const updatedMessages = [...updatedPreviousMessages, newMessage];
     const isFirstMessage = conversation.messages.length === 0;
 
-    await saveConversation(orderId, updatedMessages, true, isFirstMessage);
+    // Save with the NEW message as the last_message
+    await saveConversation(orderId, updatedMessages, newMessage, true, isFirstMessage);
     await updateGlobalUnreadCount();
 
     // Broadcast via WebSocket to order room
@@ -309,17 +338,36 @@ export const sendMessageToCustomer = async (params: SendMessageParams) => {
 
 /**
  * Save conversation to database
+ * @param orderId - Order ID
+ * @param messages - All messages in conversation
+ * @param newMessage - The new message being added (for last_message columns)
+ * @param convoIsRead - Whether conversation is read
+ * @param isInsert - Whether to insert (true) or update (false)
  */
 const saveConversation = async (
   orderId: number,
   messages: Message[],
+  newMessage: Message | null,
   convoIsRead: boolean = false,
   isInsert: boolean = false
 ) => {
   try {
     const convoJson = JSON.stringify(messages);
     const isReadValue = convoIsRead ? 1 : 0;
-    const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
+
+    // Use the provided newMessage for last_message columns
+    const lastMsg = newMessage || getMostRecentMessage(messages);
+
+    // Truncate last_message if too long (for column storage)
+    const lastMessageText = lastMsg?.message
+      ? lastMsg.message.length > 500
+        ? lastMsg.message.substring(0, 497) + "..."
+        : lastMsg.message
+      : null;
+
+    const lastChannel = lastMsg?.communication_channel || "none";
+
+    console.log(`💾 Saving conversation | Order: ${orderId} | LastMessage: "${lastMessageText?.substring(0, 50)}..." | Channel: ${lastChannel}`);
 
     if (isInsert) {
       const insertQuery = `
@@ -331,8 +379,8 @@ const saveConversation = async (
         orderId,
         convoJson,
         isReadValue,
-        lastMessage?.message || null,
-        lastMessage?.communication_channel || 'none'
+        lastMessageText,
+        lastChannel,
       ]);
       console.log(`📝 Created new conversation | Order: ${orderId}`);
     } else {
@@ -349,9 +397,9 @@ const saveConversation = async (
       await pool.query(updateQuery, [
         convoJson,
         isReadValue,
-        lastMessage?.message || null,
-        lastMessage?.communication_channel || 'none',
-        orderId
+        lastMessageText,
+        lastChannel,
+        orderId,
       ]);
       console.log(`📝 Updated conversation | Order: ${orderId}`);
     }
@@ -362,17 +410,48 @@ const saveConversation = async (
 };
 
 /**
- * Receive message from Twilio webhook (inbound)
+ * Save conversation to database (READ-ONLY update - doesn't update last_message_at)
+ * Use this for marking messages as read or updating status
  */
-export const receiveInboundMessage = async (orderId: number, message: any) => {
+const saveConversationReadOnly = async (
+  orderId: number,
+  messages: Message[],
+  convoIsRead: boolean = false
+) => {
   try {
-    console.log(`📥 Receiving inbound message | Order: ${orderId} | Channel: ${message.communication_channel}`);
+    const convoJson = JSON.stringify(messages);
+    const isReadValue = convoIsRead ? 1 : 0;
+
+    const updateQuery = `
+      UPDATE customer_chats 
+      SET convo = ?, 
+          convo_is_read = ?,
+          updated_at = NOW()
+      WHERE order_id = ?
+    `;
+    await pool.query(updateQuery, [convoJson, isReadValue, orderId]);
+    console.log(`📝 Updated conversation (read-only) | Order: ${orderId}`);
+  } catch (error) {
+    console.error(`❌ Error saving conversation (read-only) for order ${orderId}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Receive inbound message from webhook (WhatsApp/SMS/Email)
+ */
+export const receiveInboundMessage = async (orderId: number, message: Message) => {
+  try {
+    console.log(
+      `📥 Receiving inbound message | Order: ${orderId} | Channel: ${message.communication_channel}`
+    );
 
     const conversation = await getConversationByOrderId(orderId);
     const updatedMessages = [...conversation.messages, message];
     const isFirstMessage = conversation.messages.length === 0;
 
-    await saveConversation(orderId, updatedMessages, false, isFirstMessage);
+    // Save with the NEW inbound message as the last_message
+    await saveConversation(orderId, updatedMessages, message, false, isFirstMessage);
     await updateGlobalUnreadCount();
     emitMessageToOrder(orderId.toString(), message);
 
@@ -398,7 +477,7 @@ export const markMessagesAsRead = async (orderId: number) => {
     const conversation = await getConversationByOrderId(orderId);
 
     const unreadCount = conversation.messages.filter(
-      msg => msg.direction === "inbound" && !msg.is_read
+      (msg) => msg.direction === "inbound" && !msg.is_read
     ).length;
 
     if (unreadCount === 0) {
@@ -406,14 +485,15 @@ export const markMessagesAsRead = async (orderId: number) => {
       return { success: true, markedCount: 0 };
     }
 
-    const updatedMessages = conversation.messages.map(msg => {
+    const updatedMessages = conversation.messages.map((msg) => {
       if (msg.direction === "inbound" && !msg.is_read) {
         return { ...msg, is_read: true, read_at: new Date().toISOString() };
       }
       return msg;
     });
 
-    await saveConversation(orderId, updatedMessages, true, false);
+    // Only update convo and convo_is_read, NOT last_message_at
+    await saveConversationReadOnly(orderId, updatedMessages, true);
     await handleMessageRead(orderId, unreadCount);
     await updateGlobalUnreadCount();
 
@@ -439,7 +519,7 @@ export const updateMessageStatusById = async (
   try {
     const conversation = await getConversationByOrderId(orderId);
 
-    const idx = conversation.messages.findIndex(msg => msg.message_id === messageId);
+    const idx = conversation.messages.findIndex((msg) => msg.message_id === messageId);
 
     if (idx === -1) {
       console.log(`⚠️ Message not found | Order: ${orderId} | MessageID: ${messageId}`);
@@ -450,12 +530,12 @@ export const updateMessageStatusById = async (
 
     message.status = status.toLowerCase();
 
-    if (status.toLowerCase() === 'read') {
+    if (status.toLowerCase() === "read") {
       message.is_read = true;
       message.read_at = new Date().toISOString();
     }
 
-    if (status.toLowerCase() === 'delivered') {
+    if (status.toLowerCase() === "delivered") {
       message.is_read = false;
       message.read_at = null;
     }
@@ -463,19 +543,25 @@ export const updateMessageStatusById = async (
     if (errorCode) {
       message.error_code = errorCode;
       message.error_message = errorMessage || null;
-      message.status = 'failed';
+      message.status = "failed";
     }
 
-    await saveConversation(orderId, conversation.messages, true, false);
+    // Only update convo, NOT last_message_at (status update shouldn't change last message time)
+    await saveConversationReadOnly(orderId, conversation.messages, true);
 
     // Invalidate cache since message status changed
     invalidateCustomerListCache();
 
-    console.log(`✅ Message status updated | Order: ${orderId} | MessageID: ${messageId} | Status: ${message.status}`);
-    
+    console.log(
+      `✅ Message status updated | Order: ${orderId} | MessageID: ${messageId} | Status: ${message.status}`
+    );
+
     return true;
   } catch (err) {
-    console.error(`❌ updateMessageStatusById error | Order: ${orderId} | MessageID: ${messageId}`, err);
+    console.error(
+      `❌ updateMessageStatusById error | Order: ${orderId} | MessageID: ${messageId}`,
+      err
+    );
     throw err;
   }
 };

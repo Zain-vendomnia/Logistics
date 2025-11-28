@@ -1,4 +1,5 @@
 import express from "express";
+import multer from "multer";
 import {
   handleWhatsAppWebhook,
   handleSMSWebhook,
@@ -7,6 +8,9 @@ import {
 } from "../controller/webhookController";
 
 const router = express.Router();
+
+// Multer for parsing multipart/form-data (SendGrid Inbound Parse)
+const upload = multer();
 
 /**
  * Twilio WhatsApp Webhook
@@ -30,6 +34,6 @@ router.post("/twilio/status", handleStatusWebhook);
  * SendGrid Incoming Email Webhook
  * POST /api/webhooks/sendgrid/inbound
  */
-router.post("/sendgrid/inbound", handleInboundEmail);
+router.post("/sendgrid/inbound", upload.none(), handleInboundEmail);
 
 export default router;
