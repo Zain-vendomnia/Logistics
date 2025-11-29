@@ -1,8 +1,8 @@
 import { Socket } from "socket.io";
 import pool from "../config/database";
 import {
-  getIO,
   emitToRoom,
+  getIO,
 } from "../config/socket";
 import { getConversationByOrderId } from "../services/communicationService";
 
@@ -26,6 +26,39 @@ const getActualUnreadCountFromDB = async (): Promise<number> => {
     return rows[0]?.total_unread || 0;
   } catch (e) {
     console.error("❌ Error getting unread count:", e);
+    return 0;
+  }
+};
+
+/**
+ * ✅ NEW: Get actual unread message count for a specific order from JSON convo
+ */
+const getUnreadCountForOrder = async (orderId: number): Promise<number> => {
+  try {
+    const [rows] = (await pool.query(
+      `SELECT 
+        CASE 
+          WHEN convo_is_read = 0 THEN 
+            (SELECT COUNT(*) 
+             FROM JSON_TABLE(
+               convo, 
+               '$[*]' COLUMNS(
+                 direction VARCHAR(20) PATH '$.direction',
+                 is_read INT PATH '$.is_read'
+               )
+             ) AS jt 
+             WHERE jt.direction = 'inbound' AND jt.is_read = 0
+            )
+          ELSE 0 
+        END AS unread_count
+      FROM customer_chats
+      WHERE order_id = ?`,
+      [orderId]
+    )) as [any[], any];
+    
+    return rows[0]?.unread_count || 0;
+  } catch (e) {
+    console.error(`❌ Error getting unread count for order ${orderId}:`, e);
     return 0;
   }
 };
@@ -66,7 +99,7 @@ const getCustomerList = async (
 
     console.log(`🔄 Fetching fresh customer list from database`);
 
-    // Get customers with their last message info and unread count
+    // Get customers with their last message info and ACCURATE unread count using JSON_TABLE
     const query = `
       SELECT 
         lo.order_id,
@@ -79,20 +112,27 @@ const getCustomerList = async (
         cc.last_message_at,
         cc.last_communication_channel,
         cc.convo_is_read,
-        (
-          SELECT COUNT(*) 
-          FROM (
-            SELECT 1 
-            FROM customer_chats 
-            WHERE order_id = lo.order_id 
-            AND convo IS NOT NULL 
-            LIMIT 1
-          ) AS check_convo
-        ) as has_messages
+        CASE WHEN cc.convo_is_read = 0 THEN 1 ELSE 0 END AS has_unread,
+        CASE 
+          WHEN cc.convo_is_read = 0 THEN 
+            (SELECT COUNT(*) 
+             FROM JSON_TABLE(
+               cc.convo, 
+               '$[*]' COLUMNS(
+                 direction VARCHAR(20) PATH '$.direction',
+                 is_read INT PATH '$.is_read'
+               )
+             ) AS jt 
+             WHERE jt.direction = 'inbound' AND jt.is_read = 0
+            )
+          ELSE 0 
+        END AS unread_count
       FROM logistic_order lo
       LEFT JOIN customer_chats cc ON lo.order_id = cc.order_id
       WHERE lo.status NOT IN ('delivered', 'cancelled')
-      ORDER BY COALESCE(cc.last_message_at, lo.created_at) DESC
+      ORDER BY 
+        has_unread DESC,
+        COALESCE(cc.last_message_at, lo.created_at) DESC
       LIMIT ? OFFSET ?
     `;
 
@@ -101,15 +141,8 @@ const getCustomerList = async (
       0,
     ])) as [any[], any];
 
-    // Process each row to extract unread count from convo JSON
+    // Process each row - unread_count now comes directly from query (accurate!)
     const customers = rows.map((row: any) => {
-      let unreadCount = 0;
-      
-      if (row.has_messages) {
-        // Unread count logic: if convo_is_read = 0, there are unread messages
-        unreadCount = row.convo_is_read === 0 ? 1 : 0;
-      }
-
       const lastMessageTime = row.last_message_at 
         ? new Date(row.last_message_at).getTime()
         : null;
@@ -125,8 +158,8 @@ const getCustomerList = async (
         last_message_at: row.last_message_at,
         last_message_timestamp: lastMessageTime,
         last_communication_channel: row.last_communication_channel || "none",
-        unread_count: unreadCount,
-        has_unread: unreadCount > 0,
+        unread_count: row.unread_count || 0,
+        has_unread: row.has_unread === 1,
       };
     });
 
@@ -155,7 +188,8 @@ const getCustomerList = async (
 };
 
 /**
- * Get only timestamp updates for all customers (lightweight broadcast)
+ * ✅ FIXED: Get only timestamp updates for all customers (lightweight broadcast)
+ * Now uses JSON_TABLE to get accurate unread count instead of just 0/1
  */
 const getCustomerTimestampUpdates = async (): Promise<any[]> => {
   try {
@@ -163,7 +197,21 @@ const getCustomerTimestampUpdates = async (): Promise<any[]> => {
       SELECT 
         lo.order_id,
         cc.last_message_at,
-        cc.convo_is_read
+        cc.convo_is_read,
+        CASE 
+          WHEN cc.convo_is_read = 0 THEN 
+            (SELECT COUNT(*) 
+             FROM JSON_TABLE(
+               cc.convo, 
+               '$[*]' COLUMNS(
+                 direction VARCHAR(20) PATH '$.direction',
+                 is_read INT PATH '$.is_read'
+               )
+             ) AS jt 
+             WHERE jt.direction = 'inbound' AND jt.is_read = 0
+            )
+          ELSE 0 
+        END AS unread_count
       FROM logistic_order lo
       LEFT JOIN customer_chats cc ON lo.order_id = cc.order_id
       WHERE lo.status NOT IN ('delivered', 'cancelled')
@@ -177,7 +225,7 @@ const getCustomerTimestampUpdates = async (): Promise<any[]> => {
       order_id: row.order_id,
       last_message_at: row.last_message_at,
       last_message_timestamp: new Date(row.last_message_at).getTime(),
-      unread_count: row.convo_is_read === 0 ? 1 : 0,
+      unread_count: row.unread_count || 0,  // ✅ Now uses actual count from JSON_TABLE
     }));
   } catch (error) {
     console.error(`❌ Error fetching timestamp updates:`, error);
@@ -448,51 +496,33 @@ export const initCommunicationSocket = () => {
     });
 
     /* =================================================================
-       EVENT 10: GET MESSAGE STATUS
+       EVENT 10: MARK MESSAGES AS READ
+       ✅ FIXED: Consistent field naming (camelCase)
     ================================================================= */
-    socket.on("message:get-status", async (data: { messageId: string; orderId: number }) => {
+    socket.on("messages:mark-read", async (data: { orderId: number }) => {
       try {
-        const { messageId, orderId } = data;
-
-        if (!messageId || !orderId) {
-          return socket.emit("message:status-error", {
-            messageId,
-            error: "Missing messageId or orderId",
-          });
+        if (socket.userRole !== "admin" && socket.userRole !== "support") {
+          return socket.emit("error", { message: "Unauthorized" });
         }
 
-        const conversation = await getConversationByOrderId(orderId, false);
-        const message = conversation.messages.find((m) => m.message_id === messageId);
-
-        if (message) {
-          socket.emit("message:status", {
-            messageId,
-            orderId,
-            status: message.status || "sent",
-            is_read: message.is_read,
-            read_at: message.read_at,
-            communication_channel: message.communication_channel,
-            direction: message.direction,
-            timestamp: new Date().toISOString(),
-          });
-
-          console.log(`✅ Message status sent | MessageID: ${messageId} | Status: ${message.status}`);
-        } else {
-          socket.emit("message:status-error", {
-            messageId,
-            orderId,
-            error: "Message not found",
-          });
-
-          console.warn(`⚠️ Message not found | MessageID: ${messageId} | Order: ${orderId}`);
+        const { orderId } = data;
+        if (!orderId) {
+          return socket.emit("error", { message: "Missing orderId" });
         }
-      } catch (err) {
-        console.error("❌ Error fetching message status:", err);
-        socket.emit("message:status-error", {
-          messageId: data.messageId,
-          orderId: data.orderId,
-          error: "Failed to fetch status",
-        });
+
+        // Import markMessagesAsRead from service
+        const { markMessagesAsRead } = await import("../services/communicationService");
+        
+        // Mark messages as read in DB
+        await markMessagesAsRead(orderId);
+
+        // Invalidate cache since read status changed
+        invalidateCustomerListCache();
+
+        console.log(`✅ Messages marked as read via socket | Order: ${orderId}`);
+      } catch (error) {
+        console.error("❌ Error in messages:mark-read:", error);
+        socket.emit("error", { message: "Failed to mark messages as read" });
       }
     });
 
@@ -551,7 +581,7 @@ export const broadcastCustomerUpdate = (
   custInfo: any,
   unreadCount: number
 ) => {
-  console.log(`🔔 Broadcasting customer update | Order: ${orderId} | Channel: ${message.communication_channel}`);
+  console.log(`🔔 Broadcasting customer update | Order: ${orderId} | Channel: ${message.communication_channel} | Unread: ${unreadCount}`);
 
   emitToRoom("admin-room", "customer:updated", {
     orderId,
@@ -573,8 +603,8 @@ export const broadcastCustomerUpdate = (
 };
 
 /**
- * Broadcast customer list reorder event (for send/receive messages)
- * This moves the customer to top of the list
+ * ✅ FIXED: Broadcast customer list reorder event (for send/receive messages)
+ * Now uses getUnreadCountForOrder() for accurate count instead of 0/1
  */
 export const broadcastCustomerReorder = async (
   orderId: number,
@@ -610,16 +640,8 @@ export const broadcastCustomerReorder = async (
 
     const customer = customerRows[0];
 
-    // Get unread count for this customer
-    const [chatRows] = (await pool.query(
-      `SELECT convo_is_read FROM customer_chats WHERE order_id = ?`,
-      [orderId]
-    )) as [any[], any];
-
-    let unreadCount = 0;
-    if (chatRows.length > 0) {
-      unreadCount = chatRows[0].convo_is_read === 0 ? 1 : 0;
-    }
+    // ✅ FIXED: Get ACTUAL unread count using JSON_TABLE instead of just 0/1
+    const unreadCount = await getUnreadCountForOrder(orderId);
 
     // Emit customer reorder event to all admins
     emitToRoom("admin-room", "customer:reorder", {
@@ -637,7 +659,7 @@ export const broadcastCustomerReorder = async (
         communication_channel: message.communication_channel,
         status: message.status,
       },
-      unreadCount,
+      unreadCount,  // ✅ Now shows actual count (e.g., 3, 5, etc.) not just 1
       hasUnread: unreadCount > 0,
       lastMessageTime: message.created_at,
       lastChannel: message.communication_channel,
@@ -700,30 +722,37 @@ export const broadcastUnreadCount = async (providedCount?: number) => {
 
 /**
  * Handle message read event
+ * ✅ FIXED: Consistent field naming (camelCase) for frontend compatibility
  */
 export const handleMessageRead = async (orderId: number, readCount: number = 1) => {
   console.log(`✅ Messages read | Order: ${orderId} | Count: ${readCount}`);
 
+  // Emit to specific order room
   emitToRoom(`order-${orderId}`, "messages:read", {
     orderId,
     readCount,
     timestamp: new Date().toISOString(),
   });
 
-  // Notify admin room about read status change
+  // ✅ FIXED: Notify admin room about read status change with CONSISTENT camelCase fields
   emitToRoom("admin-room", "customer:read-updated", {
     orderId,
     readCount,
-    unreadCount: 0,
-    hasUnread: false,
+    unreadCount: 0,      // ✅ camelCase - matches frontend expectation
+    hasUnread: false,    // ✅ camelCase - matches frontend expectation
     timestamp: new Date().toISOString(),
   });
 
+  // Invalidate cache
+  invalidateCustomerListCache();
+
+  // Update global unread count
   await broadcastUnreadCount();
 };
 
 /**
- * Broadcast inbound message from customer (via webhook)
+ * ✅ FIXED: Broadcast inbound message from customer (via webhook)
+ * Now uses getUnreadCountForOrder() for accurate count instead of 0/1
  */
 export const broadcastInboundMessage = async (
   orderId: number,
@@ -736,15 +765,8 @@ export const broadcastInboundMessage = async (
   emitMessageToOrder(orderId.toString(), message);
   
   try {
-    // Get actual unread count from messages
-    const [rows] = (await pool.query(`SELECT convo_is_read FROM customer_chats WHERE order_id = ?`, [
-      orderId,
-    ])) as [any[], any];
-    
-    let unreadCount = 0;
-    if (rows.length > 0) {
-      unreadCount = rows[0].convo_is_read === 0 ? 1 : 0;
-    }
+    // ✅ FIXED: Get ACTUAL unread count using JSON_TABLE instead of just 0/1
+    const unreadCount = await getUnreadCountForOrder(orderId);
     
     // Broadcast to all admins for customer list update
     broadcastCustomerUpdate(orderId, message, custInfo, unreadCount);

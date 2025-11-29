@@ -26,7 +26,7 @@ const twilioClient = twilio(TWILIO_SID, TWILIO_AUTH_TOKEN);
 // Initialize SendGrid
 if (SENDGRID_API_KEY) {
   sgMail.setApiKey(SENDGRID_API_KEY);
-  console.log("✅ SendGrid API initialized");
+  // console.log("✅ SendGrid API initialized");
 } else {
   console.warn("⚠️ SENDGRID_API_KEY not configured");
 }

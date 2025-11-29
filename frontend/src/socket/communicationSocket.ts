@@ -23,6 +23,19 @@ export const leaveAdminRoom = () => {
   }
 };
 
+/**
+ * Mark all messages as read for a specific customer
+ */
+export const markMessagesAsRead = (orderId: number) => {
+  if (socket?.connected) {
+    socket.emit("messages:mark-read", { orderId });
+    console.log(`✅ Marked messages as read for order: ${orderId}`);
+  } else {
+    console.warn("⚠️ Socket not connected");
+  }
+};
+
+
 export const onAdminJoined = (callback: (data: any) => void) => {
   socket?.on("admin:joined", callback);
 };
@@ -90,6 +103,7 @@ export const onCustomerReorder = (callback: (data: any) => void) => {
 /**
  * Listen for customer read status updates
  * Triggered when messages are marked as read
+ * Data: { orderId, readCount, unreadCount, hasUnread, timestamp }
  */
 export const onCustomerReadUpdated = (callback: (data: any) => void) => {
   socket?.on("customer:read-updated", callback);

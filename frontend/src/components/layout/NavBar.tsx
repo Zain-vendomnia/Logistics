@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { AppBar, Box, Button, Stack, Toolbar } from "@mui/material";
+import { AppBar, Badge, Box, Button, Stack, Toolbar } from "@mui/material";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../providers/AuthProvider";
 import EventBus from "../../common/EventBus";
@@ -12,10 +12,13 @@ import {
   Logout as LogoutIcon,
 } from "@mui/icons-material";
 import { useLayoutNavigator } from "../../hooks/useLayoutNavigator";
+import useUnreadCount from "../../socket/Useunreadcount";
+
 
 const NavBar = () => {
   const { user, showDriverBoard, showAdminBoard, showSuperAdminBoard, logout } = useAuth();
   const { clearSessionStack } = useLayoutNavigator();
+  const { unreadCount } = useUnreadCount();
   const location = useLocation();
   const navigate = useNavigate();
   const logo = "/sunniva_white.svg";
@@ -70,7 +73,27 @@ const NavBar = () => {
               <>
                 <Button component={Link} to="/admin-drivers" sx={navStyle("/admin-drivers")}><PersonIcon sx={{ fontSize: '1.1rem' }} />Drivers</Button>
                 <Button component={Link} to="/profile" sx={navStyle("/profile")}><AccountBoxIcon sx={{ fontSize: '1.1rem' }} />Profile</Button>
-                <Button component={Link} to="/chat" sx={navStyle("/chat")}><ChatIcon sx={{ fontSize: '1.1rem' }} />Chat</Button>
+                
+                {/* Chat button with unread count badge */}
+                <Button component={Link} to="/chat" sx={navStyle("/chat")}>
+                  <Badge 
+                    badgeContent={unreadCount} 
+                    color="error"
+                    max={99}
+                    sx={{
+                      "& .MuiBadge-badge": {
+                        fontSize: "0.7rem",
+                        minWidth: "18px",
+                        height: "18px",
+                        top: -4,
+                        right: -4,
+                      },
+                    }}
+                  >
+                    <ChatIcon sx={{ fontSize: '1.1rem' }} />
+                  </Badge>
+                  Chat
+                </Button>
               </>
             )}
 

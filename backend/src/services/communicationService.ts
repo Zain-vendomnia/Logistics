@@ -268,86 +268,50 @@ export const sendMessageToCustomer = async (params: SendMessageParams) => {
         twilioResult = await twilioService.sendSMS({
           to: customerInfo.phone,
           body: message,
-          mediaUrl: media_url,
         });
         break;
       case "email":
         twilioResult = await twilioService.sendEmail({
           to: customerInfo.email,
-          subject: `Order ${orderId} Update`,
+          subject: "Update on Your Order",
           body: message,
         });
         break;
       default:
-        throw new Error("Invalid communication channel");
+        throw new Error(`Unknown communication channel: ${channel}`);
     }
 
-    // Update message with service response
-    newMessage.from = twilioResult.from;
     newMessage.message_id = twilioResult.sid;
+    newMessage.from = twilioResult.from;
     newMessage.status = twilioResult.status || "sent";
 
-    if (twilioResult.error) {
-      newMessage.error_code = twilioResult.errorCode;
-      newMessage.error_message = twilioResult.error;
-      newMessage.status = "failed";
-    }
-
-    // Mark all previous inbound messages as read
-    const updatedPreviousMessages = conversation.messages.map((msg) => {
-      if (msg.direction === "inbound" && !msg.is_read) {
-        return { ...msg, is_read: true, read_at: new Date().toISOString() };
-      }
-      return msg;
-    });
-
-    // Add the new message to the conversation
-    const updatedMessages = [...updatedPreviousMessages, newMessage];
+    const updatedMessages = [...conversation.messages, newMessage];
     const isFirstMessage = conversation.messages.length === 0;
 
-    // Save with the NEW message as the last_message
+    // Save with the NEW outbound message as the last_message
     await saveConversation(orderId, updatedMessages, newMessage, true, isFirstMessage);
-    await updateGlobalUnreadCount();
-
-    // Broadcast via WebSocket to order room
     emitMessageToOrder(orderId.toString(), newMessage);
-
-    // Broadcast customer reorder event for outbound messages
-    await broadcastOutboundMessage(orderId, newMessage, customerInfo);
+    broadcastOutboundMessage(orderId, newMessage, customerInfo);
 
     // Invalidate cache since conversation changed
     invalidateCustomerListCache();
 
-    console.log(`✅ Message sent successfully | Order: ${orderId} | Channel: ${channel}`);
+    console.log(`✅ Message sent successfully | Order: ${orderId} | SID: ${twilioResult.sid}`);
 
-    return {
-      success: true,
-      data: {
-        message: newMessage,
-        channel,
-      },
-    };
+    return { success: true, message: newMessage };
   } catch (error) {
     console.error("❌ Error sending message:", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Failed to send message",
-    };
+    throw error;
   }
 };
 
 /**
  * Save conversation to database
- * @param orderId - Order ID
- * @param messages - All messages in conversation
- * @param newMessage - The new message being added (for last_message columns)
- * @param convoIsRead - Whether conversation is read
- * @param isInsert - Whether to insert (true) or update (false)
  */
 const saveConversation = async (
   orderId: number,
   messages: Message[],
-  newMessage: Message | null,
+  newMessage: Message | null = null,
   convoIsRead: boolean = false,
   isInsert: boolean = false
 ) => {
@@ -468,9 +432,9 @@ export const receiveInboundMessage = async (orderId: number, message: Message) =
 };
 
 /**
- * Mark messages as read
+ * Mark all messages as read for a customer
  */
-export const markMessagesAsRead = async (orderId: number) => {
+export const markMessagesAsRead = async (orderId: number): Promise<void> => {
   try {
     console.log(`✅ Marking messages as read | Order: ${orderId}`);
 
@@ -482,12 +446,18 @@ export const markMessagesAsRead = async (orderId: number) => {
 
     if (unreadCount === 0) {
       console.log(`ℹ️ No unread messages to mark | Order: ${orderId}`);
-      return { success: true, markedCount: 0 };
+      return;
     }
 
+    // Update all inbound messages to read and add status
     const updatedMessages = conversation.messages.map((msg) => {
       if (msg.direction === "inbound" && !msg.is_read) {
-        return { ...msg, is_read: true, read_at: new Date().toISOString() };
+        return { 
+          ...msg, 
+          is_read: true, 
+          status: 'read',
+          read_at: new Date().toISOString() 
+        };
       }
       return msg;
     });
@@ -498,11 +468,9 @@ export const markMessagesAsRead = async (orderId: number) => {
     await updateGlobalUnreadCount();
 
     console.log(`✅ Marked ${unreadCount} messages as read | Order: ${orderId}`);
-
-    return { success: true, markedCount: unreadCount };
   } catch (error) {
-    console.error("❌ Error marking messages as read:", error);
-    return { success: false, markedCount: 0 };
+    console.error('❌ Error marking messages as read:', error);
+    throw error;
   }
 };
 

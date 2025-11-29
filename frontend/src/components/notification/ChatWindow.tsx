@@ -21,7 +21,8 @@ import {
   onMessageStatusUpdated,
   notifyAdminViewing,
   notifyAdminLeftChat,
-  offEvent 
+  offEvent,
+  markMessagesAsRead 
 } from '../../socket/communicationSocket';
 import { Customer, ChatWindowProps, Message, MessageRequest } from './shared/types';
 import { getInitials, getAvatarColor } from './shared/utils';
@@ -306,6 +307,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ customer, onClose }) => {
   const pendingMessageIdsRef = useRef<Set<string>>(new Set());
   // Track real message IDs we've already processed from socket
   const processedSocketMessageIdsRef = useRef<Set<string>>(new Set());
+  // ✅ FIXED: Track if we've already marked messages as read for this customer
+  const hasMarkedAsReadRef = useRef<boolean>(false);
 
   const orderId = customer.order_id;
   const hasValidPhone = Boolean(customer.phone);
@@ -435,6 +438,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ customer, onClose }) => {
     // Clear tracking refs when order changes
     pendingMessageIdsRef.current.clear();
     processedSocketMessageIdsRef.current.clear();
+    // ✅ FIXED: Reset the mark as read flag when customer changes
+    hasMarkedAsReadRef.current = false;
     
     getMessagesByOrderId(orderId)
       .then(setMessages)
@@ -525,6 +530,16 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ customer, onClose }) => {
         };
 
         console.log('✅ Adding new message from socket:', formattedMessage.id);
+        
+        // ✅ FIXED: Mark messages as read when new inbound message arrives while viewing
+        if (newMsg.direction === 'inbound') {
+          // Use setTimeout to avoid state update during render
+          setTimeout(() => {
+            console.log(`📖 New inbound message received, marking as read for order: ${orderId}`);
+            markMessagesAsRead(orderId);
+          }, 100);
+        }
+        
         return [...prev, formattedMessage];
       });
     });
@@ -562,6 +577,32 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ customer, onClose }) => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  /**
+   * ✅ FIXED: Mark messages as read only ONCE when:
+   * 1. Customer is first selected AND messages are loaded
+   * 2. Check if there are actually unread inbound messages
+   */
+  useEffect(() => {
+    if (!customer || messages.length === 0 || hasMarkedAsReadRef.current) {
+      return;
+    }
+
+    // Check if there are any unread inbound messages
+    // is_read can be number (0/1) or boolean, so we check for falsy values
+    const hasUnreadInbound = messages.some(
+      msg => msg.direction === 'inbound' && !msg.is_read
+    );
+
+    if (hasUnreadInbound) {
+      console.log(`📖 Marking messages as read for order: ${customer.order_id}`);
+      markMessagesAsRead(customer.order_id);
+      hasMarkedAsReadRef.current = true;
+    } else {
+      // No unread messages, still mark the flag to prevent future checks
+      hasMarkedAsReadRef.current = true;
+    }
+  }, [customer, messages]);
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: '#e5ddd5' }}>

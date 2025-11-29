@@ -79,21 +79,13 @@ export const sendMessage = async (req: Request, res: Response) => {
       userId,
     });
 
-    if (result.success) {
-      const response: ApiResponse = {
-        status: "success",
-        message: "Message sent successfully",
-        data: result.data,
-      };
-      res.json(response);
-    } else {
-      const errorResponse: ApiResponse = {
-        status: "error",
-        message: result.error || "Failed to send message",
-        data: {},
-      };
-      res.status(500).json(errorResponse);
-    }
+    // Result format: { success: true, message: Message }
+    const response: ApiResponse = {
+      status: "success",
+      message: "Message sent successfully",
+      data: result.message,
+    };
+    res.json(response);
   } catch (err) {
     console.error("❌ Error sending message:", err);
     console.error("📋 Error details:", {

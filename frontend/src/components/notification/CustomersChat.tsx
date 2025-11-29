@@ -122,8 +122,9 @@ const CustomersChat: React.FC = () => {
           last_message: data.lastMessage?.content || data.last_message || existingCustomer.last_message,
           last_message_time: data.lastActive || data.last_message_at || data.last_message_time || existingCustomer.last_message_time,
           last_message_at: data.last_message_at || data.lastActive || existingCustomer.last_message_at,
+          // ✅ FIXED: Handle both camelCase and snake_case
           unread_count: data.unreadCount ?? data.unread_count ?? existingCustomer.unread_count,
-          has_unread: data.unreadCount > 0 || data.unread_count > 0,
+          has_unread: (data.unreadCount ?? data.unread_count ?? 0) > 0,
           last_channel: data.lastMessage?.communication_channel || data.last_channel || data.last_communication_channel || existingCustomer.last_channel,
           last_communication_channel: data.last_communication_channel || data.lastMessage?.communication_channel || existingCustomer.last_communication_channel,
         };
@@ -163,8 +164,11 @@ const CustomersChat: React.FC = () => {
           last_message: data.lastMessage?.content || existingCustomer.last_message,
           last_message_time: data.lastMessageTime || data.lastActive || existingCustomer.last_message_time,
           last_message_at: data.lastMessageTime || data.lastActive || existingCustomer.last_message_at,
-          unread_count: data.unreadCount ?? existingCustomer.unread_count,
-          has_unread: data.hasUnread !== undefined ? data.hasUnread : (data.unreadCount > 0) || existingCustomer.has_unread,
+          // ✅ FIXED: Handle both camelCase and snake_case
+          unread_count: data.unreadCount ?? data.unread_count ?? existingCustomer.unread_count,
+          has_unread: data.hasUnread !== undefined 
+            ? data.hasUnread 
+            : (data.has_unread !== undefined ? data.has_unread : ((data.unreadCount ?? data.unread_count ?? 0) > 0) || existingCustomer.has_unread),
           last_channel: data.lastChannel || data.lastMessage?.communication_channel || existingCustomer.last_channel,
           last_communication_channel: data.lastChannel || data.lastMessage?.communication_channel || existingCustomer.last_communication_channel,
         };
@@ -192,8 +196,8 @@ const CustomersChat: React.FC = () => {
           last_message_at: data.lastMessageTime || data.lastActive,
           last_channel: data.lastChannel || data.lastMessage?.communication_channel,
           last_communication_channel: data.lastChannel || data.lastMessage?.communication_channel,
-          unread_count: data.unreadCount || 0,
-          has_unread: data.hasUnread || false,
+          unread_count: data.unreadCount ?? data.unread_count ?? 0,
+          has_unread: data.hasUnread ?? data.has_unread ?? false,
         });
         
         console.log('➕ New customer added to top:', newCustomer);
@@ -205,6 +209,7 @@ const CustomersChat: React.FC = () => {
 
   /**
    * Handle customer read status update
+   * ✅ FIXED: Handle both camelCase and snake_case field names
    */
   const handleCustomerReadUpdated = useCallback((data: any) => {
     if (!mountedRef.current) return;
@@ -219,9 +224,12 @@ const CustomersChat: React.FC = () => {
         const updated = [...prev];
         updated[existingIndex] = {
           ...updated[existingIndex],
-          unread_count: data.unreadCount ?? 0,
-          has_unread: data.hasUnread ?? false,
+          // ✅ FIXED: Handle both camelCase and snake_case
+          unread_count: data.unreadCount ?? data.unread_count ?? 0,
+          has_unread: data.hasUnread ?? data.has_unread ?? false,
         };
+        
+        console.log(`✅ Customer ${orderId} read status updated | Unread: ${updated[existingIndex].unread_count}`);
         return updated;
       }
       
@@ -255,8 +263,8 @@ const CustomersChat: React.FC = () => {
             ...customer,
             last_message_time: update.last_message_at,
             last_message_at: update.last_message_at,
-            unread_count: update.unread_count,
-            has_unread: update.unread_count > 0,
+            unread_count: update.unread_count ?? update.unreadCount ?? customer.unread_count,
+            has_unread: (update.unread_count ?? update.unreadCount ?? 0) > 0,
           };
         }
         return customer;
