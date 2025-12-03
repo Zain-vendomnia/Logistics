@@ -3,12 +3,13 @@ import socket from "./socketInstance";
 
 /**
  * Hook to get real-time global unread message count
- * Handles reconnection automatically when socket disconnects
+ * This hook maintains socket connection for NavBar badge
+ * It re-joins admin room if another component leaves it
  */
 const useUnreadCount = () => {
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [isConnected, setIsConnected] = useState<boolean>(socket.connected);
-  const reconnectAttempted = useRef<boolean>(false);
+  const isJoined = useRef<boolean>(false);
 
   // Request fresh unread count from server
   const refreshUnreadCount = useCallback(() => {
@@ -17,47 +18,48 @@ const useUnreadCount = () => {
     }
   }, []);
 
-  // Connect and join admin room
-  const connectAndJoin = useCallback(() => {
-    if (!socket.connected) {
-      console.log("🔄 useUnreadCount: Attempting to connect socket...");
-      socket.connect();
-    } else {
-      // Already connected, just join admin room
+  // Join admin room
+  const joinAdminRoom = useCallback(() => {
+    if (socket.connected && !isJoined.current) {
       socket.emit("admin:join");
+      isJoined.current = true;
+      console.log("🔌 useUnreadCount: Joined admin room");
       refreshUnreadCount();
     }
   }, [refreshUnreadCount]);
+
+  // Connect socket and join admin room
+  const connectAndJoin = useCallback(() => {
+    if (!socket.connected) {
+      console.log("🔄 useUnreadCount: Connecting socket...");
+      socket.connect();
+    } else {
+      joinAdminRoom();
+    }
+  }, [joinAdminRoom]);
 
   useEffect(() => {
     // Handle socket connection
     const handleConnect = () => {
       console.log("🔌 useUnreadCount: Socket connected");
       setIsConnected(true);
-      reconnectAttempted.current = false;
-      
-      // Join admin room to receive updates
-      socket.emit("admin:join");
-      refreshUnreadCount();
+      isJoined.current = false; // Reset join state on new connection
+      joinAdminRoom();
     };
 
-    // Handle socket disconnection - attempt reconnect
+    // Handle socket disconnection
     const handleDisconnect = (reason: string) => {
-      console.log("🔌 useUnreadCount: Socket disconnected, reason:", reason);
+      console.log("🔌 useUnreadCount: Socket disconnected:", reason);
       setIsConnected(false);
-      
-      // Auto-reconnect if disconnected (except if server closed connection)
-      if (reason === "io client disconnect" || reason === "io server disconnect") {
-        // Manual disconnect or server kicked - try to reconnect after delay
-        if (!reconnectAttempted.current) {
-          reconnectAttempted.current = true;
-          console.log("🔄 useUnreadCount: Will attempt reconnect in 1 second...");
-          setTimeout(() => {
-            connectAndJoin();
-          }, 1000);
-        }
+      isJoined.current = false;
+
+      // Auto-reconnect for manual disconnects
+      if (reason === "io client disconnect") {
+        setTimeout(() => {
+          console.log("🔄 useUnreadCount: Reconnecting after manual disconnect...");
+          connectAndJoin();
+        }, 1000);
       }
-      // For other reasons, socket.io will auto-reconnect
     };
 
     // Handle unread count updates from server
@@ -66,59 +68,61 @@ const useUnreadCount = () => {
       setUnreadCount(data.totalUnreadCount);
     };
 
+    // Handle admin joined confirmation - means we're in the room
+    const handleAdminJoined = () => {
+      console.log("✅ useUnreadCount: Admin joined confirmed");
+      isJoined.current = true;
+      refreshUnreadCount();
+    };
+
     // Handle customer reorder (new message received)
     const handleCustomerReorder = () => {
-      console.log("🔄 Customer reorder event - refreshing unread count");
+      console.log("🔄 useUnreadCount: Customer reorder - refreshing count");
       refreshUnreadCount();
     };
 
     // Handle customer read updated (messages marked as read)
     const handleReadUpdated = () => {
-      console.log("✅ Customer read updated - refreshing unread count");
-      refreshUnreadCount();
-    };
-
-    // Handle reconnect event
-    const handleReconnect = () => {
-      console.log("🔄 useUnreadCount: Socket reconnected");
-      setIsConnected(true);
-      socket.emit("admin:join");
+      console.log("✅ useUnreadCount: Read updated - refreshing count");
       refreshUnreadCount();
     };
 
     // Register event listeners
     socket.on("connect", handleConnect);
     socket.on("disconnect", handleDisconnect);
-    socket.on("reconnect", handleReconnect);
     socket.on("unread:count", handleUnreadCount);
+    socket.on("admin:joined", handleAdminJoined);
     socket.on("customer:reorder", handleCustomerReorder);
     socket.on("customer:read-updated", handleReadUpdated);
 
     // Initial connection
     connectAndJoin();
 
-    // Cleanup listeners on unmount (but DON'T disconnect socket)
+    // Cleanup - remove listeners but DON'T disconnect or leave room
     return () => {
       socket.off("connect", handleConnect);
       socket.off("disconnect", handleDisconnect);
-      socket.off("reconnect", handleReconnect);
       socket.off("unread:count", handleUnreadCount);
+      socket.off("admin:joined", handleAdminJoined);
       socket.off("customer:reorder", handleCustomerReorder);
       socket.off("customer:read-updated", handleReadUpdated);
     };
-  }, [refreshUnreadCount, connectAndJoin]);
+  }, [connectAndJoin, joinAdminRoom, refreshUnreadCount]);
 
-  // Periodic check - if socket is disconnected, try to reconnect
+  // Re-join admin room periodically if disconnected from room (but socket still connected)
   useEffect(() => {
     const interval = setInterval(() => {
-      if (!socket.connected) {
-        console.log("⏰ useUnreadCount: Periodic check - socket not connected, reconnecting...");
+      if (socket.connected && !isJoined.current) {
+        console.log("⏰ useUnreadCount: Re-joining admin room...");
+        joinAdminRoom();
+      } else if (!socket.connected) {
+        console.log("⏰ useUnreadCount: Socket not connected, reconnecting...");
         connectAndJoin();
       }
-    }, 5000); // Check every 5 seconds
+    }, 3000); // Check every 3 seconds
 
     return () => clearInterval(interval);
-  }, [connectAndJoin]);
+  }, [joinAdminRoom, connectAndJoin]);
 
   return {
     unreadCount,

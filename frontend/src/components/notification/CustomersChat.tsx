@@ -7,7 +7,7 @@ import theme from '../../theme';
 import { getAllCustomers } from '../../services/customerService';
 import { 
   joinAdminRoom, 
-  leaveAdminRoom,
+  // leaveAdminRoom, // ❌ REMOVED - Don't leave admin room, NavBar needs it
   getUnreadCount,
   onCustomerUpdated,
   onCustomerReorder,
@@ -224,7 +224,6 @@ const CustomersChat: React.FC = () => {
         const updated = [...prev];
         updated[existingIndex] = {
           ...updated[existingIndex],
-          // ✅ FIXED: Handle both camelCase and snake_case
           unread_count: data.unreadCount ?? data.unread_count ?? 0,
           has_unread: data.hasUnread ?? data.has_unread ?? false,
         };
@@ -354,8 +353,10 @@ const CustomersChat: React.FC = () => {
     onCustomerViewerLeft(handleAdminLeft);
     onAdminStatusChanged(handleAdminStatusChanged);
 
+    // ✅ FIXED: Only remove chat-specific listeners, DON'T leave admin room
+    // The NavBar's useUnreadCount hook needs to stay in the admin room
     return () => {
-      console.log('🧹 Cleanup socket...');
+      console.log('🧹 Cleanup chat-specific socket listeners...');
       offEvent('customer:updated');
       offEvent('customer:reorder');
       offEvent('customer:read-updated');
@@ -363,8 +364,8 @@ const CustomersChat: React.FC = () => {
       offEvent('customer:viewer-update');
       offEvent('customer:viewer-left');
       offEvent('admin:status-changed');
-      offEvent('unread:count');
-      leaveAdminRoom();
+      // ❌ REMOVED: offEvent('unread:count'); - NavBar needs this
+      // ❌ REMOVED: leaveAdminRoom(); - NavBar needs to stay in admin room
     };
   }, [handleCustomerUpdate, handleCustomerReorder, handleCustomerReadUpdated, handleUnreadCountUpdate, handleTimestampSync, handleAdminViewing, handleAdminLeft, handleAdminStatusChanged]);
 

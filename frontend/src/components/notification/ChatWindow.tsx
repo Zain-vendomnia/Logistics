@@ -486,24 +486,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ customer, onClose }) => {
           return prev;
         }
 
-        // For outbound messages, check if there's a pending optimistic message
-        // that should be replaced instead of adding a new one
-        if (newMsg.direction === 'outbound') {
-          const hasPendingOptimistic = prev.some(m => 
-            pendingMessageIdsRef.current.has(m.id) && 
-            m.direction === 'outbound'
-          );
-          
-          if (hasPendingOptimistic) {
-            console.log('⏭️ Has pending optimistic message, skipping socket message');
-            // Mark this ID as processed so when API response comes, it won't conflict
-            if (incomingId) {
-              processedSocketMessageIdsRef.current.add(incomingId);
-            }
-            return prev;
-          }
-        }
-
+        // Build the formatted message first
         const formattedMessage: Message = {
           id: newMsg.id || incomingId,
           order_id: orderId,
@@ -529,11 +512,32 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ customer, onClose }) => {
           twilio_sid: newMsg.twilio_sid,
         };
 
+        // ✅ FIX: For outbound messages, REPLACE pending optimistic instead of skipping
+        if (newMsg.direction === 'outbound') {
+          const pendingOptimisticId = Array.from(pendingMessageIdsRef.current).find(id => 
+            prev.some(m => m.id === id && m.direction === 'outbound')
+          );
+          
+          if (pendingOptimisticId) {
+            console.log('🔄 Replacing optimistic message with socket message:', pendingOptimisticId, '->', incomingId);
+            
+            // Remove from pending set
+            pendingMessageIdsRef.current.delete(pendingOptimisticId);
+            
+            // Mark as processed to avoid future duplicates
+            if (incomingId) {
+              processedSocketMessageIdsRef.current.add(incomingId);
+            }
+            
+            // Replace the optimistic message with the real one
+            return prev.map(m => m.id === pendingOptimisticId ? formattedMessage : m);
+          }
+        }
+
         console.log('✅ Adding new message from socket:', formattedMessage.id);
         
-        // ✅ FIXED: Mark messages as read when new inbound message arrives while viewing
+        // Mark messages as read when new inbound message arrives while viewing
         if (newMsg.direction === 'inbound') {
-          // Use setTimeout to avoid state update during render
           setTimeout(() => {
             console.log(`📖 New inbound message received, marking as read for order: ${orderId}`);
             markMessagesAsRead(orderId);

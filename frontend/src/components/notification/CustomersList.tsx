@@ -1,13 +1,15 @@
-import React, { memo, useState, useEffect } from 'react';
+import React, { memo, useState, useEffect, useMemo } from 'react';
 import {
   Drawer, AppBar, Toolbar, Typography, List, ListItem, ListItemText,
-  ListItemAvatar, Avatar, Box, Badge, Chip
+  ListItemAvatar, Avatar, Box, Badge, Chip, TextField, InputAdornment
 } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import SmsIcon from '@mui/icons-material/Sms';
 import EmailIcon from '@mui/icons-material/Email';
+import SearchIcon from '@mui/icons-material/Search';
+import ClearIcon from '@mui/icons-material/Clear';
 import { Customer } from './shared/types';
 import { getInitials, getAvatarColor } from './shared/utils';
 
@@ -206,6 +208,35 @@ const CustomerList: React.FC<CustomerListProps> = ({
   adminViewingMap = new Map(),
   totalAdminsOnline = 0
 }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Filter customers based on search query
+  const filteredCustomers = useMemo(() => {
+    if (!searchQuery.trim()) return customers;
+    
+    const query = searchQuery.toLowerCase().trim();
+    
+    return customers.filter(customer => {
+      const name = (customer.name || '').toLowerCase();
+      const email = (customer.email || '').toLowerCase();
+      const phone = (customer.phone || '').toLowerCase();
+      const orderNumber = String(customer.order_number || '').toLowerCase();
+      const orderId = String(customer.order_id || '').toLowerCase();
+      
+      return (
+        name.includes(query) ||
+        email.includes(query) ||
+        phone.includes(query) ||
+        orderNumber.includes(query) ||
+        orderId.includes(query)
+      );
+    });
+  }, [customers, searchQuery]);
+
+  const handleClearSearch = () => {
+    setSearchQuery('');
+  };
+
   return (
     <Drawer
       variant="permanent"
@@ -250,10 +281,59 @@ const CustomerList: React.FC<CustomerListProps> = ({
         </Toolbar>
       </AppBar>
 
+      {/* Search Box */}
+      <Box sx={{ px: 1.5, py: 1, bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider' }}>
+        <TextField
+          fullWidth
+          size="small"
+          placeholder="Search by name, email, phone, order..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
+              </InputAdornment>
+            ),
+            endAdornment: searchQuery && (
+              <InputAdornment position="end">
+                <ClearIcon 
+                  sx={{ 
+                    color: 'text.secondary', 
+                    fontSize: 18, 
+                    cursor: 'pointer',
+                    '&:hover': { color: 'text.primary' }
+                  }} 
+                  onClick={handleClearSearch}
+                />
+              </InputAdornment>
+            ),
+          }}
+          sx={{
+            '& .MuiOutlinedInput-root': {
+              borderRadius: 2,
+              bgcolor: '#f5f5f5',
+              '& fieldset': { border: 'none' },
+              '&:hover': { bgcolor: '#eeeeee' },
+              '&.Mui-focused': { bgcolor: '#fff', boxShadow: '0 0 0 2px rgba(25, 118, 210, 0.2)' }
+            },
+            '& .MuiInputBase-input': {
+              py: 1,
+              fontSize: '0.875rem'
+            }
+          }}
+        />
+        {searchQuery && (
+          <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5, display: 'block' }}>
+            {filteredCustomers.length} of {customers.length} customers
+          </Typography>
+        )}
+      </Box>
+
       <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
-        {customers.length > 0 ? (
+        {filteredCustomers.length > 0 ? (
           <List sx={{ p: 0 }}>
-            {customers.map(customer => (
+            {filteredCustomers.map(customer => (
               <CustomerItem
                 key={customer.order_id}
                 customer={customer}
@@ -274,8 +354,17 @@ const CustomerList: React.FC<CustomerListProps> = ({
           }}>
             <PersonIcon sx={{ fontSize: 48, color: 'text.disabled' }} />
             <Typography variant="body2" color="text.secondary">
-              No customers in transit
+              {searchQuery ? 'No customers found' : 'No customers in transit'}
             </Typography>
+            {searchQuery && (
+              <Typography 
+                variant="caption" 
+                sx={{ color: 'primary.main', cursor: 'pointer' }}
+                onClick={handleClearSearch}
+              >
+                Clear search
+              </Typography>
+            )}
           </Box>
         )}
       </Box>
