@@ -6,12 +6,12 @@ import warehouseRoutes from "./warehouse.routes";
 import { uploadImageController } from "../controller/Admin_Api/uploadImage.controller";
 import { getOrderCount } from "../controller/Admin_Api/orderCount.controller";
 import { HandleOrderDelivery } from "../controller/AdminDriverApi/HandleOrderDelivery";
-// import notificationRoutes from "./notificationRoutes";  // ✅ This should have send-email route
+import notificationRoutes from "./notificationRoutes";  // ✅ This should have send-email route
 import communicationRoutes from "./communication.routes";
 import webhooks from "./webhook.routes";
 
 const router = Router();
-// router.use("/notifications", notificationRoutes);
+router.use("/notifications", notificationRoutes);
 
 // router.use("/api", authRouter);
 // router.use("/test", authRouter);

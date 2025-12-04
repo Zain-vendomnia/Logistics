@@ -327,7 +327,7 @@ const AdminTourTemplates = () => {
   const handleSendEmail = async () => {
     try {
         const data: EmailTemplate = {
-              to: "muhammad.jahanzaibbaloch@vendomnia.com", 
+              to: "nagaraj.gopalakrishnan@vendomnia.com", 
               subject: "Order Arrival", 
               templateName: 'customer-notification', 
               templateData: { name: 'Jahanzaib Baloch' }

@@ -1,39 +1,36 @@
-// import { renderWhatsAppTemplate } from '../../notification-assets/utils/whatsappTemplates';
-// // import * as messageService from '../../services/messageService';
+import { renderWhatsAppTemplate } from '../../notification-assets/utils/whatsappTemplates';
+import twilio from "twilio";
+import dotenv from "dotenv";
 
-// // const client = twilio(process.env.TWILIO_SID!, process.env.TWILIO_AUTH_TOKEN!);
+dotenv.config();
 
-// const sendWhatsAppMessage = async (
-//   to: string,
-//   templateName: string,
-//   templateData: Record<string, string>
-// ): Promise<string> => {
-//   const messageBody = renderWhatsAppTemplate(templateName, templateData);
-//   console.log('Rendered WhatsApp Message:', messageBody); // Debug log
-//   const orderId = "113";
-//   const messageData = {
-//     sender: "customer",
-//     content: messageBody,
-//     type: "text" as const,
-//     phone_number: to
-//   };
+const client = twilio(process.env.TWILIO_SID!, process.env.TWILIO_AUTH_TOKEN!);
 
-//   try {
-//     const result = await messageService.sendMessage(orderId, messageData);
-    
-//     // Handle the result based on your messageService response structure
-//     if (result.success) {
-//       return result.message?.id || 'Message sent successfully';
-//     } else {
-//       throw new Error(result.error || 'Failed to send message');
-//     }
-    
-//   } catch (error: unknown) {
-//     if (error instanceof Error) {
-//       throw new Error(`Failed to send WhatsApp: ${error.message}`);
-//     }
-//     throw new Error("Failed to send WhatsApp: Unknown error occurred.");
-//   }
-// };
+const sendWhatsAppMessage = async (
+  to: string,
+  templateName: string,
+  templateData: Record<string, string>
+): Promise<string> => {
+  const messageBody = renderWhatsAppTemplate(templateName, templateData);
 
-// export { sendWhatsAppMessage };
+  try {
+    const twilioRes = await client.messages.create({
+      body: messageBody,
+      from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`,
+      to: `whatsapp:${to}`,
+    });
+
+    if (twilioRes.sid) {
+      return twilioRes.sid;
+    }
+
+    throw new Error("Message rejected by Twilio");
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to send WhatsApp: ${error.message}`);
+    }
+    throw new Error("Failed to send WhatsApp: Unknown error occurred.");
+  }
+};
+
+export { sendWhatsAppMessage };

@@ -1,5 +1,7 @@
 import pool from "../config/database";
 import twilioService from "./twilioService";
+import { sendEmailSMTP } from "../controller/Admin_Api/sendEmail.controller";
+import { buildEmailTemplate } from "../notification-assets/templates/email/chat-email";
 import {
   emitMessageToOrder,
   updateGlobalUnreadCount,
@@ -217,7 +219,7 @@ const detectChannel = (messages: Message[]): "whatsapp" | "sms" | "email" => {
     .filter((m) => m.direction === "outbound")
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
 
-  return lastOutboundMessage?.communication_channel || "whatsapp";
+  return lastOutboundMessage?.communication_channel || "sms";
 };
 
 /**
@@ -254,36 +256,55 @@ export const sendMessageToCustomer = async (params: SendMessageParams) => {
       status: "sending",
     };
 
-    // Send via Twilio/SendGrid based on channel
-    let twilioResult;
+    // Send via Twilio/SMTP based on channel
+    let sendResult: { sid?: string; messageId?: string; from?: string; status?: string };
+    
     switch (channel) {
       case "whatsapp":
-        twilioResult = await twilioService.sendWhatsApp({
+        sendResult = await twilioService.sendWhatsApp({
           to: customerInfo.phone,
           body: message,
           mediaUrl: media_url,
         });
+        newMessage.message_id = sendResult.sid || '';
+        newMessage.from = sendResult.from || '';
         break;
+        
       case "sms":
-        twilioResult = await twilioService.sendSMS({
+        sendResult = await twilioService.sendSMS({
           to: customerInfo.phone,
           body: message,
         });
+        newMessage.message_id = sendResult.sid || '';
+        newMessage.from = sendResult.from || '';
         break;
+        
       case "email":
-        twilioResult = await twilioService.sendEmail({
+        // OLD: Twilio/SendGrid email sending (commented out)
+        // sendResult = await twilioService.sendEmail({
+        //   to: customerInfo.email,
+        //   subject: "Update on Your Order",
+        //   body: message,
+        // });
+        
+        // NEW: Build HTML template and send via SMTP
+        const emailHtml = buildEmailTemplate(message, customerInfo.name);
+        const emailResult = await sendEmailSMTP({
           to: customerInfo.email,
-          subject: "Update on Your Order",
-          body: message,
+          subject: "Order Arrival",
+          html: emailHtml,
+          replyTo: 'support@reply.vendomnia.com'
         });
+        newMessage.message_id = emailResult.messageId;
+        newMessage.from = 'service@vendomnia.com';
+        newMessage.status = emailResult.status;
         break;
+        
       default:
         throw new Error(`Unknown communication channel: ${channel}`);
     }
 
-    newMessage.message_id = twilioResult.sid;
-    newMessage.from = twilioResult.from;
-    newMessage.status = twilioResult.status || "sent";
+    newMessage.status = newMessage.status || "sent";
 
     const updatedMessages = [...conversation.messages, newMessage];
     const isFirstMessage = conversation.messages.length === 0;
@@ -296,7 +317,7 @@ export const sendMessageToCustomer = async (params: SendMessageParams) => {
     // Invalidate cache since conversation changed
     invalidateCustomerListCache();
 
-    console.log(`✅ Message sent successfully | Order: ${orderId} | SID: ${twilioResult.sid}`);
+    console.log(`✅ Message sent successfully | Order: ${orderId} | ID: ${newMessage.message_id}`);
 
     return { success: true, message: newMessage };
   } catch (error) {
