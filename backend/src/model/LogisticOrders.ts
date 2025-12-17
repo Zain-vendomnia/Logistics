@@ -4,7 +4,7 @@ import { CheckOrderCount } from "../types/dto.types";
 import { Order, OrderItem } from "../types/order.types";
 import { PoolConnection } from "mysql2/promise";
 import { geocode } from "../services/hereMap.service";
-import { Location } from "../types/hereMap.types";
+// import { isUrgentDelivery } from "../utils/orderUtils";
 import logger from "../config/logger";
 import {
   loadOrderItems,
@@ -436,6 +436,7 @@ export class LogisticOrder {
       JOIN warehouse_details wh
         ON o.warehouse_id = wh.warehouse_id
       WHERE o.status IN ('initial', 'unassigned', 'rescheduled')
+      AND o.warehouse_id IN (1)
   `;
     // AND o.warehouse_id IN (1, 2, 10)
 
@@ -449,6 +450,8 @@ export class LogisticOrder {
 
     query += ` ORDER BY o.order_id`; // LIMIT 300
     // query += ` ORDER BY o.updated_at DESC, o.created_at DESC`;
+
+    const urgency = [331, 181, 264, 210, 256];
 
     try {
       const [rows] = await pool.execute(query, params);
@@ -464,14 +467,14 @@ export class LogisticOrder {
         order_time: raw.order_time,
         expected_delivery_time: raw.expected_delivery_time,
 
-        warehouse_id: raw.warehouse_id,
-        warehouse_name: raw.warehouse_name,
-        warehouse_town: raw.town,
+          warehouse_id: raw.warehouse_id,
+          warehouse_name: raw.warehouse_name,
+          warehouse_town: raw.town,
 
-        phone: raw.phone,
-        street: raw.street,
-        city: raw.city,
-        zipcode: raw.zipcode,
+          phone: raw.phone,
+          street: raw.street,
+          city: raw.city,
+          zipcode: raw.zipcode,
 
         location: { lat: +raw.latitude, lng: +raw.longitude },
 

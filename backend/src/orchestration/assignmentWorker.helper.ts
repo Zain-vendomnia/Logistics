@@ -1,648 +1,26 @@
 import logger from "../config/logger";
 import {
-  getEndpointsRouteMatrix,
   getWarehouseLocationCords,
   getWarehouseZipcodesRecord,
 } from "../services/warehouse.service";
 
-import { Tour } from "../types/tour.types";
 import { Order, OrderType } from "../types/order.types";
 import { Warehouse } from "../types/warehouse.types";
 import { LogisticOrder } from "../model/LogisticOrders";
 
 import { haversineKm } from "./utils/haversineKm";
-import { clusterWeight, grossWeight } from "./utils/ordersNetWeight";
+import { grossWeight } from "./utils/ordersNetWeight";
+
 import {
-  KDTree,
-  Maybe,
-  Point,
-  popNearestOrderFromSet,
-} from "./utils/searchTree";
-import * as metrixHelper from "./utils/matrixAccessor";
-import { MatrixData } from "../types/hereMap.types";
+  approxSecForRoute,
+  findBestInsertPosition,
+  scoreCluster,
+} from "./utils/orderCluster.util";
 
-const MIN_ORDERS = 10;
-const MAX_CLUSTER_SIZE = 15;
-const CLOSE_TO_DISTANCE_KM = 40; // between consecutive orders
-const TIME_WINDOW_HOURS = 10;
-const SERVICE_TIME_PER_STOP_MIN = 5;
-const AVERAGE_SPEED_KMPH = 100;
-const MIN_WEIGHT = 1250;
-const MAX_WEIGHT = MIN_WEIGHT + 150;
 const MATRIX_CONCURRENCY = 7;
-
-export function secondsForApproxRoute(
-  warehouse: Warehouse,
-  orderes: Order[]
-): number {
-  if (!orderes.length) return 0;
-  let totalKm = 0;
-  // warehouse -> first
-  totalKm += haversineKm(
-    warehouse.lat!,
-    warehouse.lng!,
-    orderes[0].location.lat!,
-    orderes[0].location.lng!
-  );
-  // consecutive legs
-  for (let i = 1; i < orderes.length; i++) {
-    totalKm += haversineKm(
-      orderes[i - 1].location.lat!,
-      orderes[i - 1].location.lng!,
-      orderes[i].location.lat!,
-      orderes[i].location.lng!
-    );
-  }
-  // return leg
-  totalKm += haversineKm(
-    orderes[orderes.length - 1].location.lat!,
-    orderes[orderes.length - 1].location.lng!,
-    warehouse.lat!,
-    warehouse.lng!
-  );
-
-  // approximate travel time + service time
-  const travelSec = (totalKm / AVERAGE_SPEED_KMPH) * 3600;
-  const serviceSec = orderes.length * SERVICE_TIME_PER_STOP_MIN * 60;
-  return travelSec + serviceSec;
-}
-
-export function getTourDurationSecFromTour(tour: Tour): number | null {
-  if (!tour) return null;
-
-  const duration_sec = tour.stops?.reduce((acc, stop) => {
-    const round =
-      stop.time?.departure && stop.time?.arrival
-        ? new Date(stop.time.departure).getTime() -
-          new Date(stop.time.arrival).getTime()
-        : 0;
-    return acc + (round * 3600) / 1000;
-  }, 0);
-
-  return duration_sec || null;
-}
-
-export function trimClusterToFit(
-  warehouse: Warehouse,
-  orders: Order[]
-): { fitted: Order[]; trimmed: Order[] } {
-  const trimmed: Order[] = [];
-
-  // Sort orders by distance from warehouse
-  const fitted = [...orders].sort(
-    (a, b) =>
-      haversineKm(
-        warehouse.lat!,
-        warehouse.lng!,
-        a.location.lat!,
-        a.location.lng!
-      ) -
-      haversineKm(
-        warehouse.lat!,
-        warehouse.lng!,
-        b.location.lat!,
-        b.location.lng!
-      )
-  );
-
-  while (fitted.length >= MIN_ORDERS) {
-    const approxSec = secondsForApproxRoute(warehouse, fitted);
-
-    //check Distance b/t sorted orders to trim the last
-    // logWithTime(
-    //   `Duration ${approxSec} is ${
-    //     approxSec < TIME_WINDOW_HOURS * 3600 ? "lesser" : "greater"
-    //   } than ${TIME_WINDOW_HOURS * 3600}`
-    // );
-
-    if (approxSec <= TIME_WINDOW_HOURS * 3600) break;
-
-    // remove farthest order from warehouse (last in fitted/sorted array)
-    trimmed.push(fitted.pop()!);
-  }
-
-  // If trimming dropped below MIN_ORDERS, move all fitted orders to trimmed:
-  if (fitted.length < MIN_ORDERS) {
-    trimmed.push(...fitted);
-    return { fitted: [], trimmed };
-  }
-
-  return { fitted, trimmed };
-}
-
-// function computeSectorCount(orderCount: number) {
-//   const targetPerSector = 12;
-//   const minSectors = 6;
-//   const maxSectors = 36;
-//   const computed = Math.max(
-//     minSectors,
-//     Math.min(maxSectors, Math.ceil(orderCount / targetPerSector))
-//   );
-//   logger.debug(`Sector count chosen: ${computed} for ${orderCount} orders`);
-//   return computed;
-// }
-
-function buildSectors(orders: Order[], warehouse: Warehouse) {
-  // const sectorCount = computeSectorCount(orders.length);
-  const sectorCount = 25;
-  const sectorAngleRad = (2 * Math.PI) / sectorCount;
-
-  // const SECTOR_ANGLE_DEG = 180;
-  // const SECTOR_ANGLE_RAD = (SECTOR_ANGLE_DEG * Math.PI) / 180;
-
-  const sectors: Array<(Order & { distance: number; angle: number })[]> =
-    Array.from({ length: sectorCount }, () => []);
-
-  for (const o of orders) {
-    const dx = o.location.lng - warehouse.lng;
-    const dy = o.location.lat - warehouse.lat;
-    const angle = Math.atan2(dy, dx);
-    let normalized = angle + Math.PI;
-    // ensure normalized in [0, 2PI)
-    if (normalized < 0) normalized += 2 * Math.PI;
-    if (normalized >= 2 * Math.PI) normalized -= 2 * Math.PI;
-    const sectorId = Math.floor(normalized / sectorAngleRad);
-
-    const distance = haversineKm(
-      warehouse.lat,
-      warehouse.lng,
-      o.location.lat,
-      o.location.lng
-    );
-    sectors[sectorId].push({ ...o, distance, angle });
-  }
-
-  const nonEmptySectors = sectors
-    .map((s) => s.sort((a, b) => a.distance - b.distance))
-    .filter((s) => s.length > 0);
-
-  nonEmptySectors.sort((a, b) => b.length - a.length);
-  return nonEmptySectors;
-}
-
-export function clusterOrdersProduction(
-  orders: Order[],
-  warehouse: Warehouse
-): Order[][] {
-  if (!orders || orders.length === 0) return [];
-
-  const NEARBY_RADIUS_KM = 50;
-
-  // Phase 0: Precompute maps and KD tree for global lookups
-  const ordersById = new Map<
-    number,
-    Order & { distance?: number; angle?: number }
-  >();
-  const points: Point[] = [];
-  for (const o of orders) {
-    ordersById.set(o.order_id, { ...o });
-    points.push({ x: o.location.lng, y: o.location.lat, id: o.order_id });
-  }
-  const globalKD = new KDTree(points);
-  console.log("Global KD Tree", globalKD);
-
-  const nearby: (Order & { distance?: number; angle?: number })[] = [];
-  for (const o of orders) {
-    const d = haversineKm(
-      warehouse.lat,
-      warehouse.lng,
-      o.location.lat,
-      o.location.lng
-    );
-    if (d <= NEARBY_RADIUS_KM) {
-      const oo = ordersById.get(o.order_id)!;
-      oo.distance = d;
-      oo.angle = 0;
-      nearby.push(oo);
-    }
-  }
-
-  const clusters: Order[][] = [];
-  const usedOrderIds = new Set<number>();
-
-  // If nearby zone weight crosses MIN_WEIGHT, make a cluster
-  if (nearby.length) {
-    const nearbyWeight = clusterWeight(nearby);
-    if (nearbyWeight >= MIN_WEIGHT) {
-      // clusters.push([...nearby]);
-      clusters.push(nearby.map((x) => ({ ...x })));
-      nearby.forEach((o) => usedOrderIds.add(o.order_id));
-      logger.info(
-        `[Nearby Zone] cluster created, orders=${
-          nearby.length
-        }, weight=${nearbyWeight.toFixed(1)}`
-      );
-    } else {
-      // leave them for the normal flow (they are not removed)
-      logger.debug(
-        `[Nearby Zone] not enough weight (${nearbyWeight.toFixed(
-          1
-        )}) to form full cluster yet`
-      );
-    }
-  }
-
-  // Phase 2: Build dynamic sectors from remaining orders (exclude used)
-  const remainingOrders = orders.filter((o) => !usedOrderIds.has(o.order_id));
-  const sectors = buildSectors(remainingOrders, warehouse); // each sector: sorted by distance
-
-  const pendingSectors: (Order & { distance: number; angle: number })[][] =
-    sectors.map((s) => s.slice());
-
-  // Build local KD trees per sector for faster nearest within sector (optional)
-  // For simplicity we will build a global KD and a remainingSet for membership checks
-
-  // remainingSet holds order ids not yet assigned
-  const remainingSet = new Set<number>(remainingOrders.map((o) => o.order_id));
-  // remove any used (nearby) if assigned earlier
-  for (const id of usedOrderIds) remainingSet.delete(id);
-
-  // Phase 3: Process sectors by density (already sorted top-down by buildSectors)
-  while (pendingSectors.length > 0) {
-    const sector = pendingSectors.shift()!;
-    if (!sector || sector.length === 0) continue;
-
-    // Build a local KDTree for this sector to speed nearest searches inside it
-    const sectorPoints = sector.map((o) => ({
-      x: o.location.lng,
-      y: o.location.lat,
-      id: o.order_id,
-    }));
-    const sectorKD = new KDTree(sectorPoints);
-
-    // Build a set of remaining ids belonging to this sector
-    const sectorRemaining = new Set<number>(sector.map((o) => o.order_id));
-
-    // While this sector still has remaining orders, create clusters inside it
-    while (sectorRemaining.size > 0) {
-      // Start new cluster by picking nearest-to-warehouse (sector already sorted by distance)
-      // Find first order in sector that is still in sectorRemaining
-      let startOrder: Maybe<Order & { distance: number; angle: number }>;
-      for (const o of sector) {
-        if (sectorRemaining.has(o.order_id)) {
-          startOrder = o;
-          break;
-        }
-      }
-      if (!startOrder) break;
-
-      // Initialize cluster
-      const cluster: Order[] = [];
-      // consume it
-      cluster.push({ ...startOrder });
-      sectorRemaining.delete(startOrder.order_id);
-      remainingSet.delete(startOrder.order_id);
-
-      // Also remove from sector array (mutate)
-      const idx = sector.findIndex((x) => x.order_id === startOrder!.order_id);
-      if (idx >= 0) sector.splice(idx, 1);
-
-      // Grow cluster within the sector using KD nearest candidates until MAX_WEIGHT
-      while (clusterWeight(cluster) < MAX_WEIGHT && sectorRemaining.size > 0) {
-        // Use sectorKD to find nearest candidate(s) to last item
-        const last = cluster.at(-1)!;
-        const candidate = popNearestOrderFromSet(
-          last.location.lat,
-          last.location.lng,
-          sectorKD,
-          sectorRemaining,
-          ordersById
-        );
-        if (!candidate) break;
-        // Add to cluster
-        cluster.push({ ...candidate });
-        remainingSet.delete(candidate.order_id);
-        // Also remove candidate from sector mutable array
-        const si = sector.findIndex((x) => x.order_id === candidate.order_id);
-        if (si >= 0) sector.splice(si, 1);
-      }
-
-      // If cluster weight still < MIN_WEIGHT, try to pull from nearest other sectors
-      if (clusterWeight(cluster) < MIN_WEIGHT) {
-        // Attempt iterative merging from the remaining pending sectors
-        let merged = false;
-        // We'll search pendingSectors for closest sector-to-last-order
-        // Compute last coords
-        const last = cluster.at(-1)!;
-
-        // Find nearest sector index
-        let nearestIdx = -1;
-        let nearestDist = Number.POSITIVE_INFINITY;
-        for (let i = 0; i < pendingSectors.length; i++) {
-          const sec = pendingSectors[i];
-          if (!sec || sec.length === 0) continue;
-          const candidateFirst = sec[0]; // sector sorted by distance
-          const d = haversineKm(
-            last.location.lat!,
-            last.location.lng!,
-            candidateFirst.location.lat!,
-            candidateFirst.location.lng!
-          );
-          if (d < nearestDist) {
-            nearestDist = d;
-            nearestIdx = i;
-          }
-        }
-
-        if (nearestIdx >= 0) {
-          // Take that sector out and try to pull some orders from it
-          const nearestSector = pendingSectors.splice(nearestIdx, 1)[0];
-          // Sort by distance (defensive)
-          nearestSector.sort((a, b) => a.distance - b.distance);
-
-          // consume items from nearestSector one-by-one (closest first) until cluster reaches MAX_WEIGHT or sector exhausted
-          for (
-            let i = 0;
-            i < nearestSector.length && clusterWeight(cluster) < MAX_WEIGHT;
-
-          ) {
-            const o = nearestSector[i];
-            // if this order already assigned elsewhere, skip
-            if (!remainingSet.has(o.order_id)) {
-              i++;
-              continue;
-            }
-            // consume
-            cluster.push({ ...o });
-            remainingSet.delete(o.order_id);
-            // also attempt removing from other structures (if it belonged to its own sector remaining set)
-            // We cannot easily find that sectorRemaining here; however because we removed the whole nearestSector from pendingSectors,
-            // we are operating on its local array 'nearestSector' and will reinsert leftover later if any.
-            // Remove by index
-            nearestSector.splice(i, 1);
-          }
-
-          // If nearestSector still has leftover orders, push it back into pendingSectors for future processing
-          if (nearestSector.length > 0) {
-            pendingSectors.push(nearestSector);
-            logger.debug(
-              `Nearest sector partially consumed; ${nearestSector.length} orders remain and were reinserted to pendingSectors`
-            );
-          } else {
-            logger.debug("Nearest sector fully consumed in merging.");
-          }
-
-          merged = true;
-        }
-
-        // If could not merge (no other sectors), we will finalize cluster even if underweight (last resort)
-        if (!merged && clusterWeight(cluster) < MIN_WEIGHT) {
-          logger.warn(
-            `Cluster under MIN_WEIGHT (${clusterWeight(cluster).toFixed(
-              1
-            )} < ${MIN_WEIGHT}). Finalizing leftover cluster.`
-          );
-          // We don't attempt further merging otherwise risk infinite loops
-        }
-      }
-
-      // Finalize this cluster
-      clusters.push(cluster);
-      logger.info(
-        `[Cluster Added] size=${cluster.length} weight=${clusterWeight(
-          cluster
-        ).toFixed(1)}`
-      );
-    } // end while sectorRemaining
-  } // end while pendingSectors
-
-  // After main loop: if any remainingSet ids still exist (rare), create final clusters (greedy)
-  if (remainingSet.size > 0) {
-    logger.warn(
-      `Remaining ${remainingSet.size} orders unassigned after main pass; assigning greedily.`
-    );
-    const leftoverIds = Array.from(remainingSet);
-    // simple greedy grouping by nearest to warehouse or as singletons
-    for (const id of leftoverIds) {
-      const o = ordersById.get(id)!;
-      if (!o) continue;
-      clusters.push([{ ...o }]);
-      remainingSet.delete(id);
-    }
-  }
-
-  logger.info(`Clustering complete. final clusters = ${clusters.length}`);
-  return clusters;
-}
-
-export function clusterOrdersBySector(
-  orders: Order[],
-  warehouse: Warehouse
-): Order[][] {
-  const SECTOR_ANGLE_RAD = (60 * Math.PI) / 180;
-  if (orders.length <= MIN_ORDERS) return [orders];
-
-  const withPolar = orders.map((o) => {
-    const dx = o.location.lng! - warehouse.lng!;
-    const dy = o.location.lat! - warehouse.lat!;
-    const angle = Math.atan2(dy, dx); // -PI..PI
-    const distance = haversineKm(
-      warehouse.lat!,
-      warehouse.lng!,
-      o.location.lat!,
-      o.location.lng!
-    );
-    return { order: o, angle, distance };
-  });
-
-  // assign to sectors
-  const sectors = new Map<number, typeof withPolar>();
-  for (const item of withPolar) {
-    const normalized = item.angle + Math.PI; // 0..2PI
-    const sectorId = Math.floor(normalized / SECTOR_ANGLE_RAD);
-    if (!sectors.has(sectorId)) sectors.set(sectorId, []);
-    sectors.get(sectorId)!.push(item);
-  }
-
-  // cluster inside sectors
-  const clusters: Order[][] = [];
-
-  for (const sectorItems of sectors.values()) {
-    sectorItems.sort((a, b) => a.distance - b.distance);
-    let current: Order[] = [];
-    for (const item of sectorItems) {
-      if (current.length === 0) {
-        current.push(item.order);
-        continue;
-      }
-      const last = current.at(-1)!;
-      const d = haversineKm(
-        last.location.lat!,
-        last.location.lng!,
-        item.order.location.lat!,
-        item.order.location.lng!
-      );
-      if (d < CLOSE_TO_DISTANCE_KM && current.length < MAX_CLUSTER_SIZE) {
-        current.push(item.order);
-      } else {
-        clusters.push([...current]);
-        current = [item.order];
-      }
-    }
-    if (current.length) clusters.push([...current]);
-  }
-
-  return mergeSmallClusters(clusters, warehouse);
-}
-
-export function clusterOrdersRadialByLastOrder(
-  orders: Order[],
-  warehouse: Warehouse
-): Order[][] {
-  if (!orders.length) return [];
-
-  // Precompute distances from each order to every other order
-  const ordersMap = new Map<number, Order & { distanceFromWH: number }>();
-  orders.forEach((order) => {
-    ordersMap.set(order.order_id, {
-      ...order,
-      distanceFromWH: haversineKm(
-        warehouse.lat!,
-        warehouse.lng!,
-        order.location.lat!,
-        order.location.lng!
-      ),
-    });
-  });
-
-  const remaining = new Set(orders.map((o) => o.order_id));
-  const clusters: Order[][] = [];
-
-  while (remaining.size > 0) {
-    const cluster: Order[] = [];
-
-    // Step 1: pick the nearest remaining order to the warehouse as starting point
-    let currentOrder = Array.from(remaining)
-      .map((id) => ordersMap.get(id)!)
-      .sort((a, b) => a.distanceFromWH - b.distanceFromWH)[0];
-
-    cluster.push(currentOrder);
-    remaining.delete(currentOrder.order_id);
-
-    // Step 2: expand cluster radially based on last added order
-    while (cluster.length < MAX_CLUSTER_SIZE && remaining.size > 0) {
-      // Find nearest remaining order to the last order in cluster
-      const lastOrder = cluster[cluster.length - 1];
-
-      let nearestOrder: (Order & { distanceFromWH: number }) | null = null;
-      let nearestDistance = Infinity;
-
-      for (const id of remaining) {
-        const order = ordersMap.get(id)!;
-        const distance = haversineKm(
-          lastOrder.location.lat!,
-          lastOrder.location.lng!,
-          order.location.lat!,
-          order.location.lng!
-        );
-
-        if (distance < nearestDistance) {
-          nearestDistance = distance;
-          nearestOrder = order;
-        }
-      }
-
-      if (!nearestOrder) break;
-
-      cluster.push(nearestOrder);
-      remaining.delete(nearestOrder.order_id);
-    }
-
-    // Step 3: push cluster if it meets MIN_ORDERS, else merge with last cluster
-    if (cluster.length >= MIN_ORDERS) {
-      clusters.push(cluster);
-    } else if (cluster.length > 0) {
-      if (clusters.length) {
-        clusters[clusters.length - 1].push(...cluster);
-      } else {
-        clusters.push(cluster);
-      }
-    }
-  }
-
-  return clusters;
-}
-
-// merge small clusters into nearest large cluster centroid
-function mergeSmallClusters(
-  clusters: Order[][],
-  warehouse: Warehouse
-): Order[][] {
-  const large = clusters.filter((c) => c.length >= MIN_ORDERS);
-  const small = clusters.filter((c) => c.length < MIN_ORDERS);
-
-  if (!large.length) {
-    // fallback: combine small clusters into groups of MIN_ORDERS
-    const result: Order[][] = [];
-    let acc: Order[] = [];
-    for (const s of small) {
-      acc.push(...s);
-      if (acc.length >= MIN_ORDERS) {
-        result.push(acc.splice(0, acc.length));
-        acc = [];
-      }
-    }
-    if (acc.length) {
-      if (result.length) result[result.length - 1].push(...acc);
-      else result.push(acc);
-    }
-    return result;
-  }
-
-  const centroids = large.map((c) => clusterCentroid(c));
-  for (const s of small) {
-    const sCent = clusterCentroid(s);
-    let bestIdx = 0;
-    let bestDist = Infinity;
-    for (let i = 0; i < centroids.length; i++) {
-      const d = haversineKm(
-        sCent.lat,
-        sCent.lng,
-        centroids[i].lat,
-        centroids[i].lng
-      );
-      if (d < bestDist) {
-        bestDist = d;
-        bestIdx = i;
-      }
-    }
-    large[bestIdx].push(...s);
-    centroids[bestIdx] = clusterCentroid(large[bestIdx]);
-  }
-
-  // ensure max cluster size not exceeded
-  const final: Order[][] = [];
-  for (const c of large) {
-    if (c.length <= MAX_CLUSTER_SIZE) final.push(c);
-    else {
-      // split by radial order (approx)
-      const sorted = [...c].sort((a, b) => {
-        const da = haversineKm(
-          warehouse.lat!,
-          warehouse.lng!,
-          a.location.lat!,
-          a.location.lng!
-        );
-        const db = haversineKm(
-          warehouse.lat!,
-          warehouse.lng!,
-          b.location.lat!,
-          b.location.lng!
-        );
-        return da - db;
-      });
-      for (let i = 0; i < sorted.length; i += MAX_CLUSTER_SIZE) {
-        final.push(sorted.slice(i, i + MAX_CLUSTER_SIZE));
-      }
-    }
-  }
-  return final;
-}
-function clusterCentroid(cluster: Order[]) {
-  const lat = cluster.reduce((s, o) => s + o.location.lat!, 0) / cluster.length;
-  const lng = cluster.reduce((s, o) => s + o.location.lng!, 0) / cluster.length;
-  return { lat, lng };
-}
+const CLOSE_TO_DISTANCE_KM = 40; // between consecutive orders
+// const SERVICE_TIME_PER_STOP_MIN = 5;
+// const AVERAGE_SPEED_KMPH = 100;
 
 export async function warehouseOrdersAssignment(
   warehouses: Warehouse[],
@@ -724,228 +102,521 @@ export async function warehouseOrdersAssignment(
   return assignments;
 }
 
-export function assignmentHelper(
-  warehouse: Warehouse
-  // options: Partial<{
-  //   MIN_WEIGHT: number;
-  //   MAX_WEIGHT?: number;
-  // CLOSE_TO_DISTANCE_KM?: number; // between consecutive orders
-  // TIME_WINDOW_HOURS?: number;
-  // SERVICE_TIME_PER_STOP_MIN?: number;
-  // AVERAGE_SPEED_KMPH?: number;
-  // noOfVehicles?: number;
-  // }>
-) {
-  // const {
-  //   CLOSE_TO_DISTANCE_KM = 40,
-  //   TIME_WINDOW_HOURS = 10,
-  //   SERVICE_TIME_PER_STOP_MIN = 5,
-  //   AVERAGE_SPEED_KMPH = 100,
-  //   noOfVehicles = warehouse.vehicles?.length ?? 1,
-  //   MAX_WEIGHT = warehouse.loadingWeightKg ?? 1550,
-  //   MIN_WEIGHT,
-  // } = options;
+export function assignmentHelper(warehouse: Warehouse) {
+  const Vehicle_Count = warehouse.vehicles?.length ?? 1;
 
-  const CLOSE_TO_DISTANCE_KM = 40;
-  const TIME_WINDOW_HOURS = 10;
-  const SERVICE_TIME_PER_STOP_MIN = 5;
-  const AVERAGE_SPEED_KMPH = 100;
-  const MIN_WEIGHT_URGENT = 150;
-
-  //  const  noOfVehicles = warehouse.vehicles?.length ?? 1;
-  const MAX_WEIGHT = warehouse.loadingWeightKg ?? 1550;
-  //  const overhead =
-  // MAX_WEIGHT <= 1200
-  //   ? MAX_WEIGHT * 0.05 // 5% overhead
-  //   : MAX_WEIGHT <= 1460
-  //   ? MAX_WEIGHT * 0.1 // 10% overhead
-  //   : MAX_WEIGHT * 0.15; // 15% overhead
-  // const minWieght = MAX_WEIGHT - overhead;
-  const MIN_WEIGHT = 1250;
+  // Weight limits
+  const MAX_WEIGHT = 1290;
+  const lowerhead = 0.2 * MAX_WEIGHT; // fixed 20% lowerhead
+  const MIN_WEIGHT = MAX_WEIGHT - lowerhead;
+  // const WEIGHT = warehouse.loadingWeightKg ?? 1550;
+  // const lowerhead =
+  //   WEIGHT <= 1200
+  //     ? WEIGHT * 0.05 // 5% lowerhead
+  //     : WEIGHT <= 1460
+  //     ? WEIGHT * 0.1 // 10% lowerhead
+  //     : WEIGHT * 0.15; // 15% lowerhead
+  // const MIN_WEIGHT = WEIGHT - lowerhead;
+  // const MAX_WEIGHT = WEIGHT * 1.2; // 20% overhead
 
   const ordersById = new Map<
     number,
     Order & { distance?: number; angle?: number }
   >();
 
-  function processDensSpatialClusters(satisfiedSectors: Order[][]): {
-    // clusters: Order[][];
-    clusters: { cluster: Order[]; tier: 1 | 2 | 3 }[];
-    leftovers: Order[];
-  } {
-    logger.info(
-      `[Process Clusters] Starting with ${satisfiedSectors.length} sectors.`
-    );
-    let leftovers: Order[] = [];
-    const geoClusters: { cluster: Order[]; tier: 1 | 2 | 3 }[] = [];
-    const pendingSectors = [...satisfiedSectors];
+  // Time limits
+  const TIME_WINDOW_HOURS = 10;
+  const ACCEPABLE_TIME_MARGIN = 0.1; // 10% over allowed time window
+  const TIMEALLOWED_1DAY = TIME_WINDOW_HOURS * 3600;
+  const TIMEALLOWED_2DAY = 18 * 3600;
+  const TIMEALLOWED_MIN_1DAY = TIMEALLOWED_1DAY * (1 - ACCEPABLE_TIME_MARGIN);
+  const TIMEALLOWED_MAX_2DAY = TIMEALLOWED_2DAY * (1 + ACCEPABLE_TIME_MARGIN);
 
-    const allUrgentOrders: Order[] = [];
+  function clusterCentroid(cluster: Order[]) {
+    if (cluster.length > 0) {
+      const lat =
+        cluster.reduce((sum, o) => sum + +o.location.lat!, 0) / cluster.length;
+      const lng =
+        cluster.reduce((sum, o) => sum + +o.location.lng!, 0) / cluster.length;
+      return { lat, lng };
+    }
+    return { lat: warehouse.lat!, lng: warehouse.lng! };
+  }
 
-    // Tier 1
-    while (pendingSectors.length > 0) {
-      logger.info(
-        `[Process Cluster] Processing sector: ${
-          satisfiedSectors.length - pendingSectors.length + 1
-        }`
-      );
-      const currentSector = pendingSectors.shift()!;
+  function tryInsertOrder(
+    cluster: Order[],
+    order: Order
+  ): { candidate: Order[]; deltaTime: number } | null {
+    const insert = findBestInsertPosition(warehouse, cluster, order);
+    if (!insert || insert.pos < 0) return null;
 
-      const hasUrgent = currentSector.some((o) => o.type === "urgent");
-      if (hasUrgent) {
-        allUrgentOrders.push(
-          ...currentSector.filter((o) => o.type === "urgent")
-        );
-      }
+    const candidate = [
+      ...cluster.slice(0, insert.pos),
+      order,
+      ...cluster.slice(insert.pos),
+    ];
 
-      const { clusters, remainingOrders } = splitOrdersIntoClustersDynamic(
-        currentSector,
-        { proximityLimitKm: CLOSE_TO_DISTANCE_KM }
-      );
+    const newTime = approxSecForRoute(warehouse, candidate);
+    const oldTime = approxSecForRoute(warehouse, cluster);
 
-      if (clusters.length > 0) {
-        clusters.forEach((cluster) => {
-          geoClusters.push({ cluster, tier: 1 });
-        });
-      }
+    return {
+      candidate,
+      deltaTime: newTime - oldTime,
+    };
+  }
 
-      if (remainingOrders.length > 0) {
-        const lastOrder = remainingOrders.at(-1)!;
-        let nearestSectorIdx = -1;
-        let nearestDist = Number.POSITIVE_INFINITY;
+  function findNearbyClustersToFitWeightExtended(
+    cluster: Order[],
+    pendingSectors: Order[][],
+    isUrgent: boolean = false
+  ): { cluster: Order[]; remainingOrders: Order[] } {
+    // const time_Limit = isUrgent ? TIMEALLOWED_MAX_2DAY : TIMEALLOWED_1DAY;
 
-        pendingSectors.forEach((sector, idx) => {
-          if (sector.length === 0) return;
-          const firstOrder = sector[0];
-          const d = haversineKm(
+    let updatedCluster = [...cluster];
+    let currentWeight = grossWeight(updatedCluster);
+    let currentTime = approxSecForRoute(warehouse, updatedCluster);
+
+    // Clone sectors so we can remove consumed orders
+    const sectors = pendingSectors.map((s) => [...s]);
+
+    const tryFitUnderTimeLimit = (time_Limit: number): boolean => {
+      let improved = false;
+      while (currentWeight < MAX_WEIGHT && currentTime < time_Limit) {
+        let best: {
+          sectorIdx: number;
+          orderIdx: number;
+          candidate: Order[];
+          score: number;
+          newTime: number;
+          addedWeight: number;
+        } | null = null;
+
+        const lastOrder = updatedCluster.at(-1)!;
+
+        // Scan all nearby sectors
+        for (let sectorIdx = 0; sectorIdx < sectors.length; sectorIdx++) {
+          const sector = sectors[sectorIdx];
+          if (!sector.length) continue;
+
+          const first = sector[0];
+          const dist = haversineKm(
             lastOrder.location.lat!,
             lastOrder.location.lng!,
-            firstOrder.location.lat!,
-            firstOrder.location.lng!
+            first.location.lat!,
+            first.location.lng!
           );
-          if (d < nearestDist && d < CLOSE_TO_DISTANCE_KM) {
-            nearestDist = d;
-            nearestSectorIdx = idx;
+
+          if (dist > CLOSE_TO_DISTANCE_KM * 2.3) continue;
+
+          for (let orderIdx = 0; orderIdx < sector.length; orderIdx++) {
+            const order = sector[orderIdx];
+
+            const w = order.weight_kg ?? 0;
+            if (currentWeight + w > MAX_WEIGHT) continue;
+
+            const attempt = tryInsertOrder(updatedCluster, order);
+            if (!attempt) continue;
+            if (attempt.deltaTime <= 0) continue;
+
+            const newTime = currentTime + attempt.deltaTime;
+            if (newTime > time_Limit) continue;
+            // if(!isUrgent && newTime > TIMEALLOWED_1DAY) continue;
+
+            const score = w / attempt.deltaTime;
+
+            if (!best || score > best.score) {
+              best = {
+                sectorIdx: sectorIdx,
+                orderIdx: orderIdx,
+                candidate: attempt.candidate,
+                score,
+                newTime,
+                addedWeight: w,
+              };
+            }
           }
-        });
-        if (nearestSectorIdx !== -1) {
-          const nearestSector = pendingSectors.splice(nearestSectorIdx, 1)[0];
-          const merge = [...remainingOrders, ...nearestSector];
-          const { clusters: mergedClusters, remainingOrders: stillRemaining } =
-            splitOrdersIntoClustersDynamic(merge, {
-              proximityLimitKm: CLOSE_TO_DISTANCE_KM * 1.1,
-              handleUrgent: true,
-            });
-
-          if (mergedClusters.length)
-            mergedClusters.forEach((cluster) => {
-              geoClusters.push({ cluster, tier: 1 });
-            });
-
-          if (stillRemaining.length > 0) {
-            const remainingFromNearestSector = stillRemaining.filter(
-              (o) => !remainingOrders.includes(o)
-            );
-
-            grossWeight(remainingFromNearestSector) > MIN_WEIGHT
-              ? pendingSectors.push(remainingFromNearestSector)
-              : leftovers.push(...stillRemaining);
-          }
-        } else {
-          leftovers.push(...remainingOrders);
         }
+
+        // Commit best candidate
+        if (best) {
+          updatedCluster = best!.candidate;
+          currentWeight += best.addedWeight;
+          currentTime = best.newTime;
+
+          // Remove consumed order
+          sectors[best.sectorIdx].splice(best.orderIdx, 1);
+          improved = true;
+        } else break;
       }
+
+      return improved;
+    };
+
+    tryFitUnderTimeLimit(TIMEALLOWED_1DAY);
+
+    if (isUrgent && currentWeight < MAX_WEIGHT) {
+      tryFitUnderTimeLimit(TIMEALLOWED_MAX_2DAY);
     }
 
-    // Try to fit leftovers into existing clusters if close enough
-    if (geoClusters.length > 0) {
-      for (let i = leftovers.length - 1; i >= 0; i--) {
-        const o = leftovers[i];
-        let nearestCluster: Order[] | null = null;
-        let nearestDist = Infinity;
+    // Collect leftovers
+    const remainingOrders = sectors.flat();
 
-        const formedGeoClusters = geoClusters.map((g) => g.cluster);
-        for (const cluster of formedGeoClusters) {
-          const last = cluster.at(-1)!;
-          const d = haversineKm(
-            last.location.lat!,
-            last.location.lng!,
-            o.location.lat!,
-            o.location.lng!
-          );
-          if (
-            d < nearestDist &&
-            grossWeight(cluster) + o.weight_kg! <= MAX_WEIGHT
-          ) {
-            nearestDist = d;
-            nearestCluster = cluster;
-          }
-        }
+    return {
+      cluster: updatedCluster,
+      remainingOrders,
+    };
+  }
 
-        if (nearestCluster && nearestDist < CLOSE_TO_DISTANCE_KM) {
-          nearestCluster.push(o);
-          leftovers.splice(i, 1);
-        }
-      }
-    }
+  // merge pending sectors if possible with shorter cluster
+  function findNearbyClustersToFitWeight(
+    cluster: Order[],
+    pendingSectors: Order[][],
+    isUrgent: boolean = false
+  ): { cluster: Order[]; remainingOrders: Order[] } {
+    const time_Limit = isUrgent ? TIMEALLOWED_MAX_2DAY : TIMEALLOWED_1DAY;
 
-    // Tier 2
-    const utilizedUrgentIds = new Set(
-      geoClusters.flatMap((c) =>
-        c.cluster.filter((o) => o.type === "urgent").map((o) => o.order_id)
-      )
-    );
+    const remainingOrders: Order[] = [];
 
-    const remainingUrgentOrders = allUrgentOrders.filter(
-      (o) => !utilizedUrgentIds.has(o.order_id)
-    );
+    let updatedCluster = [...cluster];
+    let clusterWeight = grossWeight(updatedCluster);
+    let clusterTime = approxSecForRoute(warehouse, updatedCluster);
 
-    if (remainingUrgentOrders.length > 0) {
-      logger.info(
-        `[Process Cluster] Processing for Urgent orders: ${remainingUrgentOrders.length}`
-      );
+    const sectors = pendingSectors.map((s) => [...s]);
 
-      // const totalUrgentWeight = grossWeight(remainingUrgentOrders);
-      // const avgUrgentWeight = totalUrgentWeight / remainingUrgentOrders.length;
-      // (Dynamic)
-      // const MIN_WEIGHT_URGENT = Math.max(
-      //   600,
-      //   Math.min(MIN_WEIGHT, avgUrgentWeight * 0.8)
-      // );
-      // const MIN_WEIGHT_URGENT = 150;
-      // using global for now.
+    while (clusterWeight < MAX_WEIGHT && clusterTime < time_Limit) {
+      const lastOrder = updatedCluster.at(-1)!;
 
-      const { clusters: urgentClusters, remainingOrders: urgentLeftovers } =
-        splitOrdersIntoClustersDynamic(remainingUrgentOrders, {
-          proximityLimitKm: CLOSE_TO_DISTANCE_KM * 2.5,
-          minWeight: MIN_WEIGHT_URGENT,
-        });
+      let nearestSectorIdx = -1;
+      let nearestDist = Infinity;
 
-      if (urgentClusters.length) {
-        urgentClusters.forEach((cluster) => {
-          geoClusters.push({ cluster, tier: 2 });
-        });
+      sectors.forEach((sector, idx) => {
+        if (!sector.length) return;
 
-        const urgentOrdersIds = new Set(
-          urgentClusters.flat().map((o) => o.order_id)
+        const first = sector[0];
+        const d = haversineKm(
+          lastOrder.location.lat!,
+          lastOrder.location.lng!,
+          first.location.lat!,
+          first.location.lng!
         );
-        leftovers = leftovers.filter((o) => !urgentOrdersIds.has(o.order_id));
+
+        if (d < nearestDist && d < CLOSE_TO_DISTANCE_KM * 2.3) {
+          nearestDist = d;
+          nearestSectorIdx = idx;
+        }
+      });
+
+      // No sector found
+      if (nearestSectorIdx === -1) break;
+
+      const nearestSector = sectors.splice(nearestSectorIdx, 1)[0];
+
+      let currentWeight = grossWeight(updatedCluster);
+      // let currentTime = approxSecForRoute(warehouse, updatedCluster);
+
+      for (const order of nearestSector) {
+        const w = order.weight_kg ?? 0;
+
+        if (currentWeight + w > MAX_WEIGHT) {
+          remainingOrders.push(order);
+          continue;
+        }
+
+        const insert = findBestInsertPosition(warehouse, updatedCluster, order);
+        if (!insert || insert.pos < 0) {
+          remainingOrders.push(order);
+          continue;
+        }
+
+        const candidate = [
+          ...updatedCluster.slice(0, insert.pos),
+          order,
+          ...updatedCluster.slice(insert.pos),
+        ];
+
+        const newTime = approxSecForRoute(warehouse, candidate);
+
+        if (newTime > time_Limit) {
+          remainingOrders.push(order);
+          continue;
+        }
+
+        updatedCluster = candidate;
+        currentWeight += w;
+        // currentTime = newTime;
+        clusterWeight += w;
+        clusterTime = newTime;
       }
-      leftovers.push(...urgentLeftovers);
     }
 
-    logger.info(
-      `[Process Cluster] Created clusters size: ${geoClusters.length}`
-    );
-    geoClusters.map((g) =>
-      logger.info(
-        `[Process Cluster] [Created Cluster] Size and weight: ${
-          g.cluster.length
-        } ${grossWeight(g.cluster)}`
-      )
-    );
+    for (const sector of sectors) {
+      remainingOrders.push(...sector);
+    }
 
-    return { clusters: geoClusters, leftovers };
+    return { cluster: updatedCluster, remainingOrders };
+  }
+
+  function trimClusterToFitWeight(cluster: Order[], type: "urgent" | "normal") {
+    let clusterWeight = grossWeight(cluster);
+
+    const typeToTrim = type === "urgent" ? OrderType.URGENT : OrderType.NORMAL;
+    const removedOrders: Order[] = [];
+
+    while (clusterWeight > MAX_WEIGHT) {
+      const lastOrderIndex = cluster
+        .map((o, i) => ({ o, i }))
+        .filter((x) => x.o.type === typeToTrim)
+        .map((x) => x.i)
+        .pop();
+
+      if (lastOrderIndex === undefined) break;
+
+      const [removed] = cluster.splice(lastOrderIndex, 1);
+      clusterWeight -= removed.weight_kg ?? 0;
+      removedOrders.push(removed);
+    }
+
+    return { cluster, removedOrders };
+  }
+
+  function buildUrgentClusterOptimized(
+    orders: Order[],
+    config?: {
+      allow2DaysTour?: boolean;
+    }
+  ): {
+    cluster: Order[];
+    remainingOrders: Order[];
+  } {
+    if (!orders?.length) return { cluster: [], remainingOrders: [] };
+
+    const allow2DaysTour = config?.allow2DaysTour ?? true;
+
+    const ordersSorted = [...orders].sort((a, b) => {
+      const da = haversineKm(
+        warehouse.lat,
+        warehouse.lng,
+        a.location.lat,
+        a.location.lng
+      );
+      const db = haversineKm(
+        warehouse.lat,
+        warehouse.lng,
+        b.location.lat,
+        b.location.lng
+      );
+      return da - db;
+    });
+
+    let cluster: Order[] = [];
+    const remainingOrders: Order[] = [];
+    const unprocessed = new Set(ordersSorted.map((o) => o.order_id));
+
+    const urgents = ordersSorted.filter((o) => o.type === OrderType.URGENT);
+    let urgentWeight = grossWeight(urgents);
+
+    let clusterWeight = 0;
+
+    // Initial centroid
+    let centroid = { lat: warehouse.lat, lng: warehouse.lng };
+
+    // Cluster loop
+    for (const currentOrder of ordersSorted) {
+      if (!unprocessed.has(currentOrder.order_id)) continue;
+
+      const w = currentOrder.weight_kg ?? 0;
+      const isUrgent = currentOrder.type === OrderType.URGENT;
+
+      if (isUrgent) {
+        // cluster.push(currentOrder);
+        const pos = findBestInsertPosition(warehouse, cluster, currentOrder);
+        cluster.splice(pos?.pos!, 0, currentOrder);
+
+        urgentWeight -= w;
+        clusterWeight += w;
+
+        unprocessed.delete(currentOrder.order_id);
+
+        if (clusterWeight > MAX_WEIGHT) {
+          const result = trimClusterToFitWeight(cluster, "urgent");
+          cluster = result.cluster;
+          clusterWeight = grossWeight(cluster);
+          remainingOrders.push(...result.removedOrders);
+
+          // const w = grossWeight(result.removedOrders);
+          // urgentWeight += w ?? 0;
+        }
+
+        centroid = clusterCentroid(cluster);
+
+        continue;
+      }
+
+      //Normal Case
+      const weightMargin = MAX_WEIGHT - (clusterWeight + urgentWeight);
+
+      if (w > weightMargin) continue;
+
+      const d = haversineKm(
+        centroid.lat,
+        centroid.lng,
+        currentOrder.location.lat,
+        currentOrder.location.lng
+      );
+      if (cluster.length > 1 && d > CLOSE_TO_DISTANCE_KM * 1.1) continue;
+
+      const pos = findBestInsertPosition(warehouse, cluster, currentOrder);
+      const insertPos = pos?.pos ?? cluster.length;
+
+      const newRoute = cluster
+        .slice(0, insertPos)
+        .concat([currentOrder], cluster.slice(insertPos));
+      const projectedTime = approxSecForRoute(warehouse, newRoute);
+
+      // Time-window logic:
+      // - Accept if within 1-day allowance (with slack)
+      // - Else accept if allow2DaysTour and within 2-day max
+      // - Else reject
+      const fitsOneDay = projectedTime <= TIMEALLOWED_MIN_1DAY;
+      const fitsTwoDay =
+        allow2DaysTour &&
+        projectedTime > TIMEALLOWED_MIN_1DAY &&
+        projectedTime <= TIMEALLOWED_MAX_2DAY;
+
+      if (!fitsOneDay && !fitsTwoDay) continue;
+
+      cluster.splice(insertPos, 0, currentOrder);
+      clusterWeight += w;
+      unprocessed.delete(currentOrder.order_id);
+
+      centroid = clusterCentroid(cluster);
+    }
+
+    // Trim normal orders if overweight
+    if (clusterWeight > MAX_WEIGHT) {
+      const result = trimClusterToFitWeight(cluster, "normal");
+      cluster = result.cluster;
+      remainingOrders.push(...result.removedOrders);
+      clusterWeight = grossWeight(cluster);
+    }
+
+    // Remaining orders
+    for (const o of ordersSorted) {
+      if (unprocessed.has(o.order_id)) remainingOrders.push(o);
+    }
+
+    return { cluster, remainingOrders };
+  }
+
+  function splitOrdersIntoClustersSegmented(
+    orders: Order[],
+    options?: { allow2DaysTour?: boolean }
+  ): { cluster: Order[]; remainingOrders: Order[] } {
+    if (!orders.length) return { cluster: [], remainingOrders: [] };
+    const allow2DaysTour = options?.allow2DaysTour ?? true;
+
+    const ordersSorted = [...orders].sort((a, b) => {
+      const da = haversineKm(
+        warehouse.lat,
+        warehouse.lng,
+        a.location.lat,
+        a.location.lng
+      );
+      const db = haversineKm(
+        warehouse.lat,
+        warehouse.lng,
+        b.location.lat,
+        b.location.lng
+      );
+      return da - db;
+    });
+
+    const remaining = new Set(ordersSorted.map((o) => o.order_id));
+    const ordersById = new Map(ordersSorted.map((o) => [o.order_id, o]));
+
+    const cluster: Order[] = [];
+    let urgentWeight = 0;
+    let normalWeight = 0;
+
+    // Phase 1: Urgent orders (single pass)
+    for (const ord of ordersSorted) {
+      if (!remaining.has(ord.order_id) || ord.type !== OrderType.URGENT)
+        continue;
+
+      const pos = findBestInsertPosition(warehouse, cluster, ord);
+      const insertPos = pos?.pos ?? cluster.length;
+      const tentative = [
+        ...cluster.slice(0, insertPos),
+        ord,
+        ...cluster.slice(insertPos),
+      ];
+      // const tentative = [...cluster, ord];
+      const sec = approxSecForRoute(warehouse, tentative);
+
+      if (
+        sec <= TIMEALLOWED_MIN_1DAY ||
+        (allow2DaysTour && sec <= TIMEALLOWED_MAX_2DAY)
+      ) {
+        cluster.splice(insertPos, 0, ord);
+        // cluster.push(ord);
+        urgentWeight += ord.weight_kg ?? 0;
+        remaining.delete(ord.order_id);
+      }
+    }
+
+    // Phase 2: Normal orders (iterative, bounded)
+    let progress = true;
+
+    while (progress) {
+      progress = false;
+      const centroid = clusterCentroid(cluster);
+
+      for (const orderId of [...remaining]) {
+        const ord = ordersById.get(orderId)!;
+
+        if (ord.type !== OrderType.NORMAL) continue;
+
+        const weightMargin = MAX_WEIGHT - urgentWeight - normalWeight;
+
+        const w = ord.weight_kg ?? 0;
+        if (w > weightMargin) continue;
+
+        const d = haversineKm(
+          centroid.lat,
+          centroid.lng,
+          ord.location.lat,
+          ord.location.lng
+        );
+        if (d > CLOSE_TO_DISTANCE_KM * 1.1) continue;
+
+        const pos = findBestInsertPosition(warehouse, cluster, ord);
+        const insertPos = pos?.pos ?? cluster.length;
+        const tentative = [
+          ...cluster.slice(0, insertPos),
+          ord,
+          ...cluster.slice(insertPos),
+        ];
+        // const tentative = [...cluster, ord];
+        const sec = approxSecForRoute(warehouse, tentative);
+
+        if (
+          sec <= TIMEALLOWED_MIN_1DAY ||
+          (allow2DaysTour && sec <= TIMEALLOWED_MAX_2DAY)
+        ) {
+          cluster.splice(insertPos, 0, ord);
+          // cluster.push(ord);
+          normalWeight += w;
+          remaining.delete(orderId);
+          progress = true;
+        }
+      }
+    }
+
+    // Remaining orders preserved for next cluster
+    const remainingOrders = ordersSorted.filter((o) =>
+      remaining.has(o.order_id)
+    );
+    return { cluster, remainingOrders };
   }
 
   function splitOrdersIntoClustersDynamic(
@@ -960,21 +631,11 @@ export function assignmentHelper(
     clusters: Order[][];
     remainingOrders: Order[];
   } {
-    const {
-      proximityLimitKm,
-      handleUrgent = false,
-      minWeight = MIN_WEIGHT,
-      forceFlag = false,
-    } = options;
+    const proximityLimitKm = options.proximityLimitKm ?? CLOSE_TO_DISTANCE_KM;
+    const handleUrgent = options.handleUrgent ?? false;
+    const minWeight = options.minWeight ?? MIN_WEIGHT;
+    const forceFlag = options.forceFlag ?? false;
 
-    logger.warn(
-      `[Cluster Dynamic] Started clustering for ${orders.length} sector orders.`
-    );
-    logger.warn(
-      `[Cluster Dynamic] Sector orders weight ${grossWeight(orders)} Kg`
-    );
-
-    const MIN_Wt: number = minWeight ?? MIN_WEIGHT;
     const remainingOrders: Order[] = [];
     const clusters: Order[][] = [];
     const smallClusters: Order[][] = [];
@@ -983,20 +644,19 @@ export function assignmentHelper(
     const unprocessedIds = new Set<number>();
     const urgentOrders = new Set<number>();
 
-    for (const order of orders) {
+    orders.forEach((order) => {
       if (handleUrgent && order.type === OrderType.URGENT) {
         urgentOrders.add(order.order_id);
       }
+
       orderMap.set(order.order_id, order);
       unprocessedIds.add(order.order_id);
-    }
 
-    for (const order of orders) {
-      if (order.weight_kg! >= MIN_Wt) {
+      if (order.weight_kg! >= minWeight) {
         clusters.push([order]);
         unprocessedIds.delete(order.order_id);
       }
-    }
+    });
 
     while (unprocessedIds.size > 0) {
       const seedId = unprocessedIds.values().next().value!;
@@ -1047,18 +707,15 @@ export function assignmentHelper(
           clusterWeight += nextOrder.weight_kg!;
           unprocessedIds.delete(closestId);
 
-          centroidLat =
-            cluster.reduce((sum, o) => sum + +o.location.lat, 0) /
-            cluster.length;
-          centroidLng =
-            cluster.reduce((sum, o) => sum + +o.location.lng, 0) /
-            cluster.length;
+          const { lat, lng } = clusterCentroid(cluster);
+          centroidLat = lat;
+          centroidLng = lng;
 
           added = true;
         }
       }
 
-      if (clusterWeight >= MIN_Wt || forceFlag) {
+      if (clusterWeight >= minWeight || forceFlag) {
         clusters.push(cluster);
       } else {
         smallClusters.push(cluster);
@@ -1086,7 +743,7 @@ export function assignmentHelper(
           );
           if (
             d <= proximityLimitKm * 1.25 &&
-            grossWeight(a.concat(b)) >= MIN_Wt
+            grossWeight(a.concat(b)) >= minWeight
           ) {
             const merged = a.concat(b);
             if (grossWeight(merged) <= MAX_WEIGHT) {
@@ -1117,25 +774,176 @@ export function assignmentHelper(
       smallClusters.forEach((c) => remainingOrders.push(...c));
     }
 
-    logger.info(`[Cluster Dynamic] Split into ${clusters.length} clusters.`);
-    logger.info(
-      `[Cluster Dynamic] Remaining Orders size and Weight: ${
-        remainingOrders.length
-      } ${grossWeight(remainingOrders)} kg.`
-    );
-
     return { clusters, remainingOrders };
   }
 
+  function processDensSpatialClusters(satisfiedSectors: Order[][]): {
+    clusters: { cluster: Order[]; tier: 1 | 2 | 3 }[];
+    leftovers: Order[];
+  } {
+    // satisfiedSectors are pre-sorted by order density and each sector is sorted by distance form WH.
+    // pedningSectors are sorted by urgent order count (descending) in each sector.
+    const pendingSectors = [...satisfiedSectors].sort((a, b) => {
+      const urgentCountA = a.filter((o) => o.type === OrderType.URGENT).length;
+      const urgentCountB = b.filter((o) => o.type === OrderType.URGENT).length;
+      return urgentCountB - urgentCountA;
+    });
+
+    const geoClusters: { cluster: Order[]; tier: 1 | 2 | 3 }[] = [];
+    const leftovers: Order[] = [];
+
+    // Creates cluster from each sector around WH.
+    // while (pendingSectors.length > 0) {
+
+    // Creates cluster for each Vehicle in WH.
+    while (geoClusters.length < Vehicle_Count && pendingSectors.length > 0) {
+      if (pendingSectors.length === 0) break;
+
+      logger.info(
+        `[Process Cluster] Processing sectors left: ${pendingSectors.length}`
+      );
+
+      const currentSector = pendingSectors.shift()!;
+      const remainingOrders: Order[] = [];
+      const hasUrgents = currentSector.some((o) => o.type === OrderType.URGENT);
+
+      if (hasUrgents) {
+        // const { cluster: uCluster_Opt, remainingOrders: opt_rmn } =
+        const opt = buildUrgentClusterOptimized(currentSector, {
+          allow2DaysTour: true,
+        });
+
+        logger.info(
+          `[Process Cluster] Urgent Optimized Cluster: ${grossWeight(
+            opt.cluster
+          )}, Remaining: ${
+            opt.remainingOrders.length
+          }, Time: ${approxSecForRoute(warehouse, opt.cluster)}.`
+        );
+
+        // const { cluster: uCluster_Seg, remainingOrders: seg_rmn } =
+        const seg = splitOrdersIntoClustersSegmented(currentSector);
+
+        logger.info(
+          `[Process Cluster] Urgent Segmented Cluster: ${grossWeight(
+            seg.cluster
+          )}, Remaining: ${
+            seg.remainingOrders.length
+          }, Time: ${approxSecForRoute(warehouse, seg.cluster)}.`
+        );
+
+        const segScore = scoreCluster(warehouse, seg.cluster);
+        const optScore = scoreCluster(warehouse, opt.cluster);
+
+        logger.info(
+          `[Process Cluster] Urgent Cluster Scores = Segmented: ${segScore}, Optimized: ${optScore}.`
+        );
+
+        const useOptimized =
+          opt.cluster.length > 0 &&
+          optScore >= segScore &&
+          grossWeight(opt.cluster) <= MAX_WEIGHT;
+
+        if (useOptimized) {
+          geoClusters.push({ cluster: [...opt.cluster], tier: 2 });
+          remainingOrders.push(...opt.remainingOrders);
+        } else {
+          geoClusters.push({ cluster: seg.cluster, tier: 2 });
+          remainingOrders.push(...seg.remainingOrders);
+        }
+      } else {
+        const { clusters: dynClusters, remainingOrders: rmn } =
+          // Include time constraint
+          splitOrdersIntoClustersDynamic(currentSector, {
+            proximityLimitKm: CLOSE_TO_DISTANCE_KM,
+          });
+
+        logger.info(`[Process Cluster] Created Normal Cluster: ${dynClusters}`);
+
+        if (dynClusters.length > 0) {
+          dynClusters.forEach((dynCls) => {
+            geoClusters.push({ cluster: dynCls, tier: 1 });
+          });
+        }
+        remainingOrders.push(...rmn);
+      }
+
+      // Second round,
+      // -If created cluster is below MIN_WEIGHT,
+      // -Try to fit created cluster with nearby sectors.
+      let lastCluster = geoClusters.at(-1)!;
+      const tWeight = grossWeight(lastCluster.cluster);
+      const travelDuration = approxSecForRoute(warehouse, lastCluster.cluster);
+      if (
+        tWeight < MIN_WEIGHT &&
+        travelDuration < TIMEALLOWED_MIN_1DAY &&
+        pendingSectors.length > 0
+      ) {
+        const { cluster: dynCluster, remainingOrders: dynRemaining } =
+          findNearbyClustersToFitWeightExtended(
+            lastCluster.cluster,
+            pendingSectors,
+            hasUrgents
+          );
+        const w00 = grossWeight(dynCluster);
+        const t00 = approxSecForRoute(warehouse, dynCluster) / 3600;
+        console.log(
+          `Dynamic: ${dynCluster.length} Weight: ${w00}, Time: ${t00} hrs, Remaining: ${dynRemaining.length}`
+        );
+
+        const { cluster: sptCluster, remainingOrders: sptRemaining } =
+          findNearbyClustersToFitWeight(
+            lastCluster.cluster,
+            pendingSectors,
+            hasUrgents
+          );
+
+        const w11 = grossWeight(sptCluster);
+        const t11 = approxSecForRoute(warehouse, sptCluster) / 3600;
+        console.log(
+          `Spatial: ${sptCluster.length} Weight: ${w11}, Time: ${t11} hrs, Remaining: ${sptRemaining.length}`
+        );
+
+        const dynamicScore = scoreCluster(warehouse, dynCluster);
+        const spatialScore = scoreCluster(warehouse, sptCluster);
+
+        const useDynamic = dynamicScore >= spatialScore;
+
+        const finalCluster = useDynamic ? dynCluster : sptCluster;
+        const finalRemaining = useDynamic ? dynRemaining : sptRemaining;
+
+        geoClusters.pop();
+        geoClusters.push({ cluster: finalCluster, tier: hasUrgents ? 2 : 1 });
+
+        // remainingOrders = remainingOrders.filter((o) => remainings.includes(o));
+        remainingOrders.splice(0, remainingOrders.length, ...finalRemaining);
+        // ...remainingOrders.filter((o) => remainings.includes(o))
+      }
+
+      // Finally
+      leftovers.push(...remainingOrders);
+    }
+
+    return {
+      clusters: geoClusters,
+      leftovers,
+    };
+  }
+
+
   function clusterOrdersByDensDirection(orders: Order[]): {
-    cluster: Order[];
-    tier: 1 | 2 | 3;
-  }[] {
-    const NEARBY_RADIUS_KM = 40;
+    geoClusters: {cluster: Order[];
+    tier: 1 | 2 | 3}[];
+    leftovers: Order[];
+  } {
+    orders.forEach((o) => ordersById.set(o.order_id, { ...o }));
+
+    const NEARBY_RADIUS_KM = CLOSE_TO_DISTANCE_KM;
     const SECTOR_ANGLE_DEG = 90;
     const SECTOR_ANGLE_RAD = (SECTOR_ANGLE_DEG * Math.PI) / 180;
 
-    if (!orders.length) return [];
+    if (!orders.length) 
+      return { geoClusters: [], leftovers: [] };
 
     // const geoClusters: Order[][] = [];
     const geoClusters: {
@@ -1143,28 +951,29 @@ export function assignmentHelper(
       tier: 1 | 2 | 3;
     }[] = [];
 
-    for (const o of orders) {
-      ordersById.set(o.order_id, { ...o });
-    }
-
     // --- Phase 1: Nearby zone ---
     const nearby: (Order & { distance?: number; angle?: number })[] = [];
-    for (const o of orders) {
+
+    orders.forEach((o) => {
       const d = haversineKm(
         warehouse.lat,
         warehouse.lng,
         o.location.lat,
         o.location.lng
       );
-      if (d <= NEARBY_RADIUS_KM) {
-        const oo = ordersById.get(o.order_id)!;
-        oo.distance = d;
-        oo.angle = 0;
-        ordersById.set(o.order_id, { ...oo });
-        nearby.push(oo);
-      }
-    }
-    // const nearbyIds = new Set(nearby.map((o) => o.order_id));
+
+      if (d > NEARBY_RADIUS_KM) return;
+
+      const oo = ordersById.get(o.order_id)!;
+      ordersById.set(o.order_id, {
+        ...oo,
+        distance: d,
+        angle: 0,
+      });
+
+      nearby.push(oo);
+    });
+
     const nearbyOrders_weight = grossWeight(nearby);
 
     nearby.sort((a, b) => a.distance! - b.distance!);
@@ -1172,7 +981,7 @@ export function assignmentHelper(
     if (nearby.length && nearbyOrders_weight >= MIN_WEIGHT) {
       if (nearbyOrders_weight > MAX_WEIGHT) {
         const result = splitOrdersIntoClustersDynamic(nearby, {
-          proximityLimitKm: CLOSE_TO_DISTANCE_KM,
+          proximityLimitKm: NEARBY_RADIUS_KM,
         });
         if (result.clusters.length)
           result.clusters.map((cluster) =>
@@ -1210,15 +1019,15 @@ export function assignmentHelper(
     }
 
     // --- Phase 2: Sectors ---
-    const sectors = new Map<
-      number,
-      (Order & { distance: number; angle: number })[]
-    >();
+    const sectors = new Map<number, (Order & { angle: number })[]>();
     for (const o of remainingOrders) {
       const dx = o.location.lng! - warehouse.lng!;
       const dy = o.location.lat! - warehouse.lat!;
       const angle = Math.atan2(dy, dx);
-      const normalized = angle + Math.PI;
+      let normalized = angle + Math.PI;
+      // ensure normalized in [0, 2PI)
+      // if (normalized < 0) normalized += 2 * Math.PI;
+      // if (normalized >= 2 * Math.PI) normalized -= 2 * Math.PI;
       const sectorId = Math.floor(normalized / SECTOR_ANGLE_RAD);
       const distance = haversineKm(
         warehouse.lat!,
@@ -1226,7 +1035,7 @@ export function assignmentHelper(
         o.location.lat!,
         o.location.lng!
       );
-
+      o.distance = distance;
       if (!sectors.has(sectorId)) sectors.set(sectorId, []);
       sectors.get(sectorId)!.push({ ...o, distance, angle });
     }
@@ -1240,7 +1049,7 @@ export function assignmentHelper(
       });
 
     sortedSectors.forEach((sector) =>
-      sector.sort((a, b) => a.distance - b.distance)
+      sector.sort((a, b) => a.distance! - b.distance!)
     );
 
     const satisfiedSectors: Order[][] = [];
@@ -1265,9 +1074,10 @@ export function assignmentHelper(
     clusters.forEach((c) => {
       // geoClusters.push({cluster: c.cluster, tier: c.tier});
       logger.info(
-        `[Process Cluster] [Created Cluster] Size and weight: ${
+        `[Process Cluster]: [Created Cluster] Size: ${
           c.cluster.length
-        } ${grossWeight(c.cluster)}`
+        } & weight:  
+        ${grossWeight(c.cluster)}`
       );
     });
 
@@ -1279,248 +1089,38 @@ export function assignmentHelper(
 
     geoClusters.push(...clusters);
 
-    return geoClusters;
-  }
-
-  function secondsForApproxRoute(orderes: Order[]): number {
-    if (!orderes.length) return 0;
-    let totalKm = 0;
-    // warehouse -> first
-    totalKm += haversineKm(
-      warehouse.lat!,
-      warehouse.lng!,
-      orderes[0].location.lat!,
-      orderes[0].location.lng!
-    );
-    // consecutive legs
-    for (let i = 1; i < orderes.length; i++) {
-      totalKm += haversineKm(
-        orderes[i - 1].location.lat!,
-        orderes[i - 1].location.lng!,
-        orderes[i].location.lat!,
-        orderes[i].location.lng!
-      );
-    }
-    // return leg
-    totalKm += haversineKm(
-      orderes[orderes.length - 1].location.lat!,
-      orderes[orderes.length - 1].location.lng!,
-      warehouse.lat!,
-      warehouse.lng!
-    );
-
-    // approximate travel time + service time
-    const travelSec = (totalKm / AVERAGE_SPEED_KMPH) * 3600;
-    const serviceSec = orderes.length * SERVICE_TIME_PER_STOP_MIN * 60;
-    return travelSec + serviceSec;
-  }
-
-  async function trimClusterToFitUsingMatrix(
-    cluster: Order[],
-    options?: Partial<{
-      MIN_WEIGHT: number;
-      isMultiDay: boolean;
-      tier: number;
-    }>
-    // TIME_WINDOW_HOURS: number;
-  ): Promise<{ fitted: Order[]; trimmed: Order[] }> {
-    const isMultiDay = options?.isMultiDay ?? false;
-
-    // const MIN_Wt = overrides?.MIN_WEIGHT ?? MIN_WEIGHT;
-    const isUrgent = options?.tier && options.tier > 1;
-    const MIN_Wt = isUrgent ? MIN_WEIGHT_URGENT : MIN_WEIGHT;
-
-    // const tier = overrides.tier ?? 1;
-
-    const TIME_LIMIT = isMultiDay ? TIME_WINDOW_HOURS * 2 : TIME_WINDOW_HOURS;
-    // 750 km --- 1200 km
-    // isMultiDay => access on runtime if its more efficient to take it to 2 days
-    // then need to adjust the Distance Meters acc.
-    const MAX_TOUR_DISTANCE_METERS = 750 * 1000;
-
-    const TIME_TOLERANCE_PERCENT = 0.05; // 5%
-    const DISTANCE_TOLERANCE_PERCENT = 0.2; // 20%
-
-    const allowedTime = TIME_LIMIT * 3600 * (1 + TIME_TOLERANCE_PERCENT);
-    const allowedDistance =
-      MAX_TOUR_DISTANCE_METERS * (1 + DISTANCE_TOLERANCE_PERCENT);
-
-    const trimmed: Order[] = [];
-
-    const clusterWeight = grossWeight(cluster);
-    if (!cluster.length || clusterWeight < MIN_Wt)
-      return { fitted: [], trimmed: [] };
-
-    // cache key
-    const clusterKey = `matrix:${warehouse.id}:${cluster
-      .map((o) => o.order_id)
-      .join(",")}`;
-
-    // concurrency control
-    await matrixSemaphore.enter();
-    try {
-      // caching
-      let matrix = await cacheGet<MatrixData | undefined>(clusterKey);
-
-      // Cluster and Matrix Map
-      const clusterIndexMap = new Map<number, number>();
-
-      if (!matrix) {
-        matrix = await getEndpointsRouteMatrix(warehouse, cluster);
-
-        if (matrix && (!matrix.errorCodes || matrix.errorCodes.length === 0)) {
-          cluster.forEach((order, idx) => {
-            clusterIndexMap.set(order.order_id, idx);
-          });
-
-          await cacheSet(clusterKey, matrix);
-        } else {
-          matrix = undefined;
-          logger.warn("Matrix Empty, no response from Here API");
-        }
-      }
-
-      // fallback to approximate
-      if (!matrix) {
-        logger.info(
-          `[Seconds Approx Route] fallback for (${warehouse.id}-${
-            warehouse.town
-          }
-          , cluster ${cluster.length}: ${cluster
-            .map((o) => o.order_id)
-            .join(",")} )`
-        );
-        const approxSec = secondsForApproxRoute(cluster);
-        logger.info(
-          `[Seconds Approx Route] ${approxSec} Approx Seconds for (${
-            warehouse.id
-          }-${warehouse.town}
-          , cluster ${cluster.length}: ${cluster
-            .map((o) => o.order_id)
-            .join(",")} )`
-        );
-
-        if (approxSec <= allowedTime) return { fitted: cluster, trimmed: [] };
-
-        let fitted = cluster;
-        // while (fitted.length >= MIN_ORDERS) {
-        while (grossWeight(fitted) >= MIN_Wt) {
-          trimmed.push(fitted.pop()!);
-          const approxNow = secondsForApproxRoute(fitted);
-          if (approxNow <= allowedTime)
-            return {
-              fitted,
-              trimmed: trimmed.concat(
-                cluster.filter((o) => !fitted.includes(o))
-              ),
-            };
-        }
-
-        return { fitted: [], trimmed: trimmed.concat(fitted) };
-      }
-
-      // matrix exists, compute duration sec
-      const durationSec = metrixHelper.computeTourDurationUsingMatrix(
-        matrix!,
-        cluster,
-        clusterIndexMap
-      );
-
-      // compute distance meters
-      const distanceMeters = metrixHelper.computeTourDistanceUsingMatrix(
-        matrix!,
-        cluster,
-        clusterIndexMap
-      );
-
-      // logger.info(`durationSec: ${durationSec}`);
-      // logger.info(`distanceMeters: ${distanceMeters}`);
-      // logger.info(`allowedDistance Tolerance: ${allowedDistance}`);
-
-      if (durationSec <= allowedTime && distanceMeters <= allowedDistance) {
-        logger.info("Round 1st: Cluster Accepted as is");
-        logger.info(
-          `Cluster Accepted: WH ${warehouse.id}-${warehouse.town}, ${
-            cluster.length
-          } Orders:
-         ${cluster.map((o) => o.order_id).join(",")} `
-        );
-
-        cacheDel(clusterKey);
-        return { fitted: cluster, trimmed: [] };
-      } else if (cluster.length <= 6 && durationSec <= allowedTime) {
-        while (cluster.length) {
-          // const atlastWeight = grossWeight([cluster.at(-1)!]);
-          const lastOrderWeight = cluster.at(-1)?.weight_kg!;
-          if (clusterWeight - lastOrderWeight < MIN_Wt)
-            return { fitted: cluster, trimmed: [] };
-
-          cluster.pop();
-        }
-      }
-
-      let fitted = cluster;
-      while (grossWeight(fitted) >= MIN_Wt) {
-        trimmed.push(fitted.pop()!);
-
-        const dur_sec_2 = metrixHelper.computeTourDurationUsingMatrix(
-          matrix,
-          fitted,
-          clusterIndexMap
-        );
-        // const dis_mtr_2 = metrixHelper.computeTourDistanceUsingMatrix(
-        //   matrix,
-        //   fitted,
-        //   clusterIndexMap
-        // );
-        // logger.info(`dur_sec_2: ${dur_sec_2}`);
-        // logger.info(`dis_mtr_2: ${dis_mtr_2}`);
-
-        // && dis_mtr_2 <= allowedDistance
-        if (dur_sec_2 <= allowedTime) {
-          cacheDel(clusterKey);
-          return { fitted, trimmed };
-        } else {
-          continue;
-        }
-      }
-
-      return { fitted: [], trimmed: trimmed.concat(fitted) };
-    } finally {
-      matrixSemaphore.leave();
-    }
+    return {geoClusters, leftovers};
   }
 
   return {
     MIN_WEIGHT,
     MAX_WEIGHT,
     clusterOrdersByDensDirection,
-    secondsForApproxRoute,
-    trimClusterToFitUsingMatrix,
+    // trimClusterToFitTimeWindow,
   };
 }
 
-const simpleCache = new Map<string, any>();
-async function cacheGet<T>(k: string): Promise<T | undefined> {
-  return simpleCache.get(k);
-}
-async function cacheSet(k: string, v: any, ttl = 6 * 60000) {
-  simpleCache.set(k, v);
-  setTimeout(() => {
-    simpleCache.delete(k);
-    console.log(`Cache expired for key: ${k}`);
-  }, ttl);
-}
-async function cacheDel(k: string) {
-  if (simpleCache.has(k)) {
-    simpleCache.delete(k);
-    console.log(`Cache deleted for key: ${k}`);
-  }
-}
-async function flushCache() {
-  simpleCache.clear();
-  console.warn("Cache flushed");
-}
+// const simpleCache = new Map<string, any>();
+// async function cacheGet<T>(k: string): Promise<T | undefined> {
+//   return simpleCache.get(k);
+// }
+// async function cacheSet(k: string, v: any, ttl = 6 * 60000) {
+//   simpleCache.set(k, v);
+//   setTimeout(() => {
+//     simpleCache.delete(k);
+//     console.log(`Cache expired for key: ${k}`);
+//   }, ttl);
+// }
+// async function cacheDel(k: string) {
+//   if (simpleCache.has(k)) {
+//     simpleCache.delete(k);
+//     console.log(`Cache deleted for key: ${k}`);
+//   }
+// }
+// async function flushCache() {
+//   simpleCache.clear();
+//   console.warn("Cache flushed");
+// }
 
 function semaphore(max: number) {
   let current = 0;
@@ -1541,7 +1141,7 @@ function semaphore(max: number) {
     if (next) next();
 
     if (current === 0 && queue.length === 0) {
-      flushCache();
+      // flushCache();
     }
   }
   return { enter, leave };

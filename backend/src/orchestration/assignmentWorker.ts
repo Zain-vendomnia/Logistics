@@ -23,8 +23,11 @@ export async function processWarehouseClusters(
     `[Process Clusters] Processing WH ${warehouse.town} with ${candidateOrders.length} candidate orders`
   );
 
-  const TRIMMED_ORDERS = new Map<number, Order[]>();
-  const ACCEPTED_CLUSTERS = new Map<number, Order[][]>();
+  // const TRIMMED_ORDERS = new Map<number, Order[]>();
+  // const ACCEPTED_CLUSTERS = new Map<number, Order[][]>();
+
+  const TRIMMED_ORDERS: Order[] = [];
+  const ACCEPTED_CLUSTERS: Order[][] = [];
 
   // if (grossWeight(candidOrders) < MIN_WEIGHT) {
   if (grossWeight(candidateOrders) < helper.MIN_WEIGHT) {
@@ -38,61 +41,70 @@ export async function processWarehouseClusters(
     return { ACCEPTED_CLUSTERS, TRIMMED_ORDERS };
   }
 
-  const candidateClusters = await helper.clusterOrdersByDensDirection(
+  const { geoClusters, leftovers } = await helper.clusterOrdersByDensDirection(
     candidateOrders
   );
 
+  TRIMMED_ORDERS.push(...leftovers);
+
   logger.info(
-    `[Process Clusters] Warehouse ${warehouse.town} has Cluster(s): ${candidateClusters.length} \n
+    `[Process Clusters] Warehouse ${warehouse.town} has Cluster(s): ${geoClusters.length} \n
      Cluster weight follows as:`
   );
-  candidateClusters
+  console.log(
+    `[Process Clusters] Warehouse ${warehouse.town} has Cluster(s): ${geoClusters.length} \n
+     Cluster weight follows as:`
+  );
+  geoClusters
     .map((c) => c.cluster)
     .forEach((cluster, idx) => {
       logger.info(`${idx + 1} Cluster weight: ${grossWeight(cluster)}`);
     });
 
-  for (const txnCluster of candidateClusters) {
+  for (const txnCluster of geoClusters) {
     // const cluster = txnCluster.cluster;
     const clusterWeight = grossWeight(txnCluster.cluster);
 
     // clusterWeight > helper.MAX_WEIGHT
     if (clusterWeight < helper.MIN_WEIGHT) {
-      const prev = TRIMMED_ORDERS.get(warehouse.id) ?? [];
-      TRIMMED_ORDERS.set(warehouse.id, prev.concat(txnCluster.cluster));
+      // const prev = TRIMMED_ORDERS.get(warehouse.id) ?? [];
+      TRIMMED_ORDERS.push(...txnCluster.cluster);
       continue;
-    } else if (clusterWeight > helper.MAX_WEIGHT) {
+    }
+
+    if (clusterWeight > helper.MAX_WEIGHT) {
       while (grossWeight(txnCluster.cluster) > helper.MAX_WEIGHT) {
         const trimmedOrder = txnCluster.cluster.pop()!;
-        const prev = TRIMMED_ORDERS.get(warehouse.id) ?? [];
-        TRIMMED_ORDERS.set(warehouse.id, prev.concat([trimmedOrder]));
+        // const prev = TRIMMED_ORDERS.get(warehouse.id) ?? [];
+        TRIMMED_ORDERS.push(trimmedOrder);
       }
     }
+    ACCEPTED_CLUSTERS.push(txnCluster.cluster);
 
-    try {
-      const { fitted, trimmed } = await helper.trimClusterToFitUsingMatrix(
-        txnCluster.cluster,
-        { tier: txnCluster.tier }
-      );
-      // debugger;
+    // try {
+    //   const { fitted, trimmed } = await helper.trimClusterToFitTimeWindow(
+    //     txnCluster.cluster,
+    //     { tier: txnCluster.tier }
+    //   );
 
-      if (trimmed.length) {
-        const prev = TRIMMED_ORDERS.get(warehouse.id) ?? [];
-        TRIMMED_ORDERS.set(warehouse.id, prev.concat(trimmed));
-      }
+    //   if (trimmed.length) {
+    //     const prev = TRIMMED_ORDERS.get(warehouse.id) ?? [];
+    //     TRIMMED_ORDERS.set(warehouse.id, prev.concat(trimmed));
+    //   }
 
-      if (fitted.length > 0) {
-        const prevAcc = ACCEPTED_CLUSTERS.get(warehouse.id) ?? [];
-        ACCEPTED_CLUSTERS.set(warehouse.id, prevAcc.concat([fitted]));
-      } else {
-        // all were trimmed
-      }
-    } catch (err) {
-      logger.error("[Trim Cluster] Error trimming cluster", err);
-      const prev = TRIMMED_ORDERS.get(warehouse.id) ?? [];
-      TRIMMED_ORDERS.set(warehouse.id, prev.concat(txnCluster.cluster));
-    }
+    //   if (fitted.length > 0) {
+    // const prevAcc = ACCEPTED_CLUSTERS.get(warehouse.id) ?? [];
+    // ACCEPTED_CLUSTERS.set(warehouse.id, prevAcc.concat([fitted]));
+    //   } else {
+    //     // all were trimmed
+    //   }
+    // } catch (err) {
+    //   logger.error("[Trim Cluster] Error trimming cluster", err);
+    //   const prev = TRIMMED_ORDERS.get(warehouse.id) ?? [];
+    //   TRIMMED_ORDERS.set(warehouse.id, prev.concat(txnCluster.cluster));
+    // }
   }
+
   return { ACCEPTED_CLUSTERS, TRIMMED_ORDERS };
 }
 
@@ -111,6 +123,10 @@ export async function processBatch() {
     return;
   }
 
+  const urgent_orders = orders.filter((o) => o.type === OrderType.URGENT);
+
+  logger.info(`Urgent Order: ${urgent_orders.length}:  ${urgent_orders}`);
+
   const assignments: Map<number, { order: Order; distance?: number }[]> =
     await warehouseOrdersAssignment(warehouses, orders);
 
@@ -120,13 +136,20 @@ export async function processBatch() {
   );
 
   logger.info(
-    `[Batch Process] Creating Request for ${assignments.size} assignments Clusters`
+    `[Batch Process] Creating Request for ${assignments.size} Warehouses`
   );
 
   for (const [warehouseId, orderEntries] of assignments.entries()) {
     if (!orderEntries.length) continue;
-    if (warehouseId !== 10) continue; // Hamburg
-    // if (warehouseId !== 2) continue; // Berlin
+    if (warehouseId !== 1) continue; // Eschwege
+    // if (warehouseId === 2) continue; // Berlin
+    // if (warehouseId === 3) continue; // Schkeuditz
+    // if (warehouseId === 4) continue; // Mainz-Kastel
+    // if (warehouseId === 6) continue; // Rheine
+    // if (warehouseId === 7) continue; // Bönen
+    // if (warehouseId === 8) continue; // Nürnberg
+    // if (warehouseId === 9) continue; // Muenchen
+    // if (warehouseId !== 10) continue; // Hamburg
 
     orderEntries.sort(
       (a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity)
@@ -147,25 +170,26 @@ export async function processBatch() {
       }`
     );
 
+    console.log(
+      "order ids",
+      candidOrders.map((o) => o.order_id)
+    );
+
     const { ACCEPTED_CLUSTERS, TRIMMED_ORDERS } =
       await processWarehouseClusters(warehouse, candidOrders);
 
-    for (const [wid, trimmedOrders] of TRIMMED_ORDERS.entries()) {
-      const wh = warehouses.find((wh) => wh.id === wid);
-      logger.warn(
-        `[Trimmed Orders] ${
-          trimmedOrders.length
-        } orders trimmed for warehouse ${wh?.town ?? "Unknown"} (ID: ${wid})`
-      );
-    }
+    // const wh = warehouses.find((wh) => wh.id === wid);
+    logger.warn(
+      `[Trimmed Orders] ${TRIMMED_ORDERS.length} orders trimmed for warehouse ${
+        warehouse?.town ?? "Unknown"
+      } (ID: ${warehouse.id})`
+    );
 
-    for (const clusters of ACCEPTED_CLUSTERS.values()) {
-      for (const cluster of clusters) {
-        logger.info(
-          `[Accepted Clusters] Creating dynamic tour for ${warehouse.town} — Total clusters: ${clusters.length}, Current cluster size: ${cluster.length}`
-        );
-        await createDynamicTourForCluster(warehouseId, cluster);
-      }
+    for (const cluster of ACCEPTED_CLUSTERS) {
+      logger.info(
+        `[Accepted Clusters] Creating dynamic tour for ${warehouse.town} — Cluster Size: ${cluster.length}.`
+      );
+      await createDynamicTourForCluster(warehouseId, cluster);
     }
   }
   logger.info("[Batch Process] Completed successfully.");

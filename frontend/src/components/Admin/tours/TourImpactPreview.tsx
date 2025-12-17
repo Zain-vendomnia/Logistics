@@ -1,4 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   TrendingUp,
   LocalShipping,
@@ -47,48 +53,52 @@ const TourImpactPreview = ({ warehouseId, orders, onError }: Props) => {
     return `${warehouseId || "none"}:${sortedOrderIds.join(",")}`;
   }, [warehouseId, orders]);
 
-  const estimate = async (warehouseId: number, orderIds: number[]) => {
-    setLoading(true);
-    setError(null);
+  const estimate = useCallback(
+    async (warehouseId: number, orderIds: number[]) => {
+      setLoading(true);
+      setError(null);
 
-    try {
-      const res = await adminApiService.estimateTourMatrix(
-        warehouseId,
-        orderIds
-      );
-      if (!res.data.success) {
-        const msg = res.data.message || "Unable to calculate optimized route.";
-        setError(msg);
+      try {
+        const res = await adminApiService.estimateTourMatrix(
+          warehouseId,
+          orderIds
+        );
+        if (!res.data.success) {
+          const msg =
+            res.data.message || "Unable to calculate optimized route.";
+          setError(msg);
+          lastQueryRef.current = { key: queryKey, data: null, failed: true };
+          onError?.(true);
+          return;
+        }
+        const matrix: TourMatrix = res.data.data;
+        setExpected(matrix);
+        lastQueryRef.current = {
+          key: queryKey,
+          data: res.data.data,
+          failed: false,
+        };
+        onError?.(false);
+      } catch (err: any) {
+        const rawmsg =
+          err?.response?.data?.message ||
+          err?.message ||
+          "Unexpected error while estimating route.";
+        const errorMessage = rawmsg.split(".");
+        showNotification({
+          title: "Tour Estimation Error",
+          message: errorMessage[0],
+          severity: NotificationSeverity.Warning,
+        });
+        setError(errorMessage[1] || "Failed to estimate tour cost.");
         lastQueryRef.current = { key: queryKey, data: null, failed: true };
         onError?.(true);
-        return;
+      } finally {
+        setLoading(false);
       }
-      const matrix: TourMatrix = res.data.data;
-      setExpected(matrix);
-      lastQueryRef.current = {
-        key: queryKey,
-        data: res.data.data,
-        failed: false,
-      };
-      onError?.(false);
-    } catch (err: any) {
-      const rawmsg =
-        err?.response?.data?.message ||
-        err?.message ||
-        "Unexpected error while estimating route.";
-      const errorMessage = rawmsg.split(".");
-      showNotification({
-        title: "Tour Estimation Error",
-        message: errorMessage[0],
-        severity: NotificationSeverity.Warning,
-      });
-      setError(errorMessage[1] || "Failed to estimate tour cost.");
-      lastQueryRef.current = { key: queryKey, data: null, failed: true };
-      onError?.(true);
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    [warehouseId, orders]
+  );
 
   useEffect(() => {
     if (!warehouseId || !orders.length || orders.length <= 0) return;

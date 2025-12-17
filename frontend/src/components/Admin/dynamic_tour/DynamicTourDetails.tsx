@@ -1043,12 +1043,12 @@ const DynamicTourDetails = () => {
         onReject={handleTourReject}
       />
 
-      {shouldUpdateTourRoute && (
+      {/* {shouldUpdateTourRoute && (
         <TourImpactPreview
           warehouseId={tour?.warehouse_id!}
           orders={[...tourOrders, ...selectedPinbOrders]}
         />
-      )}
+      )} */}
     </>
   );
 };
