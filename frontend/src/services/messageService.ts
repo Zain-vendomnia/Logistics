@@ -225,23 +225,6 @@ export const uploadFile = async (
   }
 };
 
-/**
- * Mark messages as read
- * PUT /api/communication/:orderId/read
- */
-export const markMessagesAsRead = async (orderId: number): Promise<void> => {
-  try {
-    await axios.put(
-      `${COMMUNICATION_API_BASE}/${orderId}/read`,
-      {},
-      { headers: authHeader() }
-    );
-    console.log(`✅ Marked messages as read for order ${orderId}`);
-  } catch (error: any) {
-    console.error('❌ Error marking messages as read:', error);
-  }
-};
-
 // Helper Functions
 
 /**
