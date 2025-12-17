@@ -103,7 +103,8 @@ export async function warehouseOrdersAssignment(
 }
 
 export function assignmentHelper(warehouse: Warehouse) {
-  const Vehicle_Count = warehouse.vehicles?.length ?? 1;
+  // const Vehicle_Count = warehouse.vehicles?.length ?? 1;
+  const Vehicle_Count = 2;
 
   // Weight limits
   const MAX_WEIGHT = 1290;
@@ -795,6 +796,8 @@ export function assignmentHelper(warehouse: Warehouse) {
     // Creates cluster from each sector around WH.
     // while (pendingSectors.length > 0) {
 
+    const unsuccessfulSectors: Order[][] = [];
+
     // Creates cluster for each Vehicle in WH.
     while (geoClusters.length < Vehicle_Count && pendingSectors.length > 0) {
       if (pendingSectors.length === 0) break;
@@ -852,88 +855,96 @@ export function assignmentHelper(warehouse: Warehouse) {
           remainingOrders.push(...seg.remainingOrders);
         }
       } else {
-        const { clusters: dynClusters, remainingOrders: rmn } =
+        const { clusters, remainingOrders: rmn } =
           // Include time constraint
           splitOrdersIntoClustersDynamic(currentSector, {
-            proximityLimitKm: CLOSE_TO_DISTANCE_KM,
+            proximityLimitKm: CLOSE_TO_DISTANCE_KM * 1.6,
           });
 
-        logger.info(`[Process Cluster] Created Normal Cluster: ${dynClusters}`);
+        logger.info(`[Process Cluster] Created Normal Cluster: ${clusters}`);
 
-        if (dynClusters.length > 0) {
-          dynClusters.forEach((dynCls) => {
-            geoClusters.push({ cluster: dynCls, tier: 1 });
-          });
+        if (!clusters.length || clusters.length < 0) {
+          unsuccessfulSectors.push(currentSector);
+          continue;
         }
-        remainingOrders.push(...rmn);
-      }
 
+        if (clusters.length > 0)
+          clusters.forEach((cls) => {
+            geoClusters.push({ cluster: cls, tier: 1 });
+          });
+        remainingOrders.push(...unsuccessfulSectors.flat(), ...rmn);
+      }
+ 
       // Second round,
       // -If created cluster is below MIN_WEIGHT,
       // -Try to fit created cluster with nearby sectors.
-      let lastCluster = geoClusters.at(-1)!;
-      const tWeight = grossWeight(lastCluster.cluster);
-      const travelDuration = approxSecForRoute(warehouse, lastCluster.cluster);
-      if (
-        tWeight < MIN_WEIGHT &&
-        travelDuration < TIMEALLOWED_MIN_1DAY &&
-        pendingSectors.length > 0
-      ) {
-        const { cluster: dynCluster, remainingOrders: dynRemaining } =
-          findNearbyClustersToFitWeightExtended(
-            lastCluster.cluster,
-            pendingSectors,
-            hasUrgents
-          );
-        const w00 = grossWeight(dynCluster);
-        const t00 = approxSecForRoute(warehouse, dynCluster) / 3600;
-        console.log(
-          `Dynamic: ${dynCluster.length} Weight: ${w00}, Time: ${t00} hrs, Remaining: ${dynRemaining.length}`
+      if (geoClusters.length > 0) {
+        let lastCluster = geoClusters.at(-1)!;
+        const tWeight = grossWeight(lastCluster.cluster);
+        const travelDuration = approxSecForRoute(
+          warehouse,
+          lastCluster.cluster
         );
-
-        const { cluster: sptCluster, remainingOrders: sptRemaining } =
-          findNearbyClustersToFitWeight(
-            lastCluster.cluster,
-            pendingSectors,
-            hasUrgents
+        if (
+          tWeight < MIN_WEIGHT &&
+          travelDuration < TIMEALLOWED_MIN_1DAY &&
+          pendingSectors.length > 0
+        ) {
+          const { cluster: dynCluster, remainingOrders: dynRemaining } =
+            findNearbyClustersToFitWeightExtended(
+              lastCluster.cluster,
+              pendingSectors,
+              hasUrgents
+            );
+          const w00 = grossWeight(dynCluster);
+          const t00 = approxSecForRoute(warehouse, dynCluster) / 3600;
+          console.log(
+            `Dynamic: ${dynCluster.length} Weight: ${w00}, Time: ${t00} hrs, Remaining: ${dynRemaining.length}`
           );
 
-        const w11 = grossWeight(sptCluster);
-        const t11 = approxSecForRoute(warehouse, sptCluster) / 3600;
-        console.log(
-          `Spatial: ${sptCluster.length} Weight: ${w11}, Time: ${t11} hrs, Remaining: ${sptRemaining.length}`
-        );
+          const { cluster: sptCluster, remainingOrders: sptRemaining } =
+            findNearbyClustersToFitWeight(
+              lastCluster.cluster,
+              pendingSectors,
+              hasUrgents
+            );
 
-        const dynamicScore = scoreCluster(warehouse, dynCluster);
-        const spatialScore = scoreCluster(warehouse, sptCluster);
+          const w11 = grossWeight(sptCluster);
+          const t11 = approxSecForRoute(warehouse, sptCluster) / 3600;
+          console.log(
+            `Spatial: ${sptCluster.length} Weight: ${w11}, Time: ${t11} hrs, Remaining: ${sptRemaining.length}`
+          );
 
-        const useDynamic = dynamicScore >= spatialScore;
+          const dynamicScore = scoreCluster(warehouse, dynCluster);
+          const spatialScore = scoreCluster(warehouse, sptCluster);
 
-        const finalCluster = useDynamic ? dynCluster : sptCluster;
-        const finalRemaining = useDynamic ? dynRemaining : sptRemaining;
+          const useDynamic = dynamicScore >= spatialScore;
 
-        geoClusters.pop();
-        geoClusters.push({ cluster: finalCluster, tier: hasUrgents ? 2 : 1 });
+          const finalCluster = useDynamic ? dynCluster : sptCluster;
+          const finalRemaining = useDynamic ? dynRemaining : sptRemaining;
 
-        // remainingOrders = remainingOrders.filter((o) => remainings.includes(o));
-        remainingOrders.splice(0, remainingOrders.length, ...finalRemaining);
-        // ...remainingOrders.filter((o) => remainings.includes(o))
+          geoClusters.pop();
+          geoClusters.push({ cluster: finalCluster, tier: hasUrgents ? 2 : 1 });
+
+          // remainingOrders = remainingOrders.filter((o) => remainings.includes(o));
+          remainingOrders.splice(0, remainingOrders.length, ...finalRemaining);
+          // ...remainingOrders.filter((o) => remainings.includes(o))
+        }
       }
 
       // Finally
       leftovers.push(...remainingOrders);
     }
-
+    
+    leftovers.push(...unsuccessfulSectors.flat());
     return {
       clusters: geoClusters,
       leftovers,
     };
   }
 
-
   function clusterOrdersByDensDirection(orders: Order[]): {
-    geoClusters: {cluster: Order[];
-    tier: 1 | 2 | 3}[];
+    geoClusters: { cluster: Order[]; tier: 1 | 2 | 3 }[];
     leftovers: Order[];
   } {
     orders.forEach((o) => ordersById.set(o.order_id, { ...o }));
@@ -942,8 +953,7 @@ export function assignmentHelper(warehouse: Warehouse) {
     const SECTOR_ANGLE_DEG = 90;
     const SECTOR_ANGLE_RAD = (SECTOR_ANGLE_DEG * Math.PI) / 180;
 
-    if (!orders.length) 
-      return { geoClusters: [], leftovers: [] };
+    if (!orders.length) return { geoClusters: [], leftovers: [] };
 
     // const geoClusters: Order[][] = [];
     const geoClusters: {
@@ -1086,10 +1096,10 @@ export function assignmentHelper(warehouse: Warehouse) {
         .map((o) => o.order_id)
         .join(", ")}`
     );
-
+ 
     geoClusters.push(...clusters);
 
-    return {geoClusters, leftovers};
+    return { geoClusters, leftovers };
   }
 
   return {

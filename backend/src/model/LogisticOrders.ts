@@ -436,7 +436,6 @@ export class LogisticOrder {
       JOIN warehouse_details wh
         ON o.warehouse_id = wh.warehouse_id
       WHERE o.status IN ('initial', 'unassigned', 'rescheduled')
-      AND o.warehouse_id IN (1)
   `;
     // AND o.warehouse_id IN (1, 2, 10)
 

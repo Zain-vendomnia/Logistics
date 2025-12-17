@@ -1,4 +1,4 @@
-// import cron from "node-cron";
+import cron from "node-cron";
 import { eventBus, LocalEvents } from "../../config/eventBus";
 import { LogisticOrder } from "../../model/LogisticOrders";
 import { processBatch } from "../../orchestration/assignmentWorker";
@@ -45,10 +45,10 @@ export async function initOrchestrationWorker() {
     enqueueOrderForBatch(order_id);
   });
 
-  // cron.schedule("*/10 * * * *", async () => {
-  //   console.log("Cron job triggered for batch processing");
-  //   await runBatchProcessing();
-  // });
+  cron.schedule("15 9 * * *", async () => {
+    console.log("Cron job triggered for batch processing");
+    await runBatchProcessing();
+  });
 
   console.log("Initial batch check on deployment");
   await runBatchProcessing();
