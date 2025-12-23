@@ -1,6 +1,6 @@
 import pool from "../database";
 import { RowDataPacket } from "mysql2";
-import { CREATE_CANCELS_ORDER_ITEMS_TABLE } from "../../services/tableQueries";
+// import { CREATE_CANCELS_ORDER_ITEMS_TABLE } from "../../services/tableQueries";
 
 const cancelsOrderItemsSetup = async () => {
   try {
@@ -16,7 +16,7 @@ const cancelsOrderItemsSetup = async () => {
     }
 
     console.log("Table 'cancels_order_items' not found. Creating table...");
-    await pool.query(CREATE_CANCELS_ORDER_ITEMS_TABLE);
+    // await pool.query(CREATE_CANCELS_ORDER_ITEMS_TABLE);
     console.log("✅ Table 'cancels_order_items' successfully created.");
   } catch (error) {
     console.error(

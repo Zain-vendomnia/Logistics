@@ -1,7 +1,7 @@
 // import pool from "../../database";
 import { Request, Response } from "express";
 import { emitNewOrder } from "../../socket/tourPlanning.socket";
-import { LogisticOrder, OrderStatus } from "../../model/LogisticOrders";
+import { LogisticOrder, OrderStatus, OrderType } from "../../model/LogisticOrders";
 import { Order } from "../../types/order.types";
 
 // function randomOffset(maxOffset = 0.009) {
@@ -34,7 +34,8 @@ export async function newShopOrder(_req: Request, res: Response) {
     const new_order: Order = {
       order_id: Number(id),
       order_number: String(newOrderNumber),
-      status: OrderStatus.initial,
+      type: OrderType.NORMAL,
+      status: OrderStatus.Initial,
 
       city: orderData.city,
       zipcode: orderData.zipcode,

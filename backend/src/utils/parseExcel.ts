@@ -1,8 +1,12 @@
 import * as XLSX from "xlsx";
 import fs from "fs";
-import { LogisticOrder } from "../model/LogisticOrders";
+import {
+  LogisticOrder,
+  OrderDetails,
+  OrderStatus,
+  OrderType,
+} from "../model/LogisticOrders";
 import { Warehouse } from "../types/warehouse.types";
-import { OrderDetails } from "../types/order.types";
 
 interface JobFromExcel {
   id: string;
@@ -128,6 +132,7 @@ export function parseExcelBufferToOrders(
           continue;
         }
         orderItems.push({
+          id: 0,
           order_id: 0,
           order_number: row["REFERENZ"],
           slmdl_article_id: "",
@@ -138,6 +143,7 @@ export function parseExcelBufferToOrders(
       }
     } else {
       orderItems.push({
+        id: 0,
         order_id: 0,
         order_number: row["REFERENZ"],
         slmdl_article_id: "",
@@ -149,6 +155,8 @@ export function parseExcelBufferToOrders(
 
     const order: LogisticOrder = {
       order_id: 0,
+      type: OrderType.NORMAL,
+      status: OrderStatus.Initial,
       quantity: 0,
       article_order_number: "",
       article_sku: "",

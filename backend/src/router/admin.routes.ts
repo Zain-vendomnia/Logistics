@@ -12,7 +12,6 @@ import { getAllTourController } from "../controller/Admin_RouteOptimzation/getAl
 import { updateCustomerInfoController } from "../controller/Admin_RouteOptimzation/updateCustomerInfo.controller";
 import { getAllTourhistory } from "../controller/Admin_RouteOptimzation/getAllTourhistory";
 
-import { getOrderDetails } from "../controller/Admin_Api/orderDetails.controller";
 import { getOrderCount } from "../controller/Admin_Api/orderCount.controller";
 import { uploadImageController } from "../controller/Admin_Api/uploadImage.controller";
 import { sendEmail } from "../controller/Admin_Api/sendEmail.controller";
@@ -43,6 +42,7 @@ import * as shopware from "../controller/AdminDriverApi/shopwareOrderController"
 import { orderSyncFromShopwareController } from "../controller/Admin_Api/orderSync.controller";
 import { shopwareAuth } from "../middlewares/shopwareAuth";
 import { fetchAppLogs } from "../controller/Admin_Api/logs.controller";
+import { getOrderDetails } from "../controller/Admin_Api/logisticOrders.controller";
 
 const adminRouter = Router();
 

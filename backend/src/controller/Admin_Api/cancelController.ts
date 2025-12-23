@@ -1,27 +1,22 @@
 import { Request, Response } from "express";
-import * as cancelService from "../../services/cancelService.service";
+import * as cancelService from "../../services/logisticOrder.service";
 import { ApiResponse } from "../../types/apiResponse.type";
-import { CancelItem } from "../../types/order.types";
+import { PickupOrderReq, OrderItem } from "../../types/order.types";
+import { LogisticOrder, OrderType } from "../../model/LogisticOrders";
 
 // ==========================================
 // REQUEST INTERFACES
 // ==========================================
 
-interface CreateCancelRequest {
-  orderNumber: string;
-  user_id: number;
-  items: CancelItem[];
-}
-
-interface UpdateCancelRequest {
-  cancel_quantity: number;
-}
-
 // ==========================================
 // HELPER FUNCTIONS
 // ==========================================
 
-const sendError = (res: Response, statusCode: number, message: string): void => {
+const sendError = (
+  res: Response,
+  statusCode: number,
+  message: string
+): void => {
   res.status(statusCode).json({
     status: "error",
     message,
@@ -29,7 +24,12 @@ const sendError = (res: Response, statusCode: number, message: string): void => 
   });
 };
 
-const sendSuccess = (res: Response, statusCode: number, message: string, data?: any): void => {
+const sendSuccess = (
+  res: Response,
+  statusCode: number,
+  message: string,
+  data?: any
+): void => {
   const response: ApiResponse = {
     status: "success",
     message,
@@ -39,22 +39,27 @@ const sendSuccess = (res: Response, statusCode: number, message: string, data?: 
   res.status(statusCode).json(response);
 };
 
-const validateCancelItem = (item: CancelItem): { valid: boolean; error?: string } => {
+const validateCancelOrderItem = (
+  item: OrderItem
+): { valid: boolean; error?: string } => {
   if (!item.slmdl_articleordernumber?.trim()) {
-    return { valid: false, error: "Each item must have a valid article number" };
+    return {
+      valid: false,
+      error: "Each item must have a valid article number",
+    };
   }
 
-  if (!item.cancelQuantity || item.cancelQuantity <= 0) {
+  if (!item.cancelled_quantity || item.cancelled_quantity <= 0) {
     return {
       valid: false,
       error: `Cancel quantity must be greater than 0 for article ${item.slmdl_articleordernumber}`,
     };
   }
 
-  if (item.cancelQuantity > item.quantity) {
+  if (item.cancelled_quantity > item.quantity) {
     return {
       valid: false,
-      error: `Cancel quantity (${item.cancelQuantity}) cannot exceed original quantity (${item.quantity}) for article ${item.slmdl_articleordernumber}`,
+      error: `Cancel quantity (${item.cancelled_quantity}) cannot exceed original quantity (${item.quantity}) for article ${item.slmdl_articleordernumber}`,
     };
   }
 
@@ -65,13 +70,17 @@ const validateCancelItem = (item: CancelItem): { valid: boolean; error?: string 
 // GET ALL CANCEL ORDERS (WITHOUT ITEMS)
 // ==========================================
 /**
- * @route GET /api/cancels
- * @desc Get all cancelled orders (optimized - without items)
- * @access Public
+ 
  */
-export const getAllCancelOrders = async (_req: Request, res: Response): Promise<void> => {
+export const getAllCancelOrders = async (
+  _req: Request,
+  res: Response
+): Promise<void> => {
   try {
-    const data = await cancelService.getAllCancelOrders();
+    const data = await cancelService.getOrdersByTypes([
+      OrderType.PICKUP,
+      OrderType.EXCHANGE,
+    ]);
     sendSuccess(res, 200, "Cancel orders fetched successfully", data);
   } catch (error: any) {
     console.error("Error in getAllCancelOrders:", error);
@@ -87,7 +96,10 @@ export const getAllCancelOrders = async (_req: Request, res: Response): Promise<
  * @desc Get all cancel items for a specific order (lazy loading)
  * @access Public
  */
-export const getCancelOrderItems = async (req: Request, res: Response): Promise<void> => {
+export const getCancelOrderItems = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   try {
     const { orderNumber } = req.params;
 
@@ -95,7 +107,8 @@ export const getCancelOrderItems = async (req: Request, res: Response): Promise<
       return sendError(res, 400, "Order number is required");
     }
 
-    const data = await cancelService.getCancelOrderItems(orderNumber);
+    const data = await cancelService.getCancelOrderItemsAsync(+orderNumber);
+
     sendSuccess(res, 200, "Cancel items fetched successfully", data);
   } catch (error: any) {
     console.error("Error in getCancelOrderItems:", error);
@@ -111,40 +124,51 @@ export const getCancelOrderItems = async (req: Request, res: Response): Promise<
  * @desc Create a new cancel order with items
  * @access Public
  */
-export const createCancel = async (req: Request, res: Response): Promise<void> => {
+export const createCancelOrder = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   try {
-    const { orderNumber, user_id, items }: CreateCancelRequest = req.body;
+    const {
+      order_id: parentOrderId,
+      user_id,
+      items: cancelItems,
+    }: PickupOrderReq = req.body;
 
     // Validate user_id
     if (!user_id || typeof user_id !== "number") {
-      return sendError(res, 400, "User ID is required and must be a valid number");
-    }
-
-    // Validate order number
-    if (!orderNumber?.trim()) {
-      return sendError(res, 400, "Order number is required");
+      return sendError(
+        res,
+        400,
+        "User ID is required and must be a valid number"
+      );
     }
 
     // Validate items array
-    if (!Array.isArray(items) || items.length === 0) {
+    if (!Array.isArray(cancelItems) || cancelItems.length === 0) {
       return sendError(res, 400, "At least one cancel item is required");
     }
 
     // Validate each item
-    for (const item of items) {
-      const validation = validateCancelItem(item);
+    for (const item of cancelItems) {
+      const validation = validateCancelOrderItem(item);
       if (!validation.valid) {
         return sendError(res, 400, validation.error!);
       }
     }
 
-    const result = await cancelService.createCancel(orderNumber, items, user_id);
+    const result = await cancelService.createPickupOrder(
+      parentOrderId,
+      user_id,
+      "",
+      cancelItems
+    );
 
-    if (!result.success) {
-      return sendError(res, 400, result.message);
+    if (!result) {
+      return sendError(res, 400, "Internal server error");
     }
 
-    sendSuccess(res, 201, result.message, result);
+    sendSuccess(res, 201, "", result);
   } catch (error: any) {
     console.error("Error in createCancel:", error);
     sendError(res, 500, error.message || "Internal server error");
@@ -159,18 +183,29 @@ export const createCancel = async (req: Request, res: Response): Promise<void> =
  * @desc Search cancel orders by order number
  * @access Public
  */
-export const searchCancelByOrderNumber = async (req: Request, res: Response): Promise<void> => {
+export const searchCancelOrder = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   try {
-    const { orderNumber } = req.query;
+    const { orderNumber: order_id } = req.query;
 
-    if (!orderNumber || typeof orderNumber !== "string" || !orderNumber.trim()) {
-      return sendError(res, 400, "Order number is required as a query parameter");
+    if (!order_id || !Number.isFinite(+order_id)) {
+      return sendError(
+        res,
+        400,
+        "Order number is required as a query parameter"
+      );
     }
 
-    const data = await cancelService.searchCancelByOrderNumber(orderNumber.trim());
+    const data = await LogisticOrder.getOrdersWithItemsAsync([+order_id]);
 
     if (!data?.length) {
-      return sendError(res, 404, `No cancel orders found for order number: ${orderNumber}`);
+      return sendError(
+        res,
+        404,
+        `No cancel orders found for order number: ${order_id}`
+      );
     }
 
     sendSuccess(res, 200, "Cancel order found successfully", data);
@@ -188,20 +223,27 @@ export const searchCancelByOrderNumber = async (req: Request, res: Response): Pr
  * @desc Update cancel quantity for a specific cancel item
  * @access Public
  */
-export const updateCancel = async (req: Request, res: Response): Promise<void> => {
+export const updateCancel = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   try {
     const { id } = req.params;
-    const { cancel_quantity }: UpdateCancelRequest = req.body;
+    const { order_id, user_id, items }: PickupOrderReq = req.body;
 
     if (!id || isNaN(Number(id))) {
       return sendError(res, 400, "Valid cancel ID is required");
     }
 
-    if (!cancel_quantity || cancel_quantity <= 0) {
+    if (!order_id || items.length <= 0) {
       return sendError(res, 400, "Cancel quantity must be greater than 0");
     }
 
-    const result = await cancelService.updateCancel(Number(id), { cancel_quantity });
+    const result = await cancelService.updateOrderItemsQty(
+      order_id,
+      user_id,
+      items
+    );
 
     res.status(result.success ? 200 : 404).json({
       status: result.success ? "success" : "error",
@@ -222,7 +264,10 @@ export const updateCancel = async (req: Request, res: Response): Promise<void> =
  * @desc Delete a specific cancel item by ID
  * @access Public
  */
-export const deleteCancel = async (req: Request, res: Response): Promise<void> => {
+export const deleteCancel = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   try {
     const { id } = req.params;
 
@@ -230,11 +275,14 @@ export const deleteCancel = async (req: Request, res: Response): Promise<void> =
       return sendError(res, 400, "Valid cancel ID is required");
     }
 
-    const result = await cancelService.deleteCancel(Number(id));
+    // const result = await cancelService.deleteCancel(Number(id));
+    const result = { success: true };
 
     res.status(result.success ? 200 : 404).json({
       status: result.success ? "success" : "error",
-      message: result.success ? "Cancel deleted successfully" : "Cancel not found",
+      message: result.success
+        ? "Cancel deleted successfully"
+        : "Cancel not found",
       statusCode: result.success ? 200 : 404,
     });
   } catch (error: any) {
@@ -251,10 +299,18 @@ export const deleteCancel = async (req: Request, res: Response): Promise<void> =
  * @desc Delete all cancel records (both orders and items)
  * @access Admin
  */
-export const deleteAllCancels = async (_req: Request, res: Response): Promise<void> => {
+export const deleteAllCancels = async (
+  _req: Request,
+  res: Response
+): Promise<void> => {
   try {
-    const result = await cancelService.deleteAllCancels();
-    sendSuccess(res, 200, result.message || "All cancels deleted successfully", result);
+    // const result = await cancelService.deleteAllCancels();
+    // sendSuccess(
+    //   res,
+    //   200,
+    //   result.message || "All cancels deleted successfully",
+    //   result
+    // );
   } catch (error: any) {
     console.error("Error in deleteAllCancels:", error);
     sendError(res, 500, error.message || "Error deleting all cancels");

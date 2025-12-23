@@ -1,13 +1,4 @@
-import { LogisticOrder, OrderStatus } from "../model/LogisticOrders";
-
-export type OrderDetails = {
-  order_id: number;
-  order_number: string;
-  slmdl_article_id: number | string;
-  slmdl_articleordernumber: string;
-  slmdl_quantity: number;
-  warehouse_id: number | string;
-};
+import { LogisticOrder, OrderStatus, OrderType } from "../model/LogisticOrders";
 
 export type OrderItem = {
   id: number;
@@ -18,23 +9,30 @@ export type OrderItem = {
   article_id?: string;
   slmdl_articleordernumber?: string;
   warehouse_id?: string;
+
+  is_new_item?: boolean;
+  cancelled_quantity?: number; // qty full/partial cancelled
+  ref_item_id?: number;
 };
 
 export type Order = {
   order_id: number;
-  order_number: string;
+  type: OrderType;
   status: OrderStatus;
+  parent_order_id?: number;
 
+  warehouse_id: number;
+  warehouse_name?: string;
+  warehouse_town?: string;
+
+  order_number: string;
   article_sku?: string;
+
   invoice_amount?: string;
   payment_id?: number;
 
   order_time: Date;
   expected_delivery_time: Date;
-
-  warehouse_id: number;
-  warehouse_name?: string;
-  warehouse_town?: string;
 
   quantity?: number;
   article_order_number?: string;
@@ -45,7 +43,6 @@ export type Order = {
   firstname?: string;
   lastname?: string;
   email?: string;
-
   phone?: string;
   street?: string;
   city: string;
@@ -53,10 +50,70 @@ export type Order = {
 
   location: { lat: number; lng: number };
 
+  created_by?: string;
   created_at?: Date;
+  updated_at?: Date | null;
 
   items?: OrderItem[];
 };
+
+// export interface CancelItem extends OrderItem {
+//   cancelQuantity: number;
+// }
+
+// export interface CancelOrderItem
+//   extends Omit<OrderItem, "order_id" | "order_number"> {
+//   cancel_id: number;
+//   article_sku: string;
+//   quantity: number;
+//   cancel_quantity: number;
+//   created_at: Date;
+//   updated_at?: Date | null;
+// }
+// export interface CancelOrder extends Omit<Order, "items"> {
+//   id: number; // primary key in cancels_order table
+//   user_id?: number;
+//   created_by?: string;
+//   items_count?: number;
+//   total_cancelled_qty?: number;
+//   items?: CancelOrderItem[];
+// }
+
+export interface PickupOrderReq {
+  order_id: number;
+  user_id: string;
+  // reason: string;
+  items: OrderItem[];
+}
+export interface PickupOrder {
+  order_id: number;
+  order_number: string;
+  status: string;
+  type: string;
+  address: string;
+
+  itemsCount: number;
+  cancelledItemsCount: number;
+
+  warehouse_id: number;
+  warehouse_town: string;
+
+  user_id: string; // email
+  created_by: string;
+
+  customer_name: string;
+  contact_number: string;
+  email: string;
+
+  created_at: string;
+  items: OrderItem[];
+}
+
+export interface UpdateCancelRequest {
+  orderId: number;
+  cancelItems: OrderItem[]; // updated items only
+  userId: string;
+}
 
 export type ShopwareOrderDetails = {
   slmdl_article_id: number | string;
@@ -90,30 +147,9 @@ export type ShopwareOrder = {
   shipping_phone?: string | null;
 };
 
-export interface CancelItem extends OrderItem {
-  cancelQuantity: number;
-}
-
-export interface CancelOrderItem extends Omit<OrderItem, "order_id" | "order_number"> {
-  cancel_id: number;
-  article_sku: string;
-  quantity: number;
-  cancel_quantity: number;
-  created_at: Date;
-  updated_at?: Date | null;
-}
-export interface CancelOrder extends Omit<Order, "items"> {
-  id: number; // primary key in cancels_order table
-  user_id?: number;
-  created_by?: string;
-  items_count?: number;
-  total_cancelled_qty?: number;
-  items?: CancelOrderItem[];
-}
-
 export function mapShopwareOrderToLogisticOrder(
   order: ShopwareOrder
-  ): LogisticOrder {
+): LogisticOrder {
   const order_details: any[] = [];
   for (const item of order.OrderDetails) {
     order_details.push({
@@ -127,6 +163,8 @@ export function mapShopwareOrderToLogisticOrder(
   const LogisticsOrderObj: LogisticOrder = {
     order_id: 0,
     quantity: 0,
+    type: OrderType.NORMAL,
+    status: OrderStatus.Initial,
     article_order_number: "",
     lattitude: null,
     longitude: null,
@@ -153,4 +191,3 @@ export function mapShopwareOrderToLogisticOrder(
 
   return LogisticsOrderObj;
 }
-

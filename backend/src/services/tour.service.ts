@@ -107,10 +107,10 @@ async function updateTourOrdersStatus(
 
     await removeUnassignedOrdersFromTour(conn, tourId, unassignedOrderIds);
 
-    const updated = await LogisticOrder.updateOrdersStatus(
+    const updated = await LogisticOrder.updateSysOrdersStatus(
       conn,
       unassignedOrderIds,
-      OrderStatus.unassigned
+      OrderStatus.Unassigned
     );
     console.log("Updated status for unassigned orders:", updated);
   }
@@ -119,10 +119,10 @@ async function updateTourOrdersStatus(
     (id) => !unassignedOrderIds.includes(id)
   );
 
-  const assignedOrders_upadted = await LogisticOrder.updateOrdersStatus(
+  const assignedOrders_upadted = await LogisticOrder.updateSysOrdersStatus(
     conn,
     assignedOrderIds,
-    OrderStatus.assigned
+    OrderStatus.Assigned
   );
   console.log(`Update status assigned orders: `, assignedOrders_upadted);
 

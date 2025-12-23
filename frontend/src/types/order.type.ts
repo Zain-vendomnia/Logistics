@@ -1,3 +1,10 @@
+export enum OrderType {
+  NORMAL = "normal",
+  URGENT = "urgent",
+  EXCHANGE = "exchange",
+  PICKUP = "pickup",
+}
+
 export enum OrderStatus {
   initial = "initial",
   unassigned = "unassigned",
@@ -9,29 +16,38 @@ export enum OrderStatus {
 }
 
 export type OrderItem = {
-  id: string;
+  id: number;
   order_id: number;
   order_number: string;
   quantity: number;
   article: string;
   article_id?: string;
+  slmdl_articleordernumber?: string;
   warehouse_id?: string;
+
+  is_new_item?: boolean;
+  cancelled_quantity?: number; // qty full/partial cancelled
+  ref_item_id?: number;
 };
 
 export type Order = {
   order_id: number;
-  order_number: string;
+  type: OrderType;
   status: OrderStatus;
+  parent_order_id?: number;
+
+  warehouse_id: number;
+  warehouse_name?: string;
+  warehouse_town?: string;
+
+  order_number: string;
+  article_sku?: string;
 
   invoice_amount: string;
   payment_id: number;
 
   order_time: Date;
   expected_delivery_time: Date;
-
-  warehouse_id: number;
-  warehouse_name?: string;
-  warehouse_town?: string;
 
   quantity?: number;
   article_order_number?: string;
@@ -42,7 +58,6 @@ export type Order = {
   firstname: string;
   lastname: string;
   email: string;
-
   phone: string;
   street: string;
   city: string;
@@ -50,10 +65,44 @@ export type Order = {
 
   location: { lat: number; lng: number };
 
-  created_at: Date;
+  created_by?: string;
+  created_at?: Date;
+  updated_at?: Date | null;
 
   items: OrderItem[];
 };
+
+export interface PickupOrderReq {
+  order_id: number;
+  user_id: string;
+  // reason: string;
+  items: OrderItem[];
+}
+
+export interface PickupOrder {
+  order_id: number;
+  order_number: string;
+  status: string;
+  type: string;
+  address: string;
+
+  itemsCount: number;
+  cancelledItemsCount: number;
+
+  warehouse_id: number;
+  warehouse_town: string;
+
+  
+  customer_name: string;
+  contact_number: string;
+  email: string;
+  
+  user_id: string; // email
+  created_by: string;
+  created_at: string;
+
+  items: OrderItem[];
+}
 
 // export type PinboardOrder = {
 //   id: number;

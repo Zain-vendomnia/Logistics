@@ -45,10 +45,10 @@ async function handleExistingTour(
     );
 
     if (remove_orderIds.length > 0) {
-      await LogisticOrder.updateOrdersStatus(
+      await LogisticOrder.updateSysOrdersStatus(
         connection,
         remove_orderIds,
-        OrderStatus.unassigned
+        OrderStatus.Unassigned
       );
     }
   } catch (error) {

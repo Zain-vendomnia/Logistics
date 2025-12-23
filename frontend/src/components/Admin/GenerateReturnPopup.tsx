@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -19,9 +19,9 @@ import {
   Alert,
   Typography,
   Snackbar,
-} from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
-import adminApiService from '../../services/adminApiService';
+} from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
+import adminApiService from "../../services/adminApiService";
 
 interface OrderItem {
   id: number;
@@ -37,8 +37,8 @@ interface OrderItem {
 interface SelectedItem {
   id: number;
   slmdl_articleordernumber: string;
-  originalQuantity: number;
-  cancelQuantity: number;
+  original_quantity: number;
+  cancelled_quantity: number;
 }
 
 interface GenerateCancelPopupProps {
@@ -47,25 +47,36 @@ interface GenerateCancelPopupProps {
   onSuccess?: () => void; // ✅ Added this
 }
 
-const GenerateCancelPopup: React.FC<GenerateCancelPopupProps> = ({ 
-  open, 
+interface pickupObject {
+  order_id: number;
+  orderItems: OrderItem[];
+}
+
+const GenerateCancelPopup: React.FC<GenerateCancelPopupProps> = ({
+  open,
   onClose,
-  onSuccess // ✅ Added this
+  onSuccess, // ✅ Added this
 }) => {
-  const [invoiceNumber, setInvoiceNumber] = useState('');
+  const [invoiceNumber, setInvoiceNumber] = useState("");
   const [loading, setLoading] = useState(false);
-  const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
-  const [selectedItems, setSelectedItems] = useState<{ [key: number]: SelectedItem }>({});
-  const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
-  
+  const [pickUp, setPickUp] = useState<pickupObject | null>(null);
+  // const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
+  const [selectedItems, setSelectedItems] = useState<{
+    [key: number]: SelectedItem;
+  }>({});
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+
   const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error' | 'info' | 'warning'>('success');
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState<
+    "success" | "error" | "info" | "warning"
+  >("success");
 
   const getUserData = () => {
     try {
-      const userDataString = localStorage.getItem('userData') || localStorage.getItem('user');
+      const userDataString =
+        localStorage.getItem("userData") || localStorage.getItem("user");
       if (userDataString) {
         const userData = JSON.parse(userDataString);
         return {
@@ -74,12 +85,15 @@ const GenerateCancelPopup: React.FC<GenerateCancelPopupProps> = ({
         };
       }
     } catch (error) {
-      console.error('Error parsing user data from localStorage:', error);
+      console.error("Error parsing user data from localStorage:", error);
     }
     return { user_id: null, username: null };
   };
 
-  const showSnackbar = (message: string, severity: 'success' | 'error' | 'info' | 'warning') => {
+  const showSnackbar = (
+    message: string,
+    severity: "success" | "error" | "info" | "warning"
+  ) => {
     setSnackbarMessage(message);
     setSnackbarSeverity(severity);
     setSnackbarOpen(true);
@@ -91,57 +105,72 @@ const GenerateCancelPopup: React.FC<GenerateCancelPopupProps> = ({
 
   const handleSearch = async () => {
     if (!invoiceNumber.trim()) {
-      setErrorMessage('Please enter an invoice number');
+      setErrorMessage("Please enter an invoice number");
       return;
     }
 
     try {
       setLoading(true);
-      setErrorMessage('');
-      setSuccessMessage('');
-      setOrderItems([]);
+      setErrorMessage("");
+      setSuccessMessage("");
+      // setOrderItems();
       setSelectedItems({});
 
-      const response = await adminApiService.orderDetails(Number(invoiceNumber));
-      console.log('Order Details Response:', response);
+      const response = await adminApiService.orderDetails(
+        Number(invoiceNumber)
+      );
+      console.log("Order Details Response:", response);
 
-      if (response.data.status === 'success') {
-        const items = response.data.data.orderItems || [];
-        
+      if (response.data.status === "success") {
+        const resObject = response.data.data || [];
+        const items = resObject.orderItems;
+        // debugger;
         if (items.length === 0) {
-          setErrorMessage('No items found for this order number');
+          setErrorMessage("No items found for this order number");
         } else {
-          setOrderItems(items);
-          setSuccessMessage(`Found ${items.length} item(s) for order ${invoiceNumber}`);
+          setPickUp(resObject);
+          setSuccessMessage(
+            `Found ${items.length} item(s) for order ${invoiceNumber}`
+          );
         }
-      } else if (response.data.status === 'warning') {
+      } else if (response.data.status === "warning") {
         setErrorMessage(response.data.message);
       } else {
-        setErrorMessage(response.data.message || 'Failed to fetch order details');
+        setErrorMessage(
+          response.data.message || "Failed to fetch order details"
+        );
       }
     } catch (error: any) {
-      console.error('Error fetching order details:', error);
-      setErrorMessage(error.response?.data?.message || 'Failed to fetch order details. Please try again.');
+      console.error("Error fetching order details:", error);
+      setErrorMessage(
+        error.response?.data?.message ||
+          "Failed to fetch order details. Please try again."
+      );
     } finally {
       setLoading(false);
     }
   };
 
   const handleInvoiceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/[^0-9]/g, '');
+    const value = e.target.value.replace(/[^0-9]/g, "");
     setInvoiceNumber(value);
     if (errorMessage || successMessage) {
-      setErrorMessage('');
-      setSuccessMessage('');
+      setErrorMessage("");
+      setSuccessMessage("");
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab') {
+    if (
+      !/[0-9]/.test(e.key) &&
+      e.key !== "Backspace" &&
+      e.key !== "Delete" &&
+      e.key !== "Tab"
+    ) {
       e.preventDefault();
     }
-    
-    if (e.key === 'Enter' && invoiceNumber.trim()) {
+
+    if (e.key === "Enter" && invoiceNumber.trim()) {
       handleSearch();
     }
   };
@@ -153,8 +182,8 @@ const GenerateCancelPopup: React.FC<GenerateCancelPopupProps> = ({
         [item.id]: {
           id: item.id,
           slmdl_articleordernumber: item.slmdl_articleordernumber,
-          originalQuantity: item.quantity,
-          cancelQuantity: 0,
+          original_quantity: item.quantity,
+          cancelled_quantity: 0,
         },
       }));
     } else {
@@ -168,12 +197,12 @@ const GenerateCancelPopup: React.FC<GenerateCancelPopupProps> = ({
 
   const handleQuantityChange = (itemId: number, value: string) => {
     const numValue = parseInt(value) || 0;
-    
+
     setSelectedItems((prev) => {
       const item = prev[itemId];
       if (!item) return prev;
 
-      if (numValue > item.originalQuantity) {
+      if (numValue > item.original_quantity) {
         return prev;
       }
 
@@ -181,7 +210,7 @@ const GenerateCancelPopup: React.FC<GenerateCancelPopupProps> = ({
         ...prev,
         [itemId]: {
           ...item,
-          cancelQuantity: numValue,
+          cancelled_quantity: numValue,
         },
       };
     });
@@ -191,88 +220,95 @@ const GenerateCancelPopup: React.FC<GenerateCancelPopupProps> = ({
     const selectedItemsList = Object.values(selectedItems);
 
     if (selectedItemsList.length === 0) {
-      setErrorMessage('Please select at least one item');
+      setErrorMessage("Please select at least one item");
       return;
     }
 
     const hasValidQuantity = selectedItemsList.some(
-      (item) => item.cancelQuantity > 0
+      (item) => item.cancelled_quantity > 0
     );
 
     if (!hasValidQuantity) {
-      setErrorMessage('Please enter cancel quantity for selected items');
+      setErrorMessage("Please enter cancel quantity for selected items");
       return;
     }
 
-    const { user_id } = getUserData();
+    const { username } = getUserData();
 
-    if (!user_id) {
-      setErrorMessage('User information not found. Please log in again.');
-      showSnackbar('User information not found. Please log in again.', 'error');
+    if (!username) {
+      setErrorMessage("User information not found. Please log in again.");
+      showSnackbar("User information not found. Please log in again.", "error");
       return;
     }
-
-    const cancelData = {
-      orderNumber: invoiceNumber,
-      user_id: user_id,
+    // debugger;
+    const pickupReq = {
+      order_id: pickUp?.order_id,
+      user_id: username,
       items: selectedItemsList.map((item) => {
-        const fullItem = orderItems.find((orderItem) => orderItem.id === item.id);
-        
+        const fullItem = pickUp?.orderItems.find(
+          (orderItem) => orderItem.id === item.id
+        );
+
         return {
           id: item.id,
           order_id: fullItem?.order_id || null,
           order_number: fullItem?.order_number || invoiceNumber,
           slmdl_articleordernumber: item.slmdl_articleordernumber,
-          quantity: item.originalQuantity,
-          cancelQuantity: item.cancelQuantity,
+          quantity: item.original_quantity,
+          cancelled_quantity: item.cancelled_quantity,
           warehouse_id: fullItem?.warehouse_id || null,
         };
       }),
     };
 
-    console.log('Creating cancel with data:', cancelData);
-    
+    console.log("Creating cancel with data:", pickupReq);
+
     try {
       setLoading(true);
-      
-      const response = await adminApiService.sendCancelDetails(cancelData);
-      
-      console.log('Cancel created successfully:', response);
-      
-      if (response.data.status === 'success') {
-        showSnackbar('Cancel created successfully!', 'success');
-        
-        setInvoiceNumber('');
-        setOrderItems([]);
+      debugger;
+
+      const response = await adminApiService.sendCancelDetails(pickupReq);
+
+      console.log("Cancel created successfully:", response);
+
+      if (response.data.status === "success") {
+        showSnackbar("Cancel created successfully!", "success");
+
+        setInvoiceNumber("");
+        setPickUp(null);
         setSelectedItems({});
-        setErrorMessage('');
-        setSuccessMessage('');
-        
+        setErrorMessage("");
+        setSuccessMessage("");
+
         // ✅ ONLY ADDED THIS - Call onSuccess to refresh parent table
         if (onSuccess) {
           onSuccess();
         }
-        
       } else {
-        setErrorMessage(response.data.message || 'Failed to create cancel');
-        showSnackbar(response.data.message || 'Failed to create cancel', 'error');
+        setErrorMessage(response.data.message || "Failed to create cancel");
+        showSnackbar(
+          response.data.message || "Failed to create cancel",
+          "error"
+        );
       }
     } catch (error: any) {
-      console.error('Error creating cancel:', error);
-      const errorMsg = error.response?.data?.message || 'Failed to create cancel. Please try again.';
+      console.error("Error creating cancel:", error);
+      const errorMsg =
+        error.response?.data?.message ||
+        "Failed to create cancel. Please try again.";
       setErrorMessage(errorMsg);
-      showSnackbar(errorMsg, 'error');
+      showSnackbar(errorMsg, "error");
     } finally {
       setLoading(false);
     }
   };
 
   const handleClose = () => {
-    setInvoiceNumber('');
-    setOrderItems([]);
+    setInvoiceNumber("");
+    setPickUp(null);
     setSelectedItems({});
-    setErrorMessage('');
-    setSuccessMessage('');
+    setErrorMessage("");
+    setSuccessMessage("");
     onClose();
   };
 
@@ -288,31 +324,31 @@ const GenerateCancelPopup: React.FC<GenerateCancelPopupProps> = ({
         PaperProps={{
           sx: {
             borderRadius: 2,
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-            minHeight: '375px',
+            boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
+            minHeight: "375px",
           },
         }}
       >
         <IconButton
           onClick={handleClose}
           sx={{
-            position: 'absolute',
+            position: "absolute",
             right: 8,
             top: 8,
-            color: '#9e9e9e',
+            color: "#9e9e9e",
           }}
         >
           <CloseIcon />
         </IconButton>
 
-        <DialogTitle sx={{ pb: 1, pt: 3, textAlign: 'center' }}>
+        <DialogTitle sx={{ pb: 1, pt: 3, textAlign: "center" }}>
           <Typography variant="h5" fontWeight={600}>
             Create Cancel
           </Typography>
         </DialogTitle>
 
         <DialogContent>
-          <Box sx={{ display: 'flex', gap: 2, mb: 2, mt: 3 }}>
+          <Box sx={{ display: "flex", gap: 2, mb: 2, mt: 3 }}>
             <TextField
               fullWidth
               placeholder="Enter invoice number"
@@ -328,29 +364,45 @@ const GenerateCancelPopup: React.FC<GenerateCancelPopupProps> = ({
               onClick={handleSearch}
               disabled={loading || !invoiceNumber.trim()}
               sx={{
-                minWidth: '100px',
-                bgcolor: '#f7941d',
-                '&:hover': { bgcolor: '#f37021' },
+                minWidth: "100px",
+                bgcolor: "#f7941d",
+                "&:hover": { bgcolor: "#f37021" },
               }}
             >
-              {loading ? <CircularProgress size={20} color="inherit" /> : 'Search'}
+              {loading ? (
+                <CircularProgress size={20} color="inherit" />
+              ) : (
+                "Search"
+              )}
             </Button>
           </Box>
 
           {errorMessage && (
-            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setErrorMessage('')}>
+            <Alert
+              severity="error"
+              sx={{ mb: 2 }}
+              onClose={() => setErrorMessage("")}
+            >
               {errorMessage}
             </Alert>
           )}
           {successMessage && (
-            <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccessMessage('')}>
+            <Alert
+              severity="success"
+              sx={{ mb: 2 }}
+              onClose={() => setSuccessMessage("")}
+            >
               {successMessage}
             </Alert>
           )}
 
-          {orderItems.length > 0 ? (
+          {pickUp && pickUp.orderItems.length > 0 ? (
             <Box sx={{ mt: 2 }}>
-              <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 400 }}>
+              <TableContainer
+                component={Paper}
+                variant="outlined"
+                sx={{ maxHeight: 400 }}
+              >
                 <Table stickyHeader size="small">
                   <TableHead>
                     <TableRow>
@@ -361,17 +413,19 @@ const GenerateCancelPopup: React.FC<GenerateCancelPopupProps> = ({
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {orderItems.map((item) => {
+                    {pickUp?.orderItems.map((item) => {
                       const selectedItem = selectedItems[item.id];
                       const isSelected = isItemSelected(item.id);
-                      
+
                       return (
                         <TableRow key={item.id} hover>
                           <TableCell padding="checkbox">
                             <Checkbox
                               size="small"
                               checked={isSelected}
-                              onChange={(e) => handleCheckboxChange(item, e.target.checked)}
+                              onChange={(e) =>
+                                handleCheckboxChange(item, e.target.checked)
+                              }
                             />
                           </TableCell>
                           <TableCell>{item.slmdl_articleordernumber}</TableCell>
@@ -383,30 +437,34 @@ const GenerateCancelPopup: React.FC<GenerateCancelPopupProps> = ({
                               type="number"
                               size="small"
                               disabled={!isSelected}
-                              value={selectedItem?.cancelQuantity || ''}
+                              value={selectedItem?.cancelled_quantity || ""}
                               onChange={(e) =>
                                 handleQuantityChange(item.id, e.target.value)
                               }
                               inputProps={{
                                 min: 0,
                                 max: item.quantity,
-                                style: { textAlign: 'center', width: '60px' },
+                                style: { textAlign: "center", width: "60px" },
                               }}
                               sx={{
-                                '& .MuiOutlinedInput-root': {
-                                  '& fieldset': {
-                                    borderColor: isSelected ? '#000000' : '#e0e0e0',
-                                    borderWidth: isSelected ? '2px' : '1px',
+                                "& .MuiOutlinedInput-root": {
+                                  "& fieldset": {
+                                    borderColor: isSelected
+                                      ? "#000000"
+                                      : "#e0e0e0",
+                                    borderWidth: isSelected ? "2px" : "1px",
                                   },
-                                  '&:hover fieldset': {
-                                    borderColor: isSelected ? '#333333' : '#e0e0e0',
+                                  "&:hover fieldset": {
+                                    borderColor: isSelected
+                                      ? "#333333"
+                                      : "#e0e0e0",
                                   },
-                                  '&.Mui-focused fieldset': {
-                                    borderColor: '#f7941d',
-                                    borderWidth: '2px',
+                                  "&.Mui-focused fieldset": {
+                                    borderColor: "#f7941d",
+                                    borderWidth: "2px",
                                   },
-                                  '&.Mui-disabled': {
-                                    backgroundColor: '#f5f5f5',
+                                  "&.Mui-disabled": {
+                                    backgroundColor: "#f5f5f5",
                                   },
                                 },
                               }}
@@ -419,14 +477,14 @@ const GenerateCancelPopup: React.FC<GenerateCancelPopupProps> = ({
                 </Table>
               </TableContainer>
 
-              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+              <Box sx={{ mt: 2, display: "flex", justifyContent: "flex-end" }}>
                 <Button
                   variant="contained"
                   onClick={handleCreate}
                   disabled={Object.keys(selectedItems).length === 0}
                   sx={{
-                    bgcolor: '#f7941d',
-                    '&:hover': { bgcolor: '#f37021' },
+                    bgcolor: "#f7941d",
+                    "&:hover": { bgcolor: "#f37021" },
                   }}
                 >
                   Create
@@ -435,7 +493,11 @@ const GenerateCancelPopup: React.FC<GenerateCancelPopupProps> = ({
             </Box>
           ) : (
             <Box sx={{ mt: 2 }}>
-              <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 400 }}>
+              <TableContainer
+                component={Paper}
+                variant="outlined"
+                sx={{ maxHeight: 400 }}
+              >
                 <Table stickyHeader size="small">
                   <TableHead>
                     <TableRow>
@@ -447,7 +509,11 @@ const GenerateCancelPopup: React.FC<GenerateCancelPopupProps> = ({
                   </TableHead>
                   <TableBody>
                     <TableRow>
-                      <TableCell colSpan={4} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                      <TableCell
+                        colSpan={4}
+                        align="center"
+                        sx={{ py: 4, color: "text.secondary" }}
+                      >
                         No data available
                       </TableCell>
                     </TableRow>
@@ -463,12 +529,12 @@ const GenerateCancelPopup: React.FC<GenerateCancelPopupProps> = ({
         open={snackbarOpen}
         autoHideDuration={4000}
         onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
       >
-        <Alert 
-          onClose={handleSnackbarClose} 
-          severity={snackbarSeverity} 
-          sx={{ width: '100%' }}
+        <Alert
+          onClose={handleSnackbarClose}
+          severity={snackbarSeverity}
+          sx={{ width: "100%" }}
           variant="filled"
         >
           {snackbarMessage}

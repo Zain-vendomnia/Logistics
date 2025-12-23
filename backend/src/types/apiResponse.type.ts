@@ -2,6 +2,6 @@
 export interface ApiResponse<T = any> {
   status: "success" | "error" | "warning" | "info";
   message: string;
-  statusCode?: number;  // clearer name — indicates HTTP-like status
+  statusCode?: number; // indicates HTTP-like status
   data?: T;
 }

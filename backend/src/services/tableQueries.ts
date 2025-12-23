@@ -35,7 +35,6 @@ VALUES
   (10, 'NL - LOGISTICS GmbH', 'Clerk Name', '0000000000', 'nl@example.com', 'Halskestraße 38', '22113', 'Hamburg', '20,21,22,23,24,25,29,18,19', '#8E44AD', 1);
 `;
 
-
 export const CREATE_DRIVER_DETAILS_TABLE = `
  CREATE TABLE IF NOT EXISTS driver_details (
     id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
@@ -207,9 +206,12 @@ export const CREATE_ROUTE_SEGMENTS_TABLE = `
 export const LOGIC_ORDER_TABLE = `
   CREATE TABLE IF NOT EXISTS logistic_order (
     order_id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
-    shopware_order_id INT NOT NULL UNIQUE,
+    type ENUM('normal', 'urgent', 'exchange', 'pickup') NOT NULL DEFAULT 'normal',
+    status ENUM('initial', 'unassigned', 'assigned', 'inTransit', 
+                'delivered', 'rescheduled', 'cancelled') NOT NULL DEFAULT 'initial',
+    parent_order_id INT NULL,
+    shopware_order_id INT NOT NULL,
     order_number VARCHAR(45) NOT NULL,
-    status ENUM('initial', 'unassigned', 'assigned', 'inTransit', 'delivered', 'rescheduled', 'cancelled') NOT NULL DEFAULT 'initial',
     article_sku VARCHAR(255) NULL,
     tracking_code VARCHAR(100) NULL,
     order_status_id INT NULL,
@@ -218,22 +220,26 @@ export const LOGIC_ORDER_TABLE = `
     expected_delivery_time DATETIME NULL,
     payment_id INT NULL,
     invoice_amount VARCHAR(45) NULL,
+
     customer_id VARCHAR(45) NOT NULL,
     customer_number VARCHAR(45) NULL,
     firstname VARCHAR(45) NULL,
     lastname VARCHAR(45) NULL,
     email VARCHAR(45) NULL,
+    phone VARCHAR(45) NULL,
     street VARCHAR(45) NULL,
     zipcode VARCHAR(10) NULL,
     city VARCHAR(45) NULL,
-    phone VARCHAR(45) NULL,
     latitude DECIMAL(10,7) NULL,
     longitude DECIMAL(10,7) NULL,
+    created_by VARCHAR(45) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
-  );
-`;
+    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
 
+    FOREIGN KEY (parent_order_id) REFERENCES logistic_order(order_id)
+    );
+    `;
+// UNIQUE KEY uq_shopware_order_parent(shopware_order_id, type)
 
 export const LOGIC_ORDER_ITEMS_TABLE = `
   CREATE TABLE IF NOT EXISTS logistic_order_items (
@@ -244,11 +250,38 @@ export const LOGIC_ORDER_ITEMS_TABLE = `
     slmdl_articleordernumber VARCHAR(100) NOT NULL,
     quantity INT NOT NULL,
     warehouse_id VARCHAR(50),
+    is_new_item BOOLEAN DEFAULT TRUE,
+    cancelled_quantity INT NOT NULL,
+    ref_item_id INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (order_id) REFERENCES logistic_order(order_id) ON DELETE CASCADE,
     INDEX (order_number),
     INDEX (slmdl_articleordernumber)
+  );
+`;
+export const ORDER_STATUS_HISTORY_TABLE = `
+  CREATE TABLE IF NOT EXISTS order_status_history (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT NOT NULL,
+    
+    old_status VARCHAR(50) NULL,
+    new_status VARCHAR(50) NOT NULL,
+    
+    changed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    changed_by_user_id varchar(50) NULL,
+    changed_by_system VARCHAR(50) NULL,
+    
+    change_reason VARCHAR(255) NULL,
+    notes TEXT NULL,
+    
+    metadata JSON,
+    
+    FOREIGN KEY (order_id) REFERENCES logistic_order(order_id) ON DELETE CASCADE,
+        
+    INDEX idx_order_status_history_order_id (order_id),
+    INDEX idx_order_status_history_changed_at (changed_at),
+    INDEX idx_order_status_history_new_status (new_status)
   );
 `;
 
@@ -480,46 +513,46 @@ export const CREATE_ORDER_IMAGES_TABLE = `
   );
 `;
 
-export const CREATE_CANCELS_ORDER_TABLE = `
-  CREATE TABLE IF NOT EXISTS cancels_order (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    order_id INT DEFAULT NULL,
-    shopware_order_id INT DEFAULT NULL,
-    order_number VARCHAR(50) NOT NULL,
-    customer_id VARCHAR(50) NOT NULL,
-    invoice_amount VARCHAR(50) DEFAULT NULL,
-    payment_id INT DEFAULT NULL,
-    warehouse_id INT DEFAULT NULL,
-    order_time DATETIME DEFAULT NULL,
-    expected_delivery_time DATETIME DEFAULT NULL,
-    customer_number VARCHAR(50) DEFAULT NULL,
-    firstname VARCHAR(50) DEFAULT NULL,
-    lastname VARCHAR(50) DEFAULT NULL,
-    email VARCHAR(100) DEFAULT NULL,
-    street VARCHAR(100) DEFAULT NULL,
-    zipcode VARCHAR(20) DEFAULT NULL,
-    city VARCHAR(50) DEFAULT NULL,
-    phone VARCHAR(50) DEFAULT NULL,
-    latitude DECIMAL(10,7) DEFAULT NULL,
-    longitude DECIMAL(10,7) DEFAULT NULL,
-    status ENUM('initial', 'unassigned', 'assigned', 'inTransit', 'delivered', 'rescheduled', 'Cancelled') DEFAULT 'initial',
-    article_sku	 VARCHAR(255) DEFAULT NULL,
-    tracking_code VARCHAR(100) DEFAULT NULL,
-    order_status_id INT DEFAULT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    user_id INT DEFAULT NULL,
-    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
-  );
-`;
+// export const CREATE_CANCELS_ORDER_TABLE = `
+//   CREATE TABLE IF NOT EXISTS cancels_order (
+//     id INT AUTO_INCREMENT PRIMARY KEY,
+//     order_id INT DEFAULT NULL,
+//     shopware_order_id INT DEFAULT NULL,
+//     order_number VARCHAR(50) NOT NULL,
+//     customer_id VARCHAR(50) NOT NULL,
+//     invoice_amount VARCHAR(50) DEFAULT NULL,
+//     payment_id INT DEFAULT NULL,
+//     warehouse_id INT DEFAULT NULL,
+//     order_time DATETIME DEFAULT NULL,
+//     expected_delivery_time DATETIME DEFAULT NULL,
+//     customer_number VARCHAR(50) DEFAULT NULL,
+//     firstname VARCHAR(50) DEFAULT NULL,
+//     lastname VARCHAR(50) DEFAULT NULL,
+//     email VARCHAR(100) DEFAULT NULL,
+//     street VARCHAR(100) DEFAULT NULL,
+//     zipcode VARCHAR(20) DEFAULT NULL,
+//     city VARCHAR(50) DEFAULT NULL,
+//     phone VARCHAR(50) DEFAULT NULL,
+//     latitude DECIMAL(10,7) DEFAULT NULL,
+//     longitude DECIMAL(10,7) DEFAULT NULL,
+//     status ENUM('initial', 'unassigned', 'assigned', 'inTransit', 'delivered', 'rescheduled', 'Cancelled') DEFAULT 'initial',
+//     article_sku	 VARCHAR(255) DEFAULT NULL,
+//     tracking_code VARCHAR(100) DEFAULT NULL,
+//     order_status_id INT DEFAULT NULL,
+//     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+//     user_id INT DEFAULT NULL,
+//     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
+//   );
+// `;
 
-export const CREATE_CANCELS_ORDER_ITEMS_TABLE = `
-  CREATE TABLE IF NOT EXISTS cancels_order_items (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    cancel_id INT NOT NULL,
-    article_sku VARCHAR(255) NOT NULL,
-    quantity INT NOT NULL,
-    cancel_quantity INT DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
-  );
-`;
+// export const CREATE_CANCELS_ORDER_ITEMS_TABLE = `
+//   CREATE TABLE IF NOT EXISTS cancels_order_items (
+//     id INT AUTO_INCREMENT PRIMARY KEY,
+//     cancel_id INT NOT NULL,
+//     article_sku VARCHAR(255) NOT NULL,
+//     quantity INT NOT NULL,
+//     cancel_quantity INT DEFAULT 0,
+//     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+//     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
+//   );
+// `;

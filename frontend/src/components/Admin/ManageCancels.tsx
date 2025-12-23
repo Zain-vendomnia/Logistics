@@ -46,36 +46,16 @@ import {
   searchCancelByOrderNumber,
 } from "../../services/cancelService";
 import ConfirmDialog from "./ConfirmDialog";
-import GenerateReturnPopup from './GenerateReturnPopup';
-
-interface CancelOrderItem {
-  id: number;
-  cancel_id: number;
-  article_sku: string;
-  quantity: number;
-  cancel_quantity: number;
-  created_at: string;
-  updated_at: string;
-}
-
-interface CancelOrder {
-  order_number: string;
-  status: string;
-  warehouse_id: number;
-  warehouse_town: string;
-  address: string;
-  customer_name: string;
-  contact_number: string;
-  email: string;
-  created_at: string;
-  items_count: number;
-  total_cancelled_qty: number;
-  user_id: number;
-  created_by: string;
-}
+import GenerateReturnPopup from "./GenerateReturnPopup";
+import { OrderItem, PickupOrder } from "../../types/order.type";
 
 const ManageCancels = () => {
-  const [orders, setOrders] = useState<CancelOrder[]>([]);
+  const [pickUpOrders, setPickupOrders] = useState<PickupOrder[]>([]);
+  const [expandedRows, setExpandedRows] = useState<Map<string, OrderItem[]>>(
+    new Map()
+  );
+  const [loadingItems, setLoadingItems] = useState<Set<string>>(new Set());
+
   const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -85,13 +65,10 @@ const ManageCancels = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [editDialog, setEditDialog] = useState(false);
-  const [editItem, setEditItem] = useState<CancelOrderItem | null>(null);
+  const [editItem, setEditItem] = useState<OrderItem | null>(null);
   const [editQty, setEditQty] = useState<number>(0);
   const [actionLoading, setActionLoading] = useState(false);
-  
-  const [expandedRows, setExpandedRows] = useState<Map<string, CancelOrderItem[]>>(new Map());
-  const [loadingItems, setLoadingItems] = useState<Set<string>>(new Set());
-  
+
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
@@ -102,12 +79,20 @@ const ManageCancels = () => {
     title: "",
     content: "",
     confirmText: "Yes, Confirm",
-    confirmColor: "error" as "error" | "primary" | "secondary" | "success" | "warning" | "info",
+    confirmColor: "error" as
+      | "error"
+      | "primary"
+      | "secondary"
+      | "success"
+      | "warning"
+      | "info",
     onConfirm: () => {},
   });
 
-  const showSnackbar = (message: string, severity: "success" | "error" | "warning" | "info") =>
-    setSnackbar({ open: true, message, severity });
+  const showSnackbar = (
+    message: string,
+    severity: "success" | "error" | "warning" | "info"
+  ) => setSnackbar({ open: true, message, severity });
   const closeSnackbar = () => setSnackbar((prev) => ({ ...prev, open: false }));
 
   const closeConfirmDialog = () => {
@@ -134,18 +119,23 @@ const ManageCancels = () => {
     setLoading(true);
     try {
       const response = await getAllCancelOrders();
-      
+
       if (response.status === "success" && Array.isArray(response.data)) {
-        setOrders(response.data);
+        setPickupOrders(response.data);
+        // for (const pickUp of pickupRes) {
+        //   setExpandedRows((prev) =>
+        //     new Map(prev).set(pickUp.order_number, pickUp.items)
+        //   );
+        // }
       } else if (Array.isArray(response)) {
-        setOrders(response);
+        setPickupOrders(response);
       } else {
-        setOrders([]);
+        setPickupOrders([]);
         showSnackbar("No cancel orders available", "warning");
       }
     } catch (err: any) {
       console.error("Error loading orders:", err);
-      setOrders([]);
+      setPickupOrders([]);
       showSnackbar(err.message || "Failed to load cancel orders", "error");
     } finally {
       setLoading(false);
@@ -166,22 +156,22 @@ const ManageCancels = () => {
     setIsSearching(true);
     try {
       const response = await searchCancelByOrderNumber(searchTerm.trim());
-      
+
       if (response.status === "success" && Array.isArray(response.data)) {
         if (response.data.length === 0) {
           showSnackbar(`No cancel orders found for: ${searchTerm}`, "info");
         } else {
           showSnackbar(`Found ${response.data.length} order(s)`, "success");
         }
-        setOrders(response.data);
+        setPickupOrders(response.data);
         setPage(0);
       } else {
-        setOrders([]);
+        setPickupOrders([]);
         showSnackbar("No cancel orders found", "info");
       }
     } catch (err: any) {
       console.error("Error searching orders:", err);
-      setOrders([]);
+      setPickupOrders([]);
       if (err.message && err.message.includes("404")) {
         showSnackbar(`No cancel orders found for: ${searchTerm}`, "info");
       } else {
@@ -215,9 +205,11 @@ const ManageCancels = () => {
 
     try {
       const response = await getCancelOrderItems(orderNumber);
-      
+
       if (response.status === "success" && Array.isArray(response.data)) {
-        setExpandedRows((prev) => new Map(prev).set(orderNumber, response.data));
+        setExpandedRows((prev) =>
+          new Map(prev).set(orderNumber, response.data)
+        );
       } else {
         showSnackbar("Failed to load order items", "error");
       }
@@ -254,13 +246,15 @@ const ManageCancels = () => {
   };
 
   // ✅ No client-side filtering - show API results directly
-  const filteredOrders = orders;
+  const filteredOrders = pickUpOrders;
 
   const handleChangePage = (event: unknown, newPage: number) => {
     setPage(newPage);
   };
 
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChangeRowsPerPage = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
@@ -270,9 +264,9 @@ const ManageCancels = () => {
     page * rowsPerPage + rowsPerPage
   );
 
-  const handleEditClick = (item: CancelOrderItem) => {
+  const handleEditClick = (item: OrderItem) => {
     setEditItem(item);
-    setEditQty(item.cancel_quantity);
+    setEditQty(item.cancelled_quantity!);
     setEditDialog(true);
   };
 
@@ -294,16 +288,21 @@ const ManageCancels = () => {
 
     setActionLoading(true);
     try {
-      const response = await updateCancel(editItem.id, { cancel_quantity: editQty });
-      
+      const response = await updateCancel(editItem.id, {
+        cancel_quantity: editQty,
+      });
+
       if (response.status === "success") {
-        showSnackbar(response.message || "Cancel quantity updated successfully", "success");
+        showSnackbar(
+          response.message || "Cancel quantity updated successfully",
+          "success"
+        );
         setEditDialog(false);
-        
-        const orderNumber = Array.from(expandedRows.entries()).find(([_, items]) => 
-          items.some(item => item.id === editItem.id)
+
+        const orderNumber = Array.from(expandedRows.entries()).find(
+          ([_, items]) => items.some((item) => item.id === editItem.id)
         )?.[0];
-        
+
         if (orderNumber) {
           setExpandedRows((prev) => {
             const newMap = new Map(prev);
@@ -312,7 +311,7 @@ const ManageCancels = () => {
           });
           await loadOrderItems(orderNumber);
         }
-        
+
         if (isSearching) {
           handleSearch();
         } else {
@@ -339,24 +338,30 @@ const ManageCancels = () => {
       onConfirm: async () => {
         try {
           const response = await deleteCancel(id);
-          
+
           if (response.status === "success") {
-            showSnackbar(response.message || "Cancel item deleted successfully", "success");
-            
+            showSnackbar(
+              response.message || "Cancel item deleted successfully",
+              "success"
+            );
+
             setExpandedRows((prev) => {
               const newMap = new Map(prev);
               newMap.delete(orderNumber);
               return newMap;
             });
             await loadOrderItems(orderNumber);
-            
+
             if (isSearching) {
               handleSearch();
             } else {
               loadOrders();
             }
           } else {
-            showSnackbar(response.message || "Failed to delete cancel item", "error");
+            showSnackbar(
+              response.message || "Failed to delete cancel item",
+              "error"
+            );
           }
           closeConfirmDialog();
         } catch (err: any) {
@@ -369,7 +374,7 @@ const ManageCancels = () => {
   };
 
   const handleDeleteAll = () => {
-    if (orders.length === 0) {
+    if (pickUpOrders.length === 0) {
       showSnackbar("No cancels to delete", "warning");
       return;
     }
@@ -383,15 +388,21 @@ const ManageCancels = () => {
       onConfirm: async () => {
         try {
           const response = await deleteAllCancels();
-          
+
           if (response.status === "success") {
-            showSnackbar(response.message || "All cancels deleted successfully", "success");
+            showSnackbar(
+              response.message || "All cancels deleted successfully",
+              "success"
+            );
             setExpandedRows(new Map());
             setSearchTerm("");
             setIsSearching(false);
             loadOrders();
           } else {
-            showSnackbar(response.message || "Failed to delete all cancels", "error");
+            showSnackbar(
+              response.message || "Failed to delete all cancels",
+              "error"
+            );
           }
           closeConfirmDialog();
         } catch (err: any) {
@@ -411,10 +422,10 @@ const ManageCancels = () => {
 
     try {
       showSnackbar("Preparing export... Please wait", "info");
-      
+
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet("Cancels");
-      
+
       worksheet.columns = [
         { header: "Order Number", key: "order_number", width: 18 },
         { header: "Customer Name", key: "customer_name", width: 20 },
@@ -433,9 +444,10 @@ const ManageCancels = () => {
       for (const order of filteredOrders) {
         try {
           const itemsResponse = await getCancelOrderItems(order.order_number);
-          const items = itemsResponse.status === "success" ? itemsResponse.data : [];
-          
-          items.forEach((item: CancelOrderItem) => {
+          const items =
+            itemsResponse.status === "success" ? itemsResponse.data : [];
+
+          items.forEach((item: OrderItem) => {
             worksheet.addRow({
               order_number: order.order_number,
               customer_name: order.customer_name,
@@ -446,13 +458,16 @@ const ManageCancels = () => {
               status: order.status,
               created_by: order.created_by,
               created_date: formatDate(order.created_at),
-              article_sku: item.article_sku,
+              article_sku: item.article,
               quantity: item.quantity,
-              cancel_quantity: item.cancel_quantity,
+              cancel_quantity: item.cancelled_quantity,
             });
           });
         } catch (err) {
-          console.error(`Failed to fetch items for order ${order.order_number}`, err);
+          console.error(
+            `Failed to fetch items for order ${order.order_number}`,
+            err
+          );
         }
       }
 
@@ -490,9 +505,16 @@ const ManageCancels = () => {
     }
   };
 
-  const ExpandableRow = ({ order }: { order: CancelOrder }) => {
+  const ExpandableRow = ({ order }: { order: PickupOrder }) => {
     const isExpanded = expandedRows.has(order.order_number);
-    const items = expandedRows.get(order.order_number) || [];
+    const focusedPickupOrder = pickUpOrders.find(
+      (po) => po.order_number === order.order_number
+    );
+    const itemsLoaded =
+      focusedPickupOrder && focusedPickupOrder.items.length > 0;
+    const items = itemsLoaded
+      ? focusedPickupOrder!.items
+      : expandedRows.get(order.order_number) || [];
     const isLoadingItems = loadingItems.has(order.order_number);
 
     return (
@@ -536,14 +558,18 @@ const ManageCancels = () => {
           </TableCell>
           <TableCell align="center">
             <Chip
-              label={`${order.items_count} items`}
+              label={`${order.itemsCount} items`}
               size="small"
-              sx={{ backgroundColor: "#e3f2fd", color: "#1976d2", fontWeight: 600 }}
+              sx={{
+                backgroundColor: "#e3f2fd",
+                color: "#1976d2",
+                fontWeight: 600,
+              }}
             />
           </TableCell>
           <TableCell align="center">
             <Typography variant="body1" fontWeight={600} color="error">
-              {order.total_cancelled_qty}
+              {order.cancelledItemsCount}
             </Typography>
           </TableCell>
           <TableCell>
@@ -576,7 +602,14 @@ const ManageCancels = () => {
         <TableRow>
           <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={9}>
             <Collapse in={isExpanded} timeout="auto" unmountOnExit>
-              <Box sx={{ margin: 2, backgroundColor: "#fafafa", p: 2, borderRadius: 1 }}>
+              <Box
+                sx={{
+                  margin: 2,
+                  backgroundColor: "#fafafa",
+                  p: 2,
+                  borderRadius: 1,
+                }}
+              >
                 <Stack direction="row" spacing={1} alignItems="center" mb={2}>
                   <ShoppingCart sx={{ color: "#ff9800" }} />
                   <Typography variant="subtitle1" fontWeight={600}>
@@ -584,31 +617,56 @@ const ManageCancels = () => {
                   </Typography>
                 </Stack>
 
-                <Typography variant="caption" color="text.secondary" display="block" mb={2}>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  display="block"
+                  mb={2}
+                >
                   <strong>Address:</strong> {order.address}
                 </Typography>
 
                 {isLoadingItems ? (
-                  <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+                  <Box
+                    sx={{ display: "flex", justifyContent: "center", py: 4 }}
+                  >
                     <CircularProgress sx={{ color: "#ff9800" }} />
                   </Box>
                 ) : items.length === 0 ? (
-                  <Typography variant="body2" color="text.secondary" align="center" py={2}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    align="center"
+                    py={2}
+                  >
                     No items found
                   </Typography>
                 ) : (
                   <Table size="small" sx={{ border: "1px solid #e0e0e0" }}>
                     <TableHead>
                       <TableRow sx={{ backgroundColor: "#90a4ae" }}>
-                        <TableCell sx={{ color: "white", fontWeight: 600 }}>S.No</TableCell>
-                        <TableCell sx={{ color: "white", fontWeight: 600 }}>Article SKU</TableCell>
-                        <TableCell align="center" sx={{ color: "white", fontWeight: 600 }}>
+                        <TableCell sx={{ color: "white", fontWeight: 600 }}>
+                          S.No
+                        </TableCell>
+                        <TableCell sx={{ color: "white", fontWeight: 600 }}>
+                          Article SKU
+                        </TableCell>
+                        <TableCell
+                          align="center"
+                          sx={{ color: "white", fontWeight: 600 }}
+                        >
                           Original Qty
                         </TableCell>
-                        <TableCell align="center" sx={{ color: "white", fontWeight: 600 }}>
+                        <TableCell
+                          align="center"
+                          sx={{ color: "white", fontWeight: 600 }}
+                        >
                           Cancel Qty
                         </TableCell>
-                        <TableCell align="center" sx={{ color: "white", fontWeight: 600 }}>
+                        <TableCell
+                          align="center"
+                          sx={{ color: "white", fontWeight: 600 }}
+                        >
                           Actions
                         </TableCell>
                       </TableRow>
@@ -618,7 +676,8 @@ const ManageCancels = () => {
                         <TableRow
                           key={item.id}
                           sx={{
-                            backgroundColor: index % 2 === 0 ? "white" : "#f5f5f5",
+                            backgroundColor:
+                              index % 2 === 0 ? "white" : "#f5f5f5",
                           }}
                         >
                           <TableCell>
@@ -628,20 +687,24 @@ const ManageCancels = () => {
                           </TableCell>
                           <TableCell>
                             <Typography variant="body2" fontWeight={500}>
-                              {item.article_sku}
+                              {item.article}
                             </Typography>
                           </TableCell>
                           <TableCell align="center">{item.quantity}</TableCell>
                           <TableCell align="center">
                             <Chip
-                              label={item.cancel_quantity}
+                              label={item.cancelled_quantity!}
                               size="small"
                               color="error"
                               sx={{ fontWeight: 600 }}
                             />
                           </TableCell>
                           <TableCell align="center">
-                            <Stack direction="row" spacing={1} justifyContent="center">
+                            <Stack
+                              direction="row"
+                              spacing={1}
+                              justifyContent="center"
+                            >
                               <IconButton
                                 size="small"
                                 onClick={(e) => {
@@ -686,14 +749,16 @@ const ManageCancels = () => {
   };
 
   return (
-    <Box sx={{ p: 3, backgroundColor: "#f5f5f5", minHeight: "calc(100vh - 50px)" }}>
+    <Box
+      sx={{ p: 3, backgroundColor: "#f5f5f5", minHeight: "calc(100vh - 50px)" }}
+    >
       <Box sx={{ mb: 3 }}>
         <Typography variant="h4" fontWeight={600} color="#333">
           Manage Cancelled Orders
         </Typography>
         <Typography variant="body2" color="text.secondary">
           Total Orders: {filteredOrders.length} | Total Items:{" "}
-          {filteredOrders.reduce((sum, order) => sum + order.items_count, 0)}
+          {filteredOrders.reduce((sum, order) => sum + order.itemsCount, 0)}
           {isSearching && (
             <Chip
               label="Search Results"
@@ -765,17 +830,17 @@ const ManageCancels = () => {
             variant="contained"
             onClick={handleOpenPopup}
             sx={{
-              backgroundColor: '#ff5722',
-              color: 'white',
-              textTransform: 'none',
+              backgroundColor: "#ff5722",
+              color: "white",
+              textTransform: "none",
               fontWeight: 600,
               px: 3,
               py: 1,
               borderRadius: 2,
-              boxShadow: '0 2px 4px rgba(255, 87, 34, 0.3)',
-              '&:hover': {
-                backgroundColor: '#f4511e',
-                boxShadow: '0 4px 8px rgba(255, 87, 34, 0.4)',
+              boxShadow: "0 2px 4px rgba(255, 87, 34, 0.3)",
+              "&:hover": {
+                backgroundColor: "#f4511e",
+                boxShadow: "0 4px 8px rgba(255, 87, 34, 0.4)",
               },
             }}
           >
@@ -802,7 +867,7 @@ const ManageCancels = () => {
             color="error"
             onClick={handleDeleteAll}
             startIcon={<Delete />}
-            disabled={orders.length === 0}
+            disabled={pickUpOrders.length === 0}
           >
             Delete All
           </Button>
@@ -814,42 +879,89 @@ const ManageCancels = () => {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ backgroundColor: "#90a4ae", color: "white", fontWeight: 600 }}>
+                <TableCell
+                  sx={{
+                    backgroundColor: "#90a4ae",
+                    color: "white",
+                    fontWeight: 600,
+                  }}
+                >
                   Order Number
                 </TableCell>
-                <TableCell sx={{ backgroundColor: "#90a4ae", color: "white", fontWeight: 600 }}>
+                <TableCell
+                  sx={{
+                    backgroundColor: "#90a4ae",
+                    color: "white",
+                    fontWeight: 600,
+                  }}
+                >
                   Customer
                 </TableCell>
-                <TableCell sx={{ backgroundColor: "#90a4ae", color: "white", fontWeight: 600 }}>
+                <TableCell
+                  sx={{
+                    backgroundColor: "#90a4ae",
+                    color: "white",
+                    fontWeight: 600,
+                  }}
+                >
                   Email
                 </TableCell>
                 <TableCell
                   align="center"
-                  sx={{ backgroundColor: "#90a4ae", color: "white", fontWeight: 600 }}
+                  sx={{
+                    backgroundColor: "#90a4ae",
+                    color: "white",
+                    fontWeight: 600,
+                  }}
                 >
                   Warehouse
                 </TableCell>
                 <TableCell
                   align="center"
-                  sx={{ backgroundColor: "#90a4ae", color: "white", fontWeight: 600 }}
+                  sx={{
+                    backgroundColor: "#90a4ae",
+                    color: "white",
+                    fontWeight: 600,
+                  }}
                 >
                   Items Count
                 </TableCell>
                 <TableCell
                   align="center"
-                  sx={{ backgroundColor: "#90a4ae", color: "white", fontWeight: 600 }}
+                  sx={{
+                    backgroundColor: "#90a4ae",
+                    color: "white",
+                    fontWeight: 600,
+                  }}
                 >
                   Total Cancelled
                 </TableCell>
-                <TableCell sx={{ backgroundColor: "#90a4ae", color: "white", fontWeight: 600 }}>
+                <TableCell
+                  sx={{
+                    backgroundColor: "#90a4ae",
+                    color: "white",
+                    fontWeight: 600,
+                  }}
+                >
                   Created Date
                 </TableCell>
-                <TableCell sx={{ backgroundColor: "#90a4ae", color: "white", fontWeight: 600 }}>
+                <TableCell
+                  sx={{
+                    backgroundColor: "#90a4ae",
+                    color: "white",
+                    fontWeight: 600,
+                  }}
+                >
                   Created By
                 </TableCell>
                 <TableCell
                   align="right"
-                  sx={{ backgroundColor: "#90a4ae", color: "white", fontWeight: 600, width: 50 }}
+                  sx={{
+                    backgroundColor: "#90a4ae",
+                    color: "white",
+                    fontWeight: 600,
+                    width: 50,
+                  }}
                 >
                   Expand
                 </TableCell>
@@ -866,15 +978,16 @@ const ManageCancels = () => {
                 <TableRow>
                   <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
                     <Typography color="text.secondary">
-                      {isSearching 
+                      {isSearching
                         ? `No results found for "${searchTerm}"`
-                        : "No cancelled orders found"
-                      }
+                        : "No cancelled orders found"}
                     </Typography>
                   </TableCell>
                 </TableRow>
               ) : (
-                paginatedOrders.map((order) => <ExpandableRow key={order.order_number} order={order} />)
+                paginatedOrders.map((order) => (
+                  <ExpandableRow key={order.order_number} order={order} />
+                ))
               )}
             </TableBody>
           </Table>
@@ -895,14 +1008,19 @@ const ManageCancels = () => {
         />
       </Paper>
 
-      <Dialog open={editDialog} onClose={() => setEditDialog(false)} maxWidth="xs" fullWidth>
+      <Dialog
+        open={editDialog}
+        onClose={() => setEditDialog(false)}
+        maxWidth="xs"
+        fullWidth
+      >
         <DialogTitle>Edit Cancel Quantity</DialogTitle>
         <DialogContent>
           <Typography variant="body2" mb={1}>
             Item ID: <strong>{editItem?.id}</strong>
           </Typography>
           <Typography variant="body2" mb={1}>
-            SKU: <strong>{editItem?.article_sku}</strong>
+            SKU: <strong>{editItem?.article}</strong>
           </Typography>
           <Typography variant="body2" mb={2} color="text.secondary">
             Original Quantity: <strong>{editItem?.quantity}</strong>
@@ -935,7 +1053,12 @@ const ManageCancels = () => {
           >
             Cancel
           </Button>
-          <Button onClick={handleEditSave} variant="contained" color="primary" disabled={actionLoading}>
+          <Button
+            onClick={handleEditSave}
+            variant="contained"
+            color="primary"
+            disabled={actionLoading}
+          >
             Save Changes
           </Button>
         </DialogActions>
@@ -957,13 +1080,17 @@ const ManageCancels = () => {
         onClose={closeSnackbar}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       >
-        <Alert severity={snackbar.severity} onClose={closeSnackbar} variant="filled">
+        <Alert
+          severity={snackbar.severity}
+          onClose={closeSnackbar}
+          variant="filled"
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>
 
-      <GenerateReturnPopup 
-        open={openPopup} 
+      <GenerateReturnPopup
+        open={openPopup}
         onClose={handleClosePopup}
         onSuccess={handleCancelSuccess}
       />

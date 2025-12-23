@@ -23,10 +23,13 @@ import deliveryCostPerTourSetup from "../../config/initialDBSetup/deliveryCostPe
 import OrderImagesSetup from "../../config/initialDBSetup/orderImagesSetup";
 import cancelsOrderSetup from "../../config/initialDBSetup/cancelsOrderSetup";
 import cancelsOrderItemsSetup from "../../config/initialDBSetup/cancelsOrderItemsSetup";
+import logisticOrderStatusHistorySetup from "../../config/initialDBSetup/logisticOrderStatusHistorySetup";
 
 export async function runInitialDbSetup() {
   await initialSetup();
   await logisticOrderSetup();
+  await logisticOrderItemsSetup();
+  await logisticOrderStatusHistorySetup();
   await logisticPaymentSetup();
   await warehouseDetailsSetup();
   await vahicleDetailsSetup();
@@ -37,7 +40,6 @@ export async function runInitialDbSetup() {
   await WMSOrderSetup();
   await WMSOrderArticlesSetup();
   await tourDriverSetup();
-  await logisticOrderItemsSetup();
   await routeUpdatesSetup();
   await apiResponseLogSetup();
   await solarItemsSetup();

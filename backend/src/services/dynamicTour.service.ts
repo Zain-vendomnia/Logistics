@@ -82,20 +82,20 @@ export async function createDynamicTourAsync(
 
     // Orders status update
     const orderIds: number[] = new_dTour.orderIds.split(",").map(Number);
-    await LogisticOrder.updateOrdersStatus(
+    await LogisticOrder.updateSysOrdersStatus(
       connection,
       orderIds,
-      OrderStatus.assigned
+      OrderStatus.Assigned
     );
 
     const xOrder_ids = payload_orderIds.filter(
       (o) => !txnOrder_ids.includes(o)
     );
     if (xOrder_ids.length > 0) {
-      await LogisticOrder.updateOrdersStatus(
+      await LogisticOrder.updateSysOrdersStatus(
         connection,
         xOrder_ids,
-        OrderStatus.unassigned
+        OrderStatus.Unassigned
       );
     }
 
@@ -426,10 +426,10 @@ export async function rejectDynamicTourAsync(payload: rejectDynamicTour_Req) {
 
     // update orders status to unassigned
     const order_ids = dTour.orderIds.split(",").map((o) => Number(o));
-    const isUpdated = await LogisticOrder.updateOrdersStatus(
+    const isUpdated = await LogisticOrder.updateSysOrdersStatus(
       connection,
       order_ids,
-      OrderStatus.unassigned
+      OrderStatus.Unassigned
     );
     console.log("Updated status for unassigned orders:", isUpdated);
 

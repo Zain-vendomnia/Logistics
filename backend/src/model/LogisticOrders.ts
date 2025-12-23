@@ -1,52 +1,89 @@
-import { ResultSetHeader, RowDataPacket } from "mysql2";
+import { RowDataPacket } from "mysql2";
 import pool from "../config/database";
 import { CheckOrderCount } from "../types/dto.types";
-import { Order, OrderDetails, OrderItem } from "../types/order.types";
+import { Order, OrderItem } from "../types/order.types";
 import { PoolConnection } from "mysql2/promise";
 import { geocode } from "../services/hereMap.service";
 import { Location } from "../types/hereMap.types";
 import logger from "../config/logger";
+import {
+  loadOrderItems,
+  updateOrderStatus,
+} from "../services/logisticOrder.service";
+import {
+  mapItemsToOrders,
+  mapRowToOrder,
+} from "../services/helpers/logisticOrder.helper";
+
+export enum OrderType {
+  NORMAL = "normal",
+  URGENT = "urgent",
+  EXCHANGE = "exchange",
+  PICKUP = "pickup",
+}
 
 export enum OrderStatus {
-  initial = "initial",
-  inProcess = "inProcess",
-  unassigned = "unassigned",
-  assigned = "assigned",
-  inTransit = "inTransit",
-  delivered = "delivered",
-  rescheduled = "rescheduled",
-  Cancelled = "Cancelled",
+  Initial = "initial",
+  InProcess = "inProcess",
+  Assigned = "assigned",
+  Unassigned = "unassigned",
+  InTransit = "inTransit",
+  Delivered = "delivered",
+  Rescheduled = "rescheduled",
+  Cancelled = "cancelled",
 }
+
+export type OrderDetails = {
+  id: number;
+  order_id: number;
+  order_number: string;
+  slmdl_article_id: number | string;
+  slmdl_articleordernumber: string;
+  slmdl_quantity: number;
+  warehouse_id: number | string;
+
+  // is_new_item?: boolean;
+  // cancelled_quantity?: number; // qty full/partial cancelled
+  // ref_item_id?: number;
+};
 
 export class LogisticOrder {
   public order_id!: number;
-  public order_number!: string;
+  public type: OrderType = OrderType.NORMAL;
+  public status: OrderStatus = OrderStatus.Initial;
+  public parent_order_id?: number;
+
   public shopware_order_id!: number | string;
-  public customer_id!: string;
+  public order_number!: string;
+  public article_sku!: string;
   public tracking_code!: string;
   public order_status_id!: number;
-
-  public invoice_amount!: string;
-  public payment_id!: number;
-  public order_time!: Date;
-  public article_sku!: string;
-  public expected_delivery_time?: Date;
   public warehouse_id!: number;
+
+  public order_time!: Date;
+  public expected_delivery_time?: Date;
+  public payment_id!: number;
   public quantity!: number;
   public article_order_number!: string;
+
+  public invoice_amount!: string;
+  public customer_id!: string;
   public customer_number!: string;
   public firstname!: string;
   public lastname!: string;
+  public phone!: string;
   public email!: string;
   public street!: string;
   public zipcode!: string;
   public city!: string;
-  public phone!: string;
+
   public lattitude: number | null = null;
   public longitude: number | null = null;
+
+  public created_by?: string;
   public created_at?: Date;
   public updated_at?: Date | null;
-  public status?: OrderStatus = OrderStatus.initial;
+
   public OrderDetails: OrderDetails[] = [];
 
   // Get all logistic orders with items information
@@ -180,7 +217,7 @@ export class LogisticOrder {
   static async getOrder(order_number: string): Promise<LogisticOrder[]> {
     const [rows] = await pool.execute(
       `
-    SELECT 
+    SELECT
       lo.*, 
       JSON_ARRAYAGG(
         JSON_OBJECT(
@@ -293,7 +330,8 @@ export class LogisticOrder {
       orderIds
     );
 
-    return rows as Order[];
+    const orders: Order[] = (rows as any).map(mapRowToOrder);
+    return orders;
   }
 
   static async getOrdersWithItemsAsync(orderIds: number[]): Promise<Order[]> {
@@ -317,60 +355,19 @@ export class LogisticOrder {
       orderIds
     );
 
-    const orders: Order[] = (rows as any[]).map((raw: any) => ({
-      order_id: raw.order_id,
-      order_number: raw.order_number,
-      status: raw.status,
-
-      // payment_id: raw.payment_id,
-      article_sku: raw.article_sku,
-      order_time: raw.order_time,
-      expected_delivery_time: raw.expected_delivery_time,
-
-      warehouse_id: raw.warehouse_id,
-      warehouse_name: raw.warehouse_name,
-      warehouse_town: raw.town,
-
-      phone: raw.phone,
-      street: raw.street,
-      city: raw.city,
-      zipcode: raw.zipcode,
-
-      location: { lat: +raw.latitude, lng: +raw.longitude },
-      items: [],
-    }));
+    const orders: Order[] = (rows as any[]).map(mapRowToOrder);
 
     const [items] = await pool.execute(
       `SELECT * FROM logistic_order_items WHERE order_id IN (${placeholders})`,
       orderIds
     );
 
-    ////
-
-    const ordersWithItems = await LogisticOrder.mapOrdersItems(
+    const ordersWithItems = await mapItemsToOrders(
       orders,
       items as OrderItem[]
     );
 
     return ordersWithItems;
-
-    // const orderWithItems = (orders as any[]).map((order) => ({
-    //   ...order,
-
-    //   items: (items as any[])
-    //     .filter((item) => item.order_id === order.order_id)
-    //     .map((item) => ({
-    //       id: item.id,
-    //       order_id: item.order_id,
-    //       order_number: item.order_number,
-    //       quantity: item.quantity,
-    //       article: item.slmdl_articleordernumber.split("-")[0],
-    //       // article_id: item.slmdl_article_id,
-    //       // warehouse_id: item.warehouse_id,
-    //     })),
-    // }));
-
-    // return orderWithItems as Order[];
   }
 
   static async getOrderItemsCount(orderIds: string[]): Promise<number> {
@@ -389,6 +386,7 @@ export class LogisticOrder {
       throw error;
     }
   }
+
   static async getOrderArticlesCount(orderIds: string[]): Promise<number> {
     if (!orderIds || orderIds.length === 0) return 0;
 
@@ -412,20 +410,7 @@ export class LogisticOrder {
     }
   }
 
-  static async getOrdersByStatus(
-    status: OrderStatus
-  ): Promise<LogisticOrder[]> {
-    if (!status) return [];
-
-    const [rows] = await pool.execute(
-      `SELECT * FROM logistic_order WHERE status = ?`,
-      status
-    );
-
-    return rows as LogisticOrder[];
-  }
-
-  static async updateOrdersStatus(
+  static async updateSysOrdersStatus(
     conn: PoolConnection,
     orderIds: number[],
     status: OrderStatus
@@ -435,13 +420,11 @@ export class LogisticOrder {
     }
     if (!status) throw new Error("Invalid order status provided");
 
-    const placeholders = orderIds.map(() => "?").join(", ");
-    const [result] = await conn.execute(
-      `UPDATE logistic_order SET status = ?, updated_at = NOW() WHERE order_id IN (${placeholders})`,
-      [status, ...orderIds]
+    const promises = orderIds.map((oId) =>
+      updateOrderStatus({ orderId: oId, newStatus: status, conn })
     );
-
-    return (result as ResultSetHeader).affectedRows > 0;
+    await Promise.all(promises);
+    return true;
   }
 
   static async getPendingOrdersAsync(since?: string): Promise<Order[]> {
@@ -473,7 +456,9 @@ export class LogisticOrder {
       const orders: Order[] = (rows as any[]).map((raw: any) => ({
         order_id: raw.order_id,
         order_number: raw.order_number,
+        type: raw.type,
         status: raw.status,
+        parent_order_id: raw.parent_order_id,
 
         payment_id: raw.payment_id,
 
@@ -490,10 +475,13 @@ export class LogisticOrder {
         zipcode: raw.zipcode,
 
         location: { lat: +raw.latitude, lng: +raw.longitude },
+
+        created_by: raw.created_by ?? "Unknown",
+        created_at: raw.created_at ?? new Date(raw.created_at),
+        updated_at: raw.updated_at ?? new Date(raw.created_at),
+
         items: [],
       }));
-
-      console.log(`***************** ${orders.length} fetched orders`);
 
       // filter further with WMS orders
       // const [wms_orders] = await pool.execute(
@@ -532,75 +520,9 @@ export class LogisticOrder {
   ): Promise<Order[]> {
     const orders: Order[] = await this.getPendingOrdersAsync(since);
 
-    const placeholders = orders.map(() => "?").join(",");
-    const [items] = await pool.execute(
-      `SELECT * FROM logistic_order_items WHERE order_id IN (${placeholders})`,
-      orders.map((o) => o.order_id)
-    );
-
-    const ordersWithItems = await LogisticOrder.mapOrdersItems(
-      orders as Order[],
-      items as OrderItem[]
-    );
+    const ordersWithItems = await loadOrderItems(orders as Order[]);
 
     return ordersWithItems;
-  }
-
-  static async mapOrdersItems(orders: Order[], items: OrderItem[]) {
-    const [solarModules] = await pool.execute(
-      `SELECT * from solarmodules_items`
-    );
-
-    const orderWithItems: Order[] = orders.map((order) => {
-      const orderItems = (items as OrderItem[]).filter(
-        (x) => x.order_id === order.order_id
-      );
-
-      // const quantity = orderItems.length;
-      const quantity = orderItems.reduce((acc, item) => acc + item.quantity, 0);
-
-      let article_order_number = orderItems
-        .map((x) => x.slmdl_articleordernumber)
-        .join(",");
-
-      article_order_number = article_order_number
-        .split(",")
-        .map((x) => x?.split("-")[0])
-        .join(",");
-
-      const totalWeight = orderItems.reduce((acc, item) => {
-        const matchedModule = (solarModules as any[]).find(
-          (sm) =>
-            item.slmdl_articleordernumber &&
-            sm.module_name.includes(item.slmdl_articleordernumber)
-        );
-        const itemWeight = matchedModule
-          ? item.quantity * (matchedModule.weight || 0)
-          : 0;
-
-        return acc + itemWeight;
-      }, 0);
-
-      return {
-        ...order,
-        quantity: quantity,
-        article_order_number: article_order_number,
-        weight_kg: totalWeight,
-        items: (items as any[])
-          .filter((item) => item.order_id === order.order_id)
-          .map((item) => ({
-            id: item.id,
-            order_id: item.order_id,
-            order_number: item.order_number,
-            quantity: item.quantity,
-            article: item.slmdl_articleordernumber.split("-")[0],
-            // article_id: item.slmdl_article_id,
-            // warehouse_id: item.warehouse_id,
-          })),
-      };
-    });
-
-    return orderWithItems;
   }
 
   static async updateOrderLocation(order: Order, location: Location) {
