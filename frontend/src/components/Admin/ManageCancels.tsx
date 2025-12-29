@@ -36,6 +36,7 @@ import {
   ContentCopy,
   Clear,
 } from "@mui/icons-material";
+import TimelineIcon from "@mui/icons-material/Timeline";
 import ExcelJS from "exceljs";
 import {
   getAllCancelOrders,
@@ -48,6 +49,9 @@ import {
 import ConfirmDialog from "./ConfirmDialog";
 import GenerateReturnPopup from "./GenerateReturnPopup";
 import { OrderItem, PickupOrder } from "../../types/order.type";
+import { getCurrentUser } from "../../services/auth.service";
+import OrderHistory from "../orderHistory/OrderHistory";
+import OrderStatusButton from "./OrderStatusButton";
 
 const ManageCancels = () => {
   const [pickUpOrders, setPickupOrders] = useState<PickupOrder[]>([]);
@@ -73,6 +77,11 @@ const ManageCancels = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const [openPopup, setOpenPopup] = useState(false);
+
+  const [showHistory, setShowHistory] = useState(false);
+  const [selectedOrderNumber, setSelectedOrderNumber] = useState<string | null>(
+    null
+  );
 
   const [confirmDialog, setConfirmDialog] = useState({
     open: false,
@@ -271,6 +280,8 @@ const ManageCancels = () => {
   };
 
   const handleEditSave = async () => {
+    debugger;
+
     if (!editItem) return;
 
     if (editQty <= 0) {
@@ -286,11 +297,15 @@ const ManageCancels = () => {
       return;
     }
 
+    const payload = {
+      order_id: editItem.order_id,
+      cancel_quantity: editQty,
+      updated_by: getCurrentUser().email,
+    };
+
     setActionLoading(true);
     try {
-      const response = await updateCancel(editItem.id, {
-        cancel_quantity: editQty,
-      });
+      const response = await updateCancel(editItem.id, payload);
 
       if (response.status === "success") {
         showSnackbar(
@@ -597,8 +612,20 @@ const ManageCancels = () => {
               )}
             </IconButton>
           </TableCell>
+          {/* Order Status */}
+          <TableCell align="right" sx={{ width: 50 }}>
+            <OrderStatusButton
+              orderId={order.order_id}
+              currentStatus={order.status}
+              onStatusUpdated={(newStatus: string) => {
+                showSnackbar(`Status updated to "${newStatus}"`, "success");
+                loadOrders();
+              }}
+            />
+          </TableCell>
         </TableRow>
 
+        {/* Order items */}
         <TableRow>
           <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={9}>
             <Collapse in={isExpanded} timeout="auto" unmountOnExit>
@@ -610,11 +637,30 @@ const ManageCancels = () => {
                   borderRadius: 1,
                 }}
               >
-                <Stack direction="row" spacing={1} alignItems="center" mb={2}>
-                  <ShoppingCart sx={{ color: "#ff9800" }} />
-                  <Typography variant="subtitle1" fontWeight={600}>
-                    Cancelled Items
-                  </Typography>
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  justifyContent={"space-between"}
+                  alignItems="center"
+                  mb={2}
+                >
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <ShoppingCart sx={{ color: "#ff9800" }} />
+                    <Typography variant="subtitle1" fontWeight={600}>
+                      Cancelled Items
+                    </Typography>
+                  </Stack>
+                  <Button
+                    variant="outlined"
+                    endIcon={<TimelineIcon />}
+                    sx={{ height: "35px" }}
+                    onClick={() => {
+                      setSelectedOrderNumber(order.order_number);
+                      setShowHistory(true);
+                    }}
+                  >
+                    History
+                  </Button>
                 </Stack>
 
                 <Typography
@@ -687,7 +733,7 @@ const ManageCancels = () => {
                           </TableCell>
                           <TableCell>
                             <Typography variant="body2" fontWeight={500}>
-                              {item.article}
+                              {item.slmdl_articleordernumber}
                             </Typography>
                           </TableCell>
                           <TableCell align="center">{item.quantity}</TableCell>
@@ -749,352 +795,395 @@ const ManageCancels = () => {
   };
 
   return (
-    <Box
-      sx={{ p: 3, backgroundColor: "#f5f5f5", minHeight: "calc(100vh - 50px)" }}
-    >
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" fontWeight={600} color="#333">
-          Manage Cancelled Orders
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Total Orders: {filteredOrders.length} | Total Items:{" "}
-          {filteredOrders.reduce((sum, order) => sum + order.itemsCount, 0)}
-          {isSearching && (
-            <Chip
-              label="Search Results"
-              size="small"
-              color="primary"
-              sx={{ ml: 1, fontWeight: 600 }}
-            />
-          )}
-        </Typography>
-      </Box>
-
+    <>
       <Box
         sx={{
-          backgroundColor: "white",
-          p: 2,
-          mb: 2,
-          borderRadius: 2,
-          boxShadow: 1,
+          p: 3,
+          backgroundColor: "#f5f5f5",
+          minHeight: "calc(100vh - 50px)",
         }}
       >
-        <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
-          {/* ✅ Search field without auto-search */}
-          <TextField
-            placeholder="Search by order number..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyPress={handleSearchKeyPress}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search />
-                </InputAdornment>
-              ),
-              endAdornment: searchTerm && (
-                <InputAdornment position="end">
-                  <IconButton size="small" onClick={handleClearSearch}>
-                    <Clear />
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
-            size="small"
-            sx={{ flexGrow: 1, minWidth: 300 }}
-          />
-
-          {/* ✅ Search Button - Required to trigger search */}
-          <Button
-            variant="contained"
-            onClick={handleSearch}
-            disabled={!searchTerm.trim() || loading}
-            sx={{
-              background: "linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)",
-              color: "white",
-              textTransform: "none",
-              fontWeight: 600,
-              "&:hover": {
-                background: "linear-gradient(45deg, #21CBF3 30%, #2196F3 90%)",
-              },
-              "&:disabled": {
-                background: "#e0e0e0",
-                color: "#9e9e9e",
-              },
-            }}
-          >
-            Search
-          </Button>
-
-          <Button
-            variant="contained"
-            onClick={handleOpenPopup}
-            sx={{
-              backgroundColor: "#ff5722",
-              color: "white",
-              textTransform: "none",
-              fontWeight: 600,
-              px: 3,
-              py: 1,
-              borderRadius: 2,
-              boxShadow: "0 2px 4px rgba(255, 87, 34, 0.3)",
-              "&:hover": {
-                backgroundColor: "#f4511e",
-                boxShadow: "0 4px 8px rgba(255, 87, 34, 0.4)",
-              },
-            }}
-          >
-            Create Cancel
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleExport}
-            startIcon={<SaveAlt />}
-            disabled={filteredOrders.length === 0}
-            sx={{
-              background: "linear-gradient(45deg, #f7941d 30%, #f37021 90%)",
-              color: "white",
-              "&:hover": {
-                background: "linear-gradient(45deg, #f37021 30%, #f7941d 90%)",
-              },
-            }}
-          >
-            Export Excel
-          </Button>
-
-          <Button
-            variant="contained"
-            color="error"
-            onClick={handleDeleteAll}
-            startIcon={<Delete />}
-            disabled={pickUpOrders.length === 0}
-          >
-            Delete All
-          </Button>
-        </Stack>
-      </Box>
-
-      <Paper sx={{ width: "100%", overflow: "hidden", borderRadius: 2 }}>
-        <Box sx={{ height: "calc(100vh - 340px)", overflow: "auto" }}>
-          <Table stickyHeader>
-            <TableHead>
-              <TableRow>
-                <TableCell
-                  sx={{
-                    backgroundColor: "#90a4ae",
-                    color: "white",
-                    fontWeight: 600,
-                  }}
-                >
-                  Order Number
-                </TableCell>
-                <TableCell
-                  sx={{
-                    backgroundColor: "#90a4ae",
-                    color: "white",
-                    fontWeight: 600,
-                  }}
-                >
-                  Customer
-                </TableCell>
-                <TableCell
-                  sx={{
-                    backgroundColor: "#90a4ae",
-                    color: "white",
-                    fontWeight: 600,
-                  }}
-                >
-                  Email
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    backgroundColor: "#90a4ae",
-                    color: "white",
-                    fontWeight: 600,
-                  }}
-                >
-                  Warehouse
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    backgroundColor: "#90a4ae",
-                    color: "white",
-                    fontWeight: 600,
-                  }}
-                >
-                  Items Count
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    backgroundColor: "#90a4ae",
-                    color: "white",
-                    fontWeight: 600,
-                  }}
-                >
-                  Total Cancelled
-                </TableCell>
-                <TableCell
-                  sx={{
-                    backgroundColor: "#90a4ae",
-                    color: "white",
-                    fontWeight: 600,
-                  }}
-                >
-                  Created Date
-                </TableCell>
-                <TableCell
-                  sx={{
-                    backgroundColor: "#90a4ae",
-                    color: "white",
-                    fontWeight: 600,
-                  }}
-                >
-                  Created By
-                </TableCell>
-                <TableCell
-                  align="right"
-                  sx={{
-                    backgroundColor: "#90a4ae",
-                    color: "white",
-                    fontWeight: 600,
-                    width: 50,
-                  }}
-                >
-                  Expand
-                </TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
-                    <CircularProgress sx={{ color: "#ff9800" }} />
-                  </TableCell>
-                </TableRow>
-              ) : paginatedOrders.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
-                    <Typography color="text.secondary">
-                      {isSearching
-                        ? `No results found for "${searchTerm}"`
-                        : "No cancelled orders found"}
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                paginatedOrders.map((order) => (
-                  <ExpandableRow key={order.order_number} order={order} />
-                ))
-              )}
-            </TableBody>
-          </Table>
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h4" fontWeight={600} color="#333">
+            Manage Cancelled Orders
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Total Orders: {filteredOrders.length} | Total Items:{" "}
+            {filteredOrders.reduce((sum, order) => sum + order.itemsCount, 0)}
+            {isSearching && (
+              <Chip
+                label="Search Results"
+                size="small"
+                color="primary"
+                sx={{ ml: 1, fontWeight: 600 }}
+              />
+            )}
+          </Typography>
         </Box>
 
-        <TablePagination
-          rowsPerPageOptions={[10, 25, 50, 100]}
-          component="div"
-          count={filteredOrders.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
+        <Box
           sx={{
-            backgroundColor: "#f5f5f5",
-            borderTop: "1px solid #e0e0e0",
+            backgroundColor: "white",
+            p: 2,
+            mb: 2,
+            borderRadius: 2,
+            boxShadow: 1,
           }}
-        />
-      </Paper>
-
-      <Dialog
-        open={editDialog}
-        onClose={() => setEditDialog(false)}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogTitle>Edit Cancel Quantity</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" mb={1}>
-            Item ID: <strong>{editItem?.id}</strong>
-          </Typography>
-          <Typography variant="body2" mb={1}>
-            SKU: <strong>{editItem?.article}</strong>
-          </Typography>
-          <Typography variant="body2" mb={2} color="text.secondary">
-            Original Quantity: <strong>{editItem?.quantity}</strong>
-          </Typography>
-          <TextField
-            fullWidth
-            type="number"
-            label="Cancel Quantity"
-            value={editQty}
-            onChange={(e) => setEditQty(Number(e.target.value))}
-            inputProps={{
-              min: 1,
-              max: editItem?.quantity,
-            }}
-            helperText={`Must be between 1 and ${editItem?.quantity}`}
-            sx={{ mt: 2 }}
-          />
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button
-            onClick={() => setEditDialog(false)}
-            variant="contained"
-            sx={{
-              background: "linear-gradient(45deg, #f7941d 30%, #f37021 90%)",
-              color: "white",
-              "&:hover": {
-                background: "linear-gradient(45deg, #f37021 30%, #f7941d 90%)",
-              },
-            }}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleEditSave}
-            variant="contained"
-            color="primary"
-            disabled={actionLoading}
-          >
-            Save Changes
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      <ConfirmDialog
-        open={confirmDialog.open}
-        title={confirmDialog.title}
-        content={confirmDialog.content}
-        confirmText={confirmDialog.confirmText}
-        confirmColor={confirmDialog.confirmColor}
-        onConfirm={confirmDialog.onConfirm}
-        onCancel={closeConfirmDialog}
-      />
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={3000}
-        onClose={closeSnackbar}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-      >
-        <Alert
-          severity={snackbar.severity}
-          onClose={closeSnackbar}
-          variant="filled"
         >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+          <Stack
+            direction="row"
+            spacing={2}
+            alignItems="center"
+            flexWrap="wrap"
+          >
+            {/* ✅ Search field without auto-search */}
+            <TextField
+              placeholder="Search by order number..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyPress={handleSearchKeyPress}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Search />
+                  </InputAdornment>
+                ),
+                endAdornment: searchTerm && (
+                  <InputAdornment position="end">
+                    <IconButton size="small" onClick={handleClearSearch}>
+                      <Clear />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+              size="small"
+              sx={{ flexGrow: 1, minWidth: 300 }}
+            />
 
-      <GenerateReturnPopup
-        open={openPopup}
-        onClose={handleClosePopup}
-        onSuccess={handleCancelSuccess}
-      />
-    </Box>
+            {/* ✅ Search Button - Required to trigger search */}
+            <Button
+              variant="contained"
+              onClick={handleSearch}
+              disabled={!searchTerm.trim() || loading}
+              sx={{
+                background: "linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)",
+                color: "white",
+                textTransform: "none",
+                fontWeight: 600,
+                "&:hover": {
+                  background:
+                    "linear-gradient(45deg, #21CBF3 30%, #2196F3 90%)",
+                },
+                "&:disabled": {
+                  background: "#e0e0e0",
+                  color: "#9e9e9e",
+                },
+              }}
+            >
+              Search
+            </Button>
+
+            <Button
+              variant="contained"
+              onClick={handleOpenPopup}
+              sx={{
+                backgroundColor: "#ff5722",
+                color: "white",
+                textTransform: "none",
+                fontWeight: 600,
+                px: 3,
+                py: 1,
+                borderRadius: 2,
+                boxShadow: "0 2px 4px rgba(255, 87, 34, 0.3)",
+                "&:hover": {
+                  backgroundColor: "#f4511e",
+                  boxShadow: "0 4px 8px rgba(255, 87, 34, 0.4)",
+                },
+              }}
+            >
+              Create Cancel
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleExport}
+              startIcon={<SaveAlt />}
+              disabled={filteredOrders.length === 0}
+              sx={{
+                background: "linear-gradient(45deg, #f7941d 30%, #f37021 90%)",
+                color: "white",
+                "&:hover": {
+                  background:
+                    "linear-gradient(45deg, #f37021 30%, #f7941d 90%)",
+                },
+              }}
+            >
+              Export Excel
+            </Button>
+
+            <Button
+              variant="contained"
+              color="error"
+              onClick={handleDeleteAll}
+              startIcon={<Delete />}
+              disabled={pickUpOrders.length === 0}
+            >
+              Delete All
+            </Button>
+          </Stack>
+        </Box>
+
+        <Paper sx={{ width: "100%", overflow: "hidden", borderRadius: 2 }}>
+          <Box sx={{ height: "calc(100vh - 340px)", overflow: "auto" }}>
+            <Table stickyHeader>
+              <TableHead>
+                <TableRow>
+                  <TableCell
+                    sx={{
+                      backgroundColor: "#90a4ae",
+                      color: "white",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Order Number
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      backgroundColor: "#90a4ae",
+                      color: "white",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Customer
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      backgroundColor: "#90a4ae",
+                      color: "white",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Email
+                  </TableCell>
+                  <TableCell
+                    align="center"
+                    sx={{
+                      backgroundColor: "#90a4ae",
+                      color: "white",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Warehouse
+                  </TableCell>
+                  <TableCell
+                    align="center"
+                    sx={{
+                      backgroundColor: "#90a4ae",
+                      color: "white",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Items Count
+                  </TableCell>
+                  <TableCell
+                    align="center"
+                    sx={{
+                      backgroundColor: "#90a4ae",
+                      color: "white",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Total Cancelled
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      backgroundColor: "#90a4ae",
+                      color: "white",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Created Date
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      backgroundColor: "#90a4ae",
+                      color: "white",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Created By
+                  </TableCell>
+                  <TableCell
+                    align="right"
+                    sx={{
+                      backgroundColor: "#90a4ae",
+                      color: "white",
+                      fontWeight: 600,
+                      width: 50,
+                    }}
+                  >
+                    Expand
+                  </TableCell>
+                  <TableCell
+                    align="center"
+                    sx={{
+                      backgroundColor: "#90a4ae",
+                      color: "white",
+                      fontWeight: 600,
+                      width: 50,
+                    }}
+                  >
+                    Set Status
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
+                      <CircularProgress sx={{ color: "#ff9800" }} />
+                    </TableCell>
+                  </TableRow>
+                ) : paginatedOrders.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
+                      <Typography color="text.secondary">
+                        {isSearching
+                          ? `No results found for "${searchTerm}"`
+                          : "No cancelled orders found"}
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  paginatedOrders.map((order) => (
+                    <ExpandableRow key={order.order_number} order={order} />
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </Box>
+
+          <TablePagination
+            rowsPerPageOptions={[10, 25, 50, 100]}
+            component="div"
+            count={filteredOrders.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+            sx={{
+              backgroundColor: "#f5f5f5",
+              borderTop: "1px solid #e0e0e0",
+            }}
+          />
+        </Paper>
+
+        <Dialog
+          open={editDialog}
+          onClose={() => setEditDialog(false)}
+          maxWidth="xs"
+          fullWidth
+        >
+          <DialogTitle>Edit Cancel Quantity</DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" mb={1}>
+              Item ID: <strong>{editItem?.id}</strong>
+            </Typography>
+            <Typography variant="body2" mb={1}>
+              SKU: <strong>{editItem?.article}</strong>
+            </Typography>
+            <Typography variant="body2" mb={2} color="text.secondary">
+              Original Quantity: <strong>{editItem?.quantity}</strong>
+            </Typography>
+            <TextField
+              fullWidth
+              type="number"
+              label="Status"
+              value={editQty}
+              onChange={(e) => setEditQty(Number(e.target.value))}
+              slotProps={{
+                htmlInput: { min: 1, max: editItem?.quantity },
+              }}
+              helperText={`Must be between 1 and ${editItem?.quantity}`}
+              sx={{ mt: 2 }}
+            />
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button
+              onClick={() => setEditDialog(false)}
+              variant="contained"
+              sx={{
+                background: "linear-gradient(45deg, #f7941d 30%, #f37021 90%)",
+                color: "white",
+                "&:hover": {
+                  background:
+                    "linear-gradient(45deg, #f37021 30%, #f7941d 90%)",
+                },
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleEditSave}
+              variant="contained"
+              color="primary"
+              disabled={actionLoading}
+            >
+              Save Changes
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        <ConfirmDialog
+          open={confirmDialog.open}
+          title={confirmDialog.title}
+          content={confirmDialog.content}
+          confirmText={confirmDialog.confirmText}
+          confirmColor={confirmDialog.confirmColor}
+          onConfirm={confirmDialog.onConfirm}
+          onCancel={closeConfirmDialog}
+        />
+
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={3000}
+          onClose={closeSnackbar}
+          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        >
+          <Alert
+            severity={snackbar.severity}
+            onClose={closeSnackbar}
+            variant="filled"
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+
+        <GenerateReturnPopup
+          open={openPopup}
+          onClose={handleClosePopup}
+          onSuccess={handleCancelSuccess}
+        />
+      </Box>
+
+      {showHistory && (
+        <Box
+          sx={{
+            position: "fixed",
+            inset: 0,
+            bgcolor: "rgba(0,0,0,0.3)",
+            zIndex: 1200,
+          }}
+          onClick={() => setShowHistory(false)}
+        />
+      )}
+
+      {showHistory && selectedOrderNumber && (
+        <OrderHistory
+          orderNumber={selectedOrderNumber}
+          onClose={() => setShowHistory(false)}
+        />
+      )}
+    </>
   );
 };
 

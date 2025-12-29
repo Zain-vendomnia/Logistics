@@ -24,9 +24,9 @@ export const getAllWarehouses = async (): Promise<Warehouse[]> => {
   const warehouses: Warehouse[] = (rows as any[]).map((row) => ({
     id: row.warehouse_id,
     ...row,
-    vehicle_license_plates: row.vehicle_license_plates 
-      ? row.vehicle_license_plates.split(',') 
-      : [] // Returns ['V01', 'V02'] or empty array
+    vehicle_license_plates: row.vehicle_license_plates
+      ? row.vehicle_license_plates.split(",")
+      : [], // Returns ['V01', 'V02'] or empty array
   }));
 
   return warehouses;
@@ -188,7 +188,6 @@ export const updateWarehouse = async (
   id: number,
   warehouse: Warehouse
 ): Promise<boolean> => {
-
   console.log("===== Update Warehouse Service =====");
   console.log("Warehouse Data:", warehouse);
   console.log("===================================");
@@ -238,7 +237,6 @@ export const updateWarehouse = async (
     if (connection) connection.release();
   }
 };
-
 
 // Disable single warehouse
 export const disableWarehouse = async (

@@ -1,11 +1,18 @@
 import pool from "../config/database";
-import { Order, OrderItem, PickupOrder } from "../types/order.types";
+import {
+  Order,
+  OrderItem,
+  PickupOrder,
+  OrderHistory,
+  OrderHistoryUI,
+} from "../types/order.types";
 import { LogisticOrder, OrderStatus, OrderType } from "../model/LogisticOrders";
 import { PoolConnection, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import {
   mapItemsToOrders,
   mapOrderToPickupOrder,
   mapRowToOrder,
+  mapRowToOrderHistory,
   mapRowToOrderItem,
 } from "./helpers/logisticOrder.helper";
 export async function loadOrderItems(orders: Order[]) {
@@ -24,15 +31,23 @@ export async function loadOrderItems(orders: Order[]) {
 }
 
 // Order Status History
-export async function createOrderStatusHistory(
-  orderId: number,
-  oldStatus: string | null = null,
-  newStatus: OrderStatus,
-  changedBy: string | "auto-assigner" | "webhook",
-  reason: string | null = null,
-  conn?: PoolConnection,
-  notes?: string
-): Promise<void> {
+export async function createOrderStatusHistory({
+  orderId,
+  oldStatus = null,
+  newStatus,
+  changedBy,
+  reason = null,
+  notes = null,
+  conn,
+}: {
+  orderId: number;
+  oldStatus: string | null;
+  newStatus: OrderStatus;
+  changedBy: string | "auto-assigner" | "webhook";
+  reason: string | null;
+  notes?: string | null;
+  conn?: PoolConnection;
+}): Promise<void> {
   const connection: PoolConnection = conn ?? (await pool.getConnection());
   notes = notes ?? "";
 
@@ -62,6 +77,7 @@ export async function updateOrderStatus({
   newStatus,
   changedBy = "auto-assigner",
   reason = null,
+  notes = null,
   conn,
 }: {
   orderId: number;
@@ -89,129 +105,169 @@ export async function updateOrderStatus({
   );
 
   // log transition
-  await createOrderStatusHistory(
+  await createOrderStatusHistory({
     orderId,
-    order.status,
+    oldStatus: order.status,
     newStatus,
     changedBy,
     reason,
-    connection
-  );
+    notes,
+    conn: connection,
+  });
 
   return (result as ResultSetHeader).affectedRows > 0;
 }
 
 // Start: Order Types
-export async function createExchangeOrder(
+// export async function createPickupOrder(
+//   parentOrderId: number,
+//   createdBy: string,
+//   reason: string = "Cancel order request",
+//   cancelItems: OrderItem[]
+// ): Promise<
+//   | { success: boolean; message: string }
+//   | { success: boolean; data: PickupOrder; message: string }
+// > {
+//   const conn = await pool.getConnection();
+//   try {
+//     if (!createdBy || createdBy === null)
+//       return { success: false, message: "User id required" };
+
+//     await conn.beginTransaction();
+
+//     const verify = await verifyOrderAndItems(
+//       parentOrderId,
+//       OrderType.PICKUP,
+//       conn,
+//       cancelItems
+//     );
+//     if (!verify.success) {
+//       await conn.rollback();
+//       return verify;
+//     }
+
+//     const newOrderId = await cloneOrderWithType({
+//       parentOrderId,
+//       type: OrderType.PICKUP,
+//       createdBy,
+//       reason,
+//       conn,
+//     });
+//     if (
+//       !newOrderId ||
+//       typeof newOrderId !== "number" ||
+//       !Number.isFinite(newOrderId)
+//     ) {
+//       await conn.rollback();
+//       return { success: false, message: "Failed to create new order" };
+//     }
+
+//     await cloneOrderItems(parentOrderId, newOrderId, cancelItems, conn);
+
+//     await conn.commit();
+
+//     const orders = await LogisticOrder.getOrdersWithItemsAsync([newOrderId]);
+//     const pickUpOrder = orders.map(mapOrderToPickupOrder)[0];
+
+//     return {
+//       success: true,
+//       data: pickUpOrder,
+//       message: "Pickup order created",
+//     };
+//   } catch (error: unknown) {
+//     await conn.rollback();
+//     return {
+//       success: false,
+//       message: error instanceof Error ? error.message : String(error),
+//     };
+//   } finally {
+//     conn.release();
+//   }
+// }
+
+export async function createCancelOrderAsync(
   parentOrderId: number,
   createdBy: string,
-  reason = "exchange requested",
-  cancelItems: OrderItem[]
+  reason = "",
+  items: OrderItem[]
 ): Promise<{ success: boolean; message: string } | Order> {
   const conn = await pool.getConnection();
   try {
     if (!createdBy || createdBy === null)
       return { success: false, message: "User id required" };
 
+    const order = await LogisticOrder.getOrdersWithItemsAsync([parentOrderId]);
+    if (order[0].status === OrderStatus.Cancelled)
+      return {
+        success: false,
+        message: `Order ${order[0].order_number} was setteled already. Status: ${order[0].status}`,
+      };
+
+    const orderItems = order[0].items;
+    const existingItemIds = new Set(orderItems?.map((oi) => oi.id));
+    const addonItems = items.filter(
+      (it) => it.id === 0 && !existingItemIds.has(it.id)
+    );
+    const cancelItems = items.filter((oit) => existingItemIds.has(oit.id));
+
+    if (!cancelItems)
+      return {
+        success: false,
+        message: `Order ${order[0].order_number} not iligible for Pickup or Exchange`,
+      };
+
+    const verifyOit = await verifyOrderItems(parentOrderId, cancelItems);
+    if (!verifyOit.success) {
+      return verifyOit;
+    }
+    if (verifyOit.dontExist && verifyOit.dontExist.length > 0) {
+    }
+
     await conn.beginTransaction();
 
-    const verify = await verifyOrderAndItems(
-      parentOrderId,
-      OrderType.EXCHANGE,
-      conn,
-      cancelItems
-    );
-    if (!verify.success) {
-      await conn.rollback();
-      return verify;
+    // Exchange Order
+    // Create new order on Shopware for a new order_number | (webhook||api)
+    if (addonItems && addonItems.length > 0) {
+      const newExOrderId = await cloneOrderWithType({
+        parentOrderId,
+        type: OrderType.EXCHANGE,
+        createdBy,
+        reason,
+        conn,
+      });
+
+      if (
+        !newExOrderId ||
+        typeof newExOrderId !== "number" ||
+        !Number.isFinite(newExOrderId)
+      ) {
+        await conn.rollback();
+        return { success: false, message: "Failed to create new order" };
+      }
     }
 
-    const newOrderId = await cloneOrderWithType({
-      parentOrderId,
-      type: OrderType.EXCHANGE,
-      createdBy,
-      reason,
-      conn,
-    });
-    if (
-      !newOrderId ||
-      typeof newOrderId !== "number" ||
-      !Number.isFinite(newOrderId)
-    ) {
-      await conn.rollback();
-      return { success: false, message: "Failed to create new order" };
-    }
+    if (cancelItems.length > 0) {
+      const newPickupOrderId = await cloneOrderWithType({
+        parentOrderId,
+        type: OrderType.PICKUP,
+        createdBy,
+        reason,
+        conn,
+      });
+      if (
+        !newPickupOrderId ||
+        typeof newPickupOrderId !== "number" ||
+        !Number.isFinite(newPickupOrderId)
+      ) {
+        await conn.rollback();
+        return { success: false, message: "Failed to create new order" };
+      }
 
-    await cloneOrderItems(parentOrderId, newOrderId, cancelItems, conn);
+      await cloneOrderItems(parentOrderId, newPickupOrderId, cancelItems, conn);
+    }
 
     await conn.commit();
     return { success: true, message: "Pickup order created" };
-  } catch (error: unknown) {
-    await conn.rollback();
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : String(error),
-    };
-  } finally {
-    conn.release();
-  }
-}
-
-export async function createPickupOrder(
-  parentOrderId: number,
-  createdBy: string,
-  reason: string = "Cancel order request",
-  cancelItems: OrderItem[]
-): Promise<
-  | { success: boolean; message: string }
-  | { success: boolean; data: PickupOrder; message: string }
-> {
-  const conn = await pool.getConnection();
-  try {
-    if (!createdBy || createdBy === null)
-      return { success: false, message: "User id required" };
-
-    await conn.beginTransaction();
-
-    const verify = await verifyOrderAndItems(
-      parentOrderId,
-      OrderType.PICKUP,
-      conn,
-      cancelItems
-    );
-    if (!verify.success) {
-      await conn.rollback();
-      return verify;
-    }
-
-    const newOrderId = await cloneOrderWithType({
-      parentOrderId,
-      type: OrderType.PICKUP,
-      createdBy,
-      reason,
-      conn,
-    });
-    if (
-      !newOrderId ||
-      typeof newOrderId !== "number" ||
-      !Number.isFinite(newOrderId)
-    ) {
-      await conn.rollback();
-      return { success: false, message: "Failed to create new order" };
-    }
-
-    await cloneOrderItems(parentOrderId, newOrderId, cancelItems, conn);
-
-    await conn.commit();
-
-    const orders = await LogisticOrder.getOrdersWithItemsAsync([newOrderId]);
-    const pickUpOrder = orders.map(mapOrderToPickupOrder)[0];
-
-    return {
-      success: true,
-      data: pickUpOrder,
-      message: "Pickup order created",
-    };
   } catch (error: unknown) {
     await conn.rollback();
     return {
@@ -267,57 +323,76 @@ export async function cloneOrderWithType({
 
   const newOrderId = result.insertId;
 
-  await createOrderStatusHistory(
-    newOrderId,
-    null,
-    OrderStatus.Initial,
-    createdBy,
+  await createOrderStatusHistory({
+    orderId: newOrderId,
+    oldStatus: null,
+    newStatus: OrderStatus.Initial,
+    changedBy: createdBy,
     reason,
-    conn
-  );
+    conn,
+  });
 
   return newOrderId;
 }
 
-async function verifyOrderAndItems(
+export async function verifyOrder(
   orderId: number,
-  type: OrderType,
-  conn: PoolConnection,
-  cancelItems?: OrderItem[]
+  type?: OrderType
 ): Promise<{ success: boolean; message: string }> {
-  const [[order]]: any = await conn.query(
+  const [[order]]: any = await pool.query(
     "SELECT status, type FROM logistic_order WHERE order_id = ?",
     [orderId]
   );
   if (!order) return { success: false, message: "Order not found" };
 
-  if (order.status === OrderStatus.Cancelled || order.type === type)
-    return { success: false, message: "Order is setteled already." };
+  if (order.status === OrderStatus.Cancelled)
+    return {
+      success: false,
+      message: `Order ${order.order_number} was setteled already. Status: ${order.status}`,
+    };
 
-  if (cancelItems && cancelItems.length > 0) {
-    for (const item of cancelItems) {
-      const [rows]: any = await conn.query(
-        `SELECT quantity FROM logistic_order_items
+  // verify order type
+  if (type && order.type !== type)
+    return {
+      success: false,
+      message: `Order ${order.order_number} conflicts with type provided.`,
+    };
+
+  return { success: true, message: "verified" };
+}
+
+export async function verifyOrderItems(
+  orderId: number,
+  cancelItems: OrderItem[]
+): Promise<{ success: boolean; message: string; dontExist?: OrderItem[] }> {
+  const dontExist: OrderItem[] = [];
+
+  if (cancelItems.length === 0)
+    return { success: false, message: "invalid cancel items." };
+
+  for (const item of cancelItems) {
+    const [rows]: any = await pool.query(
+      `SELECT quantity FROM logistic_order_items
      WHERE order_id = ? AND slmdl_articleordernumber = ? LIMIT 1`,
-        [orderId, item.slmdl_articleordernumber]
-      );
-      const orderItem = rows?.[0];
-      if (!orderItem) {
-        return {
-          success: false,
-          message: `Article ${item.slmdl_articleordernumber} not found in order id: ${orderId}`,
-        };
-      }
-      if ((item.cancelled_quantity ?? 0) > orderItem.quantity) {
-        return {
-          success: false,
-          message: `Cancel quantity (${item.cancelled_quantity}) exceeds order quantity (${orderItem.quantity}) for article ${item.slmdl_articleordernumber}`,
-        };
-      }
+      [orderId, item.slmdl_articleordernumber]
+    );
+    const orderItem = rows?.[0];
+    if (!orderItem) {
+      dontExist.push(item);
+      // return {
+      //   success: false,
+      //   message: `Article ${item.slmdl_articleordernumber} not found in order id: ${orderId}`,
+      // };
+    }
+    if ((item.cancelled_quantity ?? 0) > orderItem.quantity) {
+      return {
+        success: false,
+        message: `Cancel quantity (${item.cancelled_quantity}) exceeds order quantity (${orderItem.quantity}) for article ${item.slmdl_articleordernumber}`,
+      };
     }
   }
 
-  return { success: true, message: "verified" };
+  return { success: true, message: "verified", dontExist };
 }
 
 async function cloneOrderItems(
@@ -377,7 +452,82 @@ async function cloneOrderItems(
 
 // Order items update
 // For pick and exchange order types
-export async function updateOrderItemsQty(
+export async function updateOrderItemQty(
+  order_id: number,
+  orderItemId: number,
+  cancel_quantity: number,
+  updated_by: string
+): Promise<{
+  success: boolean;
+  updatedItems?: Map<number, boolean>;
+  message?: string;
+}> {
+  if (!orderItemId || !updated_by) {
+    return { success: false, message: "Missing orderId or update_by" };
+  }
+
+  const orderResult = await LogisticOrder.getOrdersWithItemsAsync([order_id]);
+  const order = orderResult[0];
+
+  const orderItemIds = new Set(order.items?.map((item) => item.id));
+  if (!orderItemIds.has(orderItemId)) {
+    return { success: false, message: "Invalid order item for ref order" };
+  }
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const [rows] = await conn.query<RowDataPacket[]>(
+      `SELECT * FROM logistic_order_items WHERE id = ?`,
+      [orderItemId]
+    );
+    const orderItem = (rows as any).map(mapRowToOrderItem)[0];
+    if (!orderItem) {
+      return { success: false, message: "Cancel item not found" };
+    }
+
+    if (cancel_quantity <= 0 || cancel_quantity > orderItem.quantity) {
+      return {
+        success: false,
+        message: `Order item ${orderItem.id} cannot process for quantity (${cancel_quantity})`,
+      };
+    }
+
+    const [result] = await conn.query<ResultSetHeader>(
+      `UPDATE logistic_order_items SET cancelled_quantity = ?, updated_at = NOW() WHERE id = ?`,
+      [cancel_quantity, orderItemId]
+    );
+
+    if (result.affectedRows > 0) {
+      await conn.commit();
+
+      //update order history
+      createOrderStatusHistory({
+        orderId: order_id,
+        oldStatus: order.status,
+        newStatus: order.status,
+        changedBy: updated_by,
+        reason: "Order Item Qty Update",
+        notes: `OrderItem ${orderItem.id} cancel quantity updated to ${cancel_quantity}`,
+        conn,
+      });
+
+      return { success: true };
+    }
+    return { success: false };
+  } catch (err: unknown) {
+    await conn.rollback();
+    return {
+      success: false,
+      message: err instanceof Error ? err.message : String(err),
+    };
+  } finally {
+    conn.release();
+  }
+}
+
+export async function updatePickupOrderItems(
   order_id: number,
   update_by: string,
   cancelItems: OrderItem[] // updated items only
@@ -430,7 +580,12 @@ export async function updateOrderItemsQty(
     for (const cancelItem of cancelItems) {
       const orderItem = itemsMap.get(cancelItem.id);
       if (!orderItem) {
-        if (!cancelItem.quantity || cancelItem.quantity <= 0) {
+        if (
+          !cancelItem.quantity ||
+          !cancelItem.cancelled_quantity ||
+          cancelItem.quantity <= 0 ||
+          cancelItem.cancelled_quantity <= 0
+        ) {
           await conn.rollback();
           return { success: false, message: "New item quantity must be > 0" };
         }
@@ -554,7 +709,7 @@ export async function getOrderId(order_number: number) {
   }
 
   const order: Order = orderRows.map(mapRowToOrder)[0];
-  if (order.status === OrderStatus.Cancelled) return null;
+  // if (order.status === OrderStatus.Cancelled) return null;
 
   return order.order_id;
 }
@@ -568,6 +723,77 @@ export async function fetchOrderDetailsAsync(order_number: number) {
   return details[0];
 }
 
+export async function fetchOrderHistoryAsync(
+  order_number: number
+): Promise<OrderHistoryUI | null> {
+  const orderQuery = `SELECT * FROM logistic_order WHERE order_number = ?`;
+  const [orderRows] = await pool.execute(orderQuery, [order_number]);
+  const orders = (orderRows as any[]).map(mapRowToOrder);
+
+  if (!orders.length) return null;
+
+  const sortedOrders = sortOrdersByHierarchy(orders);
+  const orderIds = sortedOrders.map((o) => o.order_id);
+
+  const placeholders = orders.map(() => "?").join(",");
+  const historyQuery = `SELECT * FROM order_status_history WHERE order_id IN (${placeholders})`;
+  const [historyRows] = await pool.execute(historyQuery, orderIds);
+  const historyObjs = (historyRows as any).map(mapRowToOrderHistory);
+
+  if (!historyObjs.length) return null;
+
+  const historyByOrder = new Map<Number, OrderHistory[]>();
+  for (const h of historyObjs) {
+    if (!historyByOrder.has(h.order_id)) historyByOrder.set(h.order_id, []);
+    historyByOrder.get(h.order_id)?.push(h);
+  }
+
+  // Sort orders statuses by date
+  for (const histories of historyByOrder.values()) {
+    histories.sort((a, b) => a.changed_at.getTime() - b.changed_at.getTime());
+  }
+
+  // const finalHistory: OrderHistory[] = [];
+  // for (const order of sortedOrders) {
+  //   const histories = historyByOrder.get(order.order_id) ?? [];
+  //   finalHistory.push(...histories);
+  // }
+  // return finalHistory;
+
+  const attempts = sortedOrders.map((order) => ({
+    order_id: order.order_id,
+    parent_order_id: order.parent_order_id ?? 0,
+    type: order.type,
+    statuses: historyByOrder.get(order.order_id) ?? [],
+  }));
+
+  return { order_number, attempts } as OrderHistoryUI;
+}
+
+function sortOrdersByHierarchy(orders: Order[]): Order[] {
+  const byParent = new Map<number | null, Order[]>();
+  for (const order of orders) {
+    const parentId = order.parent_order_id ?? null;
+    if (!byParent.has(parentId)) {
+      byParent.set(parentId, []);
+    }
+    byParent.get(parentId)!.push(order);
+  }
+
+  const result: Order[] = [];
+
+  function dfs(parentId: number | null) {
+    const children = byParent.get(parentId) ?? [];
+    for (const child of children) {
+      result.push(child);
+      dfs(child.order_id);
+    }
+  }
+
+  dfs(null); // start from root orders
+  return result;
+}
+
 export async function getCancelOrderItemsAsync(orderNumber: number) {
   const data = await fetchOrderDetailsAsync(orderNumber);
 
@@ -575,4 +801,35 @@ export async function getCancelOrderItemsAsync(orderNumber: number) {
 
   const pickupItems = mapOrderToPickupOrder(data).items;
   return pickupItems;
+}
+
+export async function updateOrderStatusAsync(
+  order_id: number,
+  newStatus: string,
+  updated_by: string
+) {
+  try {
+    const isUpdated = await updateOrderStatus({
+      orderId: order_id,
+      newStatus: newStatus as OrderStatus,
+      changedBy: updated_by,
+      reason: "System test operations",
+    });
+
+    if (!isUpdated)
+      return {
+        success: false,
+        message: "Internal server error.",
+      };
+
+    return {
+      success: true,
+    };
+  } catch (err) {
+    console.error("Error:", err);
+    return {
+      status: false,
+      message: err instanceof Error ? err.message : String(err),
+    };
+  }
 }

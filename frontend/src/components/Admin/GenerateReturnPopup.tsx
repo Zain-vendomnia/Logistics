@@ -82,12 +82,13 @@ const GenerateCancelPopup: React.FC<GenerateCancelPopupProps> = ({
         return {
           user_id: userData.user_id || null,
           username: userData.username || null,
+          email: userData.email || null,
         };
       }
     } catch (error) {
       console.error("Error parsing user data from localStorage:", error);
     }
-    return { user_id: null, username: null };
+    return { user_id: null, username: null, email: null };
   };
 
   const showSnackbar = (
@@ -233,7 +234,7 @@ const GenerateCancelPopup: React.FC<GenerateCancelPopupProps> = ({
       return;
     }
 
-    const { username } = getUserData();
+    const { email: username } = getUserData();
 
     if (!username) {
       setErrorMessage("User information not found. Please log in again.");
@@ -263,6 +264,7 @@ const GenerateCancelPopup: React.FC<GenerateCancelPopupProps> = ({
 
     console.log("Creating cancel with data:", pickupReq);
 
+    // 400271854
     try {
       setLoading(true);
       debugger;

@@ -322,6 +322,31 @@ const orderDetails = (orderNumber: number) => {
   });
 };
 
+const orderHistoryDetails = (orderNumber: number) => {
+  return axios.get(API_BaseUrl_Admin + "orderHistory", {
+    headers: authHeader(),
+    params: { orderNumber },
+  });
+};
+
+const updateOrderStatus = ({
+  order_id,
+  newStatus,
+  updated_by,
+}: {
+  order_id: number;
+  newStatus: string;
+  updated_by: string;
+}) => {
+  return axios.put(
+    `${API_BaseUrl_Admin}orderStatus/${order_id}`,
+    { newStatus, updated_by },
+    {
+      headers: authHeader(),
+    }
+  );
+};
+
 const sendCancelDetails = (cancelData: any) => {
   return axios.post(API_BaseUrl_Admin + "cancels/create", cancelData, {
     headers: authHeader(),
@@ -370,7 +395,9 @@ const adminApiService = {
   fetchLogs,
   estimateTourMatrix,
   orderDetails,
-  sendCancelDetails
+  orderHistoryDetails,
+  sendCancelDetails,
+  updateOrderStatus,
 };
 
 export default adminApiService;

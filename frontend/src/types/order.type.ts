@@ -92,11 +92,10 @@ export interface PickupOrder {
   warehouse_id: number;
   warehouse_town: string;
 
-  
   customer_name: string;
   contact_number: string;
   email: string;
-  
+
   user_id: string; // email
   created_by: string;
   created_at: string;
@@ -143,3 +142,25 @@ export const mapOrder = (o: Order): OrderListItem => ({
   zipcode: o.zipcode,
   street: o.street,
 });
+
+export type OrderHistory = {
+  id: number;
+  order_id: number;
+  order_number: number;
+  old_status: string;
+  new_status: string;
+  changed_at: Date;
+  changed_by: string; // user email
+  reason: string;
+  notes: string;
+};
+
+export type OrderHistoryUI = {
+  order_number: number;
+  attempts: {
+    order_id: number;
+    parent_order_id: number | null;
+    type: string;
+    statuses: OrderHistory[];
+  }[];
+};

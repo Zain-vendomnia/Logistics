@@ -1,7 +1,19 @@
+import { Response } from "express";
 import { RowDataPacket } from "mysql2/promise";
-import { Order, OrderItem, PickupOrder } from "../../types/order.types";
-import { OrderStatus, OrderType } from "../../model/LogisticOrders";
+import {
+  Order,
+  OrderHistory,
+  OrderItem,
+  PickupOrder,
+  ShopwareOrder,
+} from "../../types/order.types";
+import {
+  LogisticOrder,
+  OrderStatus,
+  OrderType,
+} from "../../model/LogisticOrders";
 import pool from "../../config/database";
+import { ApiResponse } from "../../types/apiResponse.type";
 
 export function mapRowToOrderItem(row: RowDataPacket | any): OrderItem {
   return {
@@ -137,3 +149,117 @@ export function mapOrderToPickupOrder(order: Order): PickupOrder {
     items: order.items ?? [],
   };
 }
+
+export function mapRowToOrderHistory(row: any): OrderHistory {
+  return {
+    id: row.id,
+    order_id: row.order_id,
+    order_number: row.order_number,
+    old_status: row.old_status,
+    new_status: row.new_status,
+    changed_at: row.changed_at,
+    changed_by: row.changed_by_user_id ?? row.changed_by_system ?? "System",
+    reason: row.change_reason,
+    notes: row.notes,
+  };
+}
+
+export function validateCancelOrderItem(item: OrderItem): {
+  valid: boolean;
+  error?: string;
+} {
+  if (!item.slmdl_articleordernumber?.trim()) {
+    return {
+      valid: false,
+      error: "Each item must have a valid article number",
+    };
+  }
+
+  if (!item.cancelled_quantity || item.cancelled_quantity <= 0) {
+    return {
+      valid: false,
+      error: `Cancel quantity must be greater than 0 for article ${item.slmdl_articleordernumber}`,
+    };
+  }
+
+  if (item.cancelled_quantity > item.quantity) {
+    return {
+      valid: false,
+      error: `Cancel quantity (${item.cancelled_quantity}) cannot exceed original quantity (${item.quantity}) for article ${item.slmdl_articleordernumber}`,
+    };
+  }
+
+  return { valid: true };
+}
+
+export function mapShopwareOrderToLogisticOrder(
+  order: ShopwareOrder
+): LogisticOrder {
+  const order_details: any[] = [];
+  for (const item of order.OrderDetails) {
+    order_details.push({
+      slmdl_article_id: item.slmdl_article_id,
+      slmdl_articleordernumber: item.slmdl_articleordernumber,
+      slmdl_quantity: item.slmdl_quantity,
+      warehouse_id: item.warehouse_id,
+    });
+  }
+
+  const LogisticsOrderObj: LogisticOrder = {
+    order_id: 0,
+    quantity: 0,
+    type: OrderType.NORMAL,
+    status: OrderStatus.Initial,
+    article_order_number: "",
+    lattitude: null,
+    longitude: null,
+    shopware_order_id: order.orderID,
+    order_number: order.ordernumber,
+    customer_id: order.user_id,
+    invoice_amount: order.invoice_amount.toString(),
+    payment_id: order.paymentID,
+    tracking_code: order.trackingCode ?? "",
+    order_status_id: order.orderStatusID,
+    warehouse_id: Number(order.OrderDetails[0].warehouse_id) ?? 0,
+    order_time: new Date(order.ordertime),
+    article_sku: order.article_sku,
+    customer_number: order.customernumber,
+    firstname: order.shipping_firstname || order.user_firstname,
+    lastname: order.shipping_lastname || order.user_lastname,
+    email: order.user_email,
+    street: order.shipping_street,
+    zipcode: order.shipping_zipcode,
+    city: order.shipping_city,
+    phone: order.shipping_phone ?? "",
+    OrderDetails: order_details,
+  };
+
+  return LogisticsOrderObj;
+}
+
+export const sendError = (
+  res: Response,
+  statusCode: number,
+  message: string
+): void => {
+  res.status(statusCode).json({
+    status: "error",
+    message,
+    statusCode,
+  });
+};
+
+export const sendSuccess = (
+  res: Response,
+  statusCode: number,
+  message: string,
+  data?: any
+): void => {
+  const response: ApiResponse = {
+    status: "success",
+    message,
+    statusCode,
+    ...(data && { data }),
+  };
+  res.status(statusCode).json(response);
+};

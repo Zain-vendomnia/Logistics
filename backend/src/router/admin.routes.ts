@@ -5,7 +5,7 @@ import validateToken from "../middlewares/validateToken";
 // Import controllers
 import { optimizeRouteController } from "../controller/Admin_RouteOptimzation/optimizeRouteController";
 import { updatelatlngController } from "../controller/Admin_RouteOptimzation/updatelatlngController";
-import * as orderCtrl from "../controller/Admin_RouteOptimzation/order.controller";
+import * as orderCtrl from "../controller/Admin_RouteOptimzation/logisticOrder.controller";
 import * as tourCtrl from "../controller/Admin_RouteOptimzation/tour.controller";
 import { ExportTourController } from "../controller/Admin_RouteOptimzation/exportTourController";
 import { getAllTourController } from "../controller/Admin_RouteOptimzation/getAllTourController";
@@ -42,7 +42,6 @@ import * as shopware from "../controller/AdminDriverApi/shopwareOrderController"
 import { orderSyncFromShopwareController } from "../controller/Admin_Api/orderSync.controller";
 import { shopwareAuth } from "../middlewares/shopwareAuth";
 import { fetchAppLogs } from "../controller/Admin_Api/logs.controller";
-import { getOrderDetails } from "../controller/Admin_Api/logisticOrders.controller";
 
 const adminRouter = Router();
 
@@ -51,8 +50,8 @@ adminRouter.get("/customer/updatelatlng", updatelatlngController);
 adminRouter.post("/sendEmail", sendEmail);
 // adminRouter.post("/routeoptimize/getOrder", OrderCtrl.getAllLogisticOrders);
 // adminRouter.post("/picklistEmail", picklistEmail);
-adminRouter.get("/routeoptimize/getOrder", orderCtrl.getLogisticOrderById);
-adminRouter.get("/routeoptimize/ordersWithItems", orderCtrl.getOrdersWithItems);
+// adminRouter.get("/routeoptimize/getOrder", orderCtrl.getLogisticOrderById);
+// adminRouter.get("/routeoptimize/ordersWithItems", orderCtrl.getOrdersWithItems);
 adminRouter.post("/insertParkingPermit", insertParkingPermit);
 adminRouter.post("/getOrderNotificationMetaData", getOrderNotificationMetaData);
 adminRouter.post(
@@ -154,8 +153,10 @@ adminRouter.post(
   tourCtrl.getRoutesSegmentImages
 );
 adminRouter.put("/routeoptimize/updateCustomer", updateCustomerInfoController);
-adminRouter.get("/orderDetails", getOrderDetails);
-adminRouter.post("/cancels", );
+adminRouter.get("/orderDetails", orderCtrl.getOrderDetails);
+adminRouter.get("/orderHistory", orderCtrl.getOrderHistoryDetails);
+adminRouter.put("/orderStatus/:id", orderCtrl.updateOrderStatus);
+adminRouter.post("/cancels");
 adminRouter.get("/orderCount", getOrderCount);
 adminRouter.get("/routeoptimize/gettourStatushistory", getAllTourhistory);
 adminRouter.get("/routeoptimize/gettourStatus", tourCtrl.getTourstatus);
@@ -169,7 +170,12 @@ adminRouter.post("/driver/tour/:tourId/order", HandleOrderDelivery);
 adminRouter.get("/newShopwareOrder", shopware.newShopOrder);
 
 adminRouter.use("/drivers", validateToken, roleCheck(["admin"]), driverRoutes);
-adminRouter.use("/cancels", validateToken, roleCheck(["admin", "drivers"]), cancelsRoutes);
+adminRouter.use(
+  "/cancels",
+  validateToken,
+  roleCheck(["admin", "drivers"]),
+  cancelsRoutes
+);
 adminRouter.use(
   "/vehicles",
   validateToken,

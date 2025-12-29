@@ -1,4 +1,4 @@
-import { LogisticOrder, OrderStatus, OrderType } from "../model/LogisticOrders";
+import { OrderStatus, OrderType } from "../model/LogisticOrders";
 
 export type OrderItem = {
   id: number;
@@ -82,8 +82,8 @@ export type Order = {
 export interface PickupOrderReq {
   order_id: number;
   user_id: string;
-  // reason: string;
   items: OrderItem[];
+  reason?: string;
 }
 export interface PickupOrder {
   order_id: number;
@@ -147,47 +147,24 @@ export type ShopwareOrder = {
   shipping_phone?: string | null;
 };
 
-export function mapShopwareOrderToLogisticOrder(
-  order: ShopwareOrder
-): LogisticOrder {
-  const order_details: any[] = [];
-  for (const item of order.OrderDetails) {
-    order_details.push({
-      slmdl_article_id: item.slmdl_article_id,
-      slmdl_articleordernumber: item.slmdl_articleordernumber,
-      slmdl_quantity: item.slmdl_quantity,
-      warehouse_id: item.warehouse_id,
-    });
-  }
+export type OrderHistory = {
+  id: number;
+  order_id: number;
+  order_number: number;
+  old_status: string;
+  new_status: string;
+  changed_at: Date;
+  changed_by: string; // user email
+  reason: string;
+  notes: string;
+};
 
-  const LogisticsOrderObj: LogisticOrder = {
-    order_id: 0,
-    quantity: 0,
-    type: OrderType.NORMAL,
-    status: OrderStatus.Initial,
-    article_order_number: "",
-    lattitude: null,
-    longitude: null,
-    shopware_order_id: order.orderID,
-    order_number: order.ordernumber,
-    customer_id: order.user_id,
-    invoice_amount: order.invoice_amount.toString(),
-    payment_id: order.paymentID,
-    tracking_code: order.trackingCode ?? "",
-    order_status_id: order.orderStatusID,
-    warehouse_id: Number(order.OrderDetails[0].warehouse_id) ?? 0,
-    order_time: new Date(order.ordertime),
-    article_sku: order.article_sku,
-    customer_number: order.customernumber,
-    firstname: order.shipping_firstname || order.user_firstname,
-    lastname: order.shipping_lastname || order.user_lastname,
-    email: order.user_email,
-    street: order.shipping_street,
-    zipcode: order.shipping_zipcode,
-    city: order.shipping_city,
-    phone: order.shipping_phone ?? "",
-    OrderDetails: order_details,
-  };
-
-  return LogisticsOrderObj;
-}
+export type OrderHistoryUI = {
+  order_number: number;
+  attempts: {
+    order_id: number;
+    parent_order_id: number | null;
+    type: string;
+    statuses: OrderHistory[];
+  }[];
+};

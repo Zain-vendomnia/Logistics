@@ -1,16 +1,9 @@
 import { Request, Response } from "express";
 import * as cancelService from "../../services/logisticOrder.service";
 import { ApiResponse } from "../../types/apiResponse.type";
-import { PickupOrderReq, OrderItem } from "../../types/order.types";
+import { PickupOrderReq } from "../../types/order.types";
 import { LogisticOrder, OrderType } from "../../model/LogisticOrders";
-
-// ==========================================
-// REQUEST INTERFACES
-// ==========================================
-
-// ==========================================
-// HELPER FUNCTIONS
-// ==========================================
+import { validateCancelOrderItem } from "../../services/helpers/logisticOrder.helper";
 
 const sendError = (
   res: Response,
@@ -39,39 +32,9 @@ const sendSuccess = (
   res.status(statusCode).json(response);
 };
 
-const validateCancelOrderItem = (
-  item: OrderItem
-): { valid: boolean; error?: string } => {
-  if (!item.slmdl_articleordernumber?.trim()) {
-    return {
-      valid: false,
-      error: "Each item must have a valid article number",
-    };
-  }
-
-  if (!item.cancelled_quantity || item.cancelled_quantity <= 0) {
-    return {
-      valid: false,
-      error: `Cancel quantity must be greater than 0 for article ${item.slmdl_articleordernumber}`,
-    };
-  }
-
-  if (item.cancelled_quantity > item.quantity) {
-    return {
-      valid: false,
-      error: `Cancel quantity (${item.cancelled_quantity}) cannot exceed original quantity (${item.quantity}) for article ${item.slmdl_articleordernumber}`,
-    };
-  }
-
-  return { valid: true };
-};
-
 // ==========================================
 // GET ALL CANCEL ORDERS (WITHOUT ITEMS)
 // ==========================================
-/**
- 
- */
 export const getAllCancelOrders = async (
   _req: Request,
   res: Response
@@ -132,36 +95,36 @@ export const createCancelOrder = async (
     const {
       order_id: parentOrderId,
       user_id,
-      items: cancelItems,
+      items: orderItems,
     }: PickupOrderReq = req.body;
 
     // Validate user_id
-    if (!user_id || typeof user_id !== "number") {
+    if (!user_id || typeof user_id !== "string") {
       return sendError(
         res,
         400,
-        "User ID is required and must be a valid number"
+        "User ID is required and must be a valid string"
       );
     }
 
     // Validate items array
-    if (!Array.isArray(cancelItems) || cancelItems.length === 0) {
+    if (!Array.isArray(orderItems) || orderItems.length === 0) {
       return sendError(res, 400, "At least one cancel item is required");
     }
 
     // Validate each item
-    for (const item of cancelItems) {
+    for (const item of orderItems) {
       const validation = validateCancelOrderItem(item);
       if (!validation.valid) {
         return sendError(res, 400, validation.error!);
       }
     }
 
-    const result = await cancelService.createPickupOrder(
+    const result = await cancelService.createCancelOrderAsync(
       parentOrderId,
       user_id,
       "",
-      cancelItems
+      orderItems
     );
 
     if (!result) {
@@ -228,21 +191,29 @@ export const updateCancel = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { id } = req.params;
-    const { order_id, user_id, items }: PickupOrderReq = req.body;
+    const { id: orderItemId } = req.params;
+    const { order_id, cancel_quantity, updated_by } = req.body;
+    // const { order_id, user_id, items }: PickupOrderReq = req.body;
 
-    if (!id || isNaN(Number(id))) {
+    if (
+      !order_id ||
+      isNaN(order_id) ||
+      !orderItemId ||
+      isNaN(Number(orderItemId))
+    ) {
       return sendError(res, 400, "Valid cancel ID is required");
     }
 
-    if (!order_id || items.length <= 0) {
-      return sendError(res, 400, "Cancel quantity must be greater than 0");
+    // if (!order_id || items.length <= 0) {
+    if (!cancel_quantity || +cancel_quantity <= 0) {
+      return sendError(res, 400, "Invalid cancel quantity.");
     }
 
-    const result = await cancelService.updateOrderItemsQty(
-      order_id,
-      user_id,
-      items
+    const result = await cancelService.updateOrderItemQty(
+      +order_id,
+      +orderItemId,
+      +cancel_quantity,
+      updated_by
     );
 
     res.status(result.success ? 200 : 404).json({
@@ -256,14 +227,6 @@ export const updateCancel = async (
   }
 };
 
-// ==========================================
-// DELETE SINGLE CANCEL ITEM
-// ==========================================
-/**
- * @route DELETE /api/cancels/:id
- * @desc Delete a specific cancel item by ID
- * @access Public
- */
 export const deleteCancel = async (
   req: Request,
   res: Response
