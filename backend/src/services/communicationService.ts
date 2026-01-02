@@ -65,12 +65,13 @@ interface CustomerInfo {
  */
 const getMostRecentMessage = (messages: Message[]): Message | null => {
   if (!messages || messages.length === 0) return null;
-  
+
   // Sort by created_at descending and return the first (most recent)
   const sorted = [...messages].sort(
-    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    (a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
-  
+
   return sorted[0];
 };
 
@@ -97,7 +98,10 @@ const getCustomerInfo = async (orderId: number): Promise<CustomerInfo> => {
     console.log(`✅ Customer info retrieved for order ${orderId}`);
     return rows[0];
   } catch (error) {
-    console.error(`❌ Error fetching customer info for order ${orderId}:`, error);
+    console.error(
+      `❌ Error fetching customer info for order ${orderId}:`,
+      error
+    );
     throw error;
   }
 };
@@ -138,7 +142,9 @@ export const getConversationByOrderId = async (
     }
 
     if (rows.length === 0) {
-      console.log(`ℹ️ No conversation exists for order ${orderId}, returning empty`);
+      console.log(
+        `ℹ️ No conversation exists for order ${orderId}, returning empty`
+      );
       return {
         order_id: orderId,
         messages: [],
@@ -163,14 +169,18 @@ export const getConversationByOrderId = async (
       } catch (jsonError) {
         console.error(`❌ JSON parse error for order ${orderId}:`, jsonError);
         console.error(`📄 Invalid JSON content:`, row.convo);
-        throw new Error(`Invalid conversation data format for order ${orderId}`);
+        throw new Error(
+          `Invalid conversation data format for order ${orderId}`
+        );
       }
     }
 
     // Get the most recent message
     const lastMessage = getMostRecentMessage(messages);
     const lastChannel = lastMessage?.communication_channel || null;
-    const unreadCount = messages.filter((m) => m.direction === "inbound" && !m.is_read).length;
+    const unreadCount = messages.filter(
+      (m) => m.direction === "inbound" && !m.is_read
+    ).length;
 
     console.log(
       `✅ Successfully retrieved conversation for order ${orderId} | Messages: ${messages.length} | Unread: ${unreadCount}`
@@ -184,7 +194,10 @@ export const getConversationByOrderId = async (
       customerInfo,
     };
   } catch (error) {
-    console.error(`❌ Error in getConversationByOrderId for order ${orderId}:`, error);
+    console.error(
+      `❌ Error in getConversationByOrderId for order ${orderId}:`,
+      error
+    );
 
     if (error instanceof Error) {
       if (error.message.includes("ER_NO_SUCH_TABLE")) {
@@ -197,7 +210,9 @@ export const getConversationByOrderId = async (
     }
 
     throw new Error(
-      error instanceof Error ? error.message : "Failed to fetch conversation from database"
+      error instanceof Error
+        ? error.message
+        : "Failed to fetch conversation from database"
     );
   }
 };
@@ -209,7 +224,10 @@ const detectChannel = (messages: Message[]): "whatsapp" | "sms" | "email" => {
   // Priority: Last inbound message channel > Last outbound message channel > Default (whatsapp)
   const lastInboundMessage = messages
     .filter((m) => m.direction === "inbound")
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+    .sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )[0];
 
   if (lastInboundMessage) {
     return lastInboundMessage.communication_channel;
@@ -217,9 +235,12 @@ const detectChannel = (messages: Message[]): "whatsapp" | "sms" | "email" => {
 
   const lastOutboundMessage = messages
     .filter((m) => m.direction === "outbound")
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+    .sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )[0];
 
-  return lastOutboundMessage?.communication_channel || "sms";
+  return lastOutboundMessage?.communication_channel || "email";
 };
 
 /**
@@ -227,13 +248,21 @@ const detectChannel = (messages: Message[]): "whatsapp" | "sms" | "email" => {
  */
 export const sendMessageToCustomer = async (params: SendMessageParams) => {
   try {
-    const { orderId, message, message_type, media_url, media_content_type, userId } = params;
+    const {
+      orderId,
+      message,
+      message_type,
+      media_url,
+      media_content_type,
+      userId,
+    } = params;
 
     console.log(`📤 Sending message to customer | Order: ${orderId}`);
 
     const customerInfo = await getCustomerInfo(orderId);
     const conversation = await getConversationByOrderId(orderId);
-    const channel = conversation.last_channel || detectChannel(conversation.messages);
+    const channel =
+      conversation.last_channel || detectChannel(conversation.messages);
 
     console.log(`📡 Using channel: ${channel} for order ${orderId}`);
 
@@ -257,8 +286,13 @@ export const sendMessageToCustomer = async (params: SendMessageParams) => {
     };
 
     // Send via Twilio/SMTP based on channel
-    let sendResult: { sid?: string; messageId?: string; from?: string; status?: string };
-    
+    let sendResult: {
+      sid?: string;
+      messageId?: string;
+      from?: string;
+      status?: string;
+    };
+
     switch (channel) {
       case "whatsapp":
         sendResult = await twilioService.sendWhatsApp({
@@ -266,19 +300,19 @@ export const sendMessageToCustomer = async (params: SendMessageParams) => {
           body: message,
           mediaUrl: media_url,
         });
-        newMessage.message_id = sendResult.sid || '';
-        newMessage.from = sendResult.from || '';
+        newMessage.message_id = sendResult.sid || "";
+        newMessage.from = sendResult.from || "";
         break;
-        
+
       case "sms":
         sendResult = await twilioService.sendSMS({
           to: customerInfo.phone,
           body: message,
         });
-        newMessage.message_id = sendResult.sid || '';
-        newMessage.from = sendResult.from || '';
+        newMessage.message_id = sendResult.sid || "";
+        newMessage.from = sendResult.from || "";
         break;
-        
+
       case "email":
         // OLD: Twilio/SendGrid email sending (commented out)
         // sendResult = await twilioService.sendEmail({
@@ -286,20 +320,20 @@ export const sendMessageToCustomer = async (params: SendMessageParams) => {
         //   subject: "Update on Your Order",
         //   body: message,
         // });
-        
+
         // NEW: Build HTML template and send via SMTP
         const emailHtml = buildEmailTemplate(message, customerInfo.name);
         const emailResult = await sendEmailSMTP({
           to: customerInfo.email,
           subject: "Order Arrival",
           html: emailHtml,
-          replyTo: 'support@reply.vendomnia.com'
+          replyTo: "support@reply.vendomnia.com",
         });
         newMessage.message_id = emailResult.messageId;
-        newMessage.from = 'service@vendomnia.com';
+        newMessage.from = "service@vendomnia.com";
         newMessage.status = emailResult.status;
         break;
-        
+
       default:
         throw new Error(`Unknown communication channel: ${channel}`);
     }
@@ -310,14 +344,22 @@ export const sendMessageToCustomer = async (params: SendMessageParams) => {
     const isFirstMessage = conversation.messages.length === 0;
 
     // Save with the NEW outbound message as the last_message
-    await saveConversation(orderId, updatedMessages, newMessage, true, isFirstMessage);
+    await saveConversation(
+      orderId,
+      updatedMessages,
+      newMessage,
+      true,
+      isFirstMessage
+    );
     emitMessageToOrder(orderId.toString(), newMessage);
     broadcastOutboundMessage(orderId, newMessage, customerInfo);
 
     // Invalidate cache since conversation changed
     invalidateCustomerListCache();
 
-    console.log(`✅ Message sent successfully | Order: ${orderId} | ID: ${newMessage.message_id}`);
+    console.log(
+      `✅ Message sent successfully | Order: ${orderId} | ID: ${newMessage.message_id}`
+    );
 
     return { success: true, message: newMessage };
   } catch (error) {
@@ -352,7 +394,12 @@ const saveConversation = async (
 
     const lastChannel = lastMsg?.communication_channel || "none";
 
-    console.log(`💾 Saving conversation | Order: ${orderId} | LastMessage: "${lastMessageText?.substring(0, 50)}..." | Channel: ${lastChannel}`);
+    console.log(
+      `💾 Saving conversation | Order: ${orderId} | LastMessage: "${lastMessageText?.substring(
+        0,
+        50
+      )}..." | Channel: ${lastChannel}`
+    );
 
     if (isInsert) {
       const insertQuery = `
@@ -417,7 +464,10 @@ const saveConversationReadOnly = async (
     await pool.query(updateQuery, [convoJson, isReadValue, orderId]);
     console.log(`📝 Updated conversation (read-only) | Order: ${orderId}`);
   } catch (error) {
-    console.error(`❌ Error saving conversation (read-only) for order ${orderId}:`, error);
+    console.error(
+      `❌ Error saving conversation (read-only) for order ${orderId}:`,
+      error
+    );
     throw error;
   }
 };
@@ -425,7 +475,10 @@ const saveConversationReadOnly = async (
 /**
  * Receive inbound message from webhook (WhatsApp/SMS/Email)
  */
-export const receiveInboundMessage = async (orderId: number, message: Message) => {
+export const receiveInboundMessage = async (
+  orderId: number,
+  message: Message
+) => {
   try {
     console.log(
       `📥 Receiving inbound message | Order: ${orderId} | Channel: ${message.communication_channel}`
@@ -436,7 +489,13 @@ export const receiveInboundMessage = async (orderId: number, message: Message) =
     const isFirstMessage = conversation.messages.length === 0;
 
     // Save with the NEW inbound message as the last_message
-    await saveConversation(orderId, updatedMessages, message, false, isFirstMessage);
+    await saveConversation(
+      orderId,
+      updatedMessages,
+      message,
+      false,
+      isFirstMessage
+    );
     await updateGlobalUnreadCount();
     emitMessageToOrder(orderId.toString(), message);
 
@@ -473,11 +532,11 @@ export const markMessagesAsRead = async (orderId: number): Promise<void> => {
     // Update all inbound messages to read and add status
     const updatedMessages = conversation.messages.map((msg) => {
       if (msg.direction === "inbound" && !msg.is_read) {
-        return { 
-          ...msg, 
-          is_read: true, 
-          status: 'read',
-          read_at: new Date().toISOString() 
+        return {
+          ...msg,
+          is_read: true,
+          status: "read",
+          read_at: new Date().toISOString(),
         };
       }
       return msg;
@@ -488,9 +547,11 @@ export const markMessagesAsRead = async (orderId: number): Promise<void> => {
     await handleMessageRead(orderId, unreadCount);
     await updateGlobalUnreadCount();
 
-    console.log(`✅ Marked ${unreadCount} messages as read | Order: ${orderId}`);
+    console.log(
+      `✅ Marked ${unreadCount} messages as read | Order: ${orderId}`
+    );
   } catch (error) {
-    console.error('❌ Error marking messages as read:', error);
+    console.error("❌ Error marking messages as read:", error);
     throw error;
   }
 };
@@ -508,10 +569,14 @@ export const updateMessageStatusById = async (
   try {
     const conversation = await getConversationByOrderId(orderId);
 
-    const idx = conversation.messages.findIndex((msg) => msg.message_id === messageId);
+    const idx = conversation.messages.findIndex(
+      (msg) => msg.message_id === messageId
+    );
 
     if (idx === -1) {
-      console.log(`⚠️ Message not found | Order: ${orderId} | MessageID: ${messageId}`);
+      console.log(
+        `⚠️ Message not found | Order: ${orderId} | MessageID: ${messageId}`
+      );
       return false;
     }
 

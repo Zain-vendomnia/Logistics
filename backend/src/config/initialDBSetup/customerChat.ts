@@ -4,19 +4,19 @@ import { CREATE_CUSTOMER_CHATS_TABLE } from "../../services/tableQueries";
 
 const CustomerChatsSetup = async () => {
   try {
-    console.log("Checking if 'whatsapp_chats' table exists...");
+    console.log("Checking if 'customer_chats' table exists...");
 
     const [rows] = await pool.query<RowDataPacket[]>(
-      "SHOW TABLES LIKE 'whatsapp_chats'"
+      "SHOW TABLES LIKE 'customer_chats'"
     );
     if (rows.length > 0) {
-      console.log("Table 'whatsapp_chats' already exists. No changes made.");
+      console.log("Table 'customer_chats' already exists. No changes made.");
       return;
     }
 
-    console.log("Table not found. Creating 'whatsapp_chats' table...");
+    console.log("Table not found. Creating 'customer_chats' table...");
     await pool.query(CREATE_CUSTOMER_CHATS_TABLE);
-    console.log("Table 'whatsapp_chats' successfully created.");
+    console.log("Table 'customer_chats' successfully created.");
   } catch (error) {
     console.error(
       "Error during table setup:",
