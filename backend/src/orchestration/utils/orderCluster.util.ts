@@ -1,4 +1,5 @@
-import { Order, OrderType } from "../../types/order.types";
+import { OrderType } from "../../model/LogisticOrders";
+import { Order } from "../../types/order.types";
 import { Warehouse } from "../../types/warehouse.types";
 import { haversineKm } from "./haversineKm";
 import { grossWeight } from "./ordersNetWeight";
@@ -365,38 +366,38 @@ export function scoreCluster(warehouse: Warehouse, cluster: Order[]): number {
 
 // assignmentworker.helper
 
-  // function processTier2UrgentOrders(allUrgentOrders: Order[]): {
-  //   clusters: { cluster: Order[]; tier: 2 }[];
-  //   leftovers: Order[];
-  // } {
-  //   const tier2Clusters: { cluster: Order[]; tier: 2 }[] = [];
-  //   const leftovers: Order[] = [];
+// function processTier2UrgentOrders(allUrgentOrders: Order[]): {
+//   clusters: { cluster: Order[]; tier: 2 }[];
+//   leftovers: Order[];
+// } {
+//   const tier2Clusters: { cluster: Order[]; tier: 2 }[] = [];
+//   const leftovers: Order[] = [];
 
-  //   logger.info(
-  //     `[Tier 2] Processing for Urgent orders: ${allUrgentOrders.length}`
-  //   );
+//   logger.info(
+//     `[Tier 2] Processing for Urgent orders: ${allUrgentOrders.length}`
+//   );
 
-  //   const totalWeight = grossWeight(allUrgentOrders);
-  //   const avgWeight = totalWeight / allUrgentOrders.length;
-  //   const MIN_WEIGHT_URGENT = Math.min(MIN_WEIGHT, avgWeight * 0.8);
+//   const totalWeight = grossWeight(allUrgentOrders);
+//   const avgWeight = totalWeight / allUrgentOrders.length;
+//   const MIN_WEIGHT_URGENT = Math.min(MIN_WEIGHT, avgWeight * 0.8);
 
-  //   const { clusters, remainingOrders } = splitOrdersIntoClustersDynamic(
-  //     allUrgentOrders,
-  //     {
-  //       proximityLimitKm: CLOSE_TO_DISTANCE_KM * 1.6,
-  //       minWeight: MIN_WEIGHT_URGENT,
-  //       handleUrgent: true,
-  //     }
-  //   );
+//   const { clusters, remainingOrders } = splitOrdersIntoClustersDynamic(
+//     allUrgentOrders,
+//     {
+//       proximityLimitKm: CLOSE_TO_DISTANCE_KM * 1.6,
+//       minWeight: MIN_WEIGHT_URGENT,
+//       handleUrgent: true,
+//     }
+//   );
 
-  //   clusters.forEach((c) => {
-  //     tier2Clusters.push({ cluster: c, tier: 2 });
-  //   });
+//   clusters.forEach((c) => {
+//     tier2Clusters.push({ cluster: c, tier: 2 });
+//   });
 
-  //   leftovers.push(...remainingOrders);
+//   leftovers.push(...remainingOrders);
 
-  //   return { clusters: tier2Clusters, leftovers };
-  // }
+//   return { clusters: tier2Clusters, leftovers };
+// }
 
 // ***************************
 

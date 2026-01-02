@@ -4,9 +4,9 @@ import {
   getWarehouseZipcodesRecord,
 } from "../services/warehouse.service";
 
-import { Order, OrderType } from "../types/order.types";
+import { Order } from "../types/order.types";
 import { Warehouse } from "../types/warehouse.types";
-import { LogisticOrder } from "../model/LogisticOrders";
+import { LogisticOrder, OrderType } from "../model/LogisticOrders";
 
 import { haversineKm } from "./utils/haversineKm";
 import { grossWeight } from "./utils/ordersNetWeight";

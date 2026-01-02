@@ -10,31 +10,16 @@ export type OrderItem = {
   slmdl_articleordernumber?: string;
   warehouse_id?: string;
 
-<<<<<<< HEAD
   is_new_item?: boolean;
   cancelled_quantity?: number; // qty full/partial cancelled
   ref_item_id?: number;
 };
-=======
-export enum OrderType {
-  URGENT = "urgent",
-  NORMAL = "normal",
-  CANCELLED = "cancelled",
-}
->>>>>>> e7283df (Urgent Orders Priority Clusters and HERE Matrix API dep removal)
 
 export type Order = {
   order_id: number;
   type: OrderType;
-<<<<<<< HEAD
   status: OrderStatus;
   parent_order_id?: number;
-=======
-  distance?: number; // distance from warehouse in Km
-
-  order_time: Date;
-  expected_delivery_time: Date;
->>>>>>> e7283df (Urgent Orders Priority Clusters and HERE Matrix API dep removal)
 
   warehouse_id: number;
   warehouse_name?: string;
@@ -64,6 +49,7 @@ export type Order = {
   zipcode: string;
 
   location: { lat: number; lng: number };
+  distance?: number;
 
   created_by?: string;
   created_at?: Date;

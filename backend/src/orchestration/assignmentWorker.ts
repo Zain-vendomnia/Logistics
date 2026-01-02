@@ -1,9 +1,9 @@
 import { getActiveWarehousesWithVehicles } from "../services/warehouse.service";
 import { createDynamicTourAsync } from "../services/dynamicTour.service";
 
-import { Order, OrderType } from "../types/order.types";
+import { Order } from "../types/order.types";
 import { Warehouse } from "../types/warehouse.types";
-import { LogisticOrder } from "../model/LogisticOrders";
+import { LogisticOrder, OrderType } from "../model/LogisticOrders";
 import { DynamicTourPayload } from "../types/dto.types";
 
 import {
