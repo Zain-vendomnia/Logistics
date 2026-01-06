@@ -1,5 +1,5 @@
 import pool from "../config/database";
-import { geocode, matrixEstimate } from "./hereMap.service";
+import { matrixEstimate } from "./hereMap.service";
 
 import { WarehouseDetailsDto } from "../types/dto.types";
 import { Warehouse, WarehouseZipcodes } from "../types/warehouse.types";
@@ -7,6 +7,7 @@ import { Location, MatrixData, MatrixResult } from "../types/hereMap.types";
 import { Order } from "../types/order.types";
 
 import { logWithTime } from "../utils/logging";
+import { requestLocationCoordinates } from "../utils/requestLocationCoordinates";
 
 export const getAllWarehouses = async (): Promise<Warehouse[]> => {
   const [rows] = await pool.query(`
@@ -430,10 +431,10 @@ export async function getWarehouseLocationCords(
   try {
     const address = `${warehouse.address}, ${warehouse.town}`;
     console.log(
-      `Calling HERE Map geocode() for Warehouse ${warehouse.id} address: ${address} `
+      `Calling location coordinates API for Warehouse ${warehouse.id} address: ${address} `
     );
 
-    const location: Location = await geocode(address);
+    const location: Location = await requestLocationCoordinates(address);
     (warehouse.lat = location.lat), (warehouse.lng = location.lng);
     const isUpdated = await updateWarehouse(warehouse.id, warehouse);
     if (!isUpdated) {

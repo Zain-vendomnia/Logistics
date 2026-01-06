@@ -51,10 +51,7 @@ export function mapRowToOrder(row: any): Order {
     warehouse_name: row.warehouse_name ?? null,
     warehouse_town: row.town ?? null,
 
-    location: (row.latitude && row.longitude) ?? {
-      lat: +row.latitude,
-      lng: +row.longitude,
-    },
+    location: { lat: +row.latitude, lng: +row.longitude },
 
     created_by: row.created_by ?? "Unknown",
     created_at: row.created_at ?? new Date(row.created_at),

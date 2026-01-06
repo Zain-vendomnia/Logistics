@@ -16,6 +16,8 @@ import {
   findBestInsertPosition,
   scoreCluster,
 } from "./utils/orderCluster.util";
+import { sortByWarehouse } from "./utils/sortByWarehouse";
+import { effectiveWeight, isPriority } from "./utils/priority";
 
 const MATRIX_CONCURRENCY = 7;
 const CLOSE_TO_DISTANCE_KM = 40; // between consecutive orders
@@ -39,7 +41,7 @@ export async function warehouseOrdersAssignment(
     }
   }
   for (const order of orders) {
-    if (!order.location.lat || !order.location.lng) {
+    if (!order.location || !order.location.lat || !order.location.lng) {
       const location = await LogisticOrder.getOrderLocationCords(order);
       if (location) {
         order.location.lat = location.lat;
@@ -357,10 +359,17 @@ export function assignmentHelper(warehouse: Warehouse) {
     return { cluster: updatedCluster, remainingOrders };
   }
 
-  function trimClusterToFitWeight(cluster: Order[], type: "urgent" | "normal") {
-    let clusterWeight = grossWeight(cluster);
+  function trimClusterToFitWeight(
+    cluster: Order[],
+    type: "priority" | "normal"
+  ) {
+    let clusterWeight = cluster.reduce((sum, o) => sum + effectiveWeight(o), 0);
 
-    const typeToTrim = type === "urgent" ? OrderType.URGENT : OrderType.NORMAL;
+    const typeToTrim =
+      type === "priority"
+        ? OrderType.URGENT // PICKUP never trimmed
+        : OrderType.NORMAL;
+
     const removedOrders: Order[] = [];
 
     while (clusterWeight > MAX_WEIGHT) {
@@ -393,28 +402,19 @@ export function assignmentHelper(warehouse: Warehouse) {
 
     const allow2DaysTour = config?.allow2DaysTour ?? true;
 
-    const ordersSorted = [...orders].sort((a, b) => {
-      const da = haversineKm(
-        warehouse.lat,
-        warehouse.lng,
-        a.location.lat,
-        a.location.lng
-      );
-      const db = haversineKm(
-        warehouse.lat,
-        warehouse.lng,
-        b.location.lat,
-        b.location.lng
-      );
-      return da - db;
-    });
+    const ordersSorted = sortByWarehouse(warehouse, orders);
 
     let cluster: Order[] = [];
     const remainingOrders: Order[] = [];
     const unprocessed = new Set(ordersSorted.map((o) => o.order_id));
 
-    const urgents = ordersSorted.filter((o) => o.type === OrderType.URGENT);
-    let urgentWeight = grossWeight(urgents);
+    // const urgents = ordersSorted.filter((o) => o.type === OrderType.URGENT);
+    // let urgentWeight = grossWeight(urgents);
+    const priorityOrders = ordersSorted.filter(isPriority);
+    let priorityWeight = priorityOrders.reduce(
+      (sum, o) => sum + effectiveWeight(o),
+      0
+    );
 
     let clusterWeight = 0;
 
@@ -425,36 +425,33 @@ export function assignmentHelper(warehouse: Warehouse) {
     for (const currentOrder of ordersSorted) {
       if (!unprocessed.has(currentOrder.order_id)) continue;
 
-      const w = currentOrder.weight_kg ?? 0;
-      const isUrgent = currentOrder.type === OrderType.URGENT;
+      // const w = currentOrder.weight_kg ?? 0;
+      // const isUrgent = currentOrder.type === OrderType.URGENT;
+      const w = effectiveWeight(currentOrder);
+      const isPriorityOrder = isPriority(currentOrder);
 
-      if (isUrgent) {
-        // cluster.push(currentOrder);
+      if (isPriorityOrder) {
         const pos = findBestInsertPosition(warehouse, cluster, currentOrder);
         cluster.splice(pos?.pos!, 0, currentOrder);
 
-        urgentWeight -= w;
+        priorityWeight -= w;
         clusterWeight += w;
 
         unprocessed.delete(currentOrder.order_id);
 
         if (clusterWeight > MAX_WEIGHT) {
-          const result = trimClusterToFitWeight(cluster, "urgent");
+          const result = trimClusterToFitWeight(cluster, "priority");
           cluster = result.cluster;
           clusterWeight = grossWeight(cluster);
           remainingOrders.push(...result.removedOrders);
-
-          // const w = grossWeight(result.removedOrders);
-          // urgentWeight += w ?? 0;
         }
 
         centroid = clusterCentroid(cluster);
-
         continue;
       }
 
       //Normal Case
-      const weightMargin = MAX_WEIGHT - (clusterWeight + urgentWeight);
+      const weightMargin = MAX_WEIGHT - (clusterWeight + priorityWeight);
 
       if (w > weightMargin) continue;
 
@@ -516,33 +513,18 @@ export function assignmentHelper(warehouse: Warehouse) {
     if (!orders.length) return { cluster: [], remainingOrders: [] };
     const allow2DaysTour = options?.allow2DaysTour ?? true;
 
-    const ordersSorted = [...orders].sort((a, b) => {
-      const da = haversineKm(
-        warehouse.lat,
-        warehouse.lng,
-        a.location.lat,
-        a.location.lng
-      );
-      const db = haversineKm(
-        warehouse.lat,
-        warehouse.lng,
-        b.location.lat,
-        b.location.lng
-      );
-      return da - db;
-    });
+    const ordersSorted = sortByWarehouse(warehouse, orders);
 
     const remaining = new Set(ordersSorted.map((o) => o.order_id));
     const ordersById = new Map(ordersSorted.map((o) => [o.order_id, o]));
 
     const cluster: Order[] = [];
-    let urgentWeight = 0;
+    let priorityWeight = 0;
     let normalWeight = 0;
 
-    // Phase 1: Urgent orders (single pass)
+    // Phase 1: Priority/Urgent orders (single pass)
     for (const ord of ordersSorted) {
-      if (!remaining.has(ord.order_id) || ord.type !== OrderType.URGENT)
-        continue;
+      if (!remaining.has(ord.order_id) || !isPriority(ord)) continue;
 
       const pos = findBestInsertPosition(warehouse, cluster, ord);
       const insertPos = pos?.pos ?? cluster.length;
@@ -559,8 +541,8 @@ export function assignmentHelper(warehouse: Warehouse) {
         (allow2DaysTour && sec <= TIMEALLOWED_MAX_2DAY)
       ) {
         cluster.splice(insertPos, 0, ord);
-        // cluster.push(ord);
-        urgentWeight += ord.weight_kg ?? 0;
+        // urgentWeight += ord.weight_kg ?? 0;
+        priorityWeight += effectiveWeight(ord);
         remaining.delete(ord.order_id);
       }
     }
@@ -575,9 +557,10 @@ export function assignmentHelper(warehouse: Warehouse) {
       for (const orderId of [...remaining]) {
         const ord = ordersById.get(orderId)!;
 
-        if (ord.type !== OrderType.NORMAL) continue;
+        // if (ord.type !== OrderType.NORMAL) continue;
+        if (isPriority(ord)) continue;
 
-        const weightMargin = MAX_WEIGHT - urgentWeight - normalWeight;
+        const weightMargin = MAX_WEIGHT - priorityWeight - normalWeight;
 
         const w = ord.weight_kg ?? 0;
         if (w > weightMargin) continue;
@@ -620,6 +603,7 @@ export function assignmentHelper(warehouse: Warehouse) {
     return { cluster, remainingOrders };
   }
 
+  // For non-priority orders
   function splitOrdersIntoClustersDynamic(
     orders: Order[],
     options: {
@@ -782,12 +766,18 @@ export function assignmentHelper(warehouse: Warehouse) {
     clusters: { cluster: Order[]; tier: 1 | 2 | 3 }[];
     leftovers: Order[];
   } {
-    // satisfiedSectors are pre-sorted by order density and each sector is sorted by distance form WH.
-    // pedningSectors are sorted by urgent order count (descending) in each sector.
+    // satisfiedSectors
+    //  > pre-sorted by order density and each sector is sorted by distance form WH.
+    // pendingSectors
+    //  >  sorted by urgent order count (descending) in each sector.
     const pendingSectors = [...satisfiedSectors].sort((a, b) => {
-      const urgentCountA = a.filter((o) => o.type === OrderType.URGENT).length;
-      const urgentCountB = b.filter((o) => o.type === OrderType.URGENT).length;
-      return urgentCountB - urgentCountA;
+      const priorityCountA = a.filter(
+        (o) => o.type === OrderType.URGENT || o.type === OrderType.PICKUP
+      ).length;
+      const priorityCountB = b.filter(
+        (o) => o.type === OrderType.URGENT || o.type === OrderType.PICKUP
+      ).length;
+      return priorityCountB - priorityCountA;
     });
 
     const geoClusters: { cluster: Order[]; tier: 1 | 2 | 3 }[] = [];
@@ -808,9 +798,11 @@ export function assignmentHelper(warehouse: Warehouse) {
 
       const currentSector = pendingSectors.shift()!;
       const remainingOrders: Order[] = [];
-      const hasUrgents = currentSector.some((o) => o.type === OrderType.URGENT);
+      const hasPriority = currentSector.some(
+        (o) => o.type === OrderType.URGENT || o.type === OrderType.PICKUP
+      );
 
-      if (hasUrgents) {
+      if (hasPriority) {
         // const { cluster: uCluster_Opt, remainingOrders: opt_rmn } =
         const opt = buildUrgentClusterOptimized(currentSector, {
           allow2DaysTour: true,
@@ -874,7 +866,7 @@ export function assignmentHelper(warehouse: Warehouse) {
           });
         remainingOrders.push(...unsuccessfulSectors.flat(), ...rmn);
       }
- 
+
       // Second round,
       // -If created cluster is below MIN_WEIGHT,
       // -Try to fit created cluster with nearby sectors.
@@ -894,7 +886,7 @@ export function assignmentHelper(warehouse: Warehouse) {
             findNearbyClustersToFitWeightExtended(
               lastCluster.cluster,
               pendingSectors,
-              hasUrgents
+              hasPriority
             );
           const w00 = grossWeight(dynCluster);
           const t00 = approxSecForRoute(warehouse, dynCluster) / 3600;
@@ -906,7 +898,7 @@ export function assignmentHelper(warehouse: Warehouse) {
             findNearbyClustersToFitWeight(
               lastCluster.cluster,
               pendingSectors,
-              hasUrgents
+              hasPriority
             );
 
           const w11 = grossWeight(sptCluster);
@@ -924,7 +916,10 @@ export function assignmentHelper(warehouse: Warehouse) {
           const finalRemaining = useDynamic ? dynRemaining : sptRemaining;
 
           geoClusters.pop();
-          geoClusters.push({ cluster: finalCluster, tier: hasUrgents ? 2 : 1 });
+          geoClusters.push({
+            cluster: finalCluster,
+            tier: hasPriority ? 2 : 1,
+          });
 
           // remainingOrders = remainingOrders.filter((o) => remainings.includes(o));
           remainingOrders.splice(0, remainingOrders.length, ...finalRemaining);
@@ -935,7 +930,7 @@ export function assignmentHelper(warehouse: Warehouse) {
       // Finally
       leftovers.push(...remainingOrders);
     }
-    
+
     leftovers.push(...unsuccessfulSectors.flat());
     return {
       clusters: geoClusters,
@@ -1096,7 +1091,7 @@ export function assignmentHelper(warehouse: Warehouse) {
         .map((o) => o.order_id)
         .join(", ")}`
     );
- 
+
     geoClusters.push(...clusters);
 
     return { geoClusters, leftovers };

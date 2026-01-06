@@ -19,8 +19,9 @@ export function isUrgentDelivery(
     expectedTimeMs = new Date(expectedDeliveryTime).getTime();
   }
 
+  if (Number.isNaN(expectedTimeMs)) return false;
+
   // days in milliseconds
   const delayMs_Days = 4 * 24 * 3600 * 1000;
-
   return expectedTimeMs - now <= delayMs_Days;
 }

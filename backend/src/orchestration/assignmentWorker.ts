@@ -123,9 +123,6 @@ export async function processBatch() {
     return;
   }
 
-  // const urgent_orders = orders.filter((o) => o.type === OrderType.URGENT);
-  // logger.info(`Urgent Order: ${urgent_orders.length}:  ${urgent_orders}`);
-
   const assignments: Map<number, { order: Order; distance?: number }[]> =
     await warehouseOrdersAssignment(warehouses, orders);
 
@@ -144,7 +141,7 @@ export async function processBatch() {
   for (const [warehouseId, orderEntries] of assignments.entries()) {
     if (!orderEntries.length) continue;
     // if (warehouseId !== 1) continue; // Eschwege
-    if (warehouseId === 2) continue; // Berlin
+    if (warehouseId !== 2) continue; // Berlin
     // if (warehouseId === 3) continue; // Schkeuditz
     // if (warehouseId === 4) continue; // Mainz-Kastel
     // if (warehouseId === 6) continue; // Rheine
@@ -192,7 +189,6 @@ export async function processBatch() {
       existing.push(TRIMMED_ORDERS);
       failed.set(warehouse.town, existing);
     }
-
 
     // const wh = warehouses.find((wh) => wh.id === wid);
     logger.warn(

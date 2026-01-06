@@ -2,6 +2,7 @@ import cron from "node-cron";
 import { eventBus, LocalEvents } from "../../config/eventBus";
 import { LogisticOrder } from "../../model/LogisticOrders";
 import { processBatch } from "../../orchestration/assignmentWorker";
+import { checkOrdersUrgency } from "../logisticOrder.service";
 
 const ORDERS_BUFFER = 20; // max orders to batch process
 const BATCH_DEBOUNCE_MS = 5000; // 5 seconds
@@ -45,11 +46,13 @@ export async function initOrchestrationWorker() {
     enqueueOrderForBatch(order_id);
   });
 
-  cron.schedule("15 9 * * *", async () => {
+  cron.schedule("0 9 * * *", async () => {
     console.log("Cron job triggered for batch processing");
+    await checkOrdersUrgency();
     await runBatchProcessing();
   });
 
   console.log("Initial batch check on deployment");
+  await checkOrdersUrgency();
   await runBatchProcessing();
 }

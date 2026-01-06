@@ -4,11 +4,8 @@ import { RowDataPacket } from "mysql2";
 import pool from "../config/database";
 import { LogisticOrder } from "../model/LogisticOrders";
 import { enqueueOrder } from "../config/eventBus";
-import {
-  mapShopwareOrderToLogisticOrder,
-  ShopwareOrder,
-  ShopwareOrderDetails,
-} from "../types/order.types";
+import { ShopwareOrder, ShopwareOrderDetails } from "../types/order.types";
+import { mapShopwareOrderToLogisticOrder } from "./helpers/logisticOrder.helper";
 
 dotenv.config();
 
@@ -34,7 +31,7 @@ export async function shopwareOrderSync() {
 
     if (!rows.length || rows[0].maxOrderId === null) {
       params = { from_date: "2025-11-17" }; // adjust as needed
-      console.log("Date condition is running...")
+      console.log("Date condition is running...");
     } else {
       params = { last_order_id: rows[0].maxOrderId };
       console.log(

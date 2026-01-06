@@ -6,11 +6,12 @@ import { emitAppConnection } from "./socket/logging.socket";
 import { runInitialDbSetup } from "./services/core/dbSetupService";
 // import { runInitialSyncs } from "./services/core/syncService";
 // import { scheduleRecurringSyncs } from "./services/core/scheduleService";
+import { initOrchestrationWorker } from "./services/core/orchestrationWorker.service";
 
 async function main() {
   try {
     const server = initSocket(app);
-    initCommunicationSocket(); // ✅ Changed this line
+    initCommunicationSocket();
 
     server.listen(app.get("port"), async () => {
       emitAppConnection("connected");
@@ -22,6 +23,7 @@ async function main() {
 
       // await runInitialSyncs();
       // scheduleRecurringSyncs();
+      await initOrchestrationWorker();
     });
   } catch (error: any) {
     logger.error(`Startup error: ${error.message || error}`);

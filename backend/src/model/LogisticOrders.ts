@@ -3,18 +3,17 @@ import pool from "../config/database";
 import { CheckOrderCount } from "../types/dto.types";
 import { Order, OrderItem } from "../types/order.types";
 import { PoolConnection } from "mysql2/promise";
-import { geocode } from "../services/hereMap.service";
 import { Location } from "../types/hereMap.types";
-// import { isUrgentDelivery } from "../utils/orderUtils";
 import logger from "../config/logger";
 import {
-  loadOrderItems,
+  loadOrdersItems,
   updateOrderStatus,
 } from "../services/logisticOrder.service";
 import {
   mapItemsToOrders,
   mapRowToOrder,
 } from "../services/helpers/logisticOrder.helper";
+import { requestLocationCoordinates } from "../utils/requestLocationCoordinates";
 
 export enum OrderType {
   NORMAL = "normal",
@@ -27,11 +26,11 @@ export enum OrderStatus {
   Initial = "initial",
   InProcess = "inProcess",
   Assigned = "assigned",
-  Unassigned = "unassigned",
   InTransit = "inTransit",
   Delivered = "delivered",
-  Rescheduled = "rescheduled",
   Cancelled = "cancelled",
+  Unassigned = "unassigned",
+  Rescheduled = "rescheduled",
 }
 
 export type OrderDetails = {
@@ -451,39 +450,10 @@ export class LogisticOrder {
     query += ` ORDER BY o.order_id`; // LIMIT 300
     // query += ` ORDER BY o.updated_at DESC, o.created_at DESC`;
 
-    // const urgency = [331, 181, 264, 210, 256];
-
     try {
       const [rows] = await pool.execute(query, params);
 
-      const orders: Order[] = (rows as any[]).map((raw: any) => ({
-        order_id: raw.order_id,
-        order_number: raw.order_number,
-        type: raw.type,
-        status: raw.status,
-        parent_order_id: raw.parent_order_id,
-
-        // payment_id: raw.payment_id,
-        order_time: raw.order_time,
-        expected_delivery_time: raw.expected_delivery_time,
-
-        warehouse_id: raw.warehouse_id,
-        warehouse_name: raw.warehouse_name,
-        warehouse_town: raw.town,
-
-        phone: raw.phone,
-        street: raw.street,
-        city: raw.city,
-        zipcode: raw.zipcode,
-
-        location: { lat: +raw.latitude, lng: +raw.longitude },
-
-        created_by: raw.created_by ?? "Unknown",
-        created_at: raw.created_at ?? new Date(raw.created_at),
-        updated_at: raw.updated_at ?? new Date(raw.created_at),
-
-        items: [],
-      }));
+      const orders: Order[] = (rows as any[]).map(mapRowToOrder);
 
       // filter further with WMS orders
       // const [wms_orders] = await pool.execute(
@@ -508,7 +478,10 @@ export class LogisticOrder {
   static async getPendingOrdersCount(): Promise<number> {
     try {
       const [rows] = await pool.execute<RowDataPacket[]>(
-        `SELECT COUNT(*) as count FROM logistic_order WHERE status IN ('initial', 'unassigned', 'rescheduled')`
+        `SELECT 
+          COUNT(*) as count 
+        FROM logistic_order 
+        WHERE status IN ('initial', 'unassigned', 'rescheduled')`
       );
       return Number(rows[0].count) || 0;
     } catch (error) {
@@ -521,9 +494,7 @@ export class LogisticOrder {
     since?: string
   ): Promise<Order[]> {
     const orders: Order[] = await this.getPendingOrdersAsync(since);
-
-    const ordersWithItems = await loadOrderItems(orders as Order[]);
-
+    const ordersWithItems = await loadOrdersItems(orders as Order[]);
     return ordersWithItems;
   }
 
@@ -554,10 +525,10 @@ export class LogisticOrder {
     try {
       const address = `${order.street}, ${order.city}, ${order.zipcode}`;
       console.log(
-        `Calling HERE Map geocode() for Order ${order.order_id} address: ${address} `
+        `Calling location coordinates API for Order ${order.order_id} address: ${address} `
       );
 
-      const location: Location = await geocode(address);
+      const location: Location = await requestLocationCoordinates(address);
       (order.location.lat = location.lat), (order.location.lng = location.lng);
       const isUpdated = await LogisticOrder.updateOrderLocation(
         order,
@@ -584,6 +555,5 @@ export async function get_LogisticsOrdersAddress(orderIds: number[]) {
     orderIds
   );
   // console.log("Orders Addresses:", orderRows);
-
   return orderRows;
 }

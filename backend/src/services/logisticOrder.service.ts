@@ -15,7 +15,9 @@ import {
   mapRowToOrderHistory,
   mapRowToOrderItem,
 } from "./helpers/logisticOrder.helper";
-export async function loadOrderItems(orders: Order[]) {
+import { isUrgentDelivery } from "../utils/orderUtils";
+
+export async function loadOrdersItems(orders: Order[]) {
   const placeholders = orders.map(() => "?").join(",");
   const [items] = await pool.execute(
     `SELECT * FROM logistic_order_items WHERE order_id IN (${placeholders})`,
@@ -99,23 +101,25 @@ export async function updateOrderStatus({
   if (order.status === newStatus) return true; // avoid duplicate transitions
 
   // update status
-  const [result] = await connection.execute(
+  const [result] = await connection.execute<ResultSetHeader>(
     "UPDATE logistic_order SET status = ?, updated_at = NOW() WHERE order_id = ?",
     [newStatus, orderId]
   );
 
+  const affected = (result as ResultSetHeader).affectedRows > 0;
   // log transition
-  await createOrderStatusHistory({
-    orderId,
-    oldStatus: order.status,
-    newStatus,
-    changedBy,
-    reason,
-    notes,
-    conn: connection,
-  });
-
-  return (result as ResultSetHeader).affectedRows > 0;
+  if (affected) {
+    await createOrderStatusHistory({
+      orderId,
+      oldStatus: order.status,
+      newStatus,
+      changedBy,
+      reason,
+      notes,
+      conn: connection,
+    });
+  }
+  return affected;
 }
 
 // Start: Order Types
@@ -667,7 +671,7 @@ export async function getOrdersByTypes(
     types
   );
   const orders: Order[] = (rows as any[]).map(mapRowToOrder);
-  const ordersWithItems = await loadOrderItems(orders);
+  const ordersWithItems = await loadOrdersItems(orders);
 
   const containsPickupOrExchange =
     types.includes(OrderType.PICKUP) || types.includes(OrderType.EXCHANGE);
@@ -690,7 +694,7 @@ export async function getOrdersByStatus(status: OrderStatus): Promise<Order[]> {
     status
   );
   const orders: Order[] = (rows as any[]).map(mapRowToOrder);
-  const ordersWithItems = await loadOrderItems(orders);
+  const ordersWithItems = await loadOrdersItems(orders);
   return ordersWithItems;
 }
 
@@ -832,4 +836,42 @@ export async function updateOrderStatusAsync(
       message: err instanceof Error ? err.message : String(err),
     };
   }
+}
+
+async function markOrderAsUrgent(order: Order): Promise<Boolean> {
+  if (!order) throw new Error("Order not found");
+  if (order.type === OrderType.URGENT) return false;
+
+  const [result] = await pool.execute<ResultSetHeader>(
+    `UPDATE logistic_order 
+      SET type = ?, updated_at = NOW() 
+    WHERE order_id = ? AND type != ?`,
+    [OrderType.URGENT, order.order_id, OrderType.URGENT]
+  );
+
+  const affected = (result as ResultSetHeader).affectedRows > 0;
+  if (affected) {
+    await createOrderStatusHistory({
+      orderId: order.order_id,
+      oldStatus: order.status,
+      newStatus: order.status,
+      changedBy: "auto-assigner",
+      reason: "Marked order as Urgent.",
+    });
+  }
+  return affected;
+}
+
+export async function checkOrdersUrgency() {
+  const orders: Order[] = await LogisticOrder.getPendingOrdersAsync();
+
+  const urgentDeliveries = orders.filter(
+    (order) =>
+      isUrgentDelivery(order.expected_delivery_time) &&
+      order.type !== OrderType.URGENT
+  );
+
+  if (!urgentDeliveries.length) return;
+
+  await Promise.all(urgentDeliveries.map((o) => markOrderAsUrgent(o)));
 }
