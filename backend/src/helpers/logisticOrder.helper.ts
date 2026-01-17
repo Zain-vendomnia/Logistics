@@ -6,14 +6,10 @@ import {
   OrderItem,
   PickupOrder,
   ShopwareOrder,
-} from "../../types/order.types";
-import {
-  LogisticOrder,
-  OrderStatus,
-  OrderType,
-} from "../../model/LogisticOrders";
-import pool from "../../config/database";
-import { ApiResponse } from "../../types/apiResponse.type";
+} from "../types/order.types";
+import { LogisticOrder, OrderStatus, OrderType } from "../model/LogisticOrders";
+import pool from "../config/database";
+import { ApiResponse } from "../types/apiResponse.type";
 
 export function mapRowToOrderItem(row: RowDataPacket | any): OrderItem {
   return {

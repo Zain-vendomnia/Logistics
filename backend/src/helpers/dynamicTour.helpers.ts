@@ -1,7 +1,7 @@
 import { PoolConnection } from "mysql2/promise";
-import { DynamicTourPayload, UnassignedRes } from "../../types/dto.types";
-import { getDynamicTour } from "../dynamicTour.service";
-import { LogisticOrder, OrderStatus } from "../../model/LogisticOrders";
+import { getDynamicTour } from "../services/dynamicTour.service";
+import { LogisticOrder, OrderStatus } from "../model/LogisticOrders";
+import { DynamicTourPayload, UnassignedRes } from "../types/dto.types";
 
 function validatePayload(payload: DynamicTourPayload) {
   if (!payload || !payload.orderIds || !payload.warehouse_id) {

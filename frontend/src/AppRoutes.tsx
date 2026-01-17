@@ -14,13 +14,13 @@ import AdminDashboard from "./components/Admin/Admin_dashboard";
 import ManageDrivers from "./components/Admin/ManageDrivers";
 import ManageVehicles from "./components/Admin/ManageVehicles";
 import ManageWarehouse from "./components/Admin/ManageWarehouse";
-import Admin_TourTemplates from "./components/Admin/Admin_TourTemplates";
+import ScheduledTours from "./components/Admin/tours/Scheduled_Tours";
+import CompletedTours from "./components/Admin/tours/Completed_Tours";
+import LiveTours from "./components/Admin/tours/Live_Tours";
 import Admin_MapComponent from "./components/Admin/Admin_MapComponent";
 import Admin_TourMapView from "./components/Admin/Admin_TourMapView";
 import ParkingPermitForm from "./components/parkingPermit/ParkingPermitForm";
 import AdminAddTour from "./components/Admin/Admin_AddTour";
-import CompletedTour from "./components/Admin/completed_tour";
-import LiveTours from "./components/Admin/live_tours";
 import DriverPerformance from "./components/Admin/DriverPerformance";
 import ProofdeliveryLiveloc from "./components/Admin/ProofdeliveryLiveloc";
 import ProofdeliveryImage from "./components/Admin/ProofdeliveryImage";
@@ -31,6 +31,7 @@ import Admin_dynamicHereMap from "./components/Admin/dynamic_tour/DynamicMapBoar
 import CustomersChat from "./components/notification/CustomersChat";
 import LogViewer from "./components/LogViewer";
 import ManageCancels from "./components/Admin/ManageCancels";
+import ScheduledTourDetails from "./components/Admin/tours/Scheduled_TourDetails";
 
 // Role-based route guard
 const ProtectedRoute = ({
@@ -148,9 +149,36 @@ const AppRoutes = () => {
         element={<AdminRoute element={<ManageWarehouse />} />}
       />
       <Route
-        path="/admin_tourtemplates"
-        element={<AdminRoute element={<Admin_TourTemplates />} />}
+        path="/scheduled/tour"
+        element={<AdminRoute element={<ScheduledTours />} />}
       />
+      <Route
+        path="/live/tour"
+        element={<AdminRoute element={<LiveTours />} />}
+      />
+      <Route
+        path="/completed/tour"
+        element={<AdminRoute element={<CompletedTours />} />}
+      />
+      {/* ****************************************************** */}
+      <Route
+        path="/scheduled/tour/detail/:id"
+        element={<AdminRoute element={<ScheduledTourDetails />} />}
+      />
+      <Route
+        path="/live/tour/detail/:id"
+        element={<AdminRoute element={<CompletedTours />} />}
+      />
+      <Route
+        path="/completed/tour/detail/:id"
+        element={<AdminRoute element={<CompletedTours />} />}
+      />
+
+      {/* <Route
+        path="/Admin_TourMapView/:tour_id"
+        element={<AdminRoute element={<Admin_TourMapView />} />}
+      /> */}
+      {/* ****************************************************** */}
       <Route
         path="/admin_mapComponent/:id"
         element={<AdminRoute element={<Admin_MapComponent />} />}
@@ -159,18 +187,7 @@ const AppRoutes = () => {
         path="/mapboard/dynamic"
         element={<AdminRoute element={<Admin_dynamicHereMap />} />}
       />
-      <Route
-        path="/Admin_TourMapView/:tour_id"
-        element={<AdminRoute element={<Admin_TourMapView />} />}
-      />
-      <Route
-        path="/completed_tour"
-        element={<AdminRoute element={<CompletedTour />} />}
-      />
-      <Route
-        path="/live_tours"
-        element={<AdminRoute element={<LiveTours />} />}
-      />
+
       <Route
         path="/driver_performance"
         element={<AdminRoute element={<DriverPerformance />} />}

@@ -5,7 +5,7 @@ import pool from "../config/database";
 import { LogisticOrder } from "../model/LogisticOrders";
 import { enqueueOrder } from "../config/eventBus";
 import { ShopwareOrder, ShopwareOrderDetails } from "../types/order.types";
-import { mapShopwareOrderToLogisticOrder } from "./helpers/logisticOrder.helper";
+import { mapShopwareOrderToLogisticOrder } from "../helpers/logisticOrder.helper";
 
 dotenv.config();
 

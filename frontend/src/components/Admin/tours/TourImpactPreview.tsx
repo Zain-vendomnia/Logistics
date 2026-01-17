@@ -106,7 +106,6 @@ const TourImpactPreview = ({ warehouseId, orders, onError }: Props) => {
     const last = lastQueryRef.current;
     if (last.key === queryKey && (last.data || last.failed)) {
       setExpected(last.data);
-
       return;
     }
     const orderIds = orders.map((o) => o.order_id);
@@ -133,7 +132,7 @@ const TourImpactPreview = ({ warehouseId, orders, onError }: Props) => {
       icon: <AccessTime sx={{ color: theme.palette.warning.main }} />,
     },
     {
-      label: "Cost",
+      label: "Cost $",
       value: expected?.totalCost.toFixed(0) ?? "00",
       unit: "$",
       icon: <TrendingUp sx={{ color: theme.palette.primary.main }} />,
@@ -165,7 +164,7 @@ const TourImpactPreview = ({ warehouseId, orders, onError }: Props) => {
         position: "absolute",
         inset: 0,
         pointerEvents: "none",
-        zIndex: (theme) => theme.zIndex.drawer + 2,
+        zIndex: (theme) => theme.zIndex.drawer + 1,
       }}
     >
       <motion.div
@@ -179,7 +178,7 @@ const TourImpactPreview = ({ warehouseId, orders, onError }: Props) => {
           alignItems={"center"}
           position="absolute"
           top={55}
-          right={150}
+          right={100}
           bgcolor="white"
           borderRadius={3}
           boxShadow="0 4px 12px rgba(0,0,0,0.7)"

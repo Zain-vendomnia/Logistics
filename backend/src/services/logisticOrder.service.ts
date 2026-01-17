@@ -14,7 +14,7 @@ import {
   mapRowToOrder,
   mapRowToOrderHistory,
   mapRowToOrderItem,
-} from "./helpers/logisticOrder.helper";
+} from "../helpers/logisticOrder.helper";
 import { isUrgentDelivery } from "../utils/orderUtils";
 
 export async function loadOrdersItems(orders: Order[]) {

@@ -1,16 +1,4 @@
-// export type Warehouse = {
-//   address: string;
-//   clerk_mob: string;
-//   clerk_name: string;
-
-//   created_at: string;
-//   email: string;
-//   updated_at: string;
-//   warehouse_id: string;
-//   warehouse_name: string;
-// };
-
-export interface WarehouseDetails {
+export interface Warehouse {
   id: number;
   name?: string;
   town: string;
@@ -31,15 +19,33 @@ export interface WarehouseDetails {
   capacityPerVehicle?: number;
 }
 
+export type Vehicle = {
+  vehicle_id: number;
+  capacity: number;
+  license_plate: string;
+  driver_id: number;
+
+  miles_driven?: number;
+  next_service: Date;
+
+  created_at?: string;
+  updated_at?: string;
+};
+
 export interface Driver {
   id: number;
   name: string;
+  overall_rating?: number;
+
   warehouse_id?: number;
   status: number;
 
   address: string;
   mob: string;
   email: string;
+
+  created_at?: string;
+  updated_at?: string;
 }
 
 // export type Order = {

@@ -135,6 +135,7 @@ const DynamicTourDetails = () => {
     // const orderIdToRemove = pendingRemove.order.order_id;
     // updateTourRouteMap(orderIdToRemove);
   };
+  
   // const updateTourRouteMap = (orderId: number) => {
   //   const ordersStops = new Map<number, Stop>();
   //   tour?.tour_route?.stops.forEach((stop) => {
@@ -1013,9 +1014,16 @@ const DynamicTourDetails = () => {
 
       {/* Order Remove Confirmation Modal */}
       <Modal open={!!pendingRemove} onClose={() => setPendingRemove(null)}>
-        <Box sx={{ ...modalStyle, width: 450 }}>
-          <Typography variant="h5" mb={2}>
-            Do you want to remove{" "}
+        <Box
+          display={"flex"}
+          flexDirection={"column"}
+          alignItems={"center"}
+          justifyContent={"center"}
+          gap={3}
+          sx={{ ...modalStyle, width: 450, minHeight: 250 }}
+        >
+          <Typography variant="h5">
+            Remove{" "}
             <Box component="span" fontWeight="bold">
               Order {pendingRemove?.order?.order_number}
             </Box>{" "}
@@ -1085,6 +1093,7 @@ function SideHeaderTable(tour: DynamicTourPayload) {
     tour.matrix?.costWE,
     tour.matrix?.costWA,
   ];
+  
   return (
     <TableContainer>
       <Table

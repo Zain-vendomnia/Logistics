@@ -3,6 +3,10 @@ import pool from "../config/database";
 import { CreateTour } from "../types/dto.types";
 import { logWithTime } from "../utils/logging";
 import { PoolConnection } from "mysql2/promise";
+import { UpdateTour_Req } from "../types/tour.types";
+import { OrderStatus } from "./LogisticOrders";
+import { updateOrderStatus } from "../services/logisticOrder.service";
+import { mapRowToTour } from "../helpers/tour.helper";
 
 export const createTourAsync = async (
   connection: PoolConnection,
@@ -11,7 +15,7 @@ export const createTourAsync = async (
   logWithTime("[Create Tour Initiated]");
   try {
     // 1. Get Driver: name, userId, active status
-    const [driverUserRows]: any = await connection.query(
+    const [driverUserRows]: any = await connection.execute(
       `SELECT u.is_active, d.name
       FROM driver_details d
       JOIN users u ON d.user_id = u.user_id
@@ -26,7 +30,7 @@ export const createTourAsync = async (
     if (is_active === 0) throw new Error("Driver is inactive");
 
     // 2. Check if driver also has a tour on same day
-    const [duplicateTourRows]: any = await connection.query(
+    const [duplicateTourRows]: any = await connection.execute(
       `SELECT COUNT(*) AS count FROM tourinfo_master
       WHERE driver_id = ? AND tour_date = ?`,
       [tour.driverId, tour.tourDate]
@@ -65,7 +69,7 @@ export const createTourAsync = async (
 
     console.log("[tourModel] Creating tour with values:", insertValues);
 
-    const [result] = await connection.query(insertSql, insertValues);
+    const [result] = await connection.execute(insertSql, insertValues);
     const resultSet = result as ResultSetHeader;
 
     if (resultSet.insertId) {
@@ -190,10 +194,10 @@ export const deleteTours = async (tourIds: number[]) => {
   }
 };
 
-// Service function
-export const updateTour = async (tourData: any) => {
-  const { id, tourName, comments, startTime, driverid, routeColor, tourDate } =
-    tourData;
+export const updateTourinfoMasterAsync = async (tourData: UpdateTour_Req) => {
+  if (!tourData.orderIds?.length) {
+    throw new Error("Tour must contain at least one order.");
+  }
 
   const checkPendingSql = `
     SELECT COUNT(*) AS count FROM tourinfo_master
@@ -218,10 +222,17 @@ export const updateTour = async (tourData: any) => {
   try {
     await connection.beginTransaction();
 
+    const [tourRow] = await connection.query(
+      `SELECT * FROM tourinfo_master WHERE id = ? FOR UPDATE`,
+      [tourData.id]
+    );
+
+    const dbTour = (tourRow as any[]).map(mapRowToTour)[0];
+
     // 1. Check for existing pending/in-progress tours
-    const [pendingRows]: any = await connection.query(checkPendingSql, [
-      driverid,
-      id,
+    const [pendingRows]: any = await connection.execute(checkPendingSql, [
+      tourData.driverId,
+      tourData.id,
     ]);
     if (pendingRows[0].count > 0) {
       throw new Error(
@@ -230,54 +241,142 @@ export const updateTour = async (tourData: any) => {
     }
 
     // 2. Check for another tour on the same date
-    const [dateRows]: any = await connection.query(checkDateSql, [
-      driverid,
-      tourDate,
-      id,
+    const [dateRows]: any = await connection.execute(checkDateSql, [
+      tourData.driverId,
+      tourData.tourDate,
+      tourData.id,
     ]);
     if (dateRows[0].count > 0) {
-      throw new Error(`Driver already has another tour on ${tourDate}.`);
+      throw new Error(
+        `Driver already has another tour on ${tourData.tourDate}.`
+      );
     }
 
     // 3. Check driver status
-    const [userRows]: any = await connection.query(getUserIdSql, [driverid]);
+    const [userRows]: any = await connection.execute(getUserIdSql, [
+      tourData.driverId,
+    ]);
     if (!userRows.length)
-      throw new Error(`Driver not found with ID ${driverid}`);
+      throw new Error(`Driver not found with ID ${tourData.driverId}`);
 
     const userId = userRows[0].user_id;
-    const [statusRows]: any = await connection.query(checkUserStatusSql, [
+    const [statusRows]: any = await connection.execute(checkUserStatusSql, [
       userId,
     ]);
     if (!statusRows.length || statusRows[0].is_active === 0) {
       throw new Error(`Driver is inactive.`);
     }
 
-    // 4. Update tourinfo_master
-    const updateTourinfoQuery = `
-      UPDATE tourinfo_master 
-      SET tour_name = ?, comments = ?, start_time = ?, driver_id = ?, route_color = ?, tour_date = ?
-      WHERE id = ?
-    `;
-    const [tourinfoResult] = await connection.query(updateTourinfoQuery, [
-      tourName,
-      comments,
-      startTime,
-      driverid,
-      routeColor,
-      tourDate,
-      id,
-    ]);
+    // 4. Update tourinfo_master - OrderIds
+    const dbTourDate = dbTour.tour_date.toISOString().split("T")[0];
+    const dbStartTime = dbTour.start_time?.slice(0, 5);
+    const is_driverId_changed = dbTour.driver_id !== tourData.driverId;
+
+    const newOrderIds = tourData.orderIds.map(String);
+    const dbOrderIds = dbTour.orderIds.split(",");
+    const orderIdsDiffer =
+      [...dbOrderIds].sort().join(",") !== [...newOrderIds].sort().join(",");
+
+    const queryFields: string[] = [];
+    const updateValues: any[] = [];
+
+    if (dbTourDate !== tourData.tourDate) {
+      queryFields.push("tour_date = ?");
+      updateValues.push(tourData.tourDate);
+    }
+
+    if (dbStartTime !== tourData.startTime) {
+      queryFields.push("start_time = ?");
+      updateValues.push(`${tourData.startTime}:00`);
+    }
+
+    if (dbTour.route_color !== tourData.routeColor) {
+      queryFields.push("route_color = ?");
+      updateValues.push(tourData.routeColor);
+    }
+
+    if (is_driverId_changed) {
+      queryFields.push("driver_id = ?");
+      updateValues.push(tourData.driverId);
+    }
+
+    if (dbTour.vehicle_id !== tourData.vehicleId) {
+      queryFields.push("vehicle_id = ?");
+      updateValues.push(tourData.vehicleId);
+    }
+
+    if (orderIdsDiffer) {
+      queryFields.push("order_ids = ?");
+      updateValues.push(newOrderIds.join(","));
+    }
+
+    if (queryFields.length > 0) {
+      queryFields.push("updated_by = ?");
+      updateValues.push(tourData.userId);
+
+      updateValues.push(tourData.id);
+
+      await connection.execute(
+        `
+    UPDATE tourinfo_master
+    SET ${queryFields.join(", ")}
+    WHERE id = ?
+    `,
+        updateValues
+      );
+    }
 
     // 5. Update tour_driver
-    const updateDriverQuery = `
+    if (is_driverId_changed) {
+      const updateDriverQuery = `
       UPDATE tour_driver 
       SET driver_id = ?, tour_date = ?
       WHERE tour_id = ?
     `;
-    await connection.query(updateDriverQuery, [driverid, tourDate, id]);
+      await connection.execute(updateDriverQuery, [
+        tourData.driverId,
+        tourData.tourDate,
+        tourData.id,
+      ]);
+    }
+
+    if (orderIdsDiffer) {
+      // update
+      // - order_ids - logistic-order.orders.status
+      // -  tour-route - route-data   // Pending for Here API activation
+
+      const addedIds = newOrderIds
+        .filter((id) => !dbOrderIds.includes(id))
+        .map(Number);
+      const removedIds = dbOrderIds
+        .filter((id) => !newOrderIds.includes(id))
+        .map(Number);
+
+      const promises_assigned = addedIds.map((oId) =>
+        updateOrderStatus({
+          orderId: oId,
+          newStatus: OrderStatus.Assigned,
+          changedBy: tourData.userId,
+          conn: connection,
+        })
+      );
+      await Promise.all(promises_assigned);
+
+      const promises_unassigned = removedIds.map((oId) =>
+        updateOrderStatus({
+          orderId: oId,
+          newStatus: OrderStatus.Unassigned,
+          changedBy: tourData.userId,
+          conn: connection,
+        })
+      );
+      await Promise.all(promises_unassigned);
+    }
 
     await connection.commit();
-    return tourinfoResult;
+
+    // const affectedRows = (result as ResultSetHeader).affectedRows;
+    return true;
   } catch (error: unknown) {
     await connection.rollback();
 

@@ -702,6 +702,9 @@ export function assignmentHelper(warehouse: Warehouse) {
 
       if (clusterWeight >= minWeight || forceFlag) {
         clusters.push(cluster);
+      } else if (clusterWeight >= minWeight * 0.15) {
+        console.log("Accepting weight below 15% of Min_Weight threshold");
+        clusters.push(cluster);
       } else {
         smallClusters.push(cluster);
 
@@ -1044,7 +1047,6 @@ export function assignmentHelper(warehouse: Warehouse) {
       if (!sectors.has(sectorId)) sectors.set(sectorId, []);
       sectors.get(sectorId)!.push({ ...o, distance, angle });
     }
-
     // --- Phase 3: Sort sectors by density ---
     const sortedSectors = Array.from(sectors.entries())
       .sort((a, b) => b[1].length - a[1].length)

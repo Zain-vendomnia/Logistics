@@ -6,24 +6,33 @@ import {
   createTourAsync,
   removeUnassignedOrdersFromTour,
 } from "../model/tourModel";
-import { CreateTour, NotAssigned, TourMatrix } from "../types/dto.types";
+import { CreateTour, NotAssigned } from "../types/dto.types";
 import { DecodedRoute, Unassigned } from "../types/hereMap.types";
 import {
   Tour,
   LogisticsRoute,
   TourType,
   DeliveryCostRates,
+  TourStatus,
+  TourMatrix,
+  TourinfoMaster,
 } from "../types/tour.types";
 import hereMapService from "./hereMap.service";
 import pool from "../config/database";
 import {
-  buildUnassignedOrders,
+  // buildUnassignedOrders,
   extractTourStats,
-} from "./helpers/dynamicTour.helpers";
+} from "../helpers/dynamicTour.helpers";
 import { Order } from "../types/order.types";
 import logger from "../config/logger";
 import { getWarehouseWithVehicles } from "./warehouse.service";
-import { warehouseOrdersAssignment } from "../orchestration/assignmentWorker.helper";
+// import { warehouseOrdersAssignment } from "../orchestration/assignmentWorker.helper";
+import {
+  approxKmForRoute,
+  approxSecForRoute,
+} from "../orchestration/utils/orderCluster.util";
+import { Warehouse } from "../types/warehouse.types";
+import { assignmentHelper } from "../orchestration/assignmentWorker.helper";
 
 export async function getTourMapDataAsync(tourPayload: CreateTour) {
   const connection = await pool.getConnection();
@@ -261,10 +270,22 @@ export async function extractUnassignedOrderIds(unassigned: Unassigned[]) {
 }
 
 export async function getTourDetailsById(tourId: number) {
-  const tourObj = await tourInfo_master.getTourNameByIdAsync(tourId);
-  const routes = await route_segments.getAllRouteSegments_TourId(tourId);
+  const tourObj: TourinfoMaster = await tourInfo_master.getTourByIdAsync(
+    tourId
+  );
+  const matrix = await getTourMatrix(5, TourType.dynamicTour);
+  tourObj.matrix = matrix;
 
-  return { tour: tourObj.tour_name, routes, unassigned: "400098044,400098044" };
+  const orderIds = tourObj.orderIds.split(",").map(Number);
+  const orders = await LogisticOrder.getOrdersByIds(orderIds);
+  // const orders = await LogisticOrder.getOrdersByTourId(tourId);
+  tourObj.orders = orders;
+
+  // const tourObj = await tourInfo_master.getTourNameByIdAsync(tourId);
+  // const routes = await route_segments.getAllRouteSegments_TourId(tourId);
+
+  // return { tour: tourObj.tour_name, routes, unassigned: "400098044,400098044" };
+  return tourObj;
 }
 
 function summarizeOrders(orders: Order[]) {
@@ -627,46 +648,57 @@ export async function estimateTourCostMatrixAsync(
   orderIds: number[]
 ): Promise<TourMatrix | undefined> {
   const orders = await LogisticOrder.getOrdersWithItemsAsync(orderIds);
-  const warehouse = await getWarehouseWithVehicles(warehouseId);
+  const warehouse: Warehouse = await getWarehouseWithVehicles(warehouseId);
 
-  const assignments: Map<number, { order: Order; distance?: number }[]> =
-    await warehouseOrdersAssignment([warehouse], orders);
+  // const assignments: Map<number, { order: Order; distance?: number }[]> =
+  //   await warehouseOrdersAssignment([warehouse], orders);
 
-  const inLine_Orders = Array.from(assignments.values())
-    .flat()
-    .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity))
-    .map((item) => item.order);
+  // // const inLine_Orders = Array.from(assignments.values())
+  // //   .flat()
+  // //   .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity))
+  // //   .map((item) => item.order);
 
-  const {
-    tour,
-    unassigned,
-    orders: txnOrders,
-  } = await hereMapService.CreateTourRouteAsync(
-    inLine_Orders.map((o) => o.order_id),
-    warehouse.id
-  );
+  // const {
+  //   tour,
+  //   unassigned,
+  //   orders: txnOrders,
+  // } = await hereMapService.CreateTourRouteAsync(
+  //   inLine_Orders.map((o) => o.order_id),
+  //   warehouse.id
+  // );
 
-  if (unassigned.length > 0) {
-    const unassignedOrders = buildUnassignedOrders(unassigned, txnOrders);
+  // if (unassigned.length > 0) {
+  //   const unassignedOrders = buildUnassignedOrders(unassigned, txnOrders);
 
-    const nonTxnOrders = unassignedOrders.map((u) => u.order_number).join(", ");
-    const msg = `${unassignedOrders[0].reasons}.
-    Order(s): ${nonTxnOrders}`;
-    throw new Error(msg);
-    // return {
-    //   success: false,
-    //   message: msg,
-    //   totalCost: null,
-    //   costPerStop: null,
-    //   costPerArticle: null,
-    //   costPerSLMD: null,
-    //   totalWeightKg: null,
-    //   totalDistanceKm: null,
-    //   totalDurationHrs: null,
-    // } as unknown as TourMatrix;
-  }
+  //   const nonTxnOrders = unassignedOrders.map((u) => u.order_number).join(", ");
+  //   const msg = `${unassignedOrders[0].reasons}.
+  //   Order(s): ${nonTxnOrders}`;
+  //   throw new Error(msg);
+  //   // return {
+  //   //   success: false,
+  //   //   message: msg,
+  //   //   totalCost: null,
+  //   //   costPerStop: null,
+  //   //   costPerArticle: null,
+  //   //   costPerSLMD: null,
+  //   //   totalWeightKg: null,
+  //   //   totalDistanceKm: null,
+  //   //   totalDurationHrs: null,
+  //   // } as unknown as TourMatrix;
+  // }
+  // const { totalDistanceKm, totalDurationHrs } = extractTourStats(tour);
 
-  const { totalDistanceKm, totalDurationHrs } = extractTourStats(tour);
+  const helper = assignmentHelper(warehouse);
+  const { geoClusters, leftovers } =
+    helper.clusterOrdersByDensDirection(orders);
+  console.log("Leftovers from orders route: ", leftovers);
+  const xOrders = geoClusters.flatMap((c) => c.cluster);
+  // const xOrders = [...orders];
+
+  const wh = { lat: warehouse.lat, lng: warehouse.lng };
+  const totalDistanceKm = await approxKmForRoute(wh, xOrders);
+  const approxSecs = await approxSecForRoute(wh, xOrders);
+  const totalDurationHrs = approxSecs / 3600;
 
   const {
     totalCost,
@@ -742,4 +774,37 @@ export async function removeTourMatrix(
     logger.error(`Error deleting Tour Matrix for tourId ${tourId}:`, error);
     throw error;
   }
+}
+
+export async function getToursByStatusAsync(
+  status: TourStatus
+): Promise<TourinfoMaster[]> {
+  const [rows]: any = await pool.execute(
+    `SELECT 
+      t.*, d.name AS driver_name, d.id AS driver_id, wh.color_code
+      FROM tourinfo_master AS t
+    JOIN tour_driver AS td 
+        ON t.id = td.tour_id AND t.driver_id = td.driver_id
+    JOIN driver_details AS d 
+        ON td.driver_id = d.id
+    JOIN warehouse_details AS wh 
+        ON t.warehouse_id = wh.warehouse_id 
+    WHERE tour_status = ?`,
+    [status]
+  );
+
+  // TourRow type mapping
+  return rows.map((row: any) => ({
+    id: row.id,
+    tour_name: row.tour_name,
+    tour_comments: row.tour_comments,
+    tour_date: row.tour_date,
+    tour_status: row.tour_status,
+    route_color: row.route_color,
+    driver_id: row.driver_id,
+    driver_name: row.driver_name,
+    vehicle_id: row.vehicle_id,
+    warehouse_id: row.warehouse_id,
+    warehouse_colorCode: row.color_code,
+  }));
 }

@@ -6,7 +6,7 @@ import { emitAppConnection } from "./socket/logging.socket";
 import { runInitialDbSetup } from "./services/core/dbSetupService";
 // import { runInitialSyncs } from "./services/core/syncService";
 // import { scheduleRecurringSyncs } from "./services/core/scheduleService";
-import { initOrchestrationWorker } from "./services/core/orchestrationWorker.service";
+// import { initOrchestrationWorker } from "./services/core/orchestrationWorker.service";
 
 async function main() {
   try {
@@ -23,7 +23,7 @@ async function main() {
 
       // await runInitialSyncs();
       // scheduleRecurringSyncs();
-      await initOrchestrationWorker();
+      // await initOrchestrationWorker();
     });
   } catch (error: any) {
     logger.error(`Startup error: ${error.message || error}`);

@@ -9,7 +9,7 @@ import {
   fetchOrderHistoryAsync,
   updateOrderStatusAsync,
 } from "../../services/logisticOrder.service";
-import { sendError } from "../../services/helpers/logisticOrder.helper";
+import { sendError } from "../../helpers/logisticOrder.helper";
 
 export const getAllLogisticOrders = async (_req: Request, res: Response) => {
   try {

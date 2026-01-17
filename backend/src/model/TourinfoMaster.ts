@@ -1,6 +1,7 @@
 import { PoolConnection } from "mysql2/promise";
 import pool from "../config/database";
-import { Tour } from "../types/tour.types";
+import { TourinfoMaster } from "../types/tour.types";
+import { mapRowToTour } from "../helpers/tour.helper";
 
 export class tourInfo_master {
   public id!: number;
@@ -90,19 +91,48 @@ export class tourInfo_master {
     }
   }
 
-  static async getTourByIdAsync(tourId: number): Promise<Tour> {
+  static async getTourByIdAsync(tourId: number): Promise<TourinfoMaster> {
     try {
       const [rows]: any = await pool.execute(
-        `SELECT * FROM tourinfo_master WHERE id = ?`,
+        `SELECT 
+          t.*,
+          w.warehouse_id        AS warehouse_id,
+          w.warehouse_name                AS warehouse_name,
+          w.address             AS warehouse_address,
+          w.town                AS warehouse_town,
+          w.color_code           AS warehouse_colorCode,
+          w.zip_codes_delivering AS warehouse_zip_codes_delivering,
+          w.zip_code           AS warehouse_zip_code,
+
+          v.vehicle_id           AS vehicle_id,
+          v.license_plate         AS vehicle_license_plate,
+          v.capacity                 AS vehicle_capacity,
+
+          d.id                   AS driver_id,
+          d.name                 AS driver_name,
+          d.mob                AS driver_phone
+
+        FROM tourinfo_master AS t
+        JOIN warehouse_details AS w 
+          ON t.warehouse_id = w.warehouse_id
+        JOIN driver_details AS d
+          ON t.driver_id = d.id
+        JOIN vehicle_details AS v
+          ON t.warehouse_id = v.warehouse_id 
+        AND t.driver_id = v.driver_id
+        WHERE t.id = ?
+        `,
         [tourId]
       );
 
-      return rows[0] as Tour;
+      const tourinfo: TourinfoMaster = mapRowToTour(rows[0] as any);
+      return tourinfo;
     } catch (error) {
       console.error("Error fetching tour ID:", error);
       throw error;
     }
   }
+
   static async getTourNameByIdAsync(tourId: number) {
     try {
       const [rows]: any = await pool.execute(

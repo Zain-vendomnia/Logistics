@@ -158,11 +158,12 @@ adminRouter.get("/orderHistory", orderCtrl.getOrderHistoryDetails);
 adminRouter.put("/orderStatus/:id", orderCtrl.updateOrderStatus);
 adminRouter.post("/cancels");
 adminRouter.get("/orderCount", getOrderCount);
+adminRouter.get("/routeoptimize/getToursByStatus", tourCtrl.getToursByStatus);
 adminRouter.get("/routeoptimize/gettourStatushistory", getAllTourhistory);
 adminRouter.get("/routeoptimize/gettourStatus", tourCtrl.getTourstatus);
 adminRouter.post(
   "/routeoptimize/updatetourstatus/:tourId",
-  tourCtrl.updatetourstatus
+  tourCtrl.updateTourStatus
 );
 adminRouter.post("/upload_image", uploadImageController);
 adminRouter.post("/driver/tour/:tourId/order", HandleOrderDelivery);

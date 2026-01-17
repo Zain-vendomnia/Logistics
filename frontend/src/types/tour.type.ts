@@ -1,4 +1,6 @@
+import { n } from "framer-motion/dist/types.d-Cjd591yU";
 import { number } from "yup";
+import { Order } from "./order.type";
 
 export type NotAssigned = {
   id: string;
@@ -28,6 +30,20 @@ export type CreateTour_Req = {
   driverId: number;
   warehouseId: number;
   userId?: string;
+};
+
+export type UpdateTour_Req = {
+  id: number;
+  tourName?: string;
+  tourDate: string;
+  startTime: string;
+  routeColor: string;
+  orderIds: number[];
+  driverId: number;
+  vehicleId: number;
+  warehouseId: number;
+  userId: string;
+  comments: string | null;
 };
 
 export type TourData = {
@@ -142,7 +158,6 @@ export interface TourMatrix {
   costWE: number;
   costWA: number;
 }
-
 export interface DynamicTourPayload {
   id?: number;
   tour_name?: string;
@@ -167,6 +182,53 @@ export interface DynamicTourPayload {
 
   matrix?: TourMatrix;
 }
+export interface Tourinfo {
+  id: number;
+  tour_name?: string;
+  status?: string;
+  orderIds: string; // Comma-separated
+
+  tour_date: string;
+  start_time?: string;
+  end_time?: string;
+
+  tour_route?: Geometry | null; // object;
+  route_color?: string | null;
+
+  comments?: string | null;
+  customer_ids?: string;
+
+  item_total_qty_truck: number;
+  total_weight_kg?: number;
+  total_distance_km?: number;
+  total_duration_hrs?: number;
+
+  created_at?: string | null;
+  updated_at?: string | null;
+  updated_by?: string | null;
+
+  warehouse_id: number;
+  warehouse_name?: string;
+  warehouse_address?: string;
+  warehouse_town?: string;
+  warehouse_colorCode?: string;
+  warehouse_zip_codes_delivering?: string;
+  warehouse_zip_code?: string;
+
+  vehicle_id: number;
+  capacity_kg?: string;
+  vehicle_registration?: string;
+  vehicle_capacity?: string;
+
+  driver_id: number;
+  driver_name?: string;
+  driver_phone?: string;
+
+  matrix_id?: number;
+  matrix?: TourMatrix;
+
+  orders?: Order[];
+}
 
 export type UnassignedRes = {
   orderId: number;
@@ -184,4 +246,28 @@ export type rejectDynamicTour_Req = {
   tour_id: number;
   userId: string;
   reason: string;
+};
+
+export enum TourStatus {
+  rejected = "rejected",
+  approved = "approved",
+  pending = "pending",
+  live = "live",
+  completed = "completed",
+}
+
+export type TourRow = {
+  id: number;
+  tour_name: string;
+  tour_date: string;
+  status: TourStatus;
+  route_color: string | null;
+  comments: string | null;
+
+  orderIds: number[];
+  driver_id: number;
+  driver_name: string;
+  vehicle_id: number;
+  warehouse_id: number;
+  warehouse_colorCode?: string;
 };

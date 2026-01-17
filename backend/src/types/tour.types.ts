@@ -1,4 +1,5 @@
 import { Statistic } from "./hereMap.types";
+import { Order } from "./order.types";
 
 export type RouteResponse = {
   from: any;
@@ -98,6 +99,7 @@ export enum TourStatus {
   live = "live",
   completed = "completed",
 }
+
 export type TourTracePayload = {
   source_table: TourType;
   source_id: number;
@@ -134,4 +136,114 @@ export type DeliveryCostRates = {
   handling_outbound_cost_pal?: number;
   handling_outbound_costs_tour?: number;
   currency_code?: "EUR" | "USD";
+};
+
+export interface TourMatrix {
+  tourId: number;
+  totalOrdersItemsQty?: number;
+  totalOrdersArticlesQty?: number;
+  pickUpsQty?: number;
+
+  totalWeightKg: number;
+  totalDistanceKm: number;
+  totalDurationHrs: number;
+  costPerStop: number;
+  costPerArticle: number;
+  costPerSLMD: number;
+  totalCost: number;
+  hotelCost: number;
+  vanTourCost: number;
+  dieselTourCost: number;
+  personnelTourCost: number;
+  warehouseTourCost: number;
+  infeedTourCost: number;
+  costWE: number;
+  costWA: number;
+}
+
+export type TourinfoMaster = {
+  id: number;
+  tour_name: string;
+  tour_status: string;
+  orderIds: string;
+
+  tour_date: Date;
+  start_time: string;
+  end_time: string;
+
+  tour_route: JSON;
+  route_color: string;
+
+  item_total_qty_truck: number;
+  total_weight_kg?: number;
+  total_distance_km?: number;
+  total_duration_hrs?: number;
+
+  comments?: string;
+  customer_ids?: string;
+
+  truck_loaded_img?: Blob;
+  tour_end_truck_qty_pic?: Blob;
+  tour_end_fuel_pic?: Blob;
+
+  tour_start_km?: number;
+  tour_end_km?: number;
+  excepted_tour_total_km?: number;
+  tour_start_fuel_pic?: Blob;
+
+  created_at: Date;
+  updated_at?: Date;
+  updated_by?: string;
+
+  warehouse_id: number;
+  warehouse_name?: string;
+  warehouse_address?: string;
+  warehouse_town?: string;
+  warehouse_colorCode?: string;
+  warehouse_zip_codes_delivering?: string;
+  warehouse_zip_code?: string;
+
+  vehicle_id: number;
+  vehicle_name?: string;
+  vehicle_registration?: string;
+  vehicle_capacity?: string;
+
+  driver_id: number;
+  driver_name?: string;
+  driver_phone?: string;
+
+  matrix_id?: number;
+  matrix?: TourMatrix;
+
+  orders?: Order[];
+};
+
+export type TourRow = {
+  id: number;
+  tour_name: string;
+  tour_date: string;
+  status: TourStatus;
+  route_color: string | null;
+  comments: string | null;
+
+  orderIds: number[];
+  driver_id: number;
+  driver_name: string;
+  vehicle_id: number;
+  warehouse_id: number;
+  warehouse_colorCode?: string;
+};
+
+export type UpdateTour_Req = {
+  id: number;
+  tourName?: string;
+  tourDate: string;
+  startTime: string;
+  routeColor: string;
+  orderIds: number[];
+  driverId: number;
+  vehicleId: number;
+  warehouseId: number;
+  userId: string;
+  comments: string | null;
 };

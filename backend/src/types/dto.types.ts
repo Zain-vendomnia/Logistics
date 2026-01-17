@@ -1,5 +1,5 @@
 import { Unassigned } from "./hereMap.types";
-import { Geometry, Tour } from "./tour.types";
+import { Geometry, Tour, TourMatrix } from "./tour.types";
 
 export type CreateTour = {
   dTour_id?: number;
@@ -25,29 +25,6 @@ type TourData = {
   tour: Tour;
   unassigned: Unassigned[];
 };
-
-export interface TourMatrix {
-  tourId: number;
-  totalOrdersItemsQty?: number;
-  totalOrdersArticlesQty?: number;
-  pickUpsQty?: number;
-  
-  totalWeightKg: number;
-  totalDistanceKm: number;
-  totalDurationHrs: number;
-  costPerStop: number;
-  costPerArticle: number;
-  costPerSLMD: number;
-  totalCost: number;
-  hotelCost: number;
-  vanTourCost: number;
-  dieselTourCost: number;
-  personnelTourCost: number;
-  warehouseTourCost: number;
-  infeedTourCost: number;
-  costWE: number;
-  costWA: number;
-}
 
 export interface DynamicTourPayload {
   id?: number | null;

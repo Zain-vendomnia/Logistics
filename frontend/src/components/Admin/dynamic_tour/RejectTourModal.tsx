@@ -7,7 +7,9 @@ import {
   MenuItem,
   Modal,
   Select,
+  Stack,
   TextField,
+  Typography,
 } from "@mui/material";
 
 const modalStyle = {
@@ -51,29 +53,34 @@ export const RejectTourModal = ({
 
   return (
     <Modal open={open} onClose={onClose}>
-      <Box sx={{ ...modalStyle, width: 450, p: 3 }}>
-        <FormControl fullWidth margin="normal">
-          <InputLabel>Reason</InputLabel>
-          <Select
-            value={reason}
-            label="Reason"
-            onChange={(e) => setReason(e.target.value)}
-          >
-            <MenuItem value="tour optimization">Tour Optimization</MenuItem>
-            <MenuItem value="any reason">Any Reason</MenuItem>
-            <MenuItem value="other">Other</MenuItem>
-          </Select>
-        </FormControl>
+      <Box sx={{ ...modalStyle, width: 470, p: 4 }}>
+        <Stack spacing={3}>
+          <Typography variant="h5" fontWeight={"bold"}>
+            Do you wanna cancel this tour?
+          </Typography>
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Reason</InputLabel>
+            <Select
+              value={reason}
+              label="Reason"
+              onChange={(e) => setReason(e.target.value)}
+            >
+              <MenuItem value="tour optimization">Tour Optimization</MenuItem>
+              <MenuItem value="any reason">Any Reason</MenuItem>
+              <MenuItem value="other">Other</MenuItem>
+            </Select>
+          </FormControl>
 
-        {reason === "other" && (
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Remarks"
-            value={remarks}
-            onChange={(e) => setRemarks(e.target.value)}
-          />
-        )}
+          {reason === "other" && (
+            <TextField
+              fullWidth
+              margin="normal"
+              label="Mention reason"
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+            />
+          )}
+        </Stack>
 
         <Box display="flex" justifyContent="flex-end" gap={2} mt={2}>
           <Button

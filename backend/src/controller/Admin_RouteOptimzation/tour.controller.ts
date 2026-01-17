@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { deleteTours, updateTour } from "../../model/tourModel";
+import { deleteTours, updateTourinfoMasterAsync } from "../../model/tourModel";
 import { tourInfo_master } from "../../model/TourinfoMaster";
 // import { createRoutedata } from "../../services/createRoutedata";
 import { route_segments } from "../../model/routeSegments";
@@ -9,6 +9,8 @@ import { ResultSetHeader } from "mysql2";
 import * as tourService from "../../services/tour.service";
 import { logWithTime } from "../../utils/logging";
 import logger from "../../config/logger";
+import { getToursByStatusAsync } from "../../services/tour.service";
+import { TourStatus, UpdateTour_Req } from "../../types/tour.types";
 
 export const createTourController = async (req: Request, res: Response) => {
   const tour_payload: CreateTour = req.body;
@@ -119,51 +121,45 @@ export const deleteTourController = async (req: Request, res: Response) => {
 };
 
 export const updateTourController = async (req: Request, res: Response) => {
-  const { id, tourName, comments, startTime, driverid, routeColor, tourDate } =
-    req.body;
+  // const requestObj: UpdateTour_Req { id, tourName, comments, startTime, driverid, routeColor, tourDate } =
+  //   req.body;
+  const requestObj: UpdateTour_Req = req.body;
 
-  if (!id) {
+  if (!requestObj || !requestObj.id) {
     return res.status(400).json({ message: "Tour ID is required for update" });
   }
 
-  if (
-    !tourName ||
-    !comments ||
-    !startTime ||
-    !driverid ||
-    !routeColor ||
-    !tourDate
-  ) {
-    return res
-      .status(400)
-      .json({ message: "All fields are required for the update" });
+  if (!requestObj) {
+    return res.status(400).json({ message: "Invalid tour request" });
   }
 
   try {
-    const result = await updateTour({
-      id,
-      tourName,
-      comments,
-      startTime,
-      driverid,
-      routeColor,
-      tourDate,
-    });
+    const result = await updateTourinfoMasterAsync(requestObj);
 
-    const affectedRows = (result as ResultSetHeader).affectedRows;
-
-    if (affectedRows > 0) {
-      return res.status(200).json({ message: "Tour updated successfully" });
-    } else {
-      return res
-        .status(404)
-        .json({ message: "Tour not found or no changes made" });
+    if (!result) {
+      let responseObj = { status: true, message: "Error updating tour" };
+      return res.status(404).json(responseObj);
     }
+    return res
+      .status(200)
+      .json({ status: true, message: "Tour updated successfully" });
   } catch (error) {
-    res.status(500).json({
+    res.status(404).json({
       message: "Error updating tour",
       error: error instanceof Error ? error.message : "Unknown error",
     });
+  }
+};
+
+export const getToursByStatus = async (_req: Request, res: Response) => {
+  try {
+    const status = _req.query.status;
+    const tourCompletedIds = await getToursByStatusAsync(status as TourStatus);
+    console.log("tourCompletedIds" + JSON.stringify(tourCompletedIds));
+    res.status(200).json(tourCompletedIds);
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -177,6 +173,7 @@ export const getTourstatus = async (_req: Request, res: Response) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
 export const getTourDetails = async (_req: Request, res: Response) => {
   try {
     const { tourId } = _req.query;
@@ -194,7 +191,7 @@ export const getTourDetails = async (_req: Request, res: Response) => {
   }
 };
 
-export const updatetourstatus = async (_req: Request, res: Response) => {
+export const updateTourStatus = async (_req: Request, res: Response) => {
   const { tourId } = _req.params;
   console.log("tour_id" + tourId);
   try {

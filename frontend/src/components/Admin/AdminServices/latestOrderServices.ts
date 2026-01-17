@@ -50,7 +50,7 @@ export interface Driver {
   warehouse_id: number;
 }
 
-export interface TourInfo {
+interface TourInfoObj {
   id: number;
   tour_name: string;
   tour_route_color: string;
@@ -67,10 +67,10 @@ export interface TourInfo {
 
 type TourStatus = "confirmed" | "pending" | "completed" | "live";
 interface TourStatusGrouped {
-  confirmed: TourInfo[];
-  pending: TourInfo[];
-  completed: TourInfo[];
-  live: TourInfo[];
+  confirmed: TourInfoObj[];
+  pending: TourInfoObj[];
+  completed: TourInfoObj[];
+  live: TourInfoObj[];
 }
 
 class latestOrderServices {
@@ -79,21 +79,22 @@ class latestOrderServices {
   private drivers: Driver[] = [];
   private cachedCount: number = 0;
 
-  private tours: TourInfo[] = [];
+  private tours: TourInfoObj[] = [];
   private cachedTourCount: number =
     Number(localStorage.getItem("cachedTourCount")) || 0;
 
   private constructor() {}
+
   private cachedTourLastUpdated: string | null =
     localStorage.getItem("cachedTourLastUpdated") || null;
   private cachedOrderLastUpdated: string | null =
     localStorage.getItem("cachedOrderLastUpdated") || null;
   // For tour status history
   private tourStatusHistory: {
-    confirmed: TourInfo[];
-    pending: TourInfo[];
-    completed: TourInfo[];
-    live: TourInfo[];
+    confirmed: TourInfoObj[];
+    pending: TourInfoObj[];
+    completed: TourInfoObj[];
+    live: TourInfoObj[];
   } = {
     confirmed: [],
     pending: [],
@@ -117,6 +118,7 @@ class latestOrderServices {
     try {
       //const response = await fetch('http://localhost:8080/api/admin/routeoptimize/tourcount');
       const response = await adminApiService.fetchOrderTourCount();
+      // const response = await adminApiService.fetchToursByStatus();
       const data = response.data[0];
 
       // console.log("🎯 Tour count response:", data);
@@ -143,7 +145,7 @@ class latestOrderServices {
     }
   }
 
-  public async getTours(): Promise<TourInfo[]> {
+  public async getTours(): Promise<TourInfoObj[]> {
     const { count: currentCount, lastUpdated: currentLastUpdated } =
       await this.fetchTourCount();
     console.log(
@@ -167,7 +169,7 @@ class latestOrderServices {
     try {
       //const response = await fetch('http://localhost:8080/api/admin/routeoptimize/getAlltours');
       const response = adminApiService.fetchAllTours();
-      const data = (await response).data as TourInfo[];
+      const data = (await response).data as TourInfoObj[];
 
       this.tours = data;
       this.cachedTourCount = currentCount;
@@ -181,10 +183,10 @@ class latestOrderServices {
     }
   }
 
-  public async RealTimeToursData(): Promise<TourInfo[]> {
+  public async RealTimeToursData(): Promise<TourInfoObj[]> {
     try {
       const response = await adminApiService.fetchAllTours();
-      this.tours = response.data as TourInfo[];
+      this.tours = response.data as TourInfoObj[];
       return this.tours;
     } catch (error) {
       console.error("❌ Error fetching tours:", error);
@@ -321,10 +323,10 @@ class latestOrderServices {
   }
 
   public async getTourStatusHistory(): Promise<{
-    confirmed: TourInfo[];
-    pending: TourInfo[];
-    completed: TourInfo[];
-    live: TourInfo[];
+    confirmed: TourInfoObj[];
+    pending: TourInfoObj[];
+    completed: TourInfoObj[];
+    live: TourInfoObj[];
   }> {
     const { count, lastUpdated } = await this.fetchTourCount();
 

@@ -18,11 +18,10 @@ type Props = {
 
 export const DynamicOrdersList = ({ items, handleDelete }: Props) => {
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
-
   const [orderList, setOrderList] = useState<Order[]>(items);
+
   useEffect(() => {
     setOrderList(items);
-    // console.log("Order items**********: ", items);
   }, [items]);
 
   const handleOrderSelect = (orderId: number) => {
@@ -32,7 +31,7 @@ export const DynamicOrdersList = ({ items, handleDelete }: Props) => {
   return (
     <Box width={"100%"}>
       {orderList.map((item, idx) => (
-        <React.Fragment key={item.order_id}>
+        <React.Fragment key={idx}>
           <ListItem disablePadding>
             <ListItemButton
               sx={{ px: 0, m: 0 }}

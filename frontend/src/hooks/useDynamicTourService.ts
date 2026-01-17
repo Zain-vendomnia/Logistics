@@ -9,7 +9,7 @@ import {
   UnassignedRes,
 } from "../types/tour.type";
 import adminApiService from "../services/adminApiService";
-import { Driver, WarehouseDetails } from "../types/dto.type";
+import { Driver, Warehouse } from "../types/warehouse.type";
 import { getAvailableDrivers } from "../services/driverService";
 import useDynamicTourStore from "../store/useDynamicTourStore";
 import {
@@ -36,7 +36,7 @@ export const useDynamicTourService = () => {
 
   const [loading, setLoading] = useState(false);
 
-  const [warehouse, setWarehouse] = useState<WarehouseDetails | null>(null);
+  const [warehouse, setWarehouse] = useState<Warehouse | null>(null);
   const [drivers, setDrivers] = useState<Driver[]>([]);
 
   const [tourOrders, setTourOrders] = useState<Order[]>([]);
@@ -64,7 +64,6 @@ export const useDynamicTourService = () => {
 
   const fetchEligibleDrivers = async (date: string) => {
     if (!selectedTour) return;
-
     try {
       const res = await getAvailableDrivers(
         date,
@@ -106,9 +105,10 @@ export const useDynamicTourService = () => {
   }, [tourOrders, selectedPinbOrders, selectedTour]);
 
   // Fetch eligible warehouse drivers
-  useEffect(() => {
-    fetchEligibleDrivers(formData.tourDate);
-  }, [selectedTour?.warehouse_id, formData.tourDate]);
+  // TEMP
+  // useEffect(() => {
+  //   fetchEligibleDrivers(formData.tourDate);
+  // }, [selectedTour?.warehouse_id, formData.tourDate]);
 
   // Fetch Selected Tour Details and Orders
   useEffect(() => {
@@ -117,8 +117,9 @@ export const useDynamicTourService = () => {
     const fetchData = async () => {
       try {
         // get warehouse details
-        const warehouseRes: WarehouseDetails =
-          await adminApiService.getWarehouse(selectedTour.warehouse_id);
+        const warehouseRes: Warehouse = await adminApiService.getWarehouse(
+          selectedTour.warehouse_id
+        );
         setWarehouse(warehouseRes);
 
         // get Tour Orders
@@ -394,36 +395,41 @@ export const useDynamicTourService = () => {
 
   const handleTourReject = async (reason: string) => {
     setLoading(true);
-    try {
-      const request: rejectDynamicTour_Req = {
-        tour_id: selectedTour?.id!,
-        userId: getCurrentUser().email,
-        reason,
-      };
+    showNotification({
+      message: "Tour Rejected Successfully",
+      severity: NotificationSeverity.Success,
+    });
+    return;
+    // try {
+    //   const request: rejectDynamicTour_Req = {
+    //     tour_id: selectedTour?.id!,
+    //     userId: getCurrentUser().email,
+    //     reason,
+    //   };
 
-      const res = await adminApiService.rejectDynamicTour(request);
-      console.log("Reject D-Tour Response:", res);
+    //   const res = await adminApiService.rejectDynamicTour(request);
+    //   console.log("Reject D-Tour Response:", res);
 
-      const updated_dTourList = dynamicToursList.filter(
-        (dt) => dt.id !== request.tour_id
-      );
-      setDynamicToursList(updated_dTourList);
+    //   const updated_dTourList = dynamicToursList.filter(
+    //     (dt) => dt.id !== request.tour_id
+    //   );
+    //   setDynamicToursList(updated_dTourList);
 
-      showNotification({
-        message: "Tour Rejected Successfully",
-        severity: NotificationSeverity.Success,
-      });
-    } catch (error: unknown) {
-      console.error("Error Rejecting Tour:", error);
-      showNotification({
-        message: "Error Rejecting Tour",
-        severity: NotificationSeverity.Error,
-      });
-    } finally {
-      setSelectedTour(null);
-      setSelectedPinbOrders([]);
-      setLoading(false);
-    }
+    //   showNotification({
+    //     message: "Tour Rejected Successfully",
+    //     severity: NotificationSeverity.Success,
+    //   });
+    // } catch (error: unknown) {
+    //   console.error("Error Rejecting Tour:", error);
+    //   showNotification({
+    //     message: "Error Rejecting Tour",
+    //     severity: NotificationSeverity.Error,
+    //   });
+    // } finally {
+    //   setSelectedTour(null);
+    //   setSelectedPinbOrders([]);
+    //   setLoading(false);
+    // }
   };
 
   // Side functions

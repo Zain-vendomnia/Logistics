@@ -84,19 +84,14 @@ const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
         {
           text: "Tours",
           icon: <TourOutlinedIcon />,
-          path: "/Admin_TourTemplates",
+          path: "/scheduled/tour",
         },
-        { text: "Completed Tour", icon: <AltRoute />, path: "/completed_tour" },
-        { text: "Live Tour", icon: <TrendingUp />, path: "/live_tours" },
+        { text: "Live Tour", icon: <TrendingUp />, path: "/live/tour" },
+        { text: "Completed Tour", icon: <AltRoute />, path: "/completed/tour" },
         {
           text: "Warehouse",
           icon: <Warehouse />,
           path: "/manage_warehouse",
-        },
-        {
-          text: "Drivers",
-          icon: <AirlineSeatReclineNormal />,
-          path: "/manage_drivers",
         },
         {
           text: "Vehicles",
@@ -104,11 +99,20 @@ const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
           path: "/manage_vehicles",
         },
         {
+          text: "Drivers",
+          icon: <AirlineSeatReclineNormal />,
+          path: "/manage_drivers",
+        },
+        {
           text: "Driver Performance",
           icon: <Leaderboard />,
           path: "/driver_performance",
         },
-        { text: "Cancel", icon: <AssignmentReturn />, path: "/cancel" },
+        {
+          text: "Cancelled Orders",
+          icon: <AssignmentReturn />,
+          path: "/cancel",
+        },
         { text: "Dynamic Tours", icon: <Moving />, path: "/mapboard/dynamic" },
         { text: "Logs", icon: <Moving />, path: "/logs" },
       ];
@@ -192,7 +196,7 @@ const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
         </Paper>
 
         {/* Menu List */}
-        <List sx={{ flex: 1, py: 2 , overflowY: "auto"}}>
+        <List sx={{ flex: 1, py: 2, overflowY: "auto" }}>
           {menuItems.map((item, index) => {
             const selected = location.pathname === item.path;
             return (

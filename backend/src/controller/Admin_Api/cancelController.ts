@@ -3,7 +3,7 @@ import * as cancelService from "../../services/logisticOrder.service";
 import { ApiResponse } from "../../types/apiResponse.type";
 import { PickupOrderReq } from "../../types/order.types";
 import { LogisticOrder, OrderType } from "../../model/LogisticOrders";
-import { validateCancelOrderItem } from "../../services/helpers/logisticOrder.helper";
+import { validateCancelOrderItem } from "../../helpers/logisticOrder.helper";
 
 const sendError = (
   res: Response,

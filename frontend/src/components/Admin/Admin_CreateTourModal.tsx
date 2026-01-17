@@ -24,7 +24,7 @@ import {
   useNotificationStore,
 } from "../../store/useNotificationStore";
 import adminApiService from "../../services/adminApiService";
-import { Driver } from "../../types/dto.type";
+import { Driver } from "../../types/warehouse.type";
 
 interface Props {
   open: boolean;

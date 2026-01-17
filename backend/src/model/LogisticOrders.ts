@@ -1,8 +1,7 @@
-import { RowDataPacket } from "mysql2";
 import pool from "../config/database";
 import { CheckOrderCount } from "../types/dto.types";
 import { Order, OrderItem } from "../types/order.types";
-import { PoolConnection } from "mysql2/promise";
+import { PoolConnection, RowDataPacket } from "mysql2/promise";
 import { Location } from "../types/hereMap.types";
 import logger from "../config/logger";
 import {
@@ -12,7 +11,7 @@ import {
 import {
   mapItemsToOrders,
   mapRowToOrder,
-} from "../services/helpers/logisticOrder.helper";
+} from "../helpers/logisticOrder.helper";
 import { requestLocationCoordinates } from "../utils/requestLocationCoordinates";
 
 export enum OrderType {
@@ -331,6 +330,20 @@ export class LogisticOrder {
     );
 
     const orders: Order[] = (rows as any).map(mapRowToOrder);
+    return orders;
+  }
+
+  static async getOrdersByTourId(tourId: number): Promise<Order[]> {
+    if (tourId <= 0 || isNaN(tourId)) return [];
+
+    const [rows] = await pool.execute<RowDataPacket[]>(
+      `SELECT order_ids FROM tourinfo_master WHERE id = ?`,
+      [tourId]
+    );
+
+    const orders: Order[] = await this.getOrdersByIds(
+      rows[0].order_ids.toString().split(",").map(Number)
+    );
     return orders;
   }
 
