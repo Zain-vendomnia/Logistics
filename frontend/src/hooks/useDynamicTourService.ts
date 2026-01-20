@@ -5,7 +5,7 @@ import {
   CreateTour_Req,
   DynamicTourPayload,
   DynamicTourRes,
-  rejectDynamicTour_Req,
+  rejectTour_Req,
   UnassignedRes,
 } from "../types/tour.type";
 import adminApiService from "../services/adminApiService";
@@ -67,7 +67,7 @@ export const useDynamicTourService = () => {
     try {
       const res = await getAvailableDrivers(
         date,
-        selectedTour.warehouse_id ?? 0
+        selectedTour.warehouse_id ?? 0,
       );
 
       const availableDrivers = res.available || [];
@@ -96,7 +96,7 @@ export const useDynamicTourService = () => {
 
     // Check if tourOrders have been changed
     const tourChanged = selectedTourOrdersIds.some(
-      (to_id) => !tourOrders.find((o) => o.order_id === to_id)
+      (to_id) => !tourOrders.find((o) => o.order_id === to_id),
     );
     // Or if any new pinboard orders are selected
     const newPinboardOrdersAdded = selectedPinbOrders.length > 0;
@@ -118,7 +118,7 @@ export const useDynamicTourService = () => {
       try {
         // get warehouse details
         const warehouseRes: Warehouse = await adminApiService.getWarehouse(
-          selectedTour.warehouse_id
+          selectedTour.warehouse_id,
         );
         setWarehouse(warehouseRes);
 
@@ -129,7 +129,7 @@ export const useDynamicTourService = () => {
         const persistedOrders = dtoursOrders;
 
         const persistedMap = new Map(
-          persistedOrders.map((o) => [o.order_id, o])
+          persistedOrders.map((o) => [o.order_id, o]),
         );
 
         const foundOrders: Order[] = [];
@@ -149,10 +149,10 @@ export const useDynamicTourService = () => {
           console.log(
             `[DTours] Fetching missing orders for 
             selected tour ${selectedTour.tour_name},
-            orderIds: ${missingIds}`
+            orderIds: ${missingIds}`,
           );
           fetchedOrders = await adminApiService.fetchOrdersWithItems(
-            missingIds.join(",")
+            missingIds.join(","),
           );
           // Update store for persistence
           updateDToursOrders(fetchedOrders);
@@ -190,17 +190,17 @@ export const useDynamicTourService = () => {
 
   const handleOrderRemove = (
     type: "torders" | "porders",
-    orderId: number | string
+    orderId: number | string,
   ) => {
     if (orderId == null) return;
 
     if (type === "torders") {
       setTourOrders((prev) =>
-        prev.filter((order) => order.order_id !== orderId)
+        prev.filter((order) => order.order_id !== orderId),
       );
     } else if (type === "porders") {
       setSelectedPinbOrders((prev) =>
-        prev.filter((order) => order.order_id !== orderId)
+        prev.filter((order) => order.order_id !== orderId),
       );
     }
     setRemoveOrderId(null);
@@ -210,7 +210,7 @@ export const useDynamicTourService = () => {
     const exist = ordersToRemove.some((o) => o.order_id === reqOrder.order_id);
     if (exist) {
       setOrdersToRemove((prev) =>
-        prev.filter((o) => o.order_id !== reqOrder.order_id)
+        prev.filter((o) => o.order_id !== reqOrder.order_id),
       );
 
       const exist_selectedOrderIds = selectedTour?.orderIds
@@ -246,7 +246,7 @@ export const useDynamicTourService = () => {
     console.log("pinboardOrderSearch order: ", search_order);
 
     const orders: Order[] = await adminApiService.fetchOrdersWithItems(
-      search_order.order_id.toString()
+      search_order.order_id.toString(),
     );
     setSelectedPinbOrders(orders);
   };
@@ -255,7 +255,7 @@ export const useDynamicTourService = () => {
   const handleFormChange = (
     e:
       | React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-      | SelectChangeEvent
+      | SelectChangeEvent,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -306,11 +306,11 @@ export const useDynamicTourService = () => {
       if (dTour_res.unassigned) {
         notifyUnassignedOrders(dTour_res.unassigned);
         const unassignedOrderIds = new Set(
-          dTour_res.unassigned.map((u) => u.orderId)
+          dTour_res.unassigned.map((u) => u.orderId),
         );
 
         setTourOrders((prev) =>
-          prev.filter((o) => !unassignedOrderIds.has(o.order_id))
+          prev.filter((o) => !unassignedOrderIds.has(o.order_id)),
         );
       }
 
@@ -370,7 +370,7 @@ export const useDynamicTourService = () => {
       console.log("Accept D-Tour Response:", res);
 
       const updated_dTourList = dynamicToursList.filter(
-        (dt) => dt.id !== request.dTour_id
+        (dt) => dt.id !== request.dTour_id,
       );
       setDynamicToursList(updated_dTourList);
 
@@ -395,41 +395,37 @@ export const useDynamicTourService = () => {
 
   const handleTourReject = async (reason: string) => {
     setLoading(true);
-    showNotification({
-      message: "Tour Rejected Successfully",
-      severity: NotificationSeverity.Success,
-    });
-    return;
-    // try {
-    //   const request: rejectDynamicTour_Req = {
-    //     tour_id: selectedTour?.id!,
-    //     userId: getCurrentUser().email,
-    //     reason,
-    //   };
 
-    //   const res = await adminApiService.rejectDynamicTour(request);
-    //   console.log("Reject D-Tour Response:", res);
+    try {
+      const request: rejectTour_Req = {
+        tour_id: selectedTour?.id!,
+        userId: getCurrentUser().email,
+        reason,
+      };
 
-    //   const updated_dTourList = dynamicToursList.filter(
-    //     (dt) => dt.id !== request.tour_id
-    //   );
-    //   setDynamicToursList(updated_dTourList);
+      const res = await adminApiService.rejectDynamicTour(request);
+      console.log("Reject D-Tour Response:", res);
 
-    //   showNotification({
-    //     message: "Tour Rejected Successfully",
-    //     severity: NotificationSeverity.Success,
-    //   });
-    // } catch (error: unknown) {
-    //   console.error("Error Rejecting Tour:", error);
-    //   showNotification({
-    //     message: "Error Rejecting Tour",
-    //     severity: NotificationSeverity.Error,
-    //   });
-    // } finally {
-    //   setSelectedTour(null);
-    //   setSelectedPinbOrders([]);
-    //   setLoading(false);
-    // }
+      const updated_dTourList = dynamicToursList.filter(
+        (dt) => dt.id !== request.tour_id,
+      );
+      setDynamicToursList(updated_dTourList);
+
+      showNotification({
+        message: "Tour Rejected Successfully",
+        severity: NotificationSeverity.Success,
+      });
+    } catch (error: unknown) {
+      console.error("Error Rejecting Tour:", error);
+      showNotification({
+        message: "Error Rejecting Tour",
+        severity: NotificationSeverity.Error,
+      });
+    } finally {
+      setSelectedTour(null);
+      setSelectedPinbOrders([]);
+      setLoading(false);
+    }
   };
 
   // Side functions
@@ -447,13 +443,6 @@ export const useDynamicTourService = () => {
       });
     });
   };
-
-  const generateTimeOptions = () =>
-    Array.from({ length: (24 - 7) * 2 }, (_, i) => {
-      const hour = 7 + Math.floor(i / 2);
-      const minutes = i % 2 === 0 ? "00" : "30";
-      return `${String(hour).padStart(2, "0")}:${minutes}`;
-    });
 
   return {
     showRejectModal,
@@ -477,7 +466,6 @@ export const useDynamicTourService = () => {
     restoreRemovedOrder,
 
     handleOrderSelect,
-    generateTimeOptions,
 
     formData,
     today,

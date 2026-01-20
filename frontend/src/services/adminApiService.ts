@@ -5,7 +5,9 @@ import {
   CreateTour_Req,
   DynamicTourPayload,
   DynamicTourRes,
-  rejectDynamicTour_Req,
+  rejectTour_Req,
+  Tourinfo,
+  TourRow,
   TourStatus,
   UpdateTour_Req,
 } from "../types/tour.type";
@@ -20,11 +22,30 @@ const fetchRouteData = () =>
 const fetchOrderTourCount = () =>
   axios.get(`${API_BaseUrl}tourcount`, { headers: authHeader() });
 
-const fetchToursByStatus = (status: TourStatus) =>
-  axios.get(`${API_BaseUrl}getToursByStatus`, {
+const fetchToursByStatus = async (status: TourStatus): Promise<TourRow[]> => {
+  const res = await axios.get(`${API_BaseUrl}getToursByStatus`, {
     params: { status },
     headers: authHeader(),
   });
+  const tourRows = (res.data as TourRow[]).map(
+    (t): TourRow => ({
+      id: t.id,
+      tour_name: t.tour_name,
+      tour_status: t.tour_status,
+      tour_date: t.tour_date,
+      route_color: t.route_color,
+      comments: t.comments,
+      orderIds: t.orderIds,
+      driver_id: t.driver_id || 0,
+      driver_name: t.driver_name || "N/A",
+      vehicle_id: t.vehicle_id,
+      warehouse_id: t.warehouse_id,
+      warehouse_colorCode: t.warehouse_colorCode,
+    }),
+  );
+
+  return tourRows;
+};
 
 const fetchAllTours = () =>
   axios.get(`${API_BaseUrl}getAlltours`, { headers: authHeader() });
@@ -50,11 +71,14 @@ const fetchOrdersWithItems = async (orderIds: string): Promise<Order[]> => {
   return res.data as Order[];
 };
 
-const getTour = (tourId: number) =>
-  axios.get(`${API_BaseUrl}getTour`, {
+const fetchTourDetails = async (tourId: number): Promise<Tourinfo> => {
+  const res = await axios.get(`${API_BaseUrl}getTour`, {
     headers: authHeader(),
     params: { tourId },
   });
+
+  return res.data as Tourinfo;
+};
 
 const getWarehouse = async (id: number): Promise<Warehouse> => {
   const res = await axios.get(`${API_BaseUrl}getWarehouse/${id}`, {
@@ -78,7 +102,7 @@ const getRouteResponse = (tour_id: number) =>
   axios.post(
     `${API_BaseUrl}getGraphhopperRoute`,
     { tour_id },
-    { headers: authHeader() }
+    { headers: authHeader() },
   );
 
 const deleteTours = (tourIds: number[]) =>
@@ -91,32 +115,37 @@ const exportTours = (tourIds: number[] | string[]) =>
   axios.post(
     `${API_BaseUrl}exportTours`,
     { tourIds },
-    { headers: authHeader() }
+    { headers: authHeader() },
   );
 
 const fetchRouteSegmentData = (tour_id: number) =>
   axios.post(
     `${API_BaseUrl}getSegmentRoute`,
     { tour_id },
-    { headers: authHeader() }
+    { headers: authHeader() },
   );
 
 const fetchRouteSegmentImages = (tour_id?: number, order_number?: string) => {
   return axios.post(
     `${API_BaseUrl}getRoutesSegmentImages`,
     { tour_id, order_number },
-    { headers: authHeader() }
+    { headers: authHeader() },
   );
 };
 
-const updateTour = (tourData: UpdateTour_Req) =>
-  axios.put(`${API_BaseUrl}updateTour`, tourData, { headers: authHeader() });
+const updateTour = async (tourData: UpdateTour_Req): Promise<Tourinfo> => {
+  const res = await axios.put(`${API_BaseUrl}updateTour`, tourData, {
+    headers: authHeader(),
+  });
+
+  return res.data;
+};
 
 const getOrderCount = async (): Promise<number> => {
   try {
     const response = await axios.get<{ count: number }[]>(
       `${API_BaseUrl}orderCount`,
-      { headers: authHeader() }
+      { headers: authHeader() },
     );
     const count = response.data[0]?.count ?? 0;
     return count;
@@ -137,14 +166,14 @@ const update_tourstatus = (tour_id: number) =>
     {},
     {
       headers: authHeader(),
-    }
+    },
   );
 
 const checkDriverRest = async (driverId: number) => {
   try {
     const response = await axios.get(
       `${API_BaseUrl_Admin}drivers/check-eligibility/${driverId}`,
-      { headers: authHeader() }
+      { headers: authHeader() },
     );
     return response.data; // This should include nextTourEligible, message, restHours, etc.
   } catch (error) {
@@ -187,7 +216,7 @@ const plotheremap = () =>
   });
 
 const fetchPinboardOrders = async (
-  lastFetchedAt?: number | null
+  lastFetchedAt?: number | null,
 ): Promise<Order[]> => {
   const headers: Record<string, string> = {
     ...authHeader(),
@@ -240,20 +269,20 @@ const estimateTourMatrix = async (warehouseId: number, orderIds: number[]) => {
     payload,
     {
       headers: authHeader(),
-    }
+    },
   );
   return res;
 };
 
 const requestDynamicTour = async (
-  payload: DynamicTourPayload
+  payload: DynamicTourPayload,
 ): Promise<DynamicTourRes> => {
   const res = await axios.post(
     `${API_BaseUrl_Admin}createDynamicTour`,
     payload,
     {
       headers: authHeader(),
-    }
+    },
   );
   return res.data as DynamicTourRes;
 };
@@ -264,20 +293,18 @@ const acceptDynamicTour = async (payload: CreateTour_Req) => {
     payload,
     {
       headers: authHeader(),
-    }
+    },
   );
   return res.data;
 };
 
-const rejectDynamicTour = async (
-  payload: rejectDynamicTour_Req
-): Promise<boolean> => {
+const rejectDynamicTour = async (payload: rejectTour_Req): Promise<boolean> => {
   const res = await axios.post(
     `${API_BaseUrl_Admin}rejectDynamicTour`,
     payload,
     {
       headers: authHeader(),
-    }
+    },
   );
   return res.data as boolean;
 };
@@ -307,18 +334,23 @@ const getOrderNotificationMetaData = (orderNumber: number) => {
 const updateOrderNotificationMetaData = (
   orderNumber: number,
   meta_key: string,
-  meta_value: string
+  meta_value: string,
 ) => {
   return axios.post(
     API_BaseUrl_Admin + "updateOrderNotificationMetaData",
     { orderNumber: orderNumber, meta_key: meta_key, meta_value: meta_value },
     {
       headers: authHeader(),
-    }
+    },
   );
 };
 
 const getDriverData = (driverId: any) => {
+  return axios.post(API_BaseUrl_Admin + "getDriverData", {
+    headers: authHeader(),
+  });
+};
+const fetchDriverDetails = (driverId: any) => {
   return axios.post(API_BaseUrl_Admin + "getDriverData", {
     headers: authHeader(),
   });
@@ -352,7 +384,7 @@ const updateOrderStatus = ({
     { newStatus, updated_by },
     {
       headers: authHeader(),
-    }
+    },
   );
 };
 
@@ -373,7 +405,7 @@ const adminApiService = {
   fetchSpecifiedOrder,
   fetchOrdersWithItems,
   createTour,
-  getTour,
+  fetchTourDetails,
   getRouteResponse,
   getLatLngFromAddress,
   deleteTours,
@@ -402,6 +434,7 @@ const adminApiService = {
   updateOrderNotificationMetaData,
   fetchRouteSegmentImages,
   getDriverData,
+  fetchDriverDetails,
   fetchLogs,
   estimateTourMatrix,
   orderDetails,

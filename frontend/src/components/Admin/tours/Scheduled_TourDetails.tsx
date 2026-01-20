@@ -30,12 +30,10 @@ import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 
 import { motion, AnimatePresence } from "framer-motion";
 
-import { useDynamicTourService } from "../../../hooks/useDynamicTourService";
 import { scrollStyles } from "../../../theme";
-import useDynamicTourStore from "../../../store/useDynamicTourStore";
 import { Order } from "../../../types/order.type";
 import {
-  rejectDynamicTour_Req,
+  rejectTour_Req,
   Tourinfo,
   UpdateTour_Req,
 } from "../../../types/tour.type";
@@ -49,22 +47,16 @@ import SolarPanelQty from "./SolarPanelQty";
 import { DynamicOrdersList } from "../dynamic_tour/DynamicOrdersList";
 import MapBoard from "./MapBoard";
 import { Driver, Warehouse } from "../../../types/warehouse.type";
-import adminApiService from "../../../services/adminApiService";
 import { useNavigate, useParams } from "react-router-dom";
 import { RejectTourModal } from "../dynamic_tour/RejectTourModal";
 import { getCurrentUser } from "../../../services/auth.service";
-import { title } from "process";
-import { number } from "yup";
 import { getAvailableDrivers } from "../../../services/driverService";
 import {
   NotificationSeverity,
   useNotificationStore,
 } from "../../../store/useNotificationStore";
-
-type RemovedOrder = {
-  order: Order;
-  index: number;
-};
+import { tourService } from "../../../services/tour.service";
+import { generateTimeOptions } from "../../../utils/tourHelper";
 
 const modalStyle = {
   position: "absolute",
@@ -85,6 +77,11 @@ const formStyle = {
 };
 
 const ScheduledTourDetails = () => {
+  const fontsize = "1rem";
+  const theme = useTheme();
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
   const { id: tourId } = useParams<{ id: string }>();
 
   const [xTour, setXTour] = useState<Tourinfo | null>(null);
@@ -96,23 +93,18 @@ const ScheduledTourDetails = () => {
   const [ordersToRemove, setOrdersToRemove] = useState<Order[]>([]);
   const [selectedPinbOrders, setSelectedPinbOrders] = useState<Order[]>([]);
 
-  const fontsize = "1rem";
-  const theme = useTheme();
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-
   const [warehouse, setWarehouse] = useState<Warehouse | null>(null);
   const [drivers, setDrivers] = useState<Driver[]>([]);
 
   const loadTour = useCallback(async (tourId: number) => {
     setIsLoading(true);
     try {
-      const res = await adminApiService.getTour(tourId);
-      const tourRes = res.data as Tourinfo;
-      setXTour(tourRes);
-      setTourOrders(tourRes.orders || []);
+      const tour: Tourinfo = await tourService.getTourDetails(tourId);
+      setXTour(tour);
+      setTourOrders(tour.orders || []);
       // get warehouse details
-      const warehouseRes: Warehouse = await adminApiService.getWarehouse(
-        res.data.warehouse_id
+      const warehouseRes: Warehouse = await tourService.getWarehouseDetails(
+        tour.warehouse_id,
       );
       setWarehouse(warehouseRes);
     } finally {
@@ -122,9 +114,9 @@ const ScheduledTourDetails = () => {
 
   const orderIdxLookup = useMemo(() => {
     return new Map<number, number>(
-      tourOrders.map((order, idx) => [order.order_id, idx])
+      tourOrders.map((order, idx) => [order.order_id, idx]),
     );
-  }, [tourOrders]);
+  }, [xTour]);
 
   const loadPinboardOrders = useCallback(async () => {
     setIsLoading(true);
@@ -135,7 +127,7 @@ const ScheduledTourDetails = () => {
 
       if (pinboardOrders.length === 0 || isStale) {
         const orders: Order[] =
-          await adminApiService.fetchPinboardOrders(lastFetchedAt);
+          await tourService.getPinboardOrders(lastFetchedAt);
 
         if (orders.length) {
           const existingIds = new Set(pinboardOrders.map((o) => o.order_id));
@@ -170,89 +162,6 @@ const ScheduledTourDetails = () => {
 
   const [showWarehouseDetails, setShowWarehouseDetails] = useState(false);
 
-  // const [pendingRemove, setPendingRemove] = useState<{
-  //   type: "torders" | "porders";
-  //   order: Order;
-  // } | null>(null);
-
-  // const requestOrderRemove = (type: "torders" | "porders", order: Order) => {
-  //   setPendingRemove({ type, order });
-  // };
-  // const confirmOrderRemove = () => {
-  //   if (!pendingRemove) return;
-
-  //   // debugger;
-  //   // handleOrderRemove(pendingRemove.type, pendingRemove.order.order_id);
-  //   setPendingRemove(null);
-
-  //   // const orderIdToRemove = pendingRemove.order.order_id;
-  //   // updateTourRouteMap(orderIdToRemove);
-  // };
-
-  // const updateTourRouteMap = (orderId: number) => {
-  //   const ordersStops = new Map<number, Stop>();
-  //   tour?.tour_route?.stops.forEach((stop) => {
-  //     const jobIds = stop.activities.flatMap((act) => act.jobId);
-  //     jobIds.forEach((id) => {
-  //       const o_id = +id.split("_")[1];
-  //       if (!isNaN(o_id)) ordersStops.set(o_id, stop);
-  //     });
-  //   });
-
-  //   const orderStop = ordersStops.get(orderId);
-  //   if (!orderStop) return;
-
-  //   const stopIndex = tour?.tour_route?.stops.findIndex((s) => s === orderStop);
-  //   if (!stopIndex || stopIndex === -1) return;
-
-  //   let updatedSections: Section[] = [...tour?.tour_route?.sections!];
-  //   if (updatedSections.length > 0) {
-  //     updatedSections = updatedSections.filter((_, idx) => {
-  //       return idx !== stopIndex! - 1 && idx !== stopIndex;
-  //     });
-  //   }
-
-  //   if (stopIndex > 0 && stopIndex < tour?.tour_route?.stops.length! - 1) {
-  //     const prevStop = tour?.tour_route?.stops[stopIndex - 1]!;
-  //     const nextStop = tour?.tour_route?.stops[stopIndex + 1]!;
-
-  //     const reconnectSection: Section = {
-  //       summary: {
-  //         length: 0,
-  //         duration: 0,
-  //         baseDuration: 0,
-  //       },
-  //       coordinates: [
-  //         [prevStop.location.lat, prevStop.location.lng],
-  //         [nextStop.location.lat, nextStop.location.lng],
-  //       ],
-  //     };
-
-  //     updatedSections.splice(stopIndex - 1, 0, reconnectSection);
-  //   }
-
-  //   // Stop marker
-  //   // const updateStops = tour?.tour_route?.stops.filter((stop) =>
-  //   //   stop.activities.some((act) => !act.jobId.includes(orderId.toString()))
-  //   // );
-  //   const updatedStops = tour?.tour_route?.stops.filter(
-  //     (stop) => stop !== orderStop
-  //   );
-
-  //   const tourRoute: Geometry = {
-  //     ...tour?.tour_route,
-  //     sections: updatedSections,
-  //     stops: updatedStops!,
-  //     vehicleId: tour?.tour_route?.vehicleId!,
-  //   };
-
-  //   if (tour && tourRoute) {
-  //     const updatedTour = { ...tour, tour_route: tourRoute };
-
-  //     setSelectedTour(updatedTour!);
-  //   }
-  // };
-
   const handleSelectPinbOrder = async (newValue: Order[]) => {
     if (newValue.length === 0) {
       setSelectedPinbOrders([]);
@@ -261,7 +170,7 @@ const ScheduledTourDetails = () => {
     const orderIds = newValue.map((o) => o.order_id);
 
     const pOrders = pinboardOrders.filter((po) =>
-      orderIds.includes(po.order_id)
+      orderIds.includes(po.order_id),
     );
 
     setSelectedPinbOrders(pOrders);
@@ -277,10 +186,8 @@ const ScheduledTourDetails = () => {
     if (all) {
       setTourOrders((prev) => {
         const restored = [...prev];
-
-        ordersToRemove.slice().forEach((order) => {
+        ordersToRemove.forEach((order) => {
           const oIdx = orderIdxLookup.get(order.order_id);
-
           oIdx && restored.splice(oIdx, 0, order);
         });
 
@@ -294,12 +201,12 @@ const ScheduledTourDetails = () => {
     if (!reqOrder) return;
 
     const removed = ordersToRemove.find(
-      (o) => o.order_id === reqOrder.order_id
+      (o) => o.order_id === reqOrder.order_id,
     );
     if (!removed) return;
 
     const removed_oIdx = orderIdxLookup.get(reqOrder.order_id);
-    if (!removed_oIdx) return;
+    if (removed_oIdx === undefined) return;
 
     setTourOrders((prev) => {
       if (prev.some((o) => o.order_id === removed.order_id)) {
@@ -311,7 +218,7 @@ const ScheduledTourDetails = () => {
     });
 
     setOrdersToRemove((prev) =>
-      prev.filter((o) => o.order_id !== reqOrder.order_id)
+      prev.filter((o) => o.order_id !== reqOrder.order_id),
     );
 
     // const exist_selectedOrderIds = xTour?.orderIds
@@ -324,10 +231,8 @@ const ScheduledTourDetails = () => {
     // }
   };
 
-  const navigate = useNavigate();
-
   const { showNotification } = useNotificationStore();
-  const { handleTourReject, generateTimeOptions } = useDynamicTourService();
+  // const { handleTourReject } = useDynamicTourService();
 
   const today = new Date().toISOString().split("T")[0];
   const initialFormState = {
@@ -344,7 +249,7 @@ const ScheduledTourDetails = () => {
   const handleFormChange = (
     e:
       | React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-      | SelectChangeEvent
+      | SelectChangeEvent,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -373,7 +278,6 @@ const ScheduledTourDetails = () => {
         ...selectedPinbOrders.map((po) => po.order_id),
       ];
 
-      // Build request payload
       const request: UpdateTour_Req = {
         id: xTour.id,
         tourName: xTour.tour_name,
@@ -387,15 +291,9 @@ const ScheduledTourDetails = () => {
         userId: getCurrentUser().email, // service helper
         comments: "",
       };
-
-      console.log("Accept D-Tour Request:", request);
-
-      // API call
-      const { data } = await adminApiService.updateTour(request);
-      console.log("Accept D-Tour Response:", data);
-
+      const updatedTour = await tourService.updateTour(request);
       showNotification({
-        message: `Tour ${data.message} updated successfully`,
+        message: `Tour ${updatedTour.tour_name} updated successfully`,
         severity: NotificationSeverity.Success,
         duration: 8000,
       });
@@ -439,6 +337,36 @@ const ScheduledTourDetails = () => {
     } catch (err) {
       console.error("Failed to fetch eligible drivers:", err);
       setDrivers([]);
+    }
+  };
+
+  const handleTourReject = async (reason: string) => {
+    setIsLoading(true);
+    try {
+      const request: rejectTour_Req = {
+        tour_id: xTour?.id!,
+        userId: getCurrentUser().email,
+        reason,
+      };
+
+      // await tourService.rejectTourInstance(request);
+
+      showNotification({
+        message: `Tour ${xTour?.tour_name} Rejected Successfully`,
+        severity: NotificationSeverity.Success,
+      });
+    } catch (error: unknown) {
+      console.error("Error Rejecting Tour:", error);
+      showNotification({
+        message: "Error Rejecting Tour",
+        severity: NotificationSeverity.Error,
+      });
+    } finally {
+      setXTour(null);
+      setSelectedPinbOrders([]);
+      setOrdersToRemove([]);
+      setIsLoading(false);
+      navigate("/scheduled/tour");
     }
   };
 
@@ -497,6 +425,7 @@ const ScheduledTourDetails = () => {
   const showUpdateTourButton = shouldUpdateTourRoute || shouldUpdateTourData;
 
   if (!xTour) return null;
+
   return (
     <>
       <Backdrop
@@ -605,7 +534,7 @@ const ScheduledTourDetails = () => {
                     overflow={"hidden"}
                   >
                     <XChip
-                      label={`Ziele ${tourOrders.length}`}
+                      label={`Ziele ${xTour.orderIds.split(",").length}`}
                       color="info"
                       variant="outlined"
                     />
@@ -886,8 +815,8 @@ const ScheduledTourDetails = () => {
                         handleDelete={(orderItem) =>
                           setSelectedPinbOrders((prev) =>
                             prev.filter(
-                              (po) => po.order_id !== orderItem.order_id
-                            )
+                              (po) => po.order_id !== orderItem.order_id,
+                            ),
                           )
                         }
                       />
@@ -1172,7 +1101,7 @@ const ScheduledTourDetails = () => {
                         sx={{
                           backgroundColor: formData.routeColor,
                           color: theme.palette.getContrastText(
-                            warehouse?.colorCode || formData.routeColor
+                            warehouse?.colorCode || formData.routeColor,
                           ),
                           minWidth: 80,
                         }}
@@ -1268,38 +1197,6 @@ const ScheduledTourDetails = () => {
         </Box>
       </Box>
 
-      {/* Order Remove Confirmation Modal */}
-      {/* <Modal open={!!pendingRemove} onClose={() => setPendingRemove(null)}>
-        <Box
-          display={"flex"}
-          flexDirection={"column"}
-          alignItems={"center"}
-          justifyContent={"center"}
-          gap={3}
-          sx={{ ...modalStyle, width: 450, minHeight: 250 }}
-        >
-          <Typography variant="h5">
-            Remove{" "}
-            <Box component="span" fontWeight="bold">
-              Order {pendingRemove?.order?.order_number}
-            </Box>{" "}
-            from the Tour?
-          </Typography>
-          <Box display="flex" justifyContent="flex-end" gap={3}>
-            <Button
-              variant="contained"
-              color="error"
-              onClick={confirmOrderRemove}
-            >
-              Remove
-            </Button>
-            <Button variant="outlined" onClick={() => setPendingRemove(null)}>
-              Cancel
-            </Button>
-          </Box>
-        </Box>
-      </Modal> */}
-
       {/* Tour Reject Confirmation Modal */}
       <RejectTourModal
         open={showRejectModal}
@@ -1307,8 +1204,7 @@ const ScheduledTourDetails = () => {
         onReject={handleTourReject}
       />
 
-      {/* {shouldUpdateTourRoute && ( */}
-      {true && (
+      {shouldUpdateTourRoute && (
         <TourImpactPreview
           warehouseId={xTour?.warehouse_id!}
           orders={[...tourOrders, ...selectedPinbOrders]}

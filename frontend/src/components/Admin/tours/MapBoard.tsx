@@ -107,7 +107,7 @@ const MapBoard = ({ tours, focusedTourId, tourOrders }: Props) => {
 
   const flyToBoundsOptions = {
     padding: [50, 50],
-    maxZoom: 15,
+    maxZoom: 8,
     duration: 0.9,
   };
 
@@ -116,7 +116,7 @@ const MapBoard = ({ tours, focusedTourId, tourOrders }: Props) => {
 
     if (focusedTourId) {
       const focused = normalizedTours.find(
-        (t) => t.geometry.vehicleId === focusedTourId
+        (t) => t.geometry.vehicleId === focusedTourId,
       );
       return focused ? extractCoords(focused.geometry) : [];
     }
@@ -258,7 +258,7 @@ const MapBoard = ({ tours, focusedTourId, tourOrders }: Props) => {
                       color={pathColor}
                     />
                   );
-                })
+                }),
             );
             // Warehouse Stop
             const startMarker = tourCoords.stops[0] ? (

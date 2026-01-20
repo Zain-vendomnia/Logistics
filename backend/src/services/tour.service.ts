@@ -16,6 +16,7 @@ import {
   TourStatus,
   TourMatrix,
   TourinfoMaster,
+  TourRow,
 } from "../types/tour.types";
 import hereMapService from "./hereMap.service";
 import pool from "../config/database";
@@ -40,7 +41,7 @@ export async function getTourMapDataAsync(tourPayload: CreateTour) {
   try {
     const { tour, unassigned } = await hereMapService.CreateTourRouteAsync(
       tourPayload.orderIds,
-      tourPayload.warehouseId
+      tourPayload.warehouseId,
     );
     const routes = await getRouteSegments_mapApi(tour);
 
@@ -55,7 +56,7 @@ export async function getTourMapDataAsync(tourPayload: CreateTour) {
       connection,
       tourId,
       hereMap_data,
-      hereMap_route
+      hereMap_route,
     );
 
     await saveRouteSegments(connection, tourId, routes);
@@ -64,19 +65,18 @@ export async function getTourMapDataAsync(tourPayload: CreateTour) {
       connection,
       tourId,
       tourPayload.orderIds,
-      unassigned
+      unassigned,
     );
 
     await connection.commit();
 
     // Prepare res
-    const unassignedOrders = await LogisticOrder.getOrdersByIds(
-      unassignedOrderIds
-    );
+    const unassignedOrders =
+      await LogisticOrder.getOrdersByIds(unassignedOrderIds);
     const notAssigned: NotAssigned[] = unassigned.map((u) => {
       const id = u.jobId.split("_")[1];
       const matchedOrder = unassignedOrders.find(
-        (order) => order.order_id === Number(id)
+        (order) => order.order_id === Number(id),
       );
       return {
         id,
@@ -105,11 +105,10 @@ async function updateTourOrdersStatus(
   conn: PoolConnection,
   tourId: number,
   orderIds: number[],
-  unassigned: Unassigned[]
+  unassigned: Unassigned[],
 ) {
-  const unassignedOrderIds: number[] = await extractUnassignedOrderIds(
-    unassigned
-  );
+  const unassignedOrderIds: number[] =
+    await extractUnassignedOrderIds(unassigned);
 
   if (unassignedOrderIds.length > 0) {
     console.log(`Removing ${unassignedOrderIds.length} unassigned order(s)`);
@@ -119,19 +118,19 @@ async function updateTourOrdersStatus(
     const updated = await LogisticOrder.updateSysOrdersStatus(
       conn,
       unassignedOrderIds,
-      OrderStatus.Unassigned
+      OrderStatus.Unassigned,
     );
     console.log("Updated status for unassigned orders:", updated);
   }
 
   const assignedOrderIds = orderIds.filter(
-    (id) => !unassignedOrderIds.includes(id)
+    (id) => !unassignedOrderIds.includes(id),
   );
 
   const assignedOrders_upadted = await LogisticOrder.updateSysOrdersStatus(
     conn,
     assignedOrderIds,
-    OrderStatus.Assigned
+    OrderStatus.Assigned,
   );
   console.log(`Update status assigned orders: `, assignedOrders_upadted);
 
@@ -141,7 +140,7 @@ async function updateTourOrdersStatus(
 export async function saveRouteSegments(
   conn: PoolConnection,
   tourId: number,
-  routes: LogisticsRoute[]
+  routes: LogisticsRoute[],
 ): Promise<LogisticsRoute[]> {
   try {
     // const routes = await getRouteSegments_mapApi(tour);
@@ -151,12 +150,12 @@ export async function saveRouteSegments(
       const segmentJson = JSON.stringify(segment);
       const orderId = segment.order_id;
       console.log(
-        `Saving Route Segment for Tour Id: ${tourId} Order Id: ${orderId}`
+        `Saving Route Segment for Tour Id: ${tourId} Order Id: ${orderId}`,
       );
 
       if (!orderId)
         throw new Error(
-          `Segment has invalid order_id: ${JSON.stringify(segment)}`
+          `Segment has invalid order_id: ${JSON.stringify(segment)}`,
         );
 
       await route_segments.insertSegment(conn, tourId, segmentJson, orderId);
@@ -178,7 +177,7 @@ export async function saveRouteSegments(
 }
 
 export async function getRouteSegments_mapApi(
-  tour: Tour
+  tour: Tour,
 ): Promise<LogisticsRoute[]> {
   const segments: LogisticsRoute[] = [];
 
@@ -193,14 +192,13 @@ export async function getRouteSegments_mapApi(
       ...tour,
       stops: [origin, destination],
     };
-    const routes: DecodedRoute | null = await hereMapService.getRoutesForTour(
-      subTour
-    );
+    const routes: DecodedRoute | null =
+      await hereMapService.getRoutesForTour(subTour);
 
     if (!routes) throw new Error("Failsed to decode routes");
 
     console.log(
-      `Route Segment created for Order Id ${destination.activities[0].jobId}`
+      `Route Segment created for Order Id ${destination.activities[0].jobId}`,
     );
 
     const segment: LogisticsRoute = {
@@ -270,9 +268,8 @@ export async function extractUnassignedOrderIds(unassigned: Unassigned[]) {
 }
 
 export async function getTourDetailsById(tourId: number) {
-  const tourObj: TourinfoMaster = await tourInfo_master.getTourByIdAsync(
-    tourId
-  );
+  const tourObj: TourinfoMaster =
+    await tourInfo_master.getTourByIdAsync(tourId);
   const matrix = await getTourMatrix(5, TourType.dynamicTour);
   tourObj.matrix = matrix;
 
@@ -315,7 +312,7 @@ async function computeTourCost(
   totalDistanceKm: number,
   totalDurationHrs: number,
   conn?: PoolConnection,
-  twoDayTour: Boolean = false
+  twoDayTour: Boolean = false,
 ): Promise<TourMatrix> {
   const connection = conn ?? pool;
   const [ratesRows]: any = await connection.execute(`
@@ -408,7 +405,7 @@ async function computeTourCost(
 
 export async function persistTourCostMatrixAsync(
   tourId: number,
-  type: TourType = TourType.dynamicTour
+  type: TourType = TourType.dynamicTour,
 ): Promise<TourMatrix> {
   logger.info("[Tour Cost] Beginning...");
 
@@ -421,13 +418,13 @@ export async function persistTourCostMatrixAsync(
     if (type === TourType.dynamicTour) {
       const [rows]: any = await connection.execute(
         `SELECT orderIds, tour_name, tour_data FROM dynamic_tours WHERE id = ?`,
-        [tourId]
+        [tourId],
       );
       tourData = rows[0];
     } else {
       const [rows]: any = await connection.execute(
         `SELECT order_ids AS orderIds, tour_name, tour_data FROM tourinfo_master WHERE id = ?`,
-        [tourId]
+        [tourId],
       );
       tourData = rows[0];
     }
@@ -441,7 +438,7 @@ export async function persistTourCostMatrixAsync(
     // Compute totals
     const ordersWithItems: Order[] =
       await LogisticOrder.getOrdersWithItemsAsync(
-        tourData.orderIds.split(",").map(Number)
+        tourData.orderIds.split(",").map(Number),
       );
 
     const {
@@ -461,14 +458,14 @@ export async function persistTourCostMatrixAsync(
       ordersWithItems,
       totalDistanceKm,
       totalDurationHrs,
-      connection
+      connection,
     );
 
     const idColumn =
       type === TourType.masterTour ? "tour_id" : "dynamic_tour_id";
     const [matrixRows]: any = await connection.execute(
       `SELECT * FROM delivery_cost_per_tour WHERE ${idColumn} = ?`,
-      [tourId]
+      [tourId],
     );
     const isExist = matrixRows[0];
 
@@ -544,7 +541,7 @@ export async function persistTourCostMatrixAsync(
 
     const [result] = await connection.execute<ResultSetHeader>(
       query_matrix,
-      params
+      params,
     );
 
     const targetId = isExist ? isExist.id : result.insertId;
@@ -555,7 +552,7 @@ export async function persistTourCostMatrixAsync(
     await connection.commit();
     const tourMatrix = await getTourMatrix(tourId, type);
     logger.info(
-      `[Tour Cost] Calculated cost for tour ${tourData.tour_name} is ${tourMatrix.totalCost}`
+      `[Tour Cost] Calculated cost for tour ${tourData.tour_name} is ${tourMatrix.totalCost}`,
     );
 
     return tourMatrix;
@@ -571,7 +568,7 @@ export async function persistTourCostMatrixAsync(
 
 export async function tourCostRecompute() {
   const [rows]: any = await pool.execute(
-    `SELECT id FROM dynamic_tours WHERE approved_by IS NULL`
+    `SELECT id FROM dynamic_tours WHERE approved_by IS NULL`,
   );
   const tourIds = rows.map((r: any) => r.id);
 
@@ -584,7 +581,7 @@ export async function tourCostRecompute() {
 
 export async function getTourMatrix(
   tourId: number,
-  type: TourType = TourType.dynamicTour
+  type: TourType = TourType.dynamicTour,
 ): Promise<TourMatrix> {
   try {
     const idColumn =
@@ -592,7 +589,7 @@ export async function getTourMatrix(
 
     const [rows]: any = await pool.execute(
       `SELECT * FROM delivery_cost_per_tour  WHERE ${idColumn} = ?`,
-      [tourId]
+      [tourId],
     );
     if (!rows || rows.length === 0) {
       throw new Error(`Tour matrix not found for tourId ${tourId}`);
@@ -629,12 +626,10 @@ export async function getTourMatrix(
 
     const order_ids = tourRows[0].orderIds.split(",");
 
-    matrix.totalOrdersItemsQty = await LogisticOrder.getOrderItemsCount(
-      order_ids
-    );
-    matrix.totalOrdersArticlesQty = await LogisticOrder.getOrderArticlesCount(
-      order_ids
-    );
+    matrix.totalOrdersItemsQty =
+      await LogisticOrder.getOrderItemsCount(order_ids);
+    matrix.totalOrdersArticlesQty =
+      await LogisticOrder.getOrderArticlesCount(order_ids);
 
     return matrix;
   } catch (error) {
@@ -645,7 +640,7 @@ export async function getTourMatrix(
 
 export async function estimateTourCostMatrixAsync(
   warehouseId: number,
-  orderIds: number[]
+  orderIds: number[],
 ): Promise<TourMatrix | undefined> {
   const orders = await LogisticOrder.getOrdersWithItemsAsync(orderIds);
   const warehouse: Warehouse = await getWarehouseWithVehicles(warehouseId);
@@ -709,7 +704,7 @@ export async function estimateTourCostMatrixAsync(
   }: TourMatrix = await computeTourCost(
     orders,
     totalDistanceKm,
-    totalDurationHrs
+    totalDurationHrs,
   );
 
   console.log(`
@@ -740,7 +735,7 @@ export async function estimateTourCostMatrixAsync(
 
 export async function removeTourMatrix(
   tourId: number,
-  type: TourType = TourType.dynamicTour
+  type: TourType = TourType.dynamicTour,
 ): Promise<boolean> {
   try {
     const idColumn =
@@ -749,19 +744,19 @@ export async function removeTourMatrix(
     // First, verify if the matrix exists
     const [rows]: any = await pool.execute(
       `SELECT id FROM delivery_cost_per_tour WHERE ${idColumn} = ?`,
-      [tourId]
+      [tourId],
     );
 
     if (!rows || rows.length === 0) {
       throw new Error(
-        `No tour matrix found for tourId ${tourId} [Tour Type: ${type}]`
+        `No tour matrix found for tourId ${tourId} [Tour Type: ${type}]`,
       );
     }
 
     // Proceed with deletion
     const [result]: any = await pool.execute(
       `DELETE FROM delivery_cost_per_tour WHERE ${idColumn} = ?`,
-      [tourId]
+      [tourId],
     );
 
     if (result.affectedRows === 0) {
@@ -777,8 +772,8 @@ export async function removeTourMatrix(
 }
 
 export async function getToursByStatusAsync(
-  status: TourStatus
-): Promise<TourinfoMaster[]> {
+  status: TourStatus,
+): Promise<TourRow[]> {
   const [rows]: any = await pool.execute(
     `SELECT 
       t.*, d.name AS driver_name, d.id AS driver_id, wh.color_code
@@ -790,11 +785,11 @@ export async function getToursByStatusAsync(
     JOIN warehouse_details AS wh 
         ON t.warehouse_id = wh.warehouse_id 
     WHERE tour_status = ?`,
-    [status]
+    [status],
   );
 
   // TourRow type mapping
-  return rows.map((row: any) => ({
+  const tourRows = rows.map((row: any) => ({
     id: row.id,
     tour_name: row.tour_name,
     tour_comments: row.tour_comments,
@@ -807,4 +802,5 @@ export async function getToursByStatusAsync(
     warehouse_id: row.warehouse_id,
     warehouse_colorCode: row.color_code,
   }));
+  return tourRows;
 }

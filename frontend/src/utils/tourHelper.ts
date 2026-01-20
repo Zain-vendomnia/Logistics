@@ -14,7 +14,7 @@ export const handlePermit = async (permitTourIds: string[]) => {
   const toursdata = await instance.getTours();
   const idNumbers = permitTourIds.map((id) => Number(id)); // Get the IDs of selected tours
   const matchedTours = toursdata.filter((tour: any) =>
-    idNumbers.includes(tour.id)
+    idNumbers.includes(tour.id),
   );
 
   // Filter the tours based on the selected IDs
@@ -51,12 +51,12 @@ export const handlePermit = async (permitTourIds: string[]) => {
         const isCase1 = metaArray.some(
           (meta: { meta_key: string; meta_value: string }) =>
             meta.meta_key === "customer_initial_email_case" &&
-            meta.meta_value === "case_1"
+            meta.meta_value === "case_1",
         );
         console.log(
           " <================ LINE = 55 : FILE = handleHelper.ts ==============>",
           orderNumber,
-          trackingCode
+          trackingCode,
         );
         if (isCase1 && trackingCode && order.order_status_id !== 10006) {
           condition = 3;
@@ -84,13 +84,13 @@ export const handlePermit = async (permitTourIds: string[]) => {
           let notif = await adminApiService.updateOrderNotificationMetaData(
             orderNumber,
             "customer_initial_email_case",
-            condition === 3 ? "case_3" : "case_2"
+            condition === 3 ? "case_3" : "case_2",
           );
 
           console.log(
             " <================ LINE = 87 : FILE = handleHelper.ts ==============>",
             orderNumber,
-            "Trigger mail"
+            "Trigger mail",
           );
         }
       }
@@ -139,7 +139,7 @@ export const blobToBase64 = (blob: Blob): Promise<string> => {
 // Generate PDF From Element method
 export const generatePdfFromElement = async (
   element: HTMLElement,
-  config: any
+  config: any,
 ): Promise<Blob> => {
   return new Promise(async (resolve, reject) => {
     try {
@@ -182,7 +182,7 @@ export const generatePdfFromElement = async (
 export const generatePOD = async (
   orderNumber: string,
   TourId: any,
-  driverId: number
+  driverId: number,
 ) => {
   if (!TourId) {
     console.log("Tour ID is required.");
@@ -193,7 +193,7 @@ export const generatePOD = async (
     const routeRes = await adminApiService.fetchRouteSegmentData(TourId);
     const routeImagesRes = await adminApiService.fetchRouteSegmentImages(
       TourId,
-      orderNumber
+      orderNumber,
     );
     const orderDetailsRes =
       await adminApiService.fetchSpecifiedOrder(orderNumber);
@@ -247,3 +247,10 @@ export const generatePOD = async (
     console.error("Error fetching orders:", error);
   }
 };
+
+export const generateTimeOptions = () =>
+  Array.from({ length: (24 - 7) * 2 }, (_, i) => {
+    const hour = 7 + Math.floor(i / 2);
+    const minutes = i % 2 === 0 ? "00" : "30";
+    return `${String(hour).padStart(2, "0")}:${minutes}`;
+  });

@@ -41,10 +41,10 @@ export const getAllDrivers = async () => {
 
 export const getAvailableDrivers = async (
   tourDate: string,
-  warehouseId: number
+  warehouseId: number,
 ): Promise<AvailabilityResult> => {
   console.log(
-    `Fetching available drivers for date: ${tourDate}, warehouseId: ${warehouseId}`
+    `Fetching available drivers for date: ${tourDate}, warehouseId: ${warehouseId}`,
   );
   const [allDriversRows]: any = await pool.query(
     `
@@ -53,7 +53,7 @@ export const getAvailableDrivers = async (
       JOIN users u ON d.user_id = u.user_id
       WHERE d.warehouse_id = ? AND u.is_active = 1
     `,
-    [warehouseId]
+    [warehouseId],
   );
   const allDrivers: DriverBasic[] = allDriversRows;
 
@@ -78,7 +78,7 @@ export const getAvailableDrivers = async (
         WHERE t.driver_id = ? AND DATE(t.tour_date) = ?
         LIMIT 1
       `,
-      [drv.id, tourDate]
+      [drv.id, tourDate],
     );
     if (sameDay.length > 0) {
       unavailable.push({
@@ -106,7 +106,7 @@ export const getAvailableDrivers = async (
           AND t.tour_date < DATE_ADD(?, INTERVAL 1 DAY)
         ORDER BY t.tour_date DESC, t.end_time DESC
       `,
-      [drv.id, weekStart, tourDate]
+      [drv.id, weekStart, tourDate],
     );
 
     let totalMinutes = 0;
@@ -131,10 +131,10 @@ export const getAvailableDrivers = async (
   return { available, unavailable };
 };
 
-export const getDriverById = async (id: number) => {
+export const getDriverByIdAsync = async (id: number) => {
   const [rows]: any = await pool.query(
     "SELECT * FROM driver_details WHERE id = ?",
-    [id]
+    [id],
   );
   return rows[0];
 };
@@ -155,7 +155,7 @@ export const createDriver = async (driver: {
     // 1. Check if email exists in users table
     const [existingUser]: any = await conn.query(
       `SELECT user_id FROM users WHERE email = ?`,
-      [driver.email]
+      [driver.email],
     );
 
     if (existingUser.length > 0) {
@@ -169,7 +169,7 @@ export const createDriver = async (driver: {
     // 3. Insert into users table
     const [userResult]: any = await conn.query(
       `INSERT INTO users (username, email, password, role,is_active) VALUES (?, ?, ?, ?,?)`,
-      [driver.name, driver.email, hashedPassword, "driver", driver.status]
+      [driver.name, driver.email, hashedPassword, "driver", driver.status],
     );
 
     const userId = userResult.insertId;
@@ -184,7 +184,7 @@ export const createDriver = async (driver: {
         driver.email,
         userId,
         driver.warehouse_id,
-      ]
+      ],
     );
 
     await conn.commit();
@@ -212,7 +212,7 @@ export const updateDriver = async (
     warehouse_id: number;
     status: number; // added status
     password?: string; // optional
-  }
+  },
 ) => {
   const conn = await pool.getConnection();
   try {
@@ -221,7 +221,7 @@ export const updateDriver = async (
     // 1. Check if email already exists for another driver
     const [existing]: any = await conn.query(
       `SELECT id FROM driver_details WHERE email = ? AND id != ?`,
-      [driver.email, id]
+      [driver.email, id],
     );
     if (existing.length > 0) {
       await conn.rollback();
@@ -238,13 +238,13 @@ export const updateDriver = async (
         driver.email,
         driver.warehouse_id,
         id,
-      ]
+      ],
     );
 
     // 3. Get associated user_id from driver_details
     const [driverRow]: any = await conn.query(
       `SELECT user_id FROM driver_details WHERE id = ?`,
-      [id]
+      [id],
     );
     const userId = driverRow[0]?.user_id;
 
@@ -254,13 +254,13 @@ export const updateDriver = async (
         // 4. Update users table with password and status
         await conn.query(
           `UPDATE users SET username = ?, email = ?, password = ?, is_active = ? WHERE user_id = ?`,
-          [driver.name, driver.email, hashedPassword, driver.status, userId]
+          [driver.name, driver.email, hashedPassword, driver.status, userId],
         );
       } else {
         // 4. Update users table without password
         await conn.query(
           `UPDATE users SET username = ?, email = ?, is_active = ? WHERE user_id = ?`,
-          [driver.name, driver.email, driver.status, userId]
+          [driver.name, driver.email, driver.status, userId],
         );
       }
     }
@@ -276,7 +276,7 @@ export const updateDriver = async (
 };
 
 export const disableDriver = async (
-  id: number
+  id: number,
 ): Promise<{
   status: "success" | "warning" | "error";
   message: string;
@@ -297,7 +297,7 @@ export const disableDriver = async (
        FROM driver_details d 
        JOIN users u ON d.user_id = u.user_id 
        WHERE d.id = ?`,
-      [id]
+      [id],
     );
 
     if (rows.length === 0) {
@@ -317,13 +317,13 @@ export const disableDriver = async (
     // Update if active - Update users table and driver_details updated_at
     const [result]: any = await connection.query(
       "UPDATE users SET is_active = 0 WHERE user_id = ?",
-      [driver.user_id]
+      [driver.user_id],
     );
 
     // Update the updated_at timestamp in driver_details
     await connection.query(
       "UPDATE driver_details SET updated_at = NOW() WHERE id = ?",
-      [id]
+      [id],
     );
 
     await connection.commit();
@@ -355,7 +355,7 @@ export const disableDriver = async (
 
 // Disable multiple drivers
 export const disableMultipleDrivers = async (
-  ids: number[]
+  ids: number[],
 ): Promise<{
   status: "success" | "warning" | "error";
   message: string;
@@ -388,7 +388,7 @@ export const disableMultipleDrivers = async (
        FROM driver_details d 
        JOIN users u ON d.user_id = u.user_id 
        WHERE d.id IN (?)`,
-      [ids]
+      [ids],
     );
 
     if (rows.length === 0) {
@@ -415,14 +415,14 @@ export const disableMultipleDrivers = async (
     // Disable active drivers by updating users table
     const [result]: any = await connection.query(
       `UPDATE users SET is_active = 0 WHERE user_id IN (?)`,
-      [activeUserIds]
+      [activeUserIds],
     );
 
     // Update driver_details timestamp for the active drivers
     const activeDriverIds = activeDrivers.map((r: any) => r.id);
     await connection.query(
       `UPDATE driver_details SET updated_at = NOW() WHERE id IN (?)`,
-      [activeDriverIds]
+      [activeDriverIds],
     );
 
     await connection.commit();
@@ -451,7 +451,7 @@ export const disableMultipleDrivers = async (
 
 export const evaluateDriverEligibility = async (driverId: number) => {
   console.log(
-    `[Service] Evaluating driver eligibility for driver ID: ${driverId}`
+    `[Service] Evaluating driver eligibility for driver ID: ${driverId}`,
   );
 
   // Step 1: Calculate start of the current week (Monday)
@@ -462,7 +462,7 @@ export const evaluateDriverEligibility = async (driverId: number) => {
   monday.setDate(now.getDate() - diffToMonday);
   monday.setHours(0, 0, 0, 0);
   console.log(
-    `[Step 1] Start of current week (Monday): ${monday.toLocaleString()}`
+    `[Step 1] Start of current week (Monday): ${monday.toLocaleString()}`,
   );
 
   // Step 2: Fetch tours for this driver from this week's Monday to now
@@ -479,7 +479,7 @@ export const evaluateDriverEligibility = async (driverId: number) => {
       AND t.tour_date >= ?
     ORDER BY t.tour_date DESC, t.end_time DESC
     `,
-    [driverId, monday]
+    [driverId, monday],
   );
   console.log(`[Step 2] Fetched ${rows.length} tours for this week.`);
 
@@ -502,7 +502,7 @@ export const evaluateDriverEligibility = async (driverId: number) => {
       console.log(row.duration_minutes);
       totalMinutes += row.duration_minutes;
       console.log(
-        `[Step 4] Tour ID ${row.tour_id}: added ${row.duration_minutes} minutes`
+        `[Step 4] Tour ID ${row.tour_id}: added ${row.duration_minutes} minutes`,
       );
     } else {
       console.warn(`[Step 4] Tour ID ${row.tour_id} has invalid duration.`);
@@ -511,7 +511,7 @@ export const evaluateDriverEligibility = async (driverId: number) => {
   const totalHours = Math.floor(totalMinutes / 60);
   const remainingMinutes = totalMinutes % 60;
   console.log(
-    `[Step 4] Total worked time this week: ${totalHours}h ${remainingMinutes}m`
+    `[Step 4] Total worked time this week: ${totalHours}h ${remainingMinutes}m`,
   );
 
   // Step 5: Get last tour end time (safely parse DATETIME + TIME)
@@ -567,13 +567,13 @@ const MAX_WEIGHT_SUM = TOTAL_WEIGHT * MAX_KPI_SCORE;
 export const getDriverPerformanceData = async (
   startDate: string,
   endDate: string,
-  driver_id: number | undefined
+  driver_id: number | undefined,
 ) => {
   console.log(
-    "------------------------------------------------------------------------------------------------------------"
+    "------------------------------------------------------------------------------------------------------------",
   );
   console.log(
-    `Fetching performance data from ${startDate} to ${endDate} for driver_id: ${driver_id}`
+    `Fetching performance data from ${startDate} to ${endDate} for driver_id: ${driver_id}`,
   );
 
   const driverParam = driver_id ?? null;
@@ -669,11 +669,11 @@ export const getDriverPerformanceData = async (
     GROUP BY d.id
     ORDER BY d.id;
     `,
-    [startDate, endDate, driverParam, driverParam]
+    [startDate, endDate, driverParam, driverParam],
   );
 
   console.log(
-    "------------------------------------------------------------------------------------------------------------"
+    "------------------------------------------------------------------------------------------------------------",
   );
 
   /* ---------- mapping & KPI calculations ------------------------------ */
@@ -835,7 +835,7 @@ export const getDriverPerformanceData = async (
 export const getDriverPerformanceWeekDaily = async (
   startDate: string, // YYYY-MM-DD (Sunday)
   endDate: string, // YYYY-MM-DD (Saturday)
-  driverId: number | undefined
+  driverId: number | undefined,
 ) => {
   if (!driverId) return [];
 

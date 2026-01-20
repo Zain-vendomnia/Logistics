@@ -3,14 +3,15 @@ import pool from "../config/database";
 import { CreateTour } from "../types/dto.types";
 import { logWithTime } from "../utils/logging";
 import { PoolConnection } from "mysql2/promise";
-import { UpdateTour_Req } from "../types/tour.types";
+import { TourinfoMaster, UpdateTour_Req } from "../types/tour.types";
 import { OrderStatus } from "./LogisticOrders";
 import { updateOrderStatus } from "../services/logisticOrder.service";
 import { mapRowToTour } from "../helpers/tour.helper";
+import { tourInfo_master } from "./TourinfoMaster";
 
 export const createTourAsync = async (
   connection: PoolConnection,
-  tour: CreateTour
+  tour: CreateTour,
 ) => {
   logWithTime("[Create Tour Initiated]");
   try {
@@ -20,7 +21,7 @@ export const createTourAsync = async (
       FROM driver_details d
       JOIN users u ON d.user_id = u.user_id
       WHERE d.id = ?`,
-      [tour.driverId]
+      [tour.driverId],
     );
 
     if (!driverUserRows.length)
@@ -33,7 +34,7 @@ export const createTourAsync = async (
     const [duplicateTourRows]: any = await connection.execute(
       `SELECT COUNT(*) AS count FROM tourinfo_master
       WHERE driver_id = ? AND tour_date = ?`,
-      [tour.driverId, tour.tourDate]
+      [tour.driverId, tour.tourDate],
     );
     if (duplicateTourRows[0].count > 0)
       throw new Error(`Driver already has a tour on ${tour.tourDate}`);
@@ -46,7 +47,7 @@ export const createTourAsync = async (
     const tourName = await generateTourName(
       connection,
       tour,
-      driverName as string
+      driverName as string,
     );
 
     // 5. Insert into tourinfo_master
@@ -91,7 +92,7 @@ export const createTourAsync = async (
 async function generateTourName(
   conn: PoolConnection,
   tour: CreateTour,
-  driverName: string
+  driverName: string,
 ) {
   let tour_name = "";
 
@@ -99,14 +100,14 @@ async function generateTourName(
     const orderPlaceholders = tour.orderIds.map(() => "?").join(",");
     const [zipRows]: any = await conn.query(
       `SELECT zipcode FROM logistic_order WHERE order_id IN (${orderPlaceholders})`,
-      tour.orderIds
+      tour.orderIds,
     );
     if (!zipRows.length) throw new Error(`No valid orders found`);
 
     const zipcodes: string[] = zipRows.map((r: any) => String(r.zipcode));
 
     const zipcodePrefixes = Array.from(
-      new Set(zipcodes.map((z) => z.substring(0, 2) || "00"))
+      new Set(zipcodes.map((z) => z.substring(0, 2) || "00")),
     );
 
     tour_name = `PLZ-${zipcodePrefixes}`;
@@ -119,7 +120,7 @@ async function generateTourName(
     weekday: "long",
   });
   const formattedDate = `${tourDateFormatted.getFullYear()}.${String(
-    tourDateFormatted.getMonth() + 1
+    tourDateFormatted.getMonth() + 1,
   ).padStart(2, "0")}.${String(tourDateFormatted.getDate()).padStart(2, "0")}`;
 
   const driver_name = driverName.replace(/\s+/g, "").toLowerCase();
@@ -182,7 +183,7 @@ export const deleteTours = async (tourIds: number[]) => {
     await conn.commit();
 
     console.log(
-      "[tourModel] Tours,route and tour_driver segments deleted successfully"
+      "[tourModel] Tours,route and tour_driver segments deleted successfully",
     );
     return result;
   } catch (err) {
@@ -194,7 +195,9 @@ export const deleteTours = async (tourIds: number[]) => {
   }
 };
 
-export const updateTourinfoMasterAsync = async (tourData: UpdateTour_Req) => {
+export const updateTourinfoMasterAsync = async (
+  tourData: UpdateTour_Req,
+): Promise<TourinfoMaster> => {
   if (!tourData.orderIds?.length) {
     throw new Error("Tour must contain at least one order.");
   }
@@ -224,7 +227,7 @@ export const updateTourinfoMasterAsync = async (tourData: UpdateTour_Req) => {
 
     const [tourRow] = await connection.query(
       `SELECT * FROM tourinfo_master WHERE id = ? FOR UPDATE`,
-      [tourData.id]
+      [tourData.id],
     );
 
     const dbTour = (tourRow as any[]).map(mapRowToTour)[0];
@@ -236,7 +239,7 @@ export const updateTourinfoMasterAsync = async (tourData: UpdateTour_Req) => {
     ]);
     if (pendingRows[0].count > 0) {
       throw new Error(
-        `Driver already has another pending or in-progress tour.`
+        `Driver already has another pending or in-progress tour.`,
       );
     }
 
@@ -248,7 +251,7 @@ export const updateTourinfoMasterAsync = async (tourData: UpdateTour_Req) => {
     ]);
     if (dateRows[0].count > 0) {
       throw new Error(
-        `Driver already has another tour on ${tourData.tourDate}.`
+        `Driver already has another tour on ${tourData.tourDate}.`,
       );
     }
 
@@ -322,7 +325,7 @@ export const updateTourinfoMasterAsync = async (tourData: UpdateTour_Req) => {
     SET ${queryFields.join(", ")}
     WHERE id = ?
     `,
-        updateValues
+        updateValues,
       );
     }
 
@@ -358,7 +361,7 @@ export const updateTourinfoMasterAsync = async (tourData: UpdateTour_Req) => {
           newStatus: OrderStatus.Assigned,
           changedBy: tourData.userId,
           conn: connection,
-        })
+        }),
       );
       await Promise.all(promises_assigned);
 
@@ -368,15 +371,15 @@ export const updateTourinfoMasterAsync = async (tourData: UpdateTour_Req) => {
           newStatus: OrderStatus.Unassigned,
           changedBy: tourData.userId,
           conn: connection,
-        })
+        }),
       );
       await Promise.all(promises_unassigned);
     }
 
     await connection.commit();
 
-    // const affectedRows = (result as ResultSetHeader).affectedRows;
-    return true;
+    const updatedTour = await tourInfo_master.getTourByIdAsync(tourData.id);
+    return updatedTour;
   } catch (error: unknown) {
     await connection.rollback();
 
@@ -395,11 +398,11 @@ export const updateTourinfoMasterAsync = async (tourData: UpdateTour_Req) => {
 export const removeUnassignedOrdersFromTour = async (
   conn: PoolConnection,
   tourId: number,
-  orderIdsToRemove: number[]
+  orderIdsToRemove: number[],
 ) => {
   const [rows]: any = await conn.query(
     `SELECT order_ids FROM tourinfo_master WHERE id = ?`,
-    [tourId]
+    [tourId],
   );
 
   if (!rows.length) throw new Error(`Tour with id ${tourId} not found`);
@@ -419,7 +422,7 @@ export const removeUnassignedOrdersFromTour = async (
 
   // Filter order Ids
   const updatedOrderIds = currentOrderIds.filter(
-    (id) => !orderIdsToRemove.includes(id)
+    (id) => !orderIdsToRemove.includes(id),
   );
 
   await conn.query(`UPDATE tourinfo_master SET order_ids = ? WHERE id = ?`, [
@@ -429,6 +432,6 @@ export const removeUnassignedOrdersFromTour = async (
 
   console.log(
     `Removed ${orderIdsToRemove.length} order(s) from Tour ${tourId}. Remaing order: `,
-    updatedOrderIds
+    updatedOrderIds,
   );
 };

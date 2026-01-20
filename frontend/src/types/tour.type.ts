@@ -185,7 +185,7 @@ export interface DynamicTourPayload {
 export interface Tourinfo {
   id: number;
   tour_name?: string;
-  status?: string;
+  status?: TourStatus;
   orderIds: string; // Comma-separated
 
   tour_date: string;
@@ -242,7 +242,7 @@ export type DynamicTourRes = {
   dynamicTour: DynamicTourPayload;
 };
 
-export type rejectDynamicTour_Req = {
+export type rejectTour_Req = {
   tour_id: number;
   userId: string;
   reason: string;
@@ -260,7 +260,7 @@ export type TourRow = {
   id: number;
   tour_name: string;
   tour_date: string;
-  status: TourStatus;
+  tour_status: TourStatus;
   route_color: string | null;
   comments: string | null;
 

@@ -164,7 +164,7 @@ export interface TourMatrix {
 export type TourinfoMaster = {
   id: number;
   tour_name: string;
-  tour_status: string;
+  tour_status: TourStatus;
   orderIds: string;
 
   tour_date: Date;
@@ -222,7 +222,7 @@ export type TourRow = {
   id: number;
   tour_name: string;
   tour_date: string;
-  status: TourStatus;
+  tour_status: TourStatus;
   route_color: string | null;
   comments: string | null;
 

@@ -54,7 +54,7 @@ export const getgraphhopperRoute = async (_req: Request, res: Response) => {
   }
   try {
     const routeRes = await tourInfo_master.getRouteResponse(
-      parseInt(tour_id as string)
+      parseInt(tour_id as string),
     );
     res.status(200).json(routeRes);
   } catch (error) {
@@ -101,7 +101,7 @@ export const deleteTourController = async (req: Request, res: Response) => {
 
     if (affectedRows > 0) {
       console.log(
-        `[deleteTourController] Successfully deleted ${affectedRows} tours`
+        `[deleteTourController] Successfully deleted ${affectedRows} tours`,
       );
       res.status(200).json({
         message: "Tours deleted successfully",
@@ -197,7 +197,7 @@ export const updateTourStatus = async (_req: Request, res: Response) => {
   try {
     await pool.query(
       "UPDATE tourinfo_master SET tour_status = ? WHERE id = ?",
-      ["confirmed", tourId]
+      ["confirmed", tourId],
     );
     console.log(`Updating tour ${tourId} to 'confirmed'`);
     res.status(200).json({ message: "Tour status updated to confirmed." });
@@ -220,7 +220,7 @@ export const getRoutesSegmentImages = async (_req: Request, res: Response) => {
   try {
     const routeRes = await route_segments.getRoutesegmentImagesRes(
       tour_id ? Number(tour_id) : undefined,
-      order_number ? order_number : undefined
+      order_number ? order_number : undefined,
     );
 
     res.status(200).json(routeRes);
@@ -244,7 +244,7 @@ export const estimateTourCostMatrix = async (_req: Request, res: Response) => {
   try {
     const result = await tourService.estimateTourCostMatrixAsync(
       warehouseId,
-      orderIds
+      orderIds,
     );
 
     if (!result) {

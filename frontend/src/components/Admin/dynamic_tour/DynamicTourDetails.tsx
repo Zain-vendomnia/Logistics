@@ -52,6 +52,7 @@ import PanelToggleButton from "../tours/PanelToggleButton";
 import AlertButton from "../../base-ui/AlertButton";
 import CostEvaluator, { CostType } from "../tours/CostEvaluator";
 import TourImpactPreview from "../tours/TourImpactPreview";
+import { generateTimeOptions } from "../../../utils/tourHelper";
 
 const modalStyle = {
   position: "absolute",
@@ -98,8 +99,6 @@ const DynamicTourDetails = () => {
     handleOrderRemove,
     restoreRemovedOrder,
 
-    generateTimeOptions,
-
     formData,
     today,
     theme,
@@ -135,7 +134,7 @@ const DynamicTourDetails = () => {
     // const orderIdToRemove = pendingRemove.order.order_id;
     // updateTourRouteMap(orderIdToRemove);
   };
-  
+
   // const updateTourRouteMap = (orderId: number) => {
   //   const ordersStops = new Map<number, Stop>();
   //   tour?.tour_route?.stops.forEach((stop) => {
@@ -938,7 +937,7 @@ const DynamicTourDetails = () => {
                         backgroundColor:
                           warehouse?.colorCode || formData.routeColor,
                         color: theme.palette.getContrastText(
-                          warehouse?.colorCode || formData.routeColor
+                          warehouse?.colorCode || formData.routeColor,
                         ),
                         minWidth: 80,
                       }}
@@ -1093,7 +1092,7 @@ function SideHeaderTable(tour: DynamicTourPayload) {
     tour.matrix?.costWE,
     tour.matrix?.costWA,
   ];
-  
+
   return (
     <TableContainer>
       <Table

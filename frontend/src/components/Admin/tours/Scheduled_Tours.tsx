@@ -12,6 +12,7 @@ import { handlePermit } from "../../../utils/tourHelper";
 import { TourRow, TourStatus } from "../../../types/tour.type";
 import SpecTable, { ActionButtonProps, RowAction } from "../SpecTable";
 import { useNavigate } from "react-router-dom";
+import { tourService } from "../../../services/tour.service";
 
 const ScheduledTours = () => {
   const [tours, setTours] = useState<TourRow[]>([]);
@@ -25,28 +26,8 @@ const ScheduledTours = () => {
 
   const loadTours = useCallback(async () => {
     try {
-      const res = await adminApiService.fetchToursByStatus(
-        TourStatus.completed
-      );
-      const toursRes = res.data as TourRow[];
-      setTours(
-        toursRes.map(
-          (t): TourRow => ({
-            id: t.id,
-            tour_name: t.tour_name,
-            status: t.status,
-            tour_date: t.tour_date,
-            route_color: t.route_color,
-            comments: t.comments,
-            orderIds: t.orderIds,
-            driver_id: t.driver_id || 0,
-            driver_name: t.driver_name || "N/A",
-            vehicle_id: t.vehicle_id,
-            warehouse_id: t.warehouse_id,
-            warehouse_colorCode: t.warehouse_colorCode,
-          })
-        )
-      );
+      const toursRes = await tourService.getTourRows(TourStatus.completed);
+      setTours(toursRes);
     } catch (e) {
       console.error(e);
       // showSnackbar("Failed to load tours", "error");
