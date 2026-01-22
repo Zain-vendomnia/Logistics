@@ -2,7 +2,11 @@ import pool from "../config/database";
 import { matrixEstimate } from "./hereMap.service";
 
 import { WarehouseDetailsDto } from "../types/dto.types";
-import { Warehouse, WarehouseZipcodes } from "../types/warehouse.types";
+import {
+  Warehouse,
+  WarehouseCreate_Req,
+  WarehouseZipcodes,
+} from "../types/warehouse.types";
 import { Location, MatrixData, MatrixResult } from "../types/hereMap.types";
 import { Order } from "../types/order.types";
 
@@ -34,11 +38,11 @@ export const getAllWarehouses = async (): Promise<Warehouse[]> => {
 };
 
 export const getWarehouseById = async (
-  id: number
+  id: number,
 ): Promise<WarehouseDetailsDto> => {
   const [rows]: any = await pool.query(
     `SELECT * FROM warehouse_details WHERE warehouse_id = ?`,
-    [id]
+    [id],
   );
 
   const row = rows[0];
@@ -58,7 +62,7 @@ export const getWarehouseById = async (
 };
 
 export const getWarehouseWithVehicles = async (
-  id: number
+  id: number,
 ): Promise<Warehouse> => {
   const [rows]: any = await pool.execute(
     `SELECT
@@ -71,7 +75,7 @@ export const getWarehouseWithVehicles = async (
      LEFT JOIN vehicle_details vd
      ON wd.warehouse_id = vd.warehouse_id
      WHERE wd.warehouse_id = ?`,
-    [id]
+    [id],
   );
 
   if (!rows.length) {
@@ -118,7 +122,7 @@ export const getActiveWarehousesWithVehicles = async (): Promise<
      FROM warehouse_details wd
      LEFT JOIN vehicle_details vd 
      ON wd.warehouse_id = vd.warehouse_id
-     WHERE wd.is_active = 1`
+     WHERE wd.is_active = 1`,
   );
 
   if (!rows.length) return [];
@@ -161,24 +165,28 @@ export const getActiveWarehousesWithVehicles = async (): Promise<
   return Array.from(warehouses.values());
 };
 
-export const createWarehouse = async (warehouse: {
-  warehouse_name: string;
-  clerk_name: string;
-  clerk_mob: number;
-  address: string;
-  email: string;
-}) => {
+export const createWarehouse = async (warehouse: WarehouseCreate_Req) => {
   try {
     await pool.query("START TRANSACTION");
     const [result]: any = await pool.query(
-      "INSERT INTO warehouse_details (warehouse_name, clerk_name, clerk_mob, address, email) VALUES (?, ?, ?, ?, ?)",
+      `INSERT INTO warehouse_details 
+      (warehouse_name, town, address, zip_code,
+      latitude, longitude, loading_weight_kg,
+      clerk_name, clerk_mob, email, is_active) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        warehouse.warehouse_name,
-        warehouse.clerk_name,
-        warehouse.clerk_mob,
+        warehouse.name,
+        warehouse.town ?? "",
         warehouse.address,
-        warehouse.email,
-      ]
+        warehouse.zipCode ?? "",
+        warehouse.latitude ?? "",
+        warehouse.longitude ?? "",
+        warehouse.loadingWeight ?? 0,
+        warehouse.clerkName,
+        warehouse.clerkMob ?? "",
+        warehouse.email ?? "",
+        warehouse.is_active,
+      ],
     );
     await pool.query("COMMIT");
     return { warehouse_id: result.insertId, ...warehouse };
@@ -187,9 +195,10 @@ export const createWarehouse = async (warehouse: {
     throw err;
   }
 };
+
 export const updateWarehouse = async (
   id: number,
-  warehouse: Warehouse
+  warehouse: Warehouse,
 ): Promise<boolean> => {
   console.log("===== Update Warehouse Service =====");
   console.log("Warehouse Data:", warehouse);
@@ -228,7 +237,7 @@ export const updateWarehouse = async (
         warehouse.email,
         warehouse.is_active,
         id,
-      ]
+      ],
     );
 
     await connection.commit();
@@ -243,7 +252,7 @@ export const updateWarehouse = async (
 
 // Disable single warehouse
 export const disableWarehouse = async (
-  id: number
+  id: number,
 ): Promise<{
   status: "success" | "warning" | "error";
   message: string;
@@ -261,7 +270,7 @@ export const disableWarehouse = async (
     // Check current state
     const [rows]: any = await connection.query(
       "SELECT is_active,warehouse_name FROM warehouse_details WHERE warehouse_id = ?",
-      [id]
+      [id],
     );
     const warehouse_name = rows[0].warehouse_name;
     if (rows.length === 0) {
@@ -280,7 +289,7 @@ export const disableWarehouse = async (
     // Update if active
     const [result]: any = await connection.query(
       "UPDATE warehouse_details SET is_active = 0, updated_at = NOW() WHERE warehouse_id = ?",
-      [id]
+      [id],
     );
 
     await connection.commit();
@@ -307,7 +316,7 @@ export const disableWarehouse = async (
 
 // Disable multiple warehouses
 export const disableMultipleWarehouses = async (
-  ids: number[]
+  ids: number[],
 ): Promise<{
   status: "success" | "warning" | "error";
   message: string;
@@ -328,7 +337,7 @@ export const disableMultipleWarehouses = async (
     // Check current states
     const [rows]: any = await connection.query(
       `SELECT warehouse_id, is_active FROM warehouse_details WHERE warehouse_id IN (?)`,
-      [ids]
+      [ids],
     );
 
     if (rows.length === 0) {
@@ -356,7 +365,7 @@ export const disableMultipleWarehouses = async (
     // Disable active warehouses
     const [result]: any = await connection.query(
       `UPDATE warehouse_details SET is_active = 0, updated_at = NOW() WHERE warehouse_id IN (?)`,
-      [activeIds]
+      [activeIds],
     );
 
     await connection.commit();
@@ -384,7 +393,7 @@ export const disableMultipleWarehouses = async (
 };
 
 export const getWarehouseZipcodesRecord = async (
-  ids: number[] | number
+  ids: number[] | number,
 ): Promise<Record<number, WarehouseZipcodes> | null> => {
   const idArray = Array.isArray(ids) ? ids : [ids];
   if (idArray.length === 0) return null;
@@ -399,7 +408,7 @@ export const getWarehouseZipcodesRecord = async (
        zip_codes_delivering
      FROM warehouse_details
      WHERE warehouse_id IN (${placeholders})`,
-    idArray
+    idArray,
   );
 
   if (!rows.length) return null;
@@ -426,20 +435,20 @@ export const getWarehouseZipcodesRecord = async (
 };
 
 export async function getWarehouseLocationCords(
-  warehouse: Warehouse
+  warehouse: Warehouse,
 ): Promise<Location | null> {
   try {
     const address = `${warehouse.address}, ${warehouse.town}`;
     console.log(
-      `Calling location coordinates API for Warehouse ${warehouse.id} address: ${address} `
+      `Calling location coordinates API for Warehouse ${warehouse.id} address: ${address} `,
     );
 
     const location: Location = await requestLocationCoordinates(address);
-    (warehouse.lat = location.lat), (warehouse.lng = location.lng);
+    ((warehouse.lat = location.lat), (warehouse.lng = location.lng));
     const isUpdated = await updateWarehouse(warehouse.id, warehouse);
     if (!isUpdated) {
       console.error(
-        `Warehouse ${warehouse.id} update failed for Location: ${location}`
+        `Warehouse ${warehouse.id} update failed for Location: ${location}`,
       );
       return null;
     }
@@ -453,16 +462,17 @@ export async function getWarehouseLocationCords(
 
 export async function getEndpointsRouteMatrix(
   warehouse: Warehouse,
-  orders: Order[]
+  orders: Order[],
 ): Promise<MatrixData | undefined> {
   try {
     const validOrders = orders.filter(
-      (o) => o && o.location && o.location.lat != null && o.location.lng != null
+      (o) =>
+        o && o.location && o.location.lat != null && o.location.lng != null,
     );
 
     if (!warehouse || !validOrders.length) {
       throw new Error(
-        "matrixEstimate requires at least one Warehouse and one Order."
+        "matrixEstimate requires at least one Warehouse and one Order.",
       );
     }
 
@@ -516,7 +526,7 @@ export async function getEndpointsRouteMatrix(
         allDistances.push(...matrixRes?.matrix.distances);
       } else {
         console.error(
-          `Matrix API returned error: ${JSON.stringify(matrixRes?.error)}`
+          `Matrix API returned error: ${JSON.stringify(matrixRes?.error)}`,
         );
         allErrors.push(...(matrixRes?.matrix.errorCodes || []));
 
@@ -541,11 +551,11 @@ async function callMatrixWithTimeout(
   batch: { lat: number; lng: number }[],
   allDestinations: { lat: number; lng: number }[],
   retries = 2,
-  timeoutMs = 20000
+  timeoutMs = 20000,
 ): Promise<MatrixResult | undefined> {
   const matrixCall = async () => {
     const timeoutPromise = new Promise<undefined>((resolve) =>
-      setTimeout(() => resolve(undefined), timeoutMs)
+      setTimeout(() => resolve(undefined), timeoutMs),
     );
 
     const result = await Promise.race([

@@ -5,6 +5,7 @@ import {
   PickupOrder,
   OrderHistory,
   OrderHistoryUI,
+  SolarModule,
 } from "../types/order.types";
 import { LogisticOrder, OrderStatus, OrderType } from "../model/LogisticOrders";
 import { PoolConnection, ResultSetHeader, RowDataPacket } from "mysql2/promise";
@@ -21,12 +22,12 @@ export async function loadOrdersItems(orders: Order[]) {
   const placeholders = orders.map(() => "?").join(",");
   const [items] = await pool.execute(
     `SELECT * FROM logistic_order_items WHERE order_id IN (${placeholders})`,
-    orders.map((o) => o.order_id)
+    orders.map((o) => o.order_id),
   );
 
   const ordersWithItems = await mapItemsToOrders(
     orders as Order[],
-    items as OrderItem[]
+    items as OrderItem[],
   );
 
   return ordersWithItems;
@@ -93,7 +94,7 @@ export async function updateOrderStatus({
   // get current status
   const [[order]]: any = await pool.query(
     "SELECT status FROM logistic_order WHERE order_id = ?",
-    [orderId]
+    [orderId],
   );
 
   if (!order) throw new Error("Order not found");
@@ -103,7 +104,7 @@ export async function updateOrderStatus({
   // update status
   const [result] = await connection.execute<ResultSetHeader>(
     "UPDATE logistic_order SET status = ?, updated_at = NOW() WHERE order_id = ?",
-    [newStatus, orderId]
+    [newStatus, orderId],
   );
 
   const affected = (result as ResultSetHeader).affectedRows > 0;
@@ -193,7 +194,7 @@ export async function createCancelOrderAsync(
   parentOrderId: number,
   createdBy: string,
   reason = "",
-  items: OrderItem[]
+  items: OrderItem[],
 ): Promise<{ success: boolean; message: string } | Order> {
   const conn = await pool.getConnection();
   try {
@@ -210,7 +211,7 @@ export async function createCancelOrderAsync(
     const orderItems = order[0].items;
     const existingItemIds = new Set(orderItems?.map((oi) => oi.id));
     const addonItems = items.filter(
-      (it) => it.id === 0 && !existingItemIds.has(it.id)
+      (it) => it.id === 0 && !existingItemIds.has(it.id),
     );
     const cancelItems = items.filter((oit) => existingItemIds.has(oit.id));
 
@@ -341,11 +342,11 @@ export async function cloneOrderWithType({
 
 export async function verifyOrder(
   orderId: number,
-  type?: OrderType
+  type?: OrderType,
 ): Promise<{ success: boolean; message: string }> {
   const [[order]]: any = await pool.query(
     "SELECT status, type FROM logistic_order WHERE order_id = ?",
-    [orderId]
+    [orderId],
   );
   if (!order) return { success: false, message: "Order not found" };
 
@@ -367,7 +368,7 @@ export async function verifyOrder(
 
 export async function verifyOrderItems(
   orderId: number,
-  cancelItems: OrderItem[]
+  cancelItems: OrderItem[],
 ): Promise<{ success: boolean; message: string; dontExist?: OrderItem[] }> {
   const dontExist: OrderItem[] = [];
 
@@ -378,7 +379,7 @@ export async function verifyOrderItems(
     const [rows]: any = await pool.query(
       `SELECT quantity FROM logistic_order_items
      WHERE order_id = ? AND slmdl_articleordernumber = ? LIMIT 1`,
-      [orderId, item.slmdl_articleordernumber]
+      [orderId, item.slmdl_articleordernumber],
     );
     const orderItem = rows?.[0];
     if (!orderItem) {
@@ -403,16 +404,16 @@ async function cloneOrderItems(
   parentOrderId: number,
   newOrderId: number,
   cancelItems: OrderItem[],
-  conn: PoolConnection
+  conn: PoolConnection,
 ) {
   const [parentOrderItems]: any = await conn.query(
     `SELECT * FROM logistic_order_items WHERE order_id = ?`,
-    [parentOrderId]
+    [parentOrderId],
   );
 
   for (const parentItem of parentOrderItems) {
     const cancelItem = cancelItems.find(
-      (i) => i.slmdl_articleordernumber === parentItem.slmdl_articleordernumber
+      (i) => i.slmdl_articleordernumber === parentItem.slmdl_articleordernumber,
     );
 
     const mappedItem = {
@@ -449,7 +450,7 @@ async function cloneOrderItems(
         mappedItem.cancelled_quantity,
         mappedItem.is_new_item,
         mappedItem.ref_item_id,
-      ]
+      ],
     );
   }
 }
@@ -460,7 +461,7 @@ export async function updateOrderItemQty(
   order_id: number,
   orderItemId: number,
   cancel_quantity: number,
-  updated_by: string
+  updated_by: string,
 ): Promise<{
   success: boolean;
   updatedItems?: Map<number, boolean>;
@@ -484,7 +485,7 @@ export async function updateOrderItemQty(
 
     const [rows] = await conn.query<RowDataPacket[]>(
       `SELECT * FROM logistic_order_items WHERE id = ?`,
-      [orderItemId]
+      [orderItemId],
     );
     const orderItem = (rows as any).map(mapRowToOrderItem)[0];
     if (!orderItem) {
@@ -500,7 +501,7 @@ export async function updateOrderItemQty(
 
     const [result] = await conn.query<ResultSetHeader>(
       `UPDATE logistic_order_items SET cancelled_quantity = ?, updated_at = NOW() WHERE id = ?`,
-      [cancel_quantity, orderItemId]
+      [cancel_quantity, orderItemId],
     );
 
     if (result.affectedRows > 0) {
@@ -534,7 +535,7 @@ export async function updateOrderItemQty(
 export async function updatePickupOrderItems(
   order_id: number,
   update_by: string,
-  cancelItems: OrderItem[] // updated items only
+  cancelItems: OrderItem[], // updated items only
 ): Promise<{
   success: boolean;
   updatedItems?: Map<number, boolean>;
@@ -553,7 +554,7 @@ export async function updatePickupOrderItems(
     // Validate order
     const [orderRows] = await conn.execute<RowDataPacket[]>(
       "SELECT status FROM logistic_order WHERE id = ?",
-      [order_id]
+      [order_id],
     );
     if (!orderRows.length) {
       await conn.rollback();
@@ -572,12 +573,12 @@ export async function updatePickupOrderItems(
     // Fetch all order items for the order
     const [parentItems] = await conn.execute<RowDataPacket[]>(
       `SELECT * FROM logistic_order_items WHERE order_id = ?`,
-      [order_id]
+      [order_id],
     );
 
     const itemsMap = new Map<number, OrderItem>();
     parentItems.forEach((item: any) =>
-      itemsMap.set(item.id, mapRowToOrderItem(item))
+      itemsMap.set(item.id, mapRowToOrderItem(item)),
     );
 
     // Validate cancel quantities
@@ -640,7 +641,7 @@ export async function updatePickupOrderItems(
 
       const [result] = await conn.execute<ResultSetHeader>(
         `UPDATE logistic_order_items SET cancelled_quantity = ? WHERE id = ?`,
-        [cancelItem.cancelled_quantity, cancelItem.id]
+        [cancelItem.cancelled_quantity, cancelItem.id],
       );
       updatedItem.set(cancelItem.id, result.affectedRows > 0);
     }
@@ -660,7 +661,7 @@ export async function updatePickupOrderItems(
 // End: Order Types
 
 export async function getOrdersByTypes(
-  types: OrderType[]
+  types: OrderType[],
 ): Promise<Order[] | PickupOrder[]> {
   if (!types?.length) return [];
 
@@ -668,7 +669,7 @@ export async function getOrdersByTypes(
   const placeholders = types.map(() => "?").join(",");
   const [rows] = await pool.execute(
     `SELECT * FROM logistic_order WHERE type IN (${placeholders})`,
-    types
+    types,
   );
   const orders: Order[] = (rows as any[]).map(mapRowToOrder);
   const ordersWithItems = await loadOrdersItems(orders);
@@ -691,7 +692,7 @@ export async function getOrdersByStatus(status: OrderStatus): Promise<Order[]> {
      JOIN warehouse_details wh
         ON o.warehouse_id = wh.warehouse_id
     WHERE status = ?`,
-    status
+    status,
   );
   const orders: Order[] = (rows as any[]).map(mapRowToOrder);
   const ordersWithItems = await loadOrdersItems(orders);
@@ -728,7 +729,7 @@ export async function fetchOrderDetailsAsync(order_number: number) {
 }
 
 export async function fetchOrderHistoryAsync(
-  order_number: number
+  order_number: number,
 ): Promise<OrderHistoryUI | null> {
   const orderQuery = `SELECT * FROM logistic_order WHERE order_number = ?`;
   const [orderRows] = await pool.execute(orderQuery, [order_number]);
@@ -810,7 +811,7 @@ export async function getCancelOrderItemsAsync(orderNumber: number) {
 export async function updateOrderStatusAsync(
   order_id: number,
   newStatus: string,
-  updated_by: string
+  updated_by: string,
 ) {
   try {
     const isUpdated = await updateOrderStatus({
@@ -846,7 +847,7 @@ async function markOrderAsUrgent(order: Order): Promise<Boolean> {
     `UPDATE logistic_order 
       SET type = ?, updated_at = NOW() 
     WHERE order_id = ? AND type != ?`,
-    [OrderType.URGENT, order.order_id, OrderType.URGENT]
+    [OrderType.URGENT, order.order_id, OrderType.URGENT],
   );
 
   const affected = (result as ResultSetHeader).affectedRows > 0;
@@ -868,10 +869,78 @@ export async function checkOrdersUrgency() {
   const urgentDeliveries = orders.filter(
     (order) =>
       isUrgentDelivery(order.expected_delivery_time) &&
-      order.type !== OrderType.URGENT
+      order.type !== OrderType.URGENT,
   );
 
   if (!urgentDeliveries.length) return;
 
   await Promise.all(urgentDeliveries.map((o) => markOrderAsUrgent(o)));
+}
+
+export async function addSolarModuleAsync(
+  module: SolarModule,
+): Promise<SolarModule> {
+  const query = `
+    INSERT INTO solarmodules_items
+      (module_name, weight, created_at)
+    VALUES (?, ?, NOW())
+  `;
+
+  const [result] = await pool.execute<ResultSetHeader>(query, [
+    module.name,
+    module.weight,
+    module.updated_by,
+  ]);
+
+  return {
+    ...module,
+    id: result.insertId,
+  };
+}
+
+export async function updateSolarModuleAsync(
+  module: SolarModule,
+): Promise<SolarModule> {
+  if (!module.id) {
+    throw new Error("SolarModule ID is required for update");
+  }
+
+  const query = `
+    UPDATE solarmodules_items
+    SET
+      module_name = ?,
+      weight = ?,
+      updated_at = NOW(),
+      updated_by = ?
+    WHERE id = ?
+  `;
+
+  const [result] = await pool.execute<ResultSetHeader>(query, [
+    module.name,
+    module.weight,
+    module.updated_by,
+    module.id,
+  ]);
+
+  if (result.affectedRows === 0) {
+    throw new Error(`No SolarModule found with id ${module.id}`);
+  }
+
+  return module;
+}
+
+export async function fetchSolarModulesAsync(): Promise<SolarModule[]> {
+  const [rows] = await pool.execute(`SELECT * from solarmodules_items`);
+
+  const modules: SolarModule[] = (rows as any[]).map((row) => ({
+    id: row.id,
+    name: row.module_name,
+    short_name: row.module_name.split("-")[0] ?? row.module_name,
+    weight: row.weight,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    updated_by: row.update_by,
+  }));
+
+  return modules;
 }

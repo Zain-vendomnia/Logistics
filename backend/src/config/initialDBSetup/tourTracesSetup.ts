@@ -1,6 +1,6 @@
 import pool from "../database";
 import { RowDataPacket } from "mysql2";
-import { CREATE_TOUR_TRACES_TABLE } from "../../services/tableQueries";
+import { CREATE_TOUR_TRACES_TABLE } from "../tableQueries";
 
 const TourTracesSetup = async () => {
   try {
@@ -8,7 +8,7 @@ const TourTracesSetup = async () => {
 
     // Ensure correct type casting
     const [rows] = await pool.query<RowDataPacket[]>(
-      "SHOW TABLES LIKE 'tour_traces'"
+      "SHOW TABLES LIKE 'tour_traces'",
     );
     if (rows.length > 0) {
       console.log("Table 'tour_traces' already exists. No changes made.");
@@ -23,7 +23,7 @@ const TourTracesSetup = async () => {
   } catch (error) {
     console.error(
       "Error during table setup:",
-      error instanceof Error ? error.message : String(error)
+      error instanceof Error ? error.message : String(error),
     );
   }
 };

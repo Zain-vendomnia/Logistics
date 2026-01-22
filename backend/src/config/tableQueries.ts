@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS warehouse_details (
     town VARCHAR(60) NOT NULL,
     zip_codes_delivering TEXT DEFAULT NULL,
     color_code VARCHAR(7) DEFAULT NULL,
-    is_active TINYINT(1) NOT NULL DEFAULT 1
+    is_active BOOLEAN NOT NULL DEFAULT TRUE
 );
 `;
 

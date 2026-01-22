@@ -1,6 +1,6 @@
 import pool from "../database";
 import { RowDataPacket } from "mysql2";
-import { CREATE_DYNAMIC_TOURS_TABLE } from "../../services/tableQueries";
+import { CREATE_DYNAMIC_TOURS_TABLE } from "../tableQueries";
 
 const DynamicTourSetup = async () => {
   try {
@@ -8,7 +8,7 @@ const DynamicTourSetup = async () => {
 
     // Ensure correct type casting
     const [rows] = await pool.query<RowDataPacket[]>(
-      "SHOW TABLES LIKE 'dynamic_tours'"
+      "SHOW TABLES LIKE 'dynamic_tours'",
     );
     if (rows.length > 0) {
       console.log("Table 'dynamic_tours' already exists. No changes made.");
@@ -23,7 +23,7 @@ const DynamicTourSetup = async () => {
   } catch (error) {
     console.error(
       "Error during table setup:",
-      error instanceof Error ? error.message : String(error)
+      error instanceof Error ? error.message : String(error),
     );
   }
 };

@@ -1,6 +1,6 @@
 import pool from "../database";
 import { RowDataPacket } from "mysql2";
-import { WMS_ORDER_ARTICLES } from "../../services/tableQueries";
+import { WMS_ORDER_ARTICLES } from "../tableQueries";
 
 const WMSOrderArticlesSetup = async () => {
   try {
@@ -8,11 +8,11 @@ const WMSOrderArticlesSetup = async () => {
 
     // Ensure correct type casting
     const [rows] = await pool.query<RowDataPacket[]>(
-      "SHOW TABLES LIKE 'WMS_ORDER_ARTICLES'"
+      "SHOW TABLES LIKE 'WMS_ORDER_ARTICLES'",
     );
     if (rows.length > 0) {
       console.log(
-        "Table 'WMS_ORDER_ARTICLES' already exists. No changes made."
+        "Table 'WMS_ORDER_ARTICLES' already exists. No changes made.",
       );
       return;
     }
@@ -25,7 +25,7 @@ const WMSOrderArticlesSetup = async () => {
   } catch (error) {
     console.error(
       "Error during table setup:",
-      error instanceof Error ? error.message : String(error)
+      error instanceof Error ? error.message : String(error),
     );
   }
 };

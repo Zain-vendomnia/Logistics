@@ -56,7 +56,7 @@ adminRouter.post("/insertParkingPermit", insertParkingPermit);
 adminRouter.post("/getOrderNotificationMetaData", getOrderNotificationMetaData);
 adminRouter.post(
   "/updateOrderNotificationMetaData",
-  updateOrderNotificationMetaData
+  updateOrderNotificationMetaData,
 );
 adminRouter.post("/getDriverById", getDriverById);
 
@@ -82,7 +82,7 @@ adminRouter.post(
         error: (err as Error).message,
       });
     }
-  }
+  },
 );
 
 adminRouter.post("/order-sync", shopwareAuth, orderSyncFromShopwareController);
@@ -97,7 +97,7 @@ adminRouter.get("/dynamicTours", dTourControler.getDynamicTours);
 adminRouter.post(
   "/orders/upload",
   uploadMemory.single("file"),
-  dTourControler.uploadOrdersFromFile
+  dTourControler.uploadOrdersFromFile,
 );
 adminRouter.post("/estimateTourMatrix", tourCtrl.estimateTourCostMatrix);
 adminRouter.post("/createDynamicTour", dTourControler.createDynamicTour);
@@ -115,14 +115,14 @@ adminRouter.get("/routeoptimize/ordercount", orderCtrl.getcountcheck);
 
 adminRouter.get(
   "/routeoptimize/ordersLastUpdated",
-  orderCtrl.getOrdersLastUpdated
+  orderCtrl.getOrdersLastUpdated,
 );
 adminRouter.get(
   "/routeoptimize/checkordersrecentupdates",
-  orderCtrl.getCheckOrdersRecentUpdates
+  orderCtrl.getCheckOrdersRecentUpdates,
 );
 adminRouter.post("/routeoptimize/createtour", tourCtrl.createTourController);
-adminRouter.get("/routeoptimize/getTour", tourCtrl.getTourDetails);
+adminRouter.get("/routeoptimize/tourDetail", tourCtrl.getTourDetails);
 adminRouter.get("/routeoptimize/getWarehouse/:id", getWarehouseById);
 adminRouter.post("/routeoptimize/createtourHereApi", runTourController);
 
@@ -145,14 +145,15 @@ adminRouter.delete("/routeoptimize/deleteTours", tourCtrl.deleteTourController);
 adminRouter.post("/routeoptimize/exportTours", ExportTourController);
 adminRouter.post(
   "/routeoptimize/getGraphhopperRoute",
-  tourCtrl.getgraphhopperRoute
+  tourCtrl.getgraphhopperRoute,
 );
 adminRouter.post("/routeoptimize/getSegmentRoute", tourCtrl.getSegmentRoutes);
 adminRouter.post(
   "/routeoptimize/getRoutesSegmentImages",
-  tourCtrl.getRoutesSegmentImages
+  tourCtrl.getRoutesSegmentImages,
 );
 adminRouter.put("/routeoptimize/updateCustomer", updateCustomerInfoController);
+adminRouter.get("/solarmodules", orderCtrl.fetchSolarModules);
 adminRouter.get("/orderDetails", orderCtrl.getOrderDetails);
 adminRouter.get("/orderHistory", orderCtrl.getOrderHistoryDetails);
 adminRouter.put("/orderStatus/:id", orderCtrl.updateOrderStatus);
@@ -163,7 +164,7 @@ adminRouter.get("/routeoptimize/gettourStatushistory", getAllTourhistory);
 adminRouter.get("/routeoptimize/gettourStatus", tourCtrl.getTourstatus);
 adminRouter.post(
   "/routeoptimize/updatetourstatus/:tourId",
-  tourCtrl.updateTourStatus
+  tourCtrl.updateTourStatus,
 );
 adminRouter.post("/upload_image", uploadImageController);
 adminRouter.post("/driver/tour/:tourId/order", HandleOrderDelivery);
@@ -175,26 +176,26 @@ adminRouter.use(
   "/cancels",
   validateToken,
   roleCheck(["admin", "drivers"]),
-  cancelsRoutes
+  cancelsRoutes,
 );
 adminRouter.use(
   "/vehicles",
   validateToken,
   roleCheck(["admin"]),
-  vehicleRoutes
+  vehicleRoutes,
 );
 adminRouter.use("/logs", fetchAppLogs);
 adminRouter.use(
   "/warehouses",
   validateToken,
   roleCheck(["admin"]),
-  warehouseRoutes
+  warehouseRoutes,
 );
 adminRouter.use(
   "/customers",
   validateToken,
   roleCheck(["admin"]),
-  customerRoutes
+  customerRoutes,
 );
 
 adminRouter.use(notFoundHandler);

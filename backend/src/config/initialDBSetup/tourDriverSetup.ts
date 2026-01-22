@@ -1,5 +1,5 @@
 import pool from "../database";
-import { TOUR_DRIVER } from "../../services/tableQueries";
+import { TOUR_DRIVER } from "../tableQueries";
 const tourDriverSetup = async () => {
   try {
     await pool.query(TOUR_DRIVER);
@@ -7,7 +7,7 @@ const tourDriverSetup = async () => {
   } catch (error) {
     console.error(
       "❌ Error creating `tour_driver` table:",
-      error instanceof Error ? error.message : error
+      error instanceof Error ? error.message : error,
     );
     // Optional if part of CLI script
     // process.exit(1);

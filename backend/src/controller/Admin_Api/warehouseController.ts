@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import * as warehouseService from "../../services/warehouse.service";
+import { WarehouseCreate_Req } from "../../types/warehouse.types";
 
 export const getAllWarehouses = async (_req: Request, res: Response) => {
   try {
@@ -30,7 +31,12 @@ export const getWarehouseById = async (req: Request, res: Response) => {
 
 export const createWarehouse = async (req: Request, res: Response) => {
   try {
-    const newWarehouse = await warehouseService.createWarehouse(req.body);
+    const requestObject: WarehouseCreate_Req = req.body;
+
+    if (!requestObject)
+      return res.status(404).json({ message: "Invalid payload object" });
+
+    const newWarehouse = await warehouseService.createWarehouse(requestObject);
     res.status(201).json(newWarehouse);
   } catch (err) {
     res.status(500).json({ message: "Error creating warehouse" });
@@ -39,12 +45,12 @@ export const createWarehouse = async (req: Request, res: Response) => {
 
 export const updateWarehouse = async (req: Request, res: Response) => {
   try {
-      console.log("===== Update Warehouse Request =====");
-      console.log("Body:", req.body);
-      console.log("===================================");
+    console.log("===== Update Warehouse Request =====");
+    console.log("Body:", req.body);
+    console.log("===================================");
     const updated = await warehouseService.updateWarehouse(
       Number(req.params.id),
-      req.body
+      req.body,
     );
     if (!updated)
       return res.status(404).json({ message: "Warehouse not found" });
@@ -74,7 +80,7 @@ export const disableWarehouse = async (req: Request, res: Response) => {
 // Disable multiple warehouses
 export const disableMultipleWarehouses = async (
   req: Request,
-  res: Response
+  res: Response,
 ) => {
   try {
     const { ids } = req.body;

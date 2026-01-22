@@ -8,8 +8,8 @@ import {
   ShopwareOrder,
 } from "../types/order.types";
 import { LogisticOrder, OrderStatus, OrderType } from "../model/LogisticOrders";
-import pool from "../config/database";
 import { ApiResponse } from "../types/apiResponse.type";
+import { fetchSolarModulesAsync } from "../services/logisticOrder.service";
 
 export function mapRowToOrderItem(row: RowDataPacket | any): OrderItem {
   return {
@@ -17,7 +17,7 @@ export function mapRowToOrderItem(row: RowDataPacket | any): OrderItem {
     order_id: row.order_id,
     order_number: row.order_number,
     quantity: row.quantity,
-    article: row.article,
+    article: row.slmdl_articleordernumber.split("-")[0],
     article_id: row.article_id,
     slmdl_articleordernumber: row.slmdl_articleordernumber,
     warehouse_id: row.warehouse_id,
@@ -68,11 +68,11 @@ export function mapRowToOrder(row: any): Order {
 }
 
 export async function mapItemsToOrders(orders: Order[], items: OrderItem[]) {
-  const [solarModules] = await pool.execute(`SELECT * from solarmodules_items`);
+  const solarModules = await fetchSolarModulesAsync();
 
   const orderWithItems: Order[] = orders.map((order) => {
     const orderItems = (items as OrderItem[]).filter(
-      (x) => x.order_id === order.order_id
+      (x) => x.order_id === order.order_id,
     );
 
     // const quantity = orderItems.length;
@@ -88,10 +88,10 @@ export async function mapItemsToOrders(orders: Order[], items: OrderItem[]) {
       .join(",");
 
     const totalWeight = orderItems.reduce((acc, item) => {
-      const matchedModule = (solarModules as any[]).find(
+      const matchedModule = solarModules.find(
         (sm) =>
           item.slmdl_articleordernumber &&
-          sm.module_name.includes(item.slmdl_articleordernumber)
+          sm.name.includes(item.slmdl_articleordernumber),
       );
       const itemWeight = matchedModule
         ? item.quantity * (matchedModule.weight || 0)
@@ -128,7 +128,7 @@ export function mapOrderToPickupOrder(order: Order): PickupOrder {
     itemsCount: order.items!.reduce((agg, it) => agg + it.quantity, 0),
     cancelledItemsCount: order.items!.reduce(
       (agg, it) => agg + (it.cancelled_quantity ?? 0),
-      0
+      0,
     ),
 
     customer_name: `${order.firstname} ${order.lastname}`,
@@ -186,7 +186,7 @@ export function validateCancelOrderItem(item: OrderItem): {
 }
 
 export function mapShopwareOrderToLogisticOrder(
-  order: ShopwareOrder
+  order: ShopwareOrder,
 ): LogisticOrder {
   const order_details: any[] = [];
   for (const item of order.OrderDetails) {
@@ -233,7 +233,7 @@ export function mapShopwareOrderToLogisticOrder(
 export const sendError = (
   res: Response,
   statusCode: number,
-  message: string
+  message: string,
 ): void => {
   res.status(statusCode).json({
     status: "error",
@@ -246,7 +246,7 @@ export const sendSuccess = (
   res: Response,
   statusCode: number,
   message: string,
-  data?: any
+  data?: any,
 ): void => {
   const response: ApiResponse = {
     status: "success",

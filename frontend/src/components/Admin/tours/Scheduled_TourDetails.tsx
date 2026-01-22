@@ -102,7 +102,7 @@ const ScheduledTourDetails = () => {
       const tour: Tourinfo = await tourService.getTourDetails(tourId);
       setXTour(tour);
       setTourOrders(tour.orders || []);
-      // get warehouse details
+
       const warehouseRes: Warehouse = await tourService.getWarehouseDetails(
         tour.warehouse_id,
       );
@@ -232,7 +232,6 @@ const ScheduledTourDetails = () => {
   };
 
   const { showNotification } = useNotificationStore();
-  // const { handleTourReject } = useDynamicTourService();
 
   const today = new Date().toISOString().split("T")[0];
   const initialFormState = {
@@ -940,8 +939,11 @@ const ScheduledTourDetails = () => {
                     </Typography>
                   </Paper>
                 </Box>
-                {/* Solar Panels Qty/Wt*/}
-                <SolarPanelQty tour={xTour as Tourinfo} />
+                {xTour.orders && (
+                  <SolarPanelQty
+                    orderItems={xTour.orders?.flatMap((o) => o.items)}
+                  />
+                )}
                 {/* Cost Breakdown */}
                 <CostBreakdown tourMatrix={xTour.matrix} />
               </Stack>

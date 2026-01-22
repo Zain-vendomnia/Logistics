@@ -1,6 +1,6 @@
 import pool from "../database";
 import { RowDataPacket } from "mysql2";
-import { LOGIC_PAYMENT_TABLE } from "../../services/tableQueries";
+import { LOGIC_PAYMENT_TABLE } from "../tableQueries";
 
 const logisticPaymentSetup = async () => {
   try {
@@ -8,7 +8,7 @@ const logisticPaymentSetup = async () => {
 
     // Check if the table already exists
     const [rows] = await pool.query<RowDataPacket[]>(
-      "SHOW TABLES LIKE 'logistic_payment'"
+      "SHOW TABLES LIKE 'logistic_payment'",
     );
     if (rows.length > 0) {
       console.log("Table 'logistic_payment' already exists.");
@@ -56,7 +56,7 @@ const logisticPaymentSetup = async () => {
   } catch (error) {
     console.error(
       "Error during table setup:",
-      error instanceof Error ? error.message : String(error)
+      error instanceof Error ? error.message : String(error),
     );
   }
 };

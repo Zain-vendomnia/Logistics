@@ -3,14 +3,14 @@ import { RowDataPacket } from "mysql2";
 import {
   CREATE_WAREHOUSE_DETAILS_TABLE,
   INSERT_WAREHOUSE_DETAILS_DATA,
-} from "../../services/tableQueries";
+} from "../tableQueries";
 
 const warehouseDetailsSetup = async () => {
   try {
     console.log("Checking if 'warehouse_details' table exists...");
 
     const [rows] = await pool.query<RowDataPacket[]>(
-      "SHOW TABLES LIKE 'warehouse_details'"
+      "SHOW TABLES LIKE 'warehouse_details'",
     );
     if (rows.length > 0) {
       console.log("Table 'warehouse_details' already exists. No changes made.");
@@ -24,7 +24,7 @@ const warehouseDetailsSetup = async () => {
   } catch (error) {
     console.error(
       "Error during table setup:",
-      error instanceof Error ? error.message : String(error)
+      error instanceof Error ? error.message : String(error),
     );
   }
 };

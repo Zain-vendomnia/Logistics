@@ -179,7 +179,7 @@ export class LogisticOrder {
           order.zipcode,
           order.city,
           order.phone,
-        ]
+        ],
       );
 
       const orderId = (result as any).insertId;
@@ -197,7 +197,7 @@ export class LogisticOrder {
             item.slmdl_articleordernumber,
             item.slmdl_quantity,
             item.warehouse_id,
-          ]
+          ],
         );
       }
 
@@ -243,7 +243,7 @@ export class LogisticOrder {
     WHERE lo.order_number = ?
     GROUP BY lo.order_id;
     `,
-      [order_number]
+      [order_number],
     );
 
     return rows as LogisticOrder[];
@@ -259,14 +259,14 @@ export class LogisticOrder {
 
   static async getAllCount(): Promise<LogisticOrder[]> {
     const [rows] = await pool.execute(
-      "SELECT COUNT(*) AS count FROM logistic_order"
+      "SELECT COUNT(*) AS count FROM logistic_order",
     );
     return rows as LogisticOrder[];
   }
 
   static async getOrdersLastUpdatedAsync(): Promise<LogisticOrder[]> {
     const [rows] = await pool.execute(
-      "SELECT * FROM logistic_order WHERE updated_at = (SELECT MAX(updated_at) FROM logistic_order) ORDER BY updated_at DESC LIMIT 1;"
+      "SELECT * FROM logistic_order WHERE updated_at = (SELECT MAX(updated_at) FROM logistic_order) ORDER BY updated_at DESC LIMIT 1;",
     );
     return rows as LogisticOrder[];
   }
@@ -282,7 +282,7 @@ export class LogisticOrder {
     WHERE DATE(lo.updated_at) = CURDATE()
     ORDER BY lo.updated_at DESC
     LIMIT 1
-    `
+    `,
     );
 
     if (rows.length > 0) {
@@ -296,7 +296,7 @@ export class LogisticOrder {
 
     // 2️⃣ If no orders updated today, just get the total order count
     const [countRows] = await pool.execute<RowDataPacket[]>(
-      `SELECT COUNT(*) AS total_orders FROM logistic_order`
+      `SELECT COUNT(*) AS total_orders FROM logistic_order`,
     );
 
     return {
@@ -315,7 +315,7 @@ export class LogisticOrder {
 
   static async getlatlngNullcustomerAddress(): Promise<LogisticOrder[]> {
     const [rows] = await pool.execute(
-      "SELECT * FROM `logistic_order` WHERE `lattitude` IS NULL AND `longitude` IS NULL"
+      "SELECT * FROM `logistic_order` WHERE `lattitude` IS NULL AND `longitude` IS NULL",
     );
     return rows as LogisticOrder[];
   }
@@ -326,10 +326,10 @@ export class LogisticOrder {
     const placeholders = orderIds.map(() => "?").join(", ");
     const [rows] = await pool.execute(
       `SELECT * FROM logistic_order WHERE order_id IN (${placeholders})`,
-      orderIds
+      orderIds,
     );
-
     const orders: Order[] = (rows as any).map(mapRowToOrder);
+
     return orders;
   }
 
@@ -338,11 +338,11 @@ export class LogisticOrder {
 
     const [rows] = await pool.execute<RowDataPacket[]>(
       `SELECT order_ids FROM tourinfo_master WHERE id = ?`,
-      [tourId]
+      [tourId],
     );
 
     const orders: Order[] = await this.getOrdersByIds(
-      rows[0].order_ids.toString().split(",").map(Number)
+      rows[0].order_ids.toString().split(",").map(Number),
     );
     return orders;
   }
@@ -365,19 +365,19 @@ export class LogisticOrder {
     JOIN warehouse_details wh
         ON o.warehouse_id = wh.warehouse_id
     WHERE order_id IN (${placeholders})`,
-      orderIds
+      orderIds,
     );
 
     const orders: Order[] = (rows as any[]).map(mapRowToOrder);
 
     const [items] = await pool.execute(
       `SELECT * FROM logistic_order_items WHERE order_id IN (${placeholders})`,
-      orderIds
+      orderIds,
     );
 
     const ordersWithItems = await mapItemsToOrders(
       orders,
-      items as OrderItem[]
+      items as OrderItem[],
     );
 
     return ordersWithItems;
@@ -426,7 +426,7 @@ export class LogisticOrder {
   static async updateSysOrdersStatus(
     conn: PoolConnection,
     orderIds: number[],
-    status: OrderStatus
+    status: OrderStatus,
   ): Promise<Boolean> {
     if (!orderIds || orderIds.length === 0) {
       return false;
@@ -434,7 +434,7 @@ export class LogisticOrder {
     if (!status) throw new Error("Invalid order status provided");
 
     const promises = orderIds.map((oId) =>
-      updateOrderStatus({ orderId: oId, newStatus: status, conn })
+      updateOrderStatus({ orderId: oId, newStatus: status, conn }),
     );
     await Promise.all(promises);
     return true;
@@ -494,7 +494,7 @@ export class LogisticOrder {
         `SELECT 
           COUNT(*) as count 
         FROM logistic_order 
-        WHERE status IN ('initial', 'unassigned', 'rescheduled')`
+        WHERE status IN ('initial', 'unassigned', 'rescheduled')`,
       );
       return Number(rows[0].count) || 0;
     } catch (error) {
@@ -504,7 +504,7 @@ export class LogisticOrder {
   }
 
   static async pendingOrdersWithWeightAndItems(
-    since?: string
+    since?: string,
   ): Promise<Order[]> {
     const orders: Order[] = await this.getPendingOrdersAsync(since);
     const ordersWithItems = await loadOrdersItems(orders as Order[]);
@@ -538,18 +538,19 @@ export class LogisticOrder {
     try {
       const address = `${order.street}, ${order.city}, ${order.zipcode}`;
       console.log(
-        `Calling location coordinates API for Order ${order.order_id} address: ${address} `
+        `Calling location coordinates API for Order ${order.order_id} address: ${address} `,
       );
 
       const location: Location = await requestLocationCoordinates(address);
-      (order.location.lat = location.lat), (order.location.lng = location.lng);
+      ((order.location.lat = location.lat),
+        (order.location.lng = location.lng));
       const isUpdated = await LogisticOrder.updateOrderLocation(
         order,
-        location
+        location,
       );
       if (!isUpdated) {
         console.error(
-          `Order ${order.order_id} update failed for Location: ${location}`
+          `Order ${order.order_id} update failed for Location: ${location}`,
         );
         return null;
       }
@@ -565,7 +566,7 @@ export async function get_LogisticsOrdersAddress(orderIds: number[]) {
   const placeholders = orderIds.map(() => "?").join(",");
   const [orderRows] = await pool.execute(
     `SELECT order_id, order_number, street, city, zipcode FROM logistic_order WHERE order_id IN (${placeholders})`,
-    orderIds
+    orderIds,
   );
   // console.log("Orders Addresses:", orderRows);
   return orderRows;

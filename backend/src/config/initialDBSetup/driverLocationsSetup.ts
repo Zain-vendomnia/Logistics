@@ -1,13 +1,13 @@
 import pool from "../database";
 import { RowDataPacket } from "mysql2";
-import { CREATE_DRIVER_LOCATIONS_TABLE } from "../../services/tableQueries";
+import { CREATE_DRIVER_LOCATIONS_TABLE } from "../tableQueries";
 
 const driverLocationsSetup = async () => {
   try {
     console.log("Checking if 'driver_locations' table exists...");
 
     const [rows] = await pool.query<RowDataPacket[]>(
-      "SHOW TABLES LIKE 'driver_locations'"
+      "SHOW TABLES LIKE 'driver_locations'",
     );
     if (rows.length > 0) {
       console.log("Table 'driver_locations' already exists. No changes made.");
@@ -20,7 +20,7 @@ const driverLocationsSetup = async () => {
   } catch (error) {
     console.error(
       "Error during table setup:",
-      error instanceof Error ? error.message : String(error)
+      error instanceof Error ? error.message : String(error),
     );
   }
 };

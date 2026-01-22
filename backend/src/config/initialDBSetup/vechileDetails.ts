@@ -1,13 +1,13 @@
 import pool from "../database";
 import { RowDataPacket } from "mysql2";
-import { CREATE_VEHICLE_DETAILS_TABLE } from "../../services/tableQueries";
+import { CREATE_VEHICLE_DETAILS_TABLE } from "../tableQueries";
 
 const vehicleDetailsSetup = async () => {
   try {
     console.log("Checking if 'vehicle_details' table exists...");
 
     const [rows] = await pool.query<RowDataPacket[]>(
-      "SHOW TABLES LIKE 'vehicle_details'"
+      "SHOW TABLES LIKE 'vehicle_details'",
     );
     if (rows.length > 0) {
       console.log("Table 'vehicle_details' already exists. No changes made.");
@@ -20,7 +20,7 @@ const vehicleDetailsSetup = async () => {
   } catch (error) {
     console.error(
       "Error during table setup:",
-      error instanceof Error ? error.stack || error.message : String(error)
+      error instanceof Error ? error.stack || error.message : String(error),
     );
   }
 };

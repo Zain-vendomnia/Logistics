@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import pool from "../database";
 import { RowDataPacket } from "mysql2"; // Add this import
-import { USERS_TABLE } from "../../services/tableQueries";
+import { USERS_TABLE } from "../tableQueries";
 
 const initialSetup = async () => {
   try {
@@ -11,7 +11,7 @@ const initialSetup = async () => {
 
     // Check if the admin user already exists to avoid creating a duplicate
     const [existingAdmin] = await pool.query(
-      "SELECT * FROM users WHERE username = 'admin'"
+      "SELECT * FROM users WHERE username = 'admin'",
     );
 
     // Check if existingAdmin is an array and has rows (length > 0)
@@ -20,7 +20,7 @@ const initialSetup = async () => {
       const hashedPassword = await bcrypt.hash("0000", 10); // Hash the password using bcrypt
       await pool.query(
         "INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)",
-        ["admin", "admin@system.com", hashedPassword, "admin"] // Insert with 'admin' role
+        ["admin", "admin@system.com", hashedPassword, "admin"], // Insert with 'admin' role
       );
       console.log("Admin user created successfully with role 'admin'");
     } else {

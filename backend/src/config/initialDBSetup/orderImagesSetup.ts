@@ -1,13 +1,13 @@
 import pool from "../database";
 import { RowDataPacket } from "mysql2";
-import { CREATE_ORDER_IMAGES_TABLE } from "../../services/tableQueries";
+import { CREATE_ORDER_IMAGES_TABLE } from "../tableQueries";
 
 const orderImagesSetup = async () => {
   try {
     console.log("Checking if 'order_images' table exists...");
 
     const [rows] = await pool.query<RowDataPacket[]>(
-      "SHOW TABLES LIKE 'order_images'"
+      "SHOW TABLES LIKE 'order_images'",
     );
     if (rows.length > 0) {
       console.log("Table 'order_images' already exists. No changes made.");
@@ -20,7 +20,7 @@ const orderImagesSetup = async () => {
   } catch (error) {
     console.error(
       "Error during table setup:",
-      error instanceof Error ? error.message : String(error)
+      error instanceof Error ? error.message : String(error),
     );
   }
 };

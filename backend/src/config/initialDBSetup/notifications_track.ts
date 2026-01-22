@@ -1,17 +1,17 @@
 import pool from "../database";
 import { RowDataPacket } from "mysql2";
-import { CREATE_NOTIFICATION_TABLE } from "../../services/tableQueries";
+import { CREATE_NOTIFICATION_TABLE } from "../tableQueries";
 
 const NotificationsTrackSetup = async () => {
   try {
     console.log("Checking if 'notifications_track' table exists...");
 
     const [rows] = await pool.query<RowDataPacket[]>(
-      "SHOW TABLES LIKE 'notifications_track'"
+      "SHOW TABLES LIKE 'notifications_track'",
     );
     if (rows.length > 0) {
       console.log(
-        "Table 'notifications_track' already exists. No changes made."
+        "Table 'notifications_track' already exists. No changes made.",
       );
       return;
     }
@@ -22,7 +22,7 @@ const NotificationsTrackSetup = async () => {
   } catch (error) {
     console.error(
       "Error during table setup:",
-      error instanceof Error ? error.message : String(error)
+      error instanceof Error ? error.message : String(error),
     );
   }
 };

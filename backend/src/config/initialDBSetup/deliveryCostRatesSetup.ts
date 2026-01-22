@@ -3,18 +3,18 @@ import { RowDataPacket } from "mysql2";
 import {
   CREATE_Delivery_Cost_Rates_TABLE,
   INSERT_Delivery_Cost_Rates_TABLE,
-} from "../../services/tableQueries";
+} from "../tableQueries";
 
 const deliveryCostRatesSetup = async () => {
   try {
     console.log("Checking if 'delivery_cost_rates' table exists...");
 
     const [rows] = await pool.query<RowDataPacket[]>(
-      "SHOW TABLES LIKE 'delivery_cost_rates'"
+      "SHOW TABLES LIKE 'delivery_cost_rates'",
     );
     if (rows.length > 0) {
       console.log(
-        "Table 'delivery_cost_rates' already exists. No changes made."
+        "Table 'delivery_cost_rates' already exists. No changes made.",
       );
       return;
     }
@@ -28,7 +28,7 @@ const deliveryCostRatesSetup = async () => {
   } catch (error) {
     console.error(
       "Error during table setup:",
-      error instanceof Error ? error.message : String(error)
+      error instanceof Error ? error.message : String(error),
     );
   }
 };

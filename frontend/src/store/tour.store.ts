@@ -2,6 +2,7 @@ import { create, StateCreator } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 import { Tourinfo, TourRow } from "../types/tour.type";
 import { Driver, Warehouse } from "../types/warehouse.type";
+import { SolarModule } from "../types/order.type";
 
 export type TourCategory = "completed" | "live" | "pending";
 
@@ -15,6 +16,9 @@ interface TourState {
   drivers: Driver[];
 
   loading: Partial<Record<TourCategory, boolean>>;
+
+  solarModules: SolarModule[];
+  setSolarModules: (modules: SolarModule[]) => void;
 
   addInTourRows: (rows: TourRow[]) => void;
   removeFromTourRows: (tourId: number) => void;
@@ -38,8 +42,10 @@ const tourStore: StateCreator<TourState> = (set, get) => ({
 
   warehouses: [],
   drivers: [],
-
+  solarModules: [],
   loading: {},
+
+  setSolarModules: (modules) => set({ solarModules: modules }),
 
   addInTourRows: (data) =>
     set((state) => ({

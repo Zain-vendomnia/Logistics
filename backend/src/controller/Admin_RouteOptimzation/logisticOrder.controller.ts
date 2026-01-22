@@ -7,6 +7,7 @@ import { ApiResponse } from "../../types/apiResponse.type";
 import {
   fetchOrderDetailsAsync,
   fetchOrderHistoryAsync,
+  fetchSolarModulesAsync,
   updateOrderStatusAsync,
 } from "../../services/logisticOrder.service";
 import { sendError } from "../../helpers/logisticOrder.helper";
@@ -20,7 +21,7 @@ export const getAllLogisticOrders = async (_req: Request, res: Response) => {
     console.log("WMS Order Numbers:", wmsOrderNumbers);
     // Filter Shopware orders where order_number exists in WMS
     const matchedOrders = orders.filter((order) =>
-      wmsOrderNumbers.includes(order.order_number)
+      wmsOrderNumbers.includes(order.order_number),
     );
 
     res.status(200).json(matchedOrders);
@@ -56,9 +57,8 @@ export const getOrdersWithItems = async (_req: Request, res: Response) => {
 
     logWithTime(`[getOrdersWithItems]:  ${req_order_Ids}`);
 
-    const ordersWithItems = await LogisticOrder.getOrdersWithItemsAsync(
-      req_order_Ids
-    );
+    const ordersWithItems =
+      await LogisticOrder.getOrdersWithItemsAsync(req_order_Ids);
     res.status(200).json(ordersWithItems);
   } catch (error) {
     console.error("Error fetching order:", error);
@@ -88,7 +88,7 @@ export const getOrdersLastUpdated = async (_req: Request, res: Response) => {
 
 export const getCheckOrdersRecentUpdates = async (
   _req: Request,
-  res: Response
+  res: Response,
 ) => {
   try {
     const orderCount: CheckOrderCount =
@@ -107,9 +107,8 @@ export const getPinboardOrders = async (_req: Request, res: Response) => {
     const since = sinceHeader;
 
     // Shopware orders
-    const orders: Order[] = await LogisticOrder.pendingOrdersWithWeightAndItems(
-      since
-    );
+    const orders: Order[] =
+      await LogisticOrder.pendingOrdersWithWeightAndItems(since);
     // const orders: Order[] = await LogisticOrder.getPendingOrdersAsync(since);
 
     // console.log("pin-b orders: ", orders);
@@ -182,7 +181,7 @@ export const getOrderHistoryDetails = async (req: Request, res: Response) => {
     }
 
     const history: OrderHistoryUI | null = await fetchOrderHistoryAsync(
-      Number(order_number)
+      Number(order_number),
     );
 
     if (!history) {
@@ -219,7 +218,7 @@ export const getOrderHistoryDetails = async (req: Request, res: Response) => {
 
 export const updateOrderStatus = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   try {
     const order_id = Number(req.params.id);
@@ -232,7 +231,7 @@ export const updateOrderStatus = async (
     const result = await updateOrderStatusAsync(
       order_id,
       newStatus,
-      updated_by
+      updated_by,
     );
 
     res.status(result.success ? 200 : 404).json({
@@ -244,4 +243,16 @@ export const updateOrderStatus = async (
     console.error("Error in updateCancel:", error);
     sendError(res, 500, error.message || "Error updating cancel");
   }
+};
+
+export const fetchSolarModules = async (_req: Request, res: Response) => {
+  const modules = await fetchSolarModulesAsync();
+
+  const response: ApiResponse = {
+    status: "success",
+    message: "Order items fetched successfully.",
+    statusCode: 200,
+    data: modules,
+  };
+  return res.status(200).json(response);
 };

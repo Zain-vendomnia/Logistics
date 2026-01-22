@@ -1,3 +1,17 @@
+export type WarehouseCreate_Req = {
+  name: string;
+  town: string;
+  address: string;
+  zipCode: string;
+  latitude: string;
+  longitude: string;
+  loadingWeight: number;
+  clerkName: string;
+  clerkMob: string;
+  email: string;
+  is_active: boolean;
+};
+
 export type WarehouseZipcodes = {
   warehouse_id: number;
   name: string;

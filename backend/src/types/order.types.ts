@@ -169,3 +169,13 @@ export type OrderHistoryUI = {
     statuses: OrderHistory[];
   }[];
 };
+
+export type SolarModule = {
+  id: number;
+  name: string;
+  short_name?: string;
+  weight: number;
+  created_at?: Date;
+  updated_at?: Date;
+  updated_by?: string;
+};

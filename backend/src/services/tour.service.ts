@@ -274,8 +274,12 @@ export async function getTourDetailsById(tourId: number) {
   tourObj.matrix = matrix;
 
   const orderIds = tourObj.orderIds.split(",").map(Number);
-  const orders = await LogisticOrder.getOrdersByIds(orderIds);
+  const orders = await LogisticOrder.getOrdersWithItemsAsync(orderIds);
+  // const orders = await LogisticOrder.getOrdersByIds(orderIds);
   // const orders = await LogisticOrder.getOrdersByTourId(tourId);
+
+  // load order items
+
   tourObj.orders = orders;
 
   // const tourObj = await tourInfo_master.getTourNameByIdAsync(tourId);

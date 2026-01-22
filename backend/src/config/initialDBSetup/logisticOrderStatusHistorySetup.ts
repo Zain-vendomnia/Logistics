@@ -1,18 +1,18 @@
 import pool from "../database";
 import { RowDataPacket } from "mysql2";
-import { ORDER_STATUS_HISTORY_TABLE } from "../../services/tableQueries";
+import { ORDER_STATUS_HISTORY_TABLE } from "../tableQueries";
 
 const logisticOrderStatusHistorySetup = async () => {
   try {
     console.log("Checking if 'logistic_order_status_history' table exists...");
 
     const [rows] = await pool.query<RowDataPacket[]>(
-      "SHOW TABLES LIKE 'order_status_history'"
+      "SHOW TABLES LIKE 'order_status_history'",
     );
 
     if (rows.length > 0) {
       console.log(
-        "Table 'order_status_history' exists. Verifying structure..."
+        "Table 'order_status_history' exists. Verifying structure...",
       );
       // Optional: Add structure verification here
       return;
@@ -27,7 +27,7 @@ const logisticOrderStatusHistorySetup = async () => {
     await pool.query("ROLLBACK");
     console.error(
       "Error during table setup:",
-      error instanceof Error ? error.message : String(error)
+      error instanceof Error ? error.message : String(error),
     );
     throw error; // Re-throw to handle at higher level
   }

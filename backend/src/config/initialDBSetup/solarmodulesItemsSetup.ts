@@ -1,6 +1,6 @@
 import pool from "../database";
 import { RowDataPacket } from "mysql2";
-import { CREATE_SOLARMODULES_ITEMS_TABLE } from "../../services/tableQueries";
+import { CREATE_SOLARMODULES_ITEMS_TABLE } from "../tableQueries";
 
 const defaultSolarItems = [
   { slmdl_code: "SLMDL550P-00-00-00", weight: 26.5 },
@@ -19,7 +19,7 @@ const solarItemsSetup = async () => {
     console.log("Checking if 'solarmodules_items' table exists...");
 
     const [tables] = await pool.query<RowDataPacket[]>(
-      "SHOW TABLES LIKE 'solarmodules_items'"
+      "SHOW TABLES LIKE 'solarmodules_items'",
     );
     if (tables.length === 0) {
       console.log("Table not found. Creating 'solarmodules_items' table...");
@@ -31,7 +31,7 @@ const solarItemsSetup = async () => {
 
     // Check if the table has any rows
     const [rows] = await pool.query<RowDataPacket[]>(
-      "SELECT COUNT(*) as count FROM solarmodules_items"
+      "SELECT COUNT(*) as count FROM solarmodules_items",
     );
     const rowCount = rows[0]?.count || 0;
 
@@ -56,7 +56,7 @@ const solarItemsSetup = async () => {
   } catch (error) {
     console.error(
       "Error during solarItemsSetup:",
-      error instanceof Error ? error.message : String(error)
+      error instanceof Error ? error.message : String(error),
     );
   }
 };

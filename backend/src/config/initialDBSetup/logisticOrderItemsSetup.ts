@@ -1,18 +1,18 @@
 import pool from "../database";
 import { RowDataPacket } from "mysql2";
-import { LOGIC_ORDER_ITEMS_TABLE } from "../../services/tableQueries";
+import { LOGIC_ORDER_ITEMS_TABLE } from "../tableQueries";
 
 const logisticOrderItemsSetup = async () => {
   try {
     console.log("Checking if 'logistic_order_items' table exists...");
 
     const [rows] = await pool.query<RowDataPacket[]>(
-      "SHOW TABLES LIKE 'logistic_order_items'"
+      "SHOW TABLES LIKE 'logistic_order_items'",
     );
 
     if (rows.length > 0) {
       console.log(
-        "Table 'logistic_order_items' exists. Verifying structure..."
+        "Table 'logistic_order_items' exists. Verifying structure...",
       );
       // Optional: Add structure verification here
       return;
@@ -27,7 +27,7 @@ const logisticOrderItemsSetup = async () => {
     await pool.query("ROLLBACK");
     console.error(
       "Error during table setup:",
-      error instanceof Error ? error.message : String(error)
+      error instanceof Error ? error.message : String(error),
     );
     throw error; // Re-throw to handle at higher level
   }

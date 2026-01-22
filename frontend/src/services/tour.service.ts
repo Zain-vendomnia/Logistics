@@ -1,5 +1,5 @@
 import { TourCategory, useTourStore } from "../store/tour.store";
-import { Order } from "../types/order.type";
+import { Order, SolarModule } from "../types/order.type";
 import {
   rejectTour_Req,
   Tourinfo,
@@ -33,7 +33,6 @@ class TourService {
     if (tourObj && !force) {
       return tourObj;
     }
-
     const tour = await adminApiService.fetchTourDetails(id);
     addTours(tour);
 
@@ -116,9 +115,17 @@ class TourService {
     const { removeFromTourRows } = useTourStore.getState();
 
     await adminApiService.rejectDynamicTour(request);
-    // console.log(`Tour rejected`);
 
     removeFromTourRows(request.tour_id);
+  }
+
+  async getSolarModules(): Promise<SolarModule[]> {
+    const { solarModules, setSolarModules } = useTourStore.getState();
+    if (solarModules.length > 0) return solarModules;
+
+    const modules = await adminApiService.fetchSolarModules();
+    setSolarModules(modules);
+    return modules;
   }
 }
 

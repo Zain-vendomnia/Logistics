@@ -1,6 +1,6 @@
 import pool from "../database";
 import { RowDataPacket } from "mysql2";
-import { LOGIC_ORDER_TABLE } from "../../services/tableQueries";
+import { LOGIC_ORDER_TABLE } from "../tableQueries";
 
 const logisticOrderSetup = async () => {
   try {
@@ -8,7 +8,7 @@ const logisticOrderSetup = async () => {
 
     // Ensure correct type casting
     const [rows] = await pool.query<RowDataPacket[]>(
-      "SHOW TABLES LIKE 'logistic_order'"
+      "SHOW TABLES LIKE 'logistic_order'",
     );
     if (rows.length > 0) {
       console.log("Table 'logistic_order' already exists. No changes made.");
@@ -23,7 +23,7 @@ const logisticOrderSetup = async () => {
   } catch (error) {
     console.error(
       "Error during table setup:",
-      error instanceof Error ? error.message : String(error)
+      error instanceof Error ? error.message : String(error),
     );
   }
 };

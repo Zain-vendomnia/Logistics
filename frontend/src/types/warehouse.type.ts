@@ -1,6 +1,20 @@
+export type WarehouseCreate_Req = {
+  name: string;
+  town: string;
+  address: string;
+  zipCode: string;
+  latitude: string;
+  longitude: string;
+  loadingWeight: number;
+  clerkName: string;
+  clerkMob: string;
+  email: string;
+  is_active: boolean;
+};
+
 export interface Warehouse {
   id: number;
-  name?: string;
+  name: string;
   town: string;
   address?: string;
   zipcode?: string;
@@ -17,6 +31,9 @@ export interface Warehouse {
 
   vehicleCount?: number;
   capacityPerVehicle?: number;
+
+  is_active: boolean;
+  vehicle_license_plates?: string[];
 }
 
 export type Vehicle = {

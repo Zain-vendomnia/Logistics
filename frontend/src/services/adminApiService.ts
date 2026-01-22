@@ -11,7 +11,7 @@ import {
   TourStatus,
   UpdateTour_Req,
 } from "../types/tour.type";
-import { Order } from "../types/order.type";
+import { Order, SolarModule } from "../types/order.type";
 import { Warehouse } from "../types/warehouse.type";
 
 const API_BaseUrl = "http://localhost:8080/api/admin/routeoptimize/";
@@ -72,7 +72,7 @@ const fetchOrdersWithItems = async (orderIds: string): Promise<Order[]> => {
 };
 
 const fetchTourDetails = async (tourId: number): Promise<Tourinfo> => {
-  const res = await axios.get(`${API_BaseUrl}getTour`, {
+  const res = await axios.get(`${API_BaseUrl}tourDetail`, {
     headers: authHeader(),
     params: { tourId },
   });
@@ -356,6 +356,13 @@ const fetchDriverDetails = (driverId: any) => {
   });
 };
 
+const fetchSolarModules = async (): Promise<SolarModule[]> => {
+  const res = await axios.get(API_BaseUrl_Admin + "solarmodules", {
+    headers: authHeader(),
+  });
+  const modules = res.data.data;
+  return modules as SolarModule[];
+};
 const orderDetails = (orderNumber: number) => {
   return axios.get(API_BaseUrl_Admin + "orderDetails", {
     headers: authHeader(),
@@ -438,6 +445,7 @@ const adminApiService = {
   fetchLogs,
   estimateTourMatrix,
   orderDetails,
+  fetchSolarModules,
   orderHistoryDetails,
   sendCancelDetails,
   updateOrderStatus,

@@ -16,6 +16,10 @@ interface Props {
 }
 
 const CostBreakdown = ({ tourMatrix }: Props) => {
+  const style = {
+    fontSize: "0.9rem",
+  };
+
   const headers = [
     "Cost/Stop",
     "Cost/BKW",
@@ -48,49 +52,48 @@ const CostBreakdown = ({ tourMatrix }: Props) => {
 
   return (
     <Stack spacing={0} mt={2}>
-      <Typography variant="body1" fontWeight={"bold"}>
+      <Typography variant="h6" fontWeight={"bold"}>
         Cost Breakdown
       </Typography>
-      <TableContainer>
-        <Table
-          aria-label="side header table"
-          size="small"
-          sx={{
-            "& td": { fontSize: "1rem", px: 0.5 },
-            "& th": { fontSize: "1rem", fontWeight: "bold" },
-          }}
-        >
-          <TableHead>
-            <TableRow>
+
+      <Table
+        aria-label="side header table"
+        size="small"
+        sx={{
+          "& td": { fontSize: style.fontSize, px: 0.5 },
+          "& th": {
+            fontSize: style.fontSize,
+            fontWeight: "bold",
+            align: "left",
+          },
+        }}
+      >
+        <TableHead>
+          <TableRow>
+            <TableCell />
+            <TableCell />
+            <TableCell align="center">(Є)</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {headers.map((header, i) => (
+            <TableRow key={header}>
+              <TableCell align="left">{header}</TableCell>
               <TableCell />
-              {/* {rows.map((row) => (
-              <TableCell key={row.name} align="center">
-                {row.name}
-              </TableCell>
-            ))} */}
-              <TableCell align="center">(Є)</TableCell>
+              <TableCell align="center">{dataSet[i]}</TableCell>
             </TableRow>
-          </TableHead>
-          <TableBody>
-            {headers.map((header, i) => (
-              <TableRow key={header}>
-                {/* Header in the first column */}
-                <TableCell component="th" scope="row" align="left">
-                  {header}
-                </TableCell>
-                {/* Values for each row */}
-                <TableCell align="center">{dataSet[i]}</TableCell>
-              </TableRow>
-            ))}
-            <TableRow>
-              <TableCell component="th" scope="row" align="left">
-                Total
-              </TableCell>
-              <TableCell align="center">Є {tourMatrix?.totalCost}</TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </TableContainer>
+          ))}
+          <TableRow>
+            <TableCell align="left" component={"th"}>
+              Total
+            </TableCell>
+            <TableCell />
+            <TableCell align="center" component={"th"}>
+              {tourMatrix?.totalCost}
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
     </Stack>
   );
 };
