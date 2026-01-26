@@ -887,7 +887,7 @@ export async function addSolarModuleAsync(
 
   const count = (rows as any)[0].count;
   if (count > 0) {
-    throw new Error("Solar module exists already.");
+    throw new Error("Solar module already exist");
   }
 
   const query = `

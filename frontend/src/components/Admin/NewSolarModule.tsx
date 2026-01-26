@@ -12,7 +12,10 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import { SolarModule } from "../../types/order.type";
 import adminApiService from "../../services/adminApiService";
-import { useNotificationStore } from "../../store/useNotificationStore";
+import {
+  NotificationSeverity,
+  useNotificationStore,
+} from "../../store/useNotificationStore";
 
 const NewSolarModule = () => {
   const notification = useNotificationStore();
@@ -77,18 +80,29 @@ const NewSolarModule = () => {
       .then((res) => {
         if (res.statusCode === 200 || res.statusCode === 201) {
           notification.showNotification({ message: res.message });
+          setShowModal(false);
         }
-        setShowModal(false);
       })
       .catch((error) => {
+        debugger;
+        if (error.response.status === 404) {
+          notification.showNotification({
+            message: error.response.data,
+            severity: NotificationSeverity.Warning,
+          });
+          return;
+        }
+
         const msg =
           error instanceof Error ? error.message : String(error.message);
-        notification.showNotification({ message: msg });
+        notification.showNotification({
+          message: msg,
+          severity: NotificationSeverity.Warning,
+        });
       })
       .finally(() => {
         setIsLoading(false);
       });
-
   }, [formData]);
 
   const formFields = [
