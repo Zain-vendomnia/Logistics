@@ -5,8 +5,8 @@ import { uploadImage } from "../utils/upload_Image";
 
 export enum ImageType {
   LoadCargo_TripStart = "loadCargoTripStart",
-  Millage_TripStart = "millageTripStart",
-  Millage_TripEnd = "millageTripEnd",
+  Mileage_TripStart = "mileageTripStart",
+  Mileage_TripEnd = "mileageTripEnd",
   TruckImage_TripEnd = "truckImageTripEnd",
   GasReceipt = "gasReceipt",
   ParcelImage = "parcelImage",
@@ -28,11 +28,11 @@ export type CameraState = {
 
 type Props = {
   type: ImageType;
-  millage?: string;
+  mileage?: string;
   onComplete?: (imageUploaded: boolean) => void;
 };
 
-export const useCameraCapture = ({ type, millage, onComplete }: Props) => {
+export const useCameraCapture = ({ type, mileage, onComplete }: Props) => {
   const webcamRef = useRef<any>(null);
   const lastUploadedImageRef = useRef<string | null>(null);
 
@@ -66,7 +66,7 @@ export const useCameraCapture = ({ type, millage, onComplete }: Props) => {
 
         // console.log("Image data: ", imageSrc);
         // console.log("Image type: ", type);
-        // millage && console.log("Millage passed: ", millage);
+        // mileage && console.log("Mileage passed: ", mileage);
 
         onComplete?.(true);
       }, 3000);

@@ -112,10 +112,10 @@ const NeighborDetailsForm = ({ onComplete }: Props) => {
         severity: NotificationSeverity.Warning,
       });
 
-      setTimeout(() => {
-        setModalKey((prev) => prev + 1);
-        setShowModal(true);
-      }, 900);
+      // setTimeout(() => {
+      //   setModalKey((prev) => prev + 1);
+      //   setShowModal(true);
+      // }, 900);
 
       return;
     }

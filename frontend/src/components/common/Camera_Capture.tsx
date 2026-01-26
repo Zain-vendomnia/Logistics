@@ -31,7 +31,7 @@ interface Props {
   isMarkDone?: boolean;
 
   imageType: ImageType;
-  millage?: string;
+  mileage?: string;
 }
 const CameraCapture = ({
   styleCard = true,
@@ -44,7 +44,7 @@ const CameraCapture = ({
   onImageUploaded,
   isMarkDone,
   imageType,
-  millage,
+  mileage,
 }: Props) => {
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
@@ -65,7 +65,7 @@ const CameraCapture = ({
     updateCameraState,
     handleButtonClick,
     retakeImage,
-  } = useCameraCapture({ type: imageType, millage, onComplete });
+  } = useCameraCapture({ type: imageType, mileage, onComplete });
 
   const isInitialState =
     showCameraIcon &&

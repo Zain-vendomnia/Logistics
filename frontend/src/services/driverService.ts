@@ -1,7 +1,7 @@
 import axios from 'axios';
 import authHeader from './auth-header';
 
-const API_BASE = 'http://localhost:8080/api/admin/drivers';
+const API_BASE = 'http://localhost:8080/api/driver';
 
 export const getAllDrivers = async () => {
   const response = await axios.get(API_BASE, { headers: authHeader() });
@@ -45,3 +45,11 @@ export const getDriverPerformanceData = async (startDate: string, endDate: strin
   const response = await axios.get(`${API_BASE}/performance?startDate=${startDate}&endDate=${endDate}`, { headers: authHeader() });
   return response.data;
 };
+
+
+// export const startTrip = async (formData: any) => {
+
+//   const response = await axios.post(`${API_BASE}/start-trip`, { headers: authHeader() });
+
+//   // return response.data;
+// };

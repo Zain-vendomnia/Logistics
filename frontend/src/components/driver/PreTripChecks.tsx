@@ -12,6 +12,7 @@ import CustomInputField from "../delivery/CustomInputField";
 import CameraCapture from "../common/Camera_Capture";
 import { ImageType } from "../../hooks/useCameraCapture";
 
+import * as driverService from "../../services/driverService";
 const useStyle = {
   cardHighlight: {
     height: "auto",
@@ -54,7 +55,7 @@ const componentCheckList = [
     title: "Order Shipping",
     description: "Kilometers Driven and Fuel Guage photo from the odometer.",
     requiredInputValue: true,
-    imageType: ImageType.Millage_TripStart,
+    imageType: ImageType.Mileage_TripStart,
   },
 ];
 
@@ -69,7 +70,7 @@ const PreTripChecks = () => {
     { status: boolean; imgSrc: string }[]
   >(new Array(componentCheckList.length).fill({ status: false, imgSrc: "" }));
 
-  const [millageInputValue, setMillageInputValue] = useState("");
+  const [mileageInputValue, setMileageInputValue] = useState("");
 
   const { showNotification } = useNotificationStore();
 
@@ -100,15 +101,107 @@ const PreTripChecks = () => {
     });
   };
 
-  const handleStartTripButton = () => {
-    startNewTrip();
+  const handleStartTripButton = async () => {
+    try {
+      startNewTrip();
 
-    updateTripDetails({
-      isTripStarted: true,
-      tripStartedAt: new Date().toUTCString(),
-    });
-    console.log("Compliances completed, Trip hass starts now.");
+      const formData = new FormData();
+
+      // 1️⃣ Trip + checklist metadata (JSON)
+      const checklistPayload = componentCheckList.map((item, index) => ({
+        componentName: item.title,
+        imageType: item.imageType,
+        tour_id: 33,
+        status: componentStatus[index]?.status ?? false,
+      }));
+
+      const tripPayload = {
+        isTripStarted: true,
+        tripStartedAt: new Date().toISOString(),
+        checklist: checklistPayload,
+      };
+
+      // Append JSON as a string
+      formData.append("tripData", JSON.stringify(tripPayload));
+
+      formData.append("mileageValue", mileageInputValue);
+
+      // 2️⃣ Append image files
+      for (let index = 0; index < componentStatus.length; index++) {
+        const imgSrc = componentStatus[index]?.imgSrc;
+        if (!imgSrc) continue;
+
+        let file: File;
+        if (typeof imgSrc === "string") {
+          file = await uriToFile(
+            imgSrc,
+            `${checklistPayload[index].imageType}_${checklistPayload[index].tour_id}.jpg`
+          );
+        } else {
+          file = imgSrc;
+        }
+
+        formData.append("images", file);
+      }
+
+      // 🔍 Debug FormData entries
+      // console.log("FormData entries:");
+      Array.from(formData.entries()).forEach(([key, value]) => {
+        console.log(key, value);
+      });
+
+      // 3️⃣ Get driver token from localStorage
+      const raw = localStorage.getItem("user");
+      if (!raw) return;
+
+      const { driver_id: driverId, accessToken } = JSON.parse(raw) || {};
+      if (!driverId || !accessToken) return;
+
+      // 4️⃣ Send POST request with FormData
+      const res = await fetch("http://localhost:8080/api/driver/start-trip", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`, // ✅ Don't set Content-Type for FormData
+        },
+        body: formData,
+      });
+
+      // 5️⃣ Read JSON response
+      const result = await res.json();
+
+      if (result.error) {
+        showNotification({
+          message: "Failed to start trip: "+result.error,
+          severity: NotificationSeverity.Error,
+        });
+        console.error("Failed to start trip:", result.error);
+      }else{
+
+        updateTripDetails({
+            isTripStarted: true,
+            tripStartedAt: new Date().toUTCString(),
+          });
+        
+      console.log("Compliances completed, Trip hass starts now.");
+      }
+
+
+    } catch (error) {
+
+      console.error("Failed to start trip:", error);
+    }
   };
+
+
+  // Helper function to convert URI to File
+  const uriToFile = async (uri: string, fileName: string): Promise<File> => {
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    return new File([blob], fileName, { type: blob.type });
+  };
+
+
+
 
   return (
     <Stack spacing={1}>
@@ -141,7 +234,7 @@ const PreTripChecks = () => {
                   label="Km's driven"
                   placeholder="000000000"
                   onChange={(value) => {
-                    setMillageInputValue(value);
+                    setMileageInputValue(value);
                     console.log(value);
                   }}
                 />
@@ -149,7 +242,7 @@ const PreTripChecks = () => {
 
               <CameraCapture
                 imageType={item.imageType}
-                millage={millageInputValue ?? null}
+                mileage={mileageInputValue ?? null}
                 // title={item.title}
                 // description={item.description}
                 styleCard={false}
@@ -192,7 +285,7 @@ const PreTripChecks = () => {
                       Km's driven
                     </Typography>
                     <Typography variant="body1" fontSize={"1.1rem"}>
-                      {millageInputValue || "Not Provided"}
+                      {mileageInputValue || "Not Provided"}
                     </Typography>
                   </Stack>
                 )}

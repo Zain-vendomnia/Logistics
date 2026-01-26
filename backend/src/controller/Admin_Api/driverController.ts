@@ -1,6 +1,10 @@
 import { Request, Response } from "express";
 import * as driverService from "../../services/driverService";
 
+import pool from "../../config/database";
+
+import path from "path";
+
 export const getAllDrivers = async (_req: Request, res: Response) => {
   try {
     const drivers = await driverService.getAllDrivers();
@@ -167,5 +171,91 @@ export const weeklyDriverPerformanceData = async (req: Request, res: Response) =
     return res.status(500).json({ message: "Failed to fetch performance data." });
   }
 };
+
+
+export const startTrip = async (req: Request, res: Response) => {
+  const connection = await pool.getConnection();
+
+  try {
+    const tripData = req.body.tripData ? JSON.parse(req.body.tripData) : null;
+    const mileageValue = req.body.mileageValue
+      ? JSON.parse(req.body.mileageValue)
+      : null;
+
+    const images = (req.files as Express.Multer.File[]) || [];
+
+    if (!tripData) {
+      return res.status(400).json({ message: "Trip data missing" });
+    }
+
+    const tourId = tripData.checklist[0]?.tour_id;
+    if (!tourId) {
+      return res.status(400).json({ message: "Tour ID missing" });
+    }
+
+    /* -------------------------------
+       BEGIN TRANSACTION
+    --------------------------------*/
+    await connection.beginTransaction();
+
+    /* 1️⃣ SAVE MILEAGE VALUE */
+    if (mileageValue !== null) {
+      await connection.query(
+        `UPDATE tourinfo_master 
+         SET tour_start_km = ? 
+         WHERE id = ?`,
+        [mileageValue, tourId]
+      );
+    }
+
+    /* 2️⃣ SAVE IMAGES */
+    for (let i = 0; i < tripData.checklist.length; i++) {
+      const item = tripData.checklist[i];
+      const file = images[i];
+
+      if (!file) continue;
+
+      const filePath = path.join("uploads", file.originalname); // ✅ use filename
+
+      const type =
+        item.imageType === "mileageTripStart"
+          ? "mileageTripStart"
+          : "loadCargoTripStart";
+
+      await connection.query(
+        `INSERT INTO tour_images (tour_id, type, image)
+         VALUES (?, ?, ?)`,
+        [tourId, type, filePath]
+      );
+    }
+
+    /* -------------------------------
+       COMMIT TRANSACTION
+    --------------------------------*/
+    await connection.commit();
+
+    return res.status(200).json({
+      message: "Trip started successfully",
+      tourId,
+      mileageValue,
+      imagesCount: images.length,
+    });
+
+  } catch (error) {
+    /* -------------------------------
+       ROLLBACK ON ERROR
+    --------------------------------*/
+    await connection.rollback();
+    console.error("Transaction failed:", error);
+
+    return res.status(500).json({
+      error: "Failed to start trip: "+error,
+    });
+
+  } finally {
+    connection.release();
+  }
+};
+
 
 

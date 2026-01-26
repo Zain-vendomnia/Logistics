@@ -31,7 +31,7 @@ const imageChecklist: ImageChecklistItem[] = [
   { title: "Truck Image", imageType: ImageType.TruckImage_TripEnd },
   {
     title: "Speedometer",
-    imageType: ImageType.Millage_TripEnd,
+    imageType: ImageType.Mileage_TripEnd,
     requiredInputValue: true,
   },
   { title: "Fuel Receipt", imageType: ImageType.GasReceipt },
@@ -41,7 +41,7 @@ const TripComplete = () => {
   const iconSize = "6rem";
   const { showNotification } = useNotificationStore();
 
-  const [millageValue, setMillageValue] = useState<string>("");
+  const [mileageValue, setMileageValue] = useState<string>("");
   const [shouldShowInputField, setShouldShowInputField] = useState(false);
   const [showInputFieldAlert, setShowInputFieldAlert] = useState(false);
 
@@ -56,7 +56,7 @@ const TripComplete = () => {
 
     if (requiresInput) {
       setShouldShowInputField(requiresInput);
-      if (millageValue.length > 1) {
+      if (mileageValue.length > 1) {
       }
     } else {
       setShouldShowInputField(false);
@@ -65,7 +65,7 @@ const TripComplete = () => {
     if (showInputFieldAlert) {
       setShowInputFieldAlert(false);
     }
-  }, [currentIndex, millageValue, showInputFieldAlert]);
+  }, [currentIndex, mileageValue, showInputFieldAlert]);
 
   useEffect(() => {
     if (componentStatus.every((s) => s === true)) {
@@ -74,7 +74,7 @@ const TripComplete = () => {
   }, [componentStatus]);
 
   const handleInputValue = (value: string) => {
-    setMillageValue(value);
+    setMileageValue(value);
   };
 
   const handleImageUploaded = (value: boolean) => {
@@ -113,7 +113,7 @@ const TripComplete = () => {
 
     if (currentCall - debouncedcallRef.current < 4000) return;
 
-    if (shouldShowInputField && !millageValue) {
+    if (shouldShowInputField && !mileageValue) {
       showNotification({
         message: "Please enter the Km driven before uploading the image.",
         severity: NotificationSeverity.Warning,
@@ -130,7 +130,7 @@ const TripComplete = () => {
   );
   const currentItem = imageChecklist[lastValidIndex];
   const disableCamera =
-    (shouldShowInputField && !millageValue) || isAllComplied;
+    (shouldShowInputField && !mileageValue) || isAllComplied;
   return (
     <>
       <Box
@@ -203,7 +203,7 @@ const TripComplete = () => {
                 >
                   <Camera
                     type={currentItem.imageType}
-                    millage={millageValue ?? null}
+                    mileage={mileageValue ?? null}
                     buttonText={currentItem?.title ?? "Upload Image"}
                     isComplied={disableCamera}
                     onImageUploaded={handleImageUploaded}

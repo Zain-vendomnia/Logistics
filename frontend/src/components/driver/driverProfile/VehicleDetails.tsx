@@ -34,7 +34,7 @@ const VehicleDetails = () => {
           justifyContent={"space-between"}
           px={0.5}
         >
-          <Typography>Millage Driven: </Typography>
+          <Typography>Mileage Driven: </Typography>
           <Typography>845761 kms</Typography>
         </Box>
         <Box

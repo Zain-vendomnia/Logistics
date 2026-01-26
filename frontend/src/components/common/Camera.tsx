@@ -8,7 +8,7 @@ import { useEffect } from "react";
 
 interface Props {
   type: ImageType;
-  millage?: string;
+  mileage?: string;
   buttonText: string;
   isComplied: boolean;
   onImageUploaded: (isDone: boolean) => void;
@@ -17,7 +17,7 @@ interface Props {
 
 const Camera = ({
   type,
-  millage,
+  mileage,
   buttonText,
   isComplied,
   onImageUploaded,
@@ -30,7 +30,7 @@ const Camera = ({
     handleButtonClick,
     retakeImage,
     clearCamera,
-  } = useCameraCapture({ type, millage });
+  } = useCameraCapture({ type, mileage });
 
   useEffect(() => {
     if (!cameraState.captured) return;

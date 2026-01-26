@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { useDeliveryStore } from "../store/useDeliveryStore";
 import { DeliveryScenario } from "../components/delivery/delieryScenarios";
+
 import {
   NotificationSeverity,
   useNotificationStore,
@@ -102,10 +103,11 @@ export const useTripLifecycle = () => {
     const signatureCaptured =
       store.actionsCompleted.captureCustomerSignature ||
       store.actionsCompleted.captureNeighborSignature;
-
+      console.log(' <================ LINE = 106 : FILE = useTripLifecycle.ts ==============>', signatureCaptured);
     if (scenarioKey === DeliveryScenario.hasPermit || signatureCaptured) {
-      addOrdersDeliveredSuccessfully(store.deliveryId);
-      setDeliveryCompleted(true);
+
+      // addOrdersDeliveredSuccessfully(store.deliveryId);
+      // setDeliveryCompleted(true);
     }
   };
 

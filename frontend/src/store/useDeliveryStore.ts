@@ -216,7 +216,7 @@ const createDeliveryStore: StateCreator<DeliveryStore> = (set, get) => ({
 
     const newData = await getTripData();
     if (!newData) throw new Error("Failed to fetch trip data");
-
+    
     set({
       deliveryInstanceKey: deliveryInstanceKey + 1,
       deliveryId: newData.orderId,

@@ -95,6 +95,8 @@ export const useScenarioExecutor = ({
 
     console.log("Steps to Follow: ", stepsToRender);
 
+    console.log(' <================ LINE = 98 : FILE = useScenarioExecutor.ts ==============>', store);
+
     if (actionsCompleted[currentStep] === true) {
       advanceToNextStep();
     }
