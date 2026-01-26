@@ -2,12 +2,14 @@ import { Request, Response } from "express";
 import { LogisticOrder } from "../../model/LogisticOrders";
 import { CheckOrderCount } from "../../types/dto.types";
 import { logWithTime } from "../../utils/logging";
-import { Order, OrderHistoryUI } from "../../types/order.types";
+import { Order, OrderHistoryUI, SolarModule } from "../../types/order.types";
 import { ApiResponse } from "../../types/apiResponse.type";
 import {
+  addSolarModuleAsync,
   fetchOrderDetailsAsync,
   fetchOrderHistoryAsync,
   fetchSolarModulesAsync,
+  removeSolarModuleAsync,
   updateOrderStatusAsync,
 } from "../../services/logisticOrder.service";
 import { sendError } from "../../helpers/logisticOrder.helper";
@@ -250,9 +252,56 @@ export const fetchSolarModules = async (_req: Request, res: Response) => {
 
   const response: ApiResponse = {
     status: "success",
-    message: "Order items fetched successfully.",
+    message: "Solar modules fetched successfully.",
     statusCode: 200,
     data: modules,
   };
   return res.status(200).json(response);
+};
+
+export const createSolarModules = async (req: Request, res: Response) => {
+  try {
+    const data = req.body;
+
+    if (!data) return res.status(404).json("bad request");
+
+    const module = await addSolarModuleAsync(data as SolarModule);
+
+    const response: ApiResponse = {
+      status: "success",
+      message: "New solar module created successfully",
+      statusCode: 201,
+      data: module,
+    };
+    return res.status(200).json(response);
+  } catch (error) {
+    const err =
+      error instanceof Error ? error.message : String(error ?? "Unknown error");
+    return res.status(404).json(err);
+  }
+};
+
+export const removeSolarModules = async (req: Request, res: Response) => {
+  try {
+    const id = req.query;
+    if (!id) {
+      return res.status(400).json({
+        status: "error",
+        message: "Solar module id is required",
+      });
+    }
+
+    await removeSolarModuleAsync(Number(id));
+
+    const response: ApiResponse = {
+      status: "success",
+      message: "Solar module removed successfully",
+      statusCode: 201,
+    };
+    return res.status(200).json(response);
+  } catch (error) {
+    const err =
+      error instanceof Error ? error.message : String(error ?? "Unknown error");
+    return res.status(404).json(err);
+  }
 };

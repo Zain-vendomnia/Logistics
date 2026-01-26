@@ -356,6 +356,15 @@ const fetchDriverDetails = (driverId: any) => {
   });
 };
 
+const createSolarModule = async (module: SolarModule) => {
+  const res = await axios.post(API_BaseUrl_Admin + "solarmodules", module, {
+    headers: authHeader(),
+  });
+
+  const modules = res.data;
+  return modules;
+};
+
 const fetchSolarModules = async (): Promise<SolarModule[]> => {
   const res = await axios.get(API_BaseUrl_Admin + "solarmodules", {
     headers: authHeader(),
@@ -363,6 +372,7 @@ const fetchSolarModules = async (): Promise<SolarModule[]> => {
   const modules = res.data.data;
   return modules as SolarModule[];
 };
+
 const orderDetails = (orderNumber: number) => {
   return axios.get(API_BaseUrl_Admin + "orderDetails", {
     headers: authHeader(),
@@ -445,6 +455,7 @@ const adminApiService = {
   fetchLogs,
   estimateTourMatrix,
   orderDetails,
+  createSolarModule,
   fetchSolarModules,
   orderHistoryDetails,
   sendCancelDetails,

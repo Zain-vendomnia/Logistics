@@ -880,6 +880,16 @@ export async function checkOrdersUrgency() {
 export async function addSolarModuleAsync(
   module: SolarModule,
 ): Promise<SolarModule> {
+  const [rows] = await pool.execute(
+    "SELECT COUNT(*) as count FROM solarmodules_items WHERE module_name = ?",
+    [module.name],
+  );
+
+  const count = (rows as any)[0].count;
+  if (count > 0) {
+    throw new Error("Solar module exists already.");
+  }
+
   const query = `
     INSERT INTO solarmodules_items
       (module_name, weight, created_at)
@@ -889,13 +899,26 @@ export async function addSolarModuleAsync(
   const [result] = await pool.execute<ResultSetHeader>(query, [
     module.name,
     module.weight,
-    module.updated_by,
   ]);
 
   return {
     ...module,
     id: result.insertId,
   };
+}
+
+export async function removeSolarModuleAsync(id: number): Promise<boolean> {
+  const query = `
+    DELETE FROM solarmodules_items
+      WHERE id = ?`;
+
+  const [result] = await pool.execute<ResultSetHeader>(query, [id]);
+
+  if (result.affectedRows === 0) {
+    throw new Error("Solar module not found");
+  }
+
+  return true;
 }
 
 export async function updateSolarModuleAsync(

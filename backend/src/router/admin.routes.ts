@@ -152,8 +152,10 @@ adminRouter.post(
   "/routeoptimize/getRoutesSegmentImages",
   tourCtrl.getRoutesSegmentImages,
 );
-adminRouter.put("/routeoptimize/updateCustomer", updateCustomerInfoController);
 adminRouter.get("/solarmodules", orderCtrl.fetchSolarModules);
+adminRouter.post("/solarmodules", orderCtrl.createSolarModules);
+adminRouter.delete("/solarmodules/:id", orderCtrl.removeSolarModules);
+adminRouter.put("/routeoptimize/updateCustomer", updateCustomerInfoController);
 adminRouter.get("/orderDetails", orderCtrl.getOrderDetails);
 adminRouter.get("/orderHistory", orderCtrl.getOrderHistoryDetails);
 adminRouter.put("/orderStatus/:id", orderCtrl.updateOrderStatus);

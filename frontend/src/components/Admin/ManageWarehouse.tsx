@@ -40,6 +40,7 @@ import {
 import WarehouseFormModal from "./WarehouseDialog";
 import ConfirmDialog from "./ConfirmDialog";
 import { Warehouse } from "../../types/warehouse.type";
+import NewSolarModule from "./NewSolarModule";
 
 // type Warehouse = {
 //   warehouse_id: number;
@@ -816,6 +817,7 @@ const ManageWarehouses = () => {
           >
             Export ({filteredWarehouses.length})
           </Button>
+          <NewSolarModule />
         </Stack>
 
         {/* Data Grid */}
