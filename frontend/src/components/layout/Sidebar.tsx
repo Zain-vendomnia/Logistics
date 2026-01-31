@@ -80,7 +80,8 @@ const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
           icon: <DashboardIcon />,
           path: "/admin_dashboard",
         },
-        { text: "Add Tour", icon: <TourIcon />, path: "/Admin_AddTour" },
+        { text: "Orders", icon: <TourIcon />, path: "/Admin_AddTour" },
+        // { text: "Add Tour", icon: <TourIcon />, path: "/Admin_AddTour" },
         {
           text: "Tours",
           icon: <TourOutlinedIcon />,
@@ -88,6 +89,11 @@ const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
         },
         { text: "Live Tour", icon: <TrendingUp />, path: "/live/tour" },
         { text: "Completed Tour", icon: <AltRoute />, path: "/completed/tour" },
+        {
+          text: "Pickup Orders",
+          icon: <AssignmentReturn />,
+          path: "/picklist",
+        },
         {
           text: "Warehouse",
           icon: <Warehouse />,
@@ -107,11 +113,6 @@ const Sidebar = ({ menuOptions, onMenuItemClick }: Props) => {
           text: "Driver Performance",
           icon: <Leaderboard />,
           path: "/driver_performance",
-        },
-        {
-          text: "Cancelled Orders",
-          icon: <AssignmentReturn />,
-          path: "/cancel",
         },
         { text: "Dynamic Tours", icon: <Moving />, path: "/mapboard/dynamic" },
         { text: "Logs", icon: <Moving />, path: "/logs" },

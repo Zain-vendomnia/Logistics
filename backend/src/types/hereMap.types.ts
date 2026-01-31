@@ -24,7 +24,7 @@ export interface FleetType {
     time: number;
   };
   shifts: Array<{
-    start: { time: string; location: Location };
+    start: { time: string; location: Location }; 
     end: { time: string; location: Location };
   }>;
   capacity: number[];

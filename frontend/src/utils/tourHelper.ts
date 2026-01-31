@@ -235,7 +235,7 @@ export const generatePOD = async (
     let attachment_name = "POD.pdf";
 
     await adminApiService.sendEmail({
-      to: "muhammad.jahanzaibbaloch@vendomnia.com",
+      to: "raja.zainulabadin@vendomnia.com",
       subject: "POD",
       html: fullEmailHtml,
       attachment,

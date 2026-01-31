@@ -90,9 +90,9 @@ const ManageWarehouses = () => {
     setLoading(true);
     try {
       const data = await getAllWarehouses();
-      console.log("==================================");
-      console.log("Fetched Warehouses:", data);
-      console.log("==================================");
+      // console.log("==================================");
+      // console.log("Fetched Warehouses:", data);
+      // console.log("==================================");
       setWarehouses(data);
       setFilteredWarehouses(data);
     } catch {
@@ -176,7 +176,6 @@ const ManageWarehouses = () => {
 
     try {
       const response = await disableWarehouse(deleteTargetId);
-      console.log(response);
 
       switch (response.status) {
         case "success":
@@ -454,7 +453,7 @@ const ManageWarehouses = () => {
 
       showSnackbar(`Excel file exported successfully: ${filename}`, "success");
     } catch (error) {
-      console.error("Export failed:", error);
+      // console.error("Export failed:", error);
       showSnackbar("Failed to export Excel file", "error");
     }
   };

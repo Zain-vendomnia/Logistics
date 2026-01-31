@@ -32,6 +32,7 @@ import CustomersChat from "./components/notification/CustomersChat";
 import LogViewer from "./components/LogViewer";
 import ManageCancels from "./components/Admin/ManageCancels";
 import ScheduledTourDetails from "./components/Admin/tours/Scheduled_TourDetails";
+import CompletedTourDetails from "./components/Admin/tours/Completed_TourDetails";
 
 // Role-based route guard
 const ProtectedRoute = ({
@@ -171,7 +172,7 @@ const AppRoutes = () => {
       />
       <Route
         path="/completed/tour/detail/:id"
-        element={<AdminRoute element={<CompletedTours />} />}
+        element={<AdminRoute element={<CompletedTourDetails />} />}
       />
 
       {/* <Route
@@ -193,7 +194,7 @@ const AppRoutes = () => {
         element={<AdminRoute element={<DriverPerformance />} />}
       />
       <Route
-        path="/cancel"
+        path="/picklist"
         element={<AdminRoute element={<ManageCancels />} />}
       />
       <Route

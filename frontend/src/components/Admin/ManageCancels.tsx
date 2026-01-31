@@ -56,7 +56,7 @@ import OrderStatusButton from "./OrderStatusButton";
 const ManageCancels = () => {
   const [pickUpOrders, setPickupOrders] = useState<PickupOrder[]>([]);
   const [expandedRows, setExpandedRows] = useState<Map<string, OrderItem[]>>(
-    new Map()
+    new Map(),
   );
   const [loadingItems, setLoadingItems] = useState<Set<string>>(new Set());
 
@@ -80,7 +80,7 @@ const ManageCancels = () => {
 
   const [showHistory, setShowHistory] = useState(false);
   const [selectedOrderNumber, setSelectedOrderNumber] = useState<string | null>(
-    null
+    null,
   );
 
   const [confirmDialog, setConfirmDialog] = useState({
@@ -100,7 +100,7 @@ const ManageCancels = () => {
 
   const showSnackbar = (
     message: string,
-    severity: "success" | "error" | "warning" | "info"
+    severity: "success" | "error" | "warning" | "info",
   ) => setSnackbar({ open: true, message, severity });
   const closeSnackbar = () => setSnackbar((prev) => ({ ...prev, open: false }));
 
@@ -217,7 +217,7 @@ const ManageCancels = () => {
 
       if (response.status === "success" && Array.isArray(response.data)) {
         setExpandedRows((prev) =>
-          new Map(prev).set(orderNumber, response.data)
+          new Map(prev).set(orderNumber, response.data),
         );
       } else {
         showSnackbar("Failed to load order items", "error");
@@ -254,15 +254,17 @@ const ManageCancels = () => {
     }
   };
 
-  // ✅ No client-side filtering - show API results directly
-  const filteredOrders = pickUpOrders;
+  // const filteredOrders = pickUpOrders;
+  const filteredOrders = [...pickUpOrders].sort(
+    (a, b) => Date.parse(b.created_at) - Date.parse(a.created_at),
+  );
 
   const handleChangePage = (event: unknown, newPage: number) => {
     setPage(newPage);
   };
 
   const handleChangeRowsPerPage = (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
@@ -270,7 +272,7 @@ const ManageCancels = () => {
 
   const paginatedOrders = filteredOrders.slice(
     page * rowsPerPage,
-    page * rowsPerPage + rowsPerPage
+    page * rowsPerPage + rowsPerPage,
   );
 
   const handleEditClick = (item: OrderItem) => {
@@ -292,7 +294,7 @@ const ManageCancels = () => {
     if (editQty > editItem.quantity) {
       showSnackbar(
         `Cancel quantity cannot exceed original quantity (${editItem.quantity})`,
-        "error"
+        "error",
       );
       return;
     }
@@ -310,12 +312,12 @@ const ManageCancels = () => {
       if (response.status === "success") {
         showSnackbar(
           response.message || "Cancel quantity updated successfully",
-          "success"
+          "success",
         );
         setEditDialog(false);
 
         const orderNumber = Array.from(expandedRows.entries()).find(
-          ([_, items]) => items.some((item) => item.id === editItem.id)
+          ([_, items]) => items.some((item) => item.id === editItem.id),
         )?.[0];
 
         if (orderNumber) {
@@ -357,7 +359,7 @@ const ManageCancels = () => {
           if (response.status === "success") {
             showSnackbar(
               response.message || "Cancel item deleted successfully",
-              "success"
+              "success",
             );
 
             setExpandedRows((prev) => {
@@ -375,7 +377,7 @@ const ManageCancels = () => {
           } else {
             showSnackbar(
               response.message || "Failed to delete cancel item",
-              "error"
+              "error",
             );
           }
           closeConfirmDialog();
@@ -407,7 +409,7 @@ const ManageCancels = () => {
           if (response.status === "success") {
             showSnackbar(
               response.message || "All cancels deleted successfully",
-              "success"
+              "success",
             );
             setExpandedRows(new Map());
             setSearchTerm("");
@@ -416,7 +418,7 @@ const ManageCancels = () => {
           } else {
             showSnackbar(
               response.message || "Failed to delete all cancels",
-              "error"
+              "error",
             );
           }
           closeConfirmDialog();
@@ -481,7 +483,7 @@ const ManageCancels = () => {
         } catch (err) {
           console.error(
             `Failed to fetch items for order ${order.order_number}`,
-            err
+            err,
           );
         }
       }
@@ -523,7 +525,7 @@ const ManageCancels = () => {
   const ExpandableRow = ({ order }: { order: PickupOrder }) => {
     const isExpanded = expandedRows.has(order.order_number);
     const focusedPickupOrder = pickUpOrders.find(
-      (po) => po.order_number === order.order_number
+      (po) => po.order_number === order.order_number,
     );
     const itemsLoaded =
       focusedPickupOrder && focusedPickupOrder.items.length > 0;
@@ -805,7 +807,7 @@ const ManageCancels = () => {
       >
         <Box sx={{ mb: 3 }}>
           <Typography variant="h4" fontWeight={600} color="#333">
-            Manage Cancelled Orders
+            Pickup Orders
           </Typography>
           <Typography variant="body2" color="text.secondary">
             Total Orders: {filteredOrders.length} | Total Items:{" "}

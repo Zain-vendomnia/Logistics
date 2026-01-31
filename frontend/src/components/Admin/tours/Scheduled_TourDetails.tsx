@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMemo } from "react";
 import {
   Autocomplete,
   Backdrop,
@@ -16,11 +16,9 @@ import {
   OutlinedInput,
   Paper,
   Select,
-  SelectChangeEvent,
   Stack,
   TextField,
   Typography,
-  useTheme,
 } from "@mui/material";
 
 import PaletteIcon from "@mui/icons-material/Palette";
@@ -30,13 +28,7 @@ import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 
 import { motion, AnimatePresence } from "framer-motion";
 
-import { scrollStyles } from "../../../theme";
-import { Order } from "../../../types/order.type";
-import {
-  rejectTour_Req,
-  Tourinfo,
-  UpdateTour_Req,
-} from "../../../types/tour.type";
+import theme, { scrollStyles } from "../../../theme";
 import XChip from "../../base-ui/XChip";
 import PanelToggleButton from "./PanelToggleButton";
 import AlertButton from "../../base-ui/AlertButton";
@@ -46,17 +38,12 @@ import CostBreakdown from "./CostBreakdown";
 import SolarPanelQty from "./SolarPanelQty";
 import { DynamicOrdersList } from "../dynamic_tour/DynamicOrdersList";
 import MapBoard from "./MapBoard";
-import { Driver, Warehouse } from "../../../types/warehouse.type";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { RejectTourModal } from "../dynamic_tour/RejectTourModal";
-import { getCurrentUser } from "../../../services/auth.service";
-import { getAvailableDrivers } from "../../../services/driverService";
-import {
-  NotificationSeverity,
-  useNotificationStore,
-} from "../../../store/useNotificationStore";
-import { tourService } from "../../../services/tour.service";
 import { generateTimeOptions } from "../../../utils/tourHelper";
+import { useTourDetails } from "../../../hooks/tours/useTourDetails";
+import { useFetchTourDetails } from "../../../hooks/tours/useFetchTourDetails";
+import { usePinboardOrders } from "../../../hooks/tours/usePinboardOrders";
 
 const modalStyle = {
   position: "absolute",
@@ -77,322 +64,56 @@ const formStyle = {
 };
 
 const ScheduledTourDetails = () => {
-  const fontsize = "1rem";
-  const theme = useTheme();
-  const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-
   const { id: tourId } = useParams<{ id: string }>();
+  const { xTour, isTourLoading } = useFetchTourDetails(Number(tourId));
 
-  const [xTour, setXTour] = useState<Tourinfo | null>(null);
-  const [tourOrders, setTourOrders] = useState<Order[]>([]);
+  const {
+    fontsize,
+    navigate,
 
-  const [pinboardOrders, setPinboardOrders] = useState<Order[]>([]);
-  const lastFetchedAt: number | null = null;
+    isLoading,
+    tourOrders,
+    warehouse,
+    drivers,
 
-  const [ordersToRemove, setOrdersToRemove] = useState<Order[]>([]);
-  const [selectedPinbOrders, setSelectedPinbOrders] = useState<Order[]>([]);
+    ordersToRemove,
 
-  const [warehouse, setWarehouse] = useState<Warehouse | null>(null);
-  const [drivers, setDrivers] = useState<Driver[]>([]);
+    shouldUpdateTourRoute,
+    setShouldUpdateTourRoute,
+    shouldUpdateTourData,
+    setShouldUpdateTourData,
 
-  const loadTour = useCallback(async (tourId: number) => {
-    setIsLoading(true);
-    try {
-      const tour: Tourinfo = await tourService.getTourDetails(tourId);
-      setXTour(tour);
-      setTourOrders(tour.orders || []);
+    orderExpanded,
+    setOrderExpanded,
 
-      const warehouseRes: Warehouse = await tourService.getWarehouseDetails(
-        tour.warehouse_id,
-      );
-      setWarehouse(warehouseRes);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+    expandDetailsPanel,
+    setExpandDetailsPanel,
 
-  const orderIdxLookup = useMemo(() => {
-    return new Map<number, number>(
-      tourOrders.map((order, idx) => [order.order_id, idx]),
-    );
-  }, [xTour]);
+    showRejectModal,
+    setShowRejectModal,
 
-  const loadPinboardOrders = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const now = Date.now();
-      const staleAfter = 30 * 60 * 1000; // 30 minutes
-      const isStale = !lastFetchedAt || now - lastFetchedAt > staleAfter;
+    showWarehouseDetails,
+    setShowWarehouseDetails,
 
-      if (pinboardOrders.length === 0 || isStale) {
-        const orders: Order[] =
-          await tourService.getPinboardOrders(lastFetchedAt);
+    handleTourOrderRemove,
+    restoreRemovedOrder,
 
-        if (orders.length) {
-          const existingIds = new Set(pinboardOrders.map((o) => o.order_id));
-          const newOrders = orders.filter((o) => !existingIds.has(o.order_id));
-          setPinboardOrders(newOrders);
-        }
-      }
-    } catch (err) {
-      console.error("Failed to fetch pinboard Orders", err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [pinboardOrders.length]);
+    today,
+    formData,
+    handleFormChange,
+    handleTourReject,
+    handleUpdateTour,
+    handleRouteOptimize,
+    // tourAction,
+    // showUpdateTourButton,
+  } = useTourDetails(xTour);
 
-  useEffect(() => {
-    if (!tourId) return;
-    loadTour(Number(tourId));
-  }, [tourId]);
-
-  useEffect(() => {
-    loadPinboardOrders();
-  }, []);
-
-  const [shouldUpdateTourRoute, setShouldUpdateTourRoute] =
-    useState<boolean>(false);
-  const [shouldUpdateTourData, setShouldUpdateTourData] =
-    useState<boolean>(false);
-
-  const [orderExpanded, setOrderExpanded] = useState(false);
-  const [expandDetailsPanel, setExpandDetailsPanel] = useState(false);
-  const [showRejectModal, setShowRejectModal] = useState<boolean>(false);
-
-  const [showWarehouseDetails, setShowWarehouseDetails] = useState(false);
-
-  const handleSelectPinbOrder = async (newValue: Order[]) => {
-    if (newValue.length === 0) {
-      setSelectedPinbOrders([]);
-      return;
-    }
-    const orderIds = newValue.map((o) => o.order_id);
-
-    const pOrders = pinboardOrders.filter((po) =>
-      orderIds.includes(po.order_id),
-    );
-
-    setSelectedPinbOrders(pOrders);
-  };
-
-  function handleTourOrderRemove(orderItem: Order) {
-    setTourOrders((prev) => {
-      setOrdersToRemove((removed) => [orderItem, ...removed]);
-      return prev.filter((o) => o.order_id !== orderItem.order_id);
-    });
-  }
-  const restoreRemovedOrder = (reqOrder?: Order, all: boolean = false) => {
-    if (all) {
-      setTourOrders((prev) => {
-        const restored = [...prev];
-        ordersToRemove.forEach((order) => {
-          const oIdx = orderIdxLookup.get(order.order_id);
-          oIdx && restored.splice(oIdx, 0, order);
-        });
-
-        return restored;
-      });
-
-      setOrdersToRemove([]);
-      return;
-    }
-
-    if (!reqOrder) return;
-
-    const removed = ordersToRemove.find(
-      (o) => o.order_id === reqOrder.order_id,
-    );
-    if (!removed) return;
-
-    const removed_oIdx = orderIdxLookup.get(reqOrder.order_id);
-    if (removed_oIdx === undefined) return;
-
-    setTourOrders((prev) => {
-      if (prev.some((o) => o.order_id === removed.order_id)) {
-        return prev;
-      }
-      const next = [...prev];
-      next.splice(removed_oIdx, 0, removed);
-      return next;
-    });
-
-    setOrdersToRemove((prev) =>
-      prev.filter((o) => o.order_id !== reqOrder.order_id),
-    );
-
-    // const exist_selectedOrderIds = xTour?.orderIds
-    //   .split(",")
-    //   .map(Number)
-    //   .includes(reqOrder.order_id);
-    // if (exist_selectedOrderIds) {
-    //   setTourOrders((prev) => [...prev, reqOrder]);
-    //   return;
-    // }
-  };
-
-  const { showNotification } = useNotificationStore();
-
-  const today = new Date().toISOString().split("T")[0];
-  const initialFormState = {
-    // driverId: "",
-    driverId: "",
-    tourDate: today,
-    startTime: "07:30",
-    routeColor: theme.palette.primary.light,
-  };
-
-  const [formData, setFormData] = useState(initialFormState);
-  const formDataRef = useRef(formData);
-
-  const handleFormChange = (
-    e:
-      | React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-      | SelectChangeEvent,
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-    setShouldUpdateTourData(true);
-  };
-
-  const handleUpdateTour = async () => {
-    console.log("Latest formData Ref:", formDataRef.current);
-    console.log("Latest formData:", formData);
-
-    const form = formDataRef.current;
-
-    if (!xTour) return;
-    setIsLoading(true);
-    try {
-      const removedOrderIds = new Set(ordersToRemove.map((ro) => ro.order_id));
-      let xOrdersIds = tourOrders
-        .filter((to) => !removedOrderIds.has(to.order_id))
-        .map((o) => o.order_id);
-
-      xOrdersIds = [
-        ...xOrdersIds,
-        ...selectedPinbOrders.map((po) => po.order_id),
-      ];
-
-      const request: UpdateTour_Req = {
-        id: xTour.id,
-        tourName: xTour.tour_name,
-        tourDate: form.tourDate,
-        startTime: form.startTime,
-        routeColor: form.routeColor,
-        orderIds: xOrdersIds,
-        driverId: Number(form.driverId),
-        vehicleId: xTour.vehicle_id,
-        warehouseId: warehouse?.id!, // ensure from warehouse service
-        userId: getCurrentUser().email, // service helper
-        comments: "",
-      };
-      const updatedTour = await tourService.updateTour(request);
-      showNotification({
-        message: `Tour ${updatedTour.tour_name} updated successfully`,
-        severity: NotificationSeverity.Success,
-        duration: 8000,
-      });
-    } catch (error: unknown) {
-      console.error("Error updating tour:", error);
-      showNotification({
-        message: "Error accepting tour",
-        severity: NotificationSeverity.Error,
-        duration: 8000,
-      });
-    } finally {
-      setOrdersToRemove([]);
-      setSelectedPinbOrders([]);
-      setIsLoading(false);
-      setShouldUpdateTourRoute(false);
-      setShouldUpdateTourData(false);
-    }
-  };
-
-  const handleRouteOptimize = () => {
-    if (!shouldUpdateTourRoute) return;
-
-    showNotification({ message: "Processing Route Optimization..." });
-    handleUpdateTour();
-  };
-
-  const fetchEligibleDrivers = async (date: string) => {
-    if (!xTour) return;
-
-    try {
-      const res = await getAvailableDrivers(date, xTour.warehouse_id ?? 0);
-      const availableDrivers = res.available || [];
-      const unavailableDrivers = (res.unavailable || []).map((item: any) => ({
-        id: item.driver.id,
-        name: item.driver.name,
-        status: 0,
-        reason: item.reason,
-      }));
-
-      setDrivers([...availableDrivers, ...unavailableDrivers]);
-    } catch (err) {
-      console.error("Failed to fetch eligible drivers:", err);
-      setDrivers([]);
-    }
-  };
-
-  const handleTourReject = async (reason: string) => {
-    setIsLoading(true);
-    try {
-      const request: rejectTour_Req = {
-        tour_id: xTour?.id!,
-        userId: getCurrentUser().email,
-        reason,
-      };
-
-      // await tourService.rejectTourInstance(request);
-
-      showNotification({
-        message: `Tour ${xTour?.tour_name} Rejected Successfully`,
-        severity: NotificationSeverity.Success,
-      });
-    } catch (error: unknown) {
-      console.error("Error Rejecting Tour:", error);
-      showNotification({
-        message: "Error Rejecting Tour",
-        severity: NotificationSeverity.Error,
-      });
-    } finally {
-      setXTour(null);
-      setSelectedPinbOrders([]);
-      setOrdersToRemove([]);
-      setIsLoading(false);
-      navigate("/scheduled/tour");
-    }
-  };
-
-  useEffect(() => {
-    formDataRef.current = formData;
-  }, [formData]);
-
-  useEffect(() => {
-    if (!xTour) return;
-
-    fetchEligibleDrivers(xTour.tour_date);
-
-    setFormData({
-      driverId: xTour.driver_id?.toString() ?? "",
-      tourDate: xTour.tour_date ? xTour.tour_date.split("T")[0] : today,
-      startTime: xTour.start_time
-        ? xTour.start_time.slice(0, 5) // "07:00"
-        : "07:30",
-      routeColor: xTour.warehouse_colorCode ?? theme.palette.primary.light,
-    });
-  }, [xTour?.warehouse_id]);
-
-  // To udpate driver list on selected date
-  useEffect(() => {
-    if (!xTour) return;
-    fetchEligibleDrivers(xTour.tour_date);
-  }, [formData.tourDate]);
+  const {
+    pinboardOrders,
+    selectedPinbOrders,
+    setSelectedPinbOrders,
+    handleSelectPinbOrder,
+  } = usePinboardOrders();
 
   const tourAction = useMemo(() => {
     const orderIdsArray =
@@ -422,14 +143,14 @@ const ScheduledTourDetails = () => {
   ]);
 
   const showUpdateTourButton = shouldUpdateTourRoute || shouldUpdateTourData;
+  const isLoadingData = isTourLoading || isLoading;
 
   if (!xTour) return null;
-
   return (
     <>
       <Backdrop
         sx={(theme) => ({ color: "#fff", zIndex: theme.zIndex.modal + 1 })}
-        open={isLoading}
+        open={isLoadingData}
         // onClick={handleClose}
       >
         <CircularProgress color="inherit" />
@@ -945,7 +666,10 @@ const ScheduledTourDetails = () => {
                   />
                 )}
                 {/* Cost Breakdown */}
-                <CostBreakdown tourMatrix={xTour.matrix} />
+                <CostBreakdown
+                  tourMatrix={xTour.matrix}
+                  label={"Cost Breakdown"}
+                />
               </Stack>
             </Paper>
           )}

@@ -4,8 +4,10 @@ import adminApiService from "../../../services/adminApiService";
 import { TourRow, TourStatus } from "../../../types/tour.type";
 import SpecTable, { RowAction } from "../SpecTable";
 import { generatePOD } from "../../../utils/tourHelper";
+import { useNavigate } from "react-router-dom";
 
 const CompletedTours = () => {
+  const navigate = useNavigate();
   const [tours, setTours] = useState<TourRow[]>([]);
 
   const loadTours = useCallback(async () => {
@@ -40,6 +42,11 @@ const CompletedTours = () => {
       onClick: (tour: TourRow) => requestPOD(tour),
     },
   ];
+
+  const handleTourClick = (tour: TourRow) => {
+    navigate(`/completed/tour/detail/${tour.id}`);
+  };
+
   return (
     <>
       <SpecTable
@@ -47,7 +54,7 @@ const CompletedTours = () => {
         tours={tours}
         detailsUrl="/completed/tour/detail/"
         onLoadTours={() => loadTours()}
-        onNodeClick={() => {}}
+        onNodeClick={handleTourClick}
         rowActions={rowActions}
       />
     </>

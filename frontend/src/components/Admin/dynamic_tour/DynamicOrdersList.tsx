@@ -6,17 +6,20 @@ import {
   IconButton,
   Box,
 } from "@mui/material";
+import DownloadIcon from "@mui/icons-material/Download";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import { Order } from "../../../types/order.type";
+import { Order, OrderStatus } from "../../../types/order.type";
 import DynamicTourOrderDetails from "./DynamicTourOrderDetails";
+import theme from "../../../theme";
+import { tourService } from "../../../services/tour.service";
 
 type Props = {
   items: Order[];
   handleDelete: (order: Order) => void;
-  //   handleSelect: (id: number) => void;
+  onSelect?: (id: number) => void;
 };
 
-export const DynamicOrdersList = ({ items, handleDelete }: Props) => {
+export const DynamicOrdersList = ({ items, handleDelete, onSelect }: Props) => {
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [orderList, setOrderList] = useState<Order[]>(items);
 
@@ -26,6 +29,10 @@ export const DynamicOrdersList = ({ items, handleDelete }: Props) => {
 
   const handleOrderSelect = (orderId: number) => {
     setSelectedOrderId((prev) => (prev === orderId ? null : orderId));
+  };
+
+  const handleSelectItem = (orderId: number) => {
+    onSelect && onSelect(orderId);
   };
 
   return (
@@ -45,9 +52,16 @@ export const DynamicOrdersList = ({ items, handleDelete }: Props) => {
                 {item.order_number}
               </Typography>
             </ListItemButton>
-            <IconButton onClick={() => handleDelete(item)}>
-              <DeleteOutlineIcon />
-            </IconButton>
+
+            {item.status === OrderStatus.delivered ? (
+              <IconButton onClick={() => handleSelectItem(item.order_id)}>
+                <DownloadIcon sx={{ color: theme.palette.primary.dark }} />
+              </IconButton>
+            ) : (
+              <IconButton onClick={() => handleDelete(item)}>
+                <DeleteOutlineIcon />
+              </IconButton>
+            )}
           </ListItem>
           {selectedOrderId === item.order_id && (
             <DynamicTourOrderDetails order={item} />

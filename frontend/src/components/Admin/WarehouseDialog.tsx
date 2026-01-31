@@ -59,8 +59,6 @@ const WarehouseFormModal = ({
     { name: "address", label: "Address", type: "text", multiline: true },
   ];
 
-  console.log("initialData", initialData);
-
   useEffect(() => {
     if (open) {
       setFormData({
@@ -133,7 +131,7 @@ const WarehouseFormModal = ({
       await onSubmit(formData);
       handleDialogClose();
     } catch (error) {
-      console.error("Error saving warehouse:", error);
+      // console.error("Error saving warehouse:", error);
     } finally {
       setLoading(false);
     }

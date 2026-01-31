@@ -13,9 +13,10 @@ import {
 
 interface Props {
   tourMatrix: TourMatrix | null | undefined;
+  label: string;
 }
 
-const CostBreakdown = ({ tourMatrix }: Props) => {
+const CostBreakdown = ({ tourMatrix, label }: Props) => {
   const style = {
     fontSize: "0.9rem",
   };
@@ -53,7 +54,7 @@ const CostBreakdown = ({ tourMatrix }: Props) => {
   return (
     <Stack spacing={0} mt={2}>
       <Typography variant="h6" fontWeight={"bold"}>
-        Cost Breakdown
+        {label}
       </Typography>
 
       <Table
