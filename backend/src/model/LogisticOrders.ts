@@ -213,7 +213,7 @@ export class LogisticOrder {
   }
 
   // Get a specific order by order_number with items and drivers information
-  static async getOrder(order_number: string): Promise<LogisticOrder[]> {
+  static async getOrderDetailsAsync(orderId: number): Promise<LogisticOrder[]> {
     const [rows] = await pool.execute(
       `
     SELECT
@@ -240,10 +240,10 @@ export class LogisticOrder {
     FROM logistic_order lo
     INNER JOIN driver_details dd 
       ON lo.warehouse_id = dd.warehouse_id
-    WHERE lo.order_number = ?
+    WHERE lo.order_id = ?
     GROUP BY lo.order_id;
     `,
-      [order_number],
+      [orderId],
     );
 
     return rows as LogisticOrder[];

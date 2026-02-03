@@ -34,10 +34,10 @@ export const getAllLogisticOrders = async (_req: Request, res: Response) => {
 };
 
 export const getLogisticOrderById = async (_req: Request, res: Response) => {
-  const { order_number } = _req.query;
+  const { id } = _req.query;
 
   try {
-    const orderData = await LogisticOrder.getOrder(order_number as string);
+    const orderData = await LogisticOrder.getOrderDetailsAsync(Number(id));
     res.status(200).json(orderData);
   } catch (error) {
     console.error("Error fetching order:", error);

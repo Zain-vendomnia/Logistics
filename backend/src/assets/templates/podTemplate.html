@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <title>POD</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #fff;
+      }
+      table {
+        border-collapse: collapse;
+      }
+      img {
+        max-width: 100%;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div style="margin: 10px; padding: 10px">
+      <p
+        style="
+          font-size: 12px;
+          color: #555;
+          margin-bottom: 30px;
+          text-align: center;
+        "
+      >
+        Dieser Nachweis wurde maschinell erstellt und ist ohne Unterschrift
+        gültig.
+      </p>
+
+      <div style="margin: 30px">
+        <!-- Header -->
+        <table width="100%">
+          <tr>
+            <td width="70%">
+              <h2>Nachweis</h2>
+              <p><strong>SUNNIVA GmbH</strong></p>
+              <p>Honer Straße 49</p>
+              <p>37269 Eschwege</p>
+            </td>
+            <td width="30%" align="right">
+              <img src="{{LOGO_URL}}" width="200" />
+            </td>
+          </tr>
+        </table>
+
+        <!-- Info Table -->
+        <table width="100%" border="1" cellpadding="10">
+          <tr>
+            <td>Status</td>
+            <td>✔ Erfolg</td>
+          </tr>
+          <tr>
+            <td>Referenz</td>
+            <td>{{ORDER_NUMBER}}</td>
+          </tr>
+          <tr>
+            <td>Name</td>
+            <td>{{FULL_NAME}}</td>
+          </tr>
+          <tr>
+            <td>Adresse</td>
+            <td>{{ADDRESS}}</td>
+          </tr>
+          <tr>
+            <td>Datum</td>
+            <td>{{DATE_TIME}}</td>
+          </tr>
+          <tr>
+            <td>Mitarbeiter</td>
+            <td>{{DRIVER_NAME}}</td>
+          </tr>
+          <tr>
+            <td>Karte</td>
+            <td>{{MAP_IMAGE}}</td>
+          </tr>
+          <tr>
+            <td>Mitarbeiterstandort</td>
+            <td>{{DRIVER_LOCATION_IMAGE}}</td>
+          </tr>
+        </table>
+
+        <h3 style="margin-top: 30px; text-align: center">Anhänge</h3>
+
+        <table width="100%" border="1" cellpadding="10">
+          <tr>
+            <td>Door Step</td>
+            <td>{{DOOR_STEP_IMAGE}}</td>
+          </tr>
+          <tr>
+            <td>Delivered</td>
+            <td>{{DELIVERED_IMAGE}}</td>
+          </tr>
+          <tr>
+            <td>Delivered Modal</td>
+            <td>{{DELIVERED_MODAL_IMAGE}}</td>
+          </tr>
+          <tr>
+            <td>Signature</td>
+            <td>{{SIGNATURE_IMAGE}}</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </body>
+</html>

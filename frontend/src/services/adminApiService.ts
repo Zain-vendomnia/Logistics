@@ -118,6 +118,25 @@ const exportTours = (tourIds: number[] | string[]) =>
     { headers: authHeader() },
   );
 
+const requestPod = async (tourId: number, orderId: number) => {
+  const res = await axios.post(
+    `${API_BaseUrl}orderPod`,
+    { tourId, orderId },
+    { headers: authHeader(), responseType: "blob" },
+  );
+
+  return res.data as Blob;
+};
+const requestSendPod = async (tour_id: number, orderNumber: string) => {
+  const res = await axios.post(
+    `${API_BaseUrl}sendPod`,
+    { tour_id, orderNumber },
+    { headers: authHeader() },
+  );
+
+  return res.data;
+};
+
 const fetchRouteSegmentData = (tour_id: number) =>
   axios.post(
     `${API_BaseUrl}getSegmentRoute`,
@@ -460,6 +479,8 @@ const adminApiService = {
   orderHistoryDetails,
   sendCancelDetails,
   updateOrderStatus,
+  requestPod,
+  requestSendPod,
 };
 
 export default adminApiService;

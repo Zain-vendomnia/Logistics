@@ -15,7 +15,7 @@ export class route_segments {
 
   static async getAllToursCount(): Promise<route_segments[]> {
     const [rows] = await pool.execute(
-      "SELECT COUNT(*) AS count FROM route_segments"
+      "SELECT COUNT(*) AS count FROM route_segments",
     );
     return rows as route_segments[];
   }
@@ -24,12 +24,12 @@ export class route_segments {
     conn: PoolConnection,
     _insertedTourId: number,
     segmentJson: string,
-    order_id: string
+    order_id: string,
   ): Promise<void> {
     // console.log("order_id:", order_id);
     await conn.execute(
       `INSERT INTO route_segments (tour_id, route_response, order_id) VALUES (?, ?, ?)`,
-      [_insertedTourId, segmentJson, order_id]
+      [_insertedTourId, segmentJson, order_id],
     );
   }
 
@@ -37,11 +37,11 @@ export class route_segments {
     // Run the SQL query to get the graphhopper_route for the given tour_id
     const [rows] = await pool.execute(
       `SELECT * FROM route_segments WHERE tour_id = ? ORDER BY created_at ASC`,
-      [_tourId]
+      [_tourId],
     );
     // TypeScript type assertion to ensure we're dealing with RowDataPacket[]
     if (Array.isArray(rows) && rows.length > 0) {
-      return rows;
+      return rows[0];
 
       // const row = rows[0] as { route_response: JSON }; // Explicitly assert the correct type
       // return row.route_response; // Return the graphhopper_route field
@@ -51,11 +51,11 @@ export class route_segments {
   }
 
   static async getAllRouteSegments_TourId(
-    _tourId: number
+    _tourId: number,
   ): Promise<LogisticsRoute[]> {
     const [rows] = await pool.execute(
       `SELECT route_response FROM route_segments WHERE tour_id = ? ORDER BY created_at ASC`,
-      [_tourId]
+      [_tourId],
     );
 
     if (!rows || (Array.isArray(rows) && rows.length === 0)) {
@@ -66,43 +66,42 @@ export class route_segments {
     return routeSegments as LogisticsRoute[];
   }
 
-
-  static async getRoutesegmentImagesRes(_tourId?: number, _orderNumber?: string): Promise<any> {
+  static async getRoutesegmentImagesRes(
+    _tourId?: number,
+    _orderId?: number,
+  ): Promise<any> {
     // Ensure at least one of the parameters is provided
-    if (_tourId === undefined && _orderNumber === undefined) {
+    if (_tourId === undefined && _orderId === undefined) {
       throw new Error("At least one of tour_id or order_id must be provided.");
     }
-
 
     // Build dynamic SQL
     let query = `SELECT * FROM order_images`;
     const conditions: string[] = [];
     const params: any[] = [];
 
-    if (_tourId !== undefined) {
+    if (_tourId) {
       conditions.push(`tour_id = ?`);
       params.push(_tourId);
     }
 
-    if (_orderNumber !== undefined) {
-      conditions.push(`order_number = ?`);
-      params.push(_orderNumber);
+    if (_orderId) {
+      conditions.push(`order_id = ?`);
+      params.push(_orderId);
     }
 
     if (conditions.length > 0) {
-      query += ` WHERE ` + conditions.join(' AND ');
+      query += ` WHERE ` + conditions.join(" AND ");
     }
 
     query += ` ORDER BY created_at ASC`;
 
     const [rows] = await pool.execute(query, params);
 
-    if (Array.isArray(rows) && rows.length > 0) {
-      return rows;
-    } else {
-      throw new Error("No images found for the provided criteria.");
-    }
+    return rows;
+    // if (Array.isArray(rows) && rows.length > 0) {
+    // } else {
+    //   throw new Error("No images found for the provided criteria.");
+    // }
   }
-
 }
-

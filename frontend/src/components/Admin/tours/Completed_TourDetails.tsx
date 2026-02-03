@@ -59,13 +59,15 @@ const CompletedTourDetails = () => {
 
   const {
     xTour,
-    orderPod,
+    podUrl,
+    podBlob,
     tourOrders,
+    loadingPod,
     isTourLoading,
     showPodModal,
-    setShowPodModal,
     handlePreparePOD,
     handleDownloadPOD,
+    closePodModal,
   } = useCompletedTourDetails();
 
   if (!xTour) return null;
@@ -73,7 +75,7 @@ const CompletedTourDetails = () => {
     <>
       <Backdrop
         sx={(theme) => ({ color: "#fff", zIndex: theme.zIndex.modal + 1 })}
-        open={isTourLoading}
+        open={isTourLoading || loadingPod}
       >
         <CircularProgress color="inherit" />
       </Backdrop>
@@ -458,136 +460,37 @@ const CompletedTourDetails = () => {
           </Stack>
         </Stack>
       </Box>
-      {orderPod && (
+
+      {podBlob && (
         <Dialog
-          onClose={() => setShowPodModal(false)}
+          onClose={closePodModal}
           open={showPodModal}
           fullWidth
-          maxWidth={"lg"}
           scroll="paper"
+          // maxWidth="lg"
+          sx={{
+            "& .MuiDialog-paper": {
+              width: { xs: "90%", sm: "80%", md: "70%", lg: "60%" },
+              maxWidth: { xs: "90%", sm: "600px", md: "900px", lg: "1200px" },
+            },
+          }}
         >
-          <DialogTitle
-            fontWeight={"bold"}
-            textAlign={"center"}
-            fontSize={"1.5rem"}
-          >
-            POD - Order {orderPod.order_number}
-          </DialogTitle>
-          <Box sx={{ pb: 2, px: "2%" }}>
+          <Box sx={{ p: 1, pt: 0 }}>
             <DialogContent>
-              <DialogContentText>
-                <Typography variant="body2" color="text.primary" mb={2}>
-                  PLZ 81-82-86-87 BRANKO MITTWOCH 04.06.2025 (Tag 1 von 2)
-                </Typography>
-              </DialogContentText>
-              <Card>
-                <CardContent>
-                  <Box
-                    display="flex"
-                    justifyContent="space-between"
-                    alignItems="flex-start"
-                  >
-                    <Box>
-                      <Typography variant="h5" gutterBottom>
-                        Nachweis
-                      </Typography>
-                      <Typography fontWeight="bold">SUNNIVA GmbH</Typography>
-                      <Typography>Honer Straße 49</Typography>
-                      <Typography>37269 Eschwege</Typography>
-                    </Box>
-                    <Box>
-                      <Box
-                        component="img"
-                        src="/sunnivaLogo.png"
-                        alt="SUNNIVA Logo"
-                        sx={{ width: 220 }}
-                      />
-                    </Box>
-                  </Box>
-                  <Divider sx={{ my: 2 }} />
-
-                  <Stack spacing={1}>
-                    {/* Status */}
-                    <Box display={"flex"} gap={"10%"}>
-                      <Typography variant="body2" color="text.secondary">
-                        Status
-                      </Typography>
-                      <Chip
-                        icon={<CheckCircleIcon color="success" />}
-                        label="Erfolg"
-                        color="success"
-                        variant="outlined"
-                        size="small"
-                      />
-                    </Box>
-
-                    {/* Referenz */}
-                    <Box display={"flex"} gap={"10%"}>
-                      <Typography variant="body2" color="text.secondary">
-                        Referenz
-                      </Typography>
-
-                      <Typography>400242939</Typography>
-                    </Box>
-
-                    {/* Name */}
-                    <Box display={"flex"} gap={"10%"}>
-                      <Typography variant="body2" color="text.secondary">
-                        Name
-                      </Typography>
-
-                      <Typography>Johannes Pöckl</Typography>
-                    </Box>
-
-                    {/* Datum */}
-                    <Box display={"flex"} gap={"10%"}>
-                      <Typography variant="body2" color="text.secondary">
-                        Datum
-                      </Typography>
-
-                      <Typography>04.06.2025 @ 10:32:03</Typography>
-                    </Box>
-                    <Box>
-                      {/* Adresse */}
-                      <Box display={"flex"} gap={"10%"}>
-                        <Typography variant="body2" color="text.secondary">
-                          Adresse
-                        </Typography>
-
-                        <Typography>
-                          Berg-am-Laim-Straße 82, 81673 München
-                        </Typography>
-                      </Box>
-
-                      {/* Notiz */}
-                      <Box display={"flex"} gap={"10%"}>
-                        <Typography variant="body2" color="text.secondary">
-                          Notiz
-                        </Typography>
-
-                        <Typography>-</Typography>
-                      </Box>
-
-                      {/* Mitarbeiter */}
-                      <Box display={"flex"} gap={"10%"}>
-                        <Typography variant="body2" color="text.secondary">
-                          Mitarbeiter
-                        </Typography>
-
-                        <Chip
-                          icon={<PersonIcon />}
-                          label="Branko Tomic"
-                          variant="outlined"
-                          size="small"
-                        />
-                      </Box>
-                    </Box>
-                  </Stack>
-                </CardContent>
-              </Card>
+              {podUrl && (
+                <Box sx={{ height: "75vh", mt: 2 }}>
+                  <iframe
+                    src={podUrl}
+                    width="100%"
+                    height="100%"
+                    style={{ border: "none" }}
+                    title="POD Preview"
+                  />
+                </Box>
+              )}
             </DialogContent>
             <DialogActions>
-              <Button onClick={() => setShowPodModal(false)}>Close</Button>
+              <Button onClick={closePodModal}>Close</Button>
               <Button variant="contained" onClick={handleDownloadPOD}>
                 Downlaod
                 <DownloadIcon sx={{ ml: 0.5 }} />

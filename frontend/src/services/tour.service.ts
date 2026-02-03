@@ -127,8 +127,6 @@ class TourService {
     setSolarModules(modules);
     return modules;
   }
-
-  async downloadPOD(order: Order) {}
 }
 
 export const tourService = new TourService();
