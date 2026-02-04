@@ -53,16 +53,18 @@ export interface Driver {
 interface TourInfoObj {
   id: number;
   tour_name: string;
-  tour_route_color: string;
-  tour_startTime: string;
-  tour_endTime: string;
+  status: string;
+  orderIds: number[];
+
+  route_color: string;
+  startTime: string;
+  endTime: string;
+
   driver: Driver;
-  order_ids: number[];
   orders: LogisticOrder[];
   tour_date: string;
   tour_comments: string;
   warehouseId: number;
-  tour_status: string;
 }
 
 type TourStatus = "confirmed" | "pending" | "completed" | "live";
@@ -146,13 +148,14 @@ class latestOrderServices {
   }
 
   public async getTours(): Promise<TourInfoObj[]> {
+    debugger;
     const { count: currentCount, lastUpdated: currentLastUpdated } =
       await this.fetchTourCount();
     console.log(
       "📊 currentCount:",
       currentCount,
       "| cachedTourCount:",
-      this.cachedTourCount
+      this.cachedTourCount,
     );
 
     if (
@@ -237,14 +240,14 @@ class latestOrderServices {
       "📊 Fresh Count:",
       currentCount,
       "| cachedOrderCount:",
-      this.cachedCount
+      this.cachedCount,
     );
 
     console.log(
       "Fresh lastUpdated:",
       currentLastUpdated,
       "| Cached lastUpdated:",
-      this.cachedOrderLastUpdated
+      this.cachedOrderLastUpdated,
     );
 
     if (
@@ -272,7 +275,7 @@ class latestOrderServices {
 
       const allDrivers = data.flatMap((order) => order.drivers || []);
       const uniqueDrivers = Array.from(
-        new Map(allDrivers.map((d) => [d.driver_id, d])).values()
+        new Map(allDrivers.map((d) => [d.driver_id, d])).values(),
       );
 
       // console.log("🚚 Unique drivers ----> last Order service:", uniqueDrivers);
@@ -311,7 +314,7 @@ class latestOrderServices {
 
       // Combine and deduplicate
       this.drivers = Array.from(
-        new Map([...orderDrivers].map((d) => [d.driver_id, d])).values()
+        new Map([...orderDrivers].map((d) => [d.driver_id, d])).values(),
       );
 
       console.log("🚛 All available drivers:", this.drivers);

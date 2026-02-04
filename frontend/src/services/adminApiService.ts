@@ -49,6 +49,7 @@ const fetchToursByStatus = async (status: TourStatus): Promise<TourRow[]> => {
 
 const fetchAllTours = () =>
   axios.get(`${API_BaseUrl}getAlltours`, { headers: authHeader() });
+
 const fetchOrderCount = () =>
   axios.get(`${API_BaseUrl}ordercount`, { headers: authHeader() });
 

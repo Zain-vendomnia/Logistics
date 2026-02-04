@@ -90,7 +90,7 @@ const SpecTable = ({
   const [selected, setSelected] = useState<number[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [currentTour, setCurrentTour] = useState<TourRow | null>(null);
   const [viewPicklistModalOpen, setViewPicklistModalOpen] = useState(false);
 
@@ -107,14 +107,14 @@ const SpecTable = ({
     const term = searchTerm.toLowerCase();
     return tours.filter((t) =>
       [t.tour_name, t.driver_name, t.tour_date, t.id.toString()].some(
-        (f) => f && f.toLowerCase().includes(term)
-      )
+        (f) => f && f.toLowerCase().includes(term),
+      ),
     );
   }, [tours, searchTerm]);
 
   const handleSelect = (id: number) =>
     setSelected((s) =>
-      s.includes(id) ? s.filter((i) => i !== id) : [...s, id]
+      s.includes(id) ? s.filter((i) => i !== id) : [...s, id],
     );
 
   const handleAction = async (action: "delete" | "merge" | "export") => {
@@ -197,7 +197,7 @@ const SpecTable = ({
                     }
                     onChange={(e) =>
                       setSelected(
-                        e.target.checked ? filteredTours.map((t) => t.id) : []
+                        e.target.checked ? filteredTours.map((t) => t.id) : [],
                       )
                     }
                   />
@@ -323,14 +323,14 @@ const SpecTable = ({
                 >
                   {action.label}
                 </MenuItem>
-              )
+              ),
           )}
       </Menu>
 
       <ViewPicklistModal
         open={viewPicklistModalOpen}
         handleClose={() => setViewPicklistModalOpen(false)}
-        tourData={currentTour}
+        tourId={currentTour && currentTour?.id}
         onSendEmail={(success) => {
           if (success) {
             showSnackbar("Email Sent Successfully!", "success");

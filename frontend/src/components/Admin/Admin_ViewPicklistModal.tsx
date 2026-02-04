@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Modal,
   Box,
@@ -25,6 +25,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import latestOrderServices from "./AdminServices/latestOrderServices";
 
 import { generatePdfFromElement, blobToBase64 } from "../../utils/tourHelper";
+import {
+  NotificationSeverity,
+  useNotificationStore,
+} from "../../store/useNotificationStore";
 
 const modalStyle = {
   overflow: "auto",
@@ -151,21 +155,22 @@ export interface PicklistData {
 
 interface ViewPicklistModalProps {
   open: boolean;
+  tourId: number | null;
   handleClose: () => void;
-  tourData: any;
   onSendEmail: (success: boolean) => void; // <-- updated here
 }
 
-const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({
+const ViewPicklistModal = ({
   open,
   handleClose,
-  tourData,
+  tourId,
   onSendEmail,
-}) => {
+}: ViewPicklistModalProps) => {
+  const { showNotification } = useNotificationStore();
   const [picklistData, setPicklistData] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [Btnloading, setBtnloading] = useState(false);
-  const [selectedTour, setSelectedTour] = useState<any | null>(null);
+  // const [selectedTour, setSelectedTour] = useState<any | null>(null);
 
   const [activeTab, setActiveTab] = useState(0);
 
@@ -174,31 +179,41 @@ const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({
   };
 
   useEffect(() => {
-    if (open && tourData?.id) {
-      fetchPicklistData(tourData.id);
+    if (!tourId) return;
+    if (open && tourId) {
+      fetchPicklistData(tourId);
     }
-  }, [open, tourData]);
+  }, [open, tourId]);
 
-  const fetchPicklistData = async (tourId: string) => {
+  const fetchPicklistData = useCallback(async (tourId: number) => {
+    if (!tourId) return;
     setLoading(true);
 
     try {
       const instance = latestOrderServices.getInstance();
       const toursdata = await instance.getTours();
       const matchedTour = toursdata.find(
-        (tour: any) => tour.id === Number(tourId)
+        (tour: any) => tour.id === Number(tourId),
       );
       if (matchedTour) {
         setPicklistData(matchedTour);
       } else {
         console.error("Tour not found");
+        showNotification({
+          message: "Tour not found",
+          severity: NotificationSeverity.Warning,
+        });
       }
     } catch (error) {
       console.error("Error fetching picklist data:", error);
+      showNotification({
+        message: `Error fetching picklist data`,
+        severity: NotificationSeverity.Error,
+      });
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const handleSendEmail = async () => {
     if (!picklistData) return;
@@ -206,12 +221,12 @@ const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({
     const picklistDocHtml = generatePicklistEmailHtml(
       picklistData,
       aggregatedItems,
-      totalQuantity
+      totalQuantity,
     );
     const returnDocHtml = generateReturnlistEmailHtml(
       picklistData,
       aggregatedItems,
-      totalQuantity
+      totalQuantity,
     );
     const orderDetailsHtml = generateOrderDetailsEmailHtml(picklistData);
 
@@ -290,7 +305,7 @@ const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({
       // Wait a bit in case it's just rendered
 
       await adminApiService.sendEmail({
-        to: "muhammad.jahanzaibbaloch@vendomnia.com", // Update with actual email
+        to: "raja.zainulabadin@vendomnia.com", // Update with actual email
         subject: "Picklist Documents",
         html: fullEmailHtml,
         attachment,
@@ -350,7 +365,7 @@ const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({
       ?.map((order: { zipcode: string }) => order.zipcode)
       .filter(
         (zip: string, index: number, self: string[]) =>
-          zip && self.indexOf(zip) === index
+          zip && self.indexOf(zip) === index,
       );
 
     if (!uniqueZips || uniqueZips.length === 0) return " N/A";
@@ -481,7 +496,7 @@ const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({
                               .map((day: string, index: number) =>
                                 index === 0
                                   ? ` ${new Date(day).toLocaleDateString("en-GB")}`
-                                  : `\n                     ${new Date(day).toLocaleDateString("en-GB")}`
+                                  : `\n                     ${new Date(day).toLocaleDateString("en-GB")}`,
                               )
                               .join("\n");
                           })()
@@ -582,7 +597,7 @@ const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({
                               }}
                             ></TableCell>
                           </TableRow>
-                        )
+                        ),
                       )}
                     </TableBody>
                   </Table>
@@ -663,14 +678,14 @@ const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({
                           const itemNumbers =
                             order.items
                               ?.map(
-                                (item: any) => item.slmdl_articleordernumber
+                                (item: any) => item.slmdl_articleordernumber,
                               )
                               .join(", ") || "";
                           const totalQuantity =
                             order.items?.reduce(
                               (sum: number, item: any) =>
                                 sum + (item.quantity || 0),
-                              0
+                              0,
                             ) || 0;
 
                           const isEmpty = ![
@@ -754,7 +769,7 @@ const ViewPicklistModal: React.FC<ViewPicklistModalProps> = ({
                               </td>
                             </tr>
                           );
-                        }
+                        },
                       )}
                     </tbody>
                   </table>

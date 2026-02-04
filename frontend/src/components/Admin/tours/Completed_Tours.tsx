@@ -37,10 +37,17 @@ const CompletedTours = () => {
 
   const rowActions: RowAction[] = [
     {
-      key: "gn-pod",
+      key: "generate_pod",
       label: "Request POD",
       onClick: (tour: TourRow) => requestPOD(tour),
     },
+    // {
+    //   key: "picklist",
+    //   label: "View Picklist",
+    //   onClick: () => {
+    //     console.log("View Pick List button clicked");
+    //   },
+    // },
   ];
 
   const handleTourClick = (tour: TourRow) => {
