@@ -7,26 +7,27 @@ import { sendWhatsAppMessage } from '../controller/notification/whatsappControll
 const router = Router();
 
 // Send email route
-router.post('/send-email', async (req: Request, res: Response) => {
-  const { to, subject, templateName, templateData} = req.body;
+router.post('/send-email', sendEmail);
+// router.post('/send-email', async (req: Request, res: Response) => {
+//   const { to, subject, templateName, templateData} = req.body;
 
 
-  // // Check for required fields
-  if (!to || !subject || !templateName || !templateData) {
-    return res.status(400).json({ error: 'Missing required fields' });
-  }
+//   // // Check for required fields
+//   if (!to || !subject || !templateName || !templateData) {
+//     return res.status(400).json({ error: 'Missing required fields' });
+//   }
 
-  try {
+//   try {
 
-    // Use the email controller to send the email (passing HTML content as 'message')
-    const emailResponse = await sendEmail( to, subject, templateName, templateData );
+//     // Use the email controller to send the email (passing HTML content as 'message')
+//     const emailResponse = await sendEmail( to, subject, templateName, templateData );
 
-    res.json({ message: 'Email sent successfully', response: emailResponse });
-  } catch (error) {
-    console.error('Error in send-email route:', error);
-    res.status(500).json({ error: 'Failed to send email' });
-  }
-});
+//     res.json({ message: 'Email sent successfully', response: emailResponse });
+//   } catch (error) {
+//     console.error('Error in send-email route:', error);
+//     res.status(500).json({ error: 'Failed to send email' });
+//   }
+// });
 
 // Send sms route
 router.post('/send-sms', async (req: Request, res: Response) => {

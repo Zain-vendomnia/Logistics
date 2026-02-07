@@ -1,6 +1,6 @@
 import pool from "../config/database";
 import twilioService from "./twilioService";
-import { sendEmailSMTP } from "../controller/Admin_Api/sendEmail.controller";
+import { EmailPayload, sendEmailAsync } from "./smpt.service";
 import { buildEmailTemplate } from "../notification-assets/templates/email/chat-email";
 import {
   emitMessageToOrder,
@@ -69,7 +69,7 @@ const getMostRecentMessage = (messages: Message[]): Message | null => {
   // Sort by created_at descending and return the first (most recent)
   const sorted = [...messages].sort(
     (a, b) =>
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
   );
 
   return sorted[0];
@@ -100,7 +100,7 @@ const getCustomerInfo = async (orderId: number): Promise<CustomerInfo> => {
   } catch (error) {
     console.error(
       `❌ Error fetching customer info for order ${orderId}:`,
-      error
+      error,
     );
     throw error;
   }
@@ -111,7 +111,7 @@ const getCustomerInfo = async (orderId: number): Promise<CustomerInfo> => {
  */
 export const getConversationByOrderId = async (
   orderId: number,
-  includeCustomerInfo: boolean = false
+  includeCustomerInfo: boolean = false,
 ): Promise<ConversationData> => {
   try {
     console.log(`📖 Fetching conversation for order: ${orderId}`);
@@ -143,7 +143,7 @@ export const getConversationByOrderId = async (
 
     if (rows.length === 0) {
       console.log(
-        `ℹ️ No conversation exists for order ${orderId}, returning empty`
+        `ℹ️ No conversation exists for order ${orderId}, returning empty`,
       );
       return {
         order_id: orderId,
@@ -170,7 +170,7 @@ export const getConversationByOrderId = async (
         console.error(`❌ JSON parse error for order ${orderId}:`, jsonError);
         console.error(`📄 Invalid JSON content:`, row.convo);
         throw new Error(
-          `Invalid conversation data format for order ${orderId}`
+          `Invalid conversation data format for order ${orderId}`,
         );
       }
     }
@@ -179,11 +179,11 @@ export const getConversationByOrderId = async (
     const lastMessage = getMostRecentMessage(messages);
     const lastChannel = lastMessage?.communication_channel || null;
     const unreadCount = messages.filter(
-      (m) => m.direction === "inbound" && !m.is_read
+      (m) => m.direction === "inbound" && !m.is_read,
     ).length;
 
     console.log(
-      `✅ Successfully retrieved conversation for order ${orderId} | Messages: ${messages.length} | Unread: ${unreadCount}`
+      `✅ Successfully retrieved conversation for order ${orderId} | Messages: ${messages.length} | Unread: ${unreadCount}`,
     );
 
     return {
@@ -196,7 +196,7 @@ export const getConversationByOrderId = async (
   } catch (error) {
     console.error(
       `❌ Error in getConversationByOrderId for order ${orderId}:`,
-      error
+      error,
     );
 
     if (error instanceof Error) {
@@ -212,7 +212,7 @@ export const getConversationByOrderId = async (
     throw new Error(
       error instanceof Error
         ? error.message
-        : "Failed to fetch conversation from database"
+        : "Failed to fetch conversation from database",
     );
   }
 };
@@ -226,7 +226,7 @@ const detectChannel = (messages: Message[]): "whatsapp" | "sms" | "email" => {
     .filter((m) => m.direction === "inbound")
     .sort(
       (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
     )[0];
 
   if (lastInboundMessage) {
@@ -237,7 +237,7 @@ const detectChannel = (messages: Message[]): "whatsapp" | "sms" | "email" => {
     .filter((m) => m.direction === "outbound")
     .sort(
       (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
     )[0];
 
   return lastOutboundMessage?.communication_channel || "email";
@@ -323,15 +323,16 @@ export const sendMessageToCustomer = async (params: SendMessageParams) => {
 
         // NEW: Build HTML template and send via SMTP
         const emailHtml = buildEmailTemplate(message, customerInfo.name);
-        const emailResult = await sendEmailSMTP({
+        const payload: EmailPayload = {
           to: customerInfo.email,
           subject: "Order Arrival",
           html: emailHtml,
           replyTo: "support@reply.vendomnia.com",
-        });
+        };
+        const emailResult = await sendEmailAsync(payload);
         newMessage.message_id = emailResult.messageId;
         newMessage.from = "service@vendomnia.com";
-        newMessage.status = emailResult.status;
+        newMessage.status = emailResult.status.toString();
         break;
 
       default:
@@ -349,7 +350,7 @@ export const sendMessageToCustomer = async (params: SendMessageParams) => {
       updatedMessages,
       newMessage,
       true,
-      isFirstMessage
+      isFirstMessage,
     );
     emitMessageToOrder(orderId.toString(), newMessage);
     broadcastOutboundMessage(orderId, newMessage, customerInfo);
@@ -358,7 +359,7 @@ export const sendMessageToCustomer = async (params: SendMessageParams) => {
     invalidateCustomerListCache();
 
     console.log(
-      `✅ Message sent successfully | Order: ${orderId} | ID: ${newMessage.message_id}`
+      `✅ Message sent successfully | Order: ${orderId} | ID: ${newMessage.message_id}`,
     );
 
     return { success: true, message: newMessage };
@@ -376,7 +377,7 @@ const saveConversation = async (
   messages: Message[],
   newMessage: Message | null = null,
   convoIsRead: boolean = false,
-  isInsert: boolean = false
+  isInsert: boolean = false,
 ) => {
   try {
     const convoJson = JSON.stringify(messages);
@@ -397,8 +398,8 @@ const saveConversation = async (
     console.log(
       `💾 Saving conversation | Order: ${orderId} | LastMessage: "${lastMessageText?.substring(
         0,
-        50
-      )}..." | Channel: ${lastChannel}`
+        50,
+      )}..." | Channel: ${lastChannel}`,
     );
 
     if (isInsert) {
@@ -448,7 +449,7 @@ const saveConversation = async (
 const saveConversationReadOnly = async (
   orderId: number,
   messages: Message[],
-  convoIsRead: boolean = false
+  convoIsRead: boolean = false,
 ) => {
   try {
     const convoJson = JSON.stringify(messages);
@@ -466,7 +467,7 @@ const saveConversationReadOnly = async (
   } catch (error) {
     console.error(
       `❌ Error saving conversation (read-only) for order ${orderId}:`,
-      error
+      error,
     );
     throw error;
   }
@@ -477,11 +478,11 @@ const saveConversationReadOnly = async (
  */
 export const receiveInboundMessage = async (
   orderId: number,
-  message: Message
+  message: Message,
 ) => {
   try {
     console.log(
-      `📥 Receiving inbound message | Order: ${orderId} | Channel: ${message.communication_channel}`
+      `📥 Receiving inbound message | Order: ${orderId} | Channel: ${message.communication_channel}`,
     );
 
     const conversation = await getConversationByOrderId(orderId);
@@ -494,7 +495,7 @@ export const receiveInboundMessage = async (
       updatedMessages,
       message,
       false,
-      isFirstMessage
+      isFirstMessage,
     );
     await updateGlobalUnreadCount();
     emitMessageToOrder(orderId.toString(), message);
@@ -521,7 +522,7 @@ export const markMessagesAsRead = async (orderId: number): Promise<void> => {
     const conversation = await getConversationByOrderId(orderId);
 
     const unreadCount = conversation.messages.filter(
-      (msg) => msg.direction === "inbound" && !msg.is_read
+      (msg) => msg.direction === "inbound" && !msg.is_read,
     ).length;
 
     if (unreadCount === 0) {
@@ -548,7 +549,7 @@ export const markMessagesAsRead = async (orderId: number): Promise<void> => {
     await updateGlobalUnreadCount();
 
     console.log(
-      `✅ Marked ${unreadCount} messages as read | Order: ${orderId}`
+      `✅ Marked ${unreadCount} messages as read | Order: ${orderId}`,
     );
   } catch (error) {
     console.error("❌ Error marking messages as read:", error);
@@ -564,18 +565,18 @@ export const updateMessageStatusById = async (
   messageId: string,
   status: string,
   errorCode?: string | null,
-  errorMessage?: string | null
+  errorMessage?: string | null,
 ) => {
   try {
     const conversation = await getConversationByOrderId(orderId);
 
     const idx = conversation.messages.findIndex(
-      (msg) => msg.message_id === messageId
+      (msg) => msg.message_id === messageId,
     );
 
     if (idx === -1) {
       console.log(
-        `⚠️ Message not found | Order: ${orderId} | MessageID: ${messageId}`
+        `⚠️ Message not found | Order: ${orderId} | MessageID: ${messageId}`,
       );
       return false;
     }
@@ -607,14 +608,14 @@ export const updateMessageStatusById = async (
     invalidateCustomerListCache();
 
     console.log(
-      `✅ Message status updated | Order: ${orderId} | MessageID: ${messageId} | Status: ${message.status}`
+      `✅ Message status updated | Order: ${orderId} | MessageID: ${messageId} | Status: ${message.status}`,
     );
 
     return true;
   } catch (err) {
     console.error(
       `❌ updateMessageStatusById error | Order: ${orderId} | MessageID: ${messageId}`,
-      err
+      err,
     );
     throw err;
   }

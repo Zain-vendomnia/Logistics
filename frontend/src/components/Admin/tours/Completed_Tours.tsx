@@ -28,6 +28,7 @@ const CompletedTours = () => {
   }, [loadTours]);
 
   const requestPOD = async (req: TourRow) => {
+    debugger
     try {
       generatePOD(req.id.toString(), req.id, req.driver_id);
     } catch (error) {

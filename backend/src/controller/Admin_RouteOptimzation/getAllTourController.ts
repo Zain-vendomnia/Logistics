@@ -31,7 +31,7 @@ export const getAllTourController = async (_req: any, res: any) => {
             : tour.order_ids;
 
         if (Array.isArray(rawOrderIds)) {
-          orderIds = rawOrderIds
+          orderIds = rawOrderIds 
             .map((id: any) => Number(id))
             .filter((id: number) => !isNaN(id));
         }

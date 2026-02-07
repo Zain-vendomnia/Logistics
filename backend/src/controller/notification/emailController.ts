@@ -1,44 +1,27 @@
-import nodemailer from 'nodemailer';
-import { renderTemplate } from '../../notification-assets/utils/emailTemplates';
+import { Request, Response } from "express";
+import { renderTemplate } from "../../notification-assets/utils/emailTemplates";
+import { EmailPayload, sendEmailAsync } from "../../services/smpt.service";
 
-import dotenv from 'dotenv';
-dotenv.config();
+export const sendEmail = async (req: Request, res: Response) => {
+  const { to, subject, templateName, templateData } = req.body;
 
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_SMTP,   // or your SMTP host
-  port: 587,                // 587 for TLS
-  secure: false,            // false = TLS (STARTTLS), true = SSL (port 465)
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
-
-const sendEmail = async (
-  to: string,
-  subject: string,
-  templateName: string,
-  templateData: Record<string, string | number>
-): Promise<string> => {
-
-  const htmlContent = renderTemplate(templateName, templateData);
-
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to,
-    subject,
-    html: htmlContent,
-  };
+  if (!to || !subject || !templateName || !templateData) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
 
   try {
-    const info = await transporter.sendMail(mailOptions);
-    return info.response;
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      throw new Error(`Failed to send email: ${error.message}`);
-    }
-    throw new Error('Failed to send email: Unknown error occurred.');
+    const htmlContent = renderTemplate(templateName, templateData);
+
+    const payload: EmailPayload = {
+      to,
+      subject,
+      html: htmlContent,
+    };
+
+    await sendEmailAsync(payload);
+    res.status(201).json({ error: "Email sent successfully" });
+  } catch (error) {
+    console.error("Error in send-email route:", error);
+    res.status(500).json({ error: "Failed to send email" });
   }
 };
-
-export { sendEmail };
